@@ -1,12 +1,12 @@
 // ══ NETLIFY FUNCTION : ÉCOLES ══
 // Source : data.education.gouv.fr
-// Syntaxe correcte : within_distance(position, geom'POINT(lon lat)', Xkm)
+// Stratégie : filtrer par code commune INSEE (plus fiable que within_distance)
 export default async (req) => {
   const url = new URL(req.url);
   const lat = parseFloat(url.searchParams.get('lat'));
   const lon = parseFloat(url.searchParams.get('lon'));
-  const distM = parseInt(url.searchParams.get('dist') || '1000');
-  const distKm = (distM / 1000).toFixed(1) + 'km';
+  const codeInsee = url.searchParams.get('codeInsee') || '';
+  const dist = parseInt(url.searchParams.get('dist') || '1500');
 
   if (!lat || !lon) {
     return new Response(JSON.stringify({ error: 'lat et lon requis' }), {
@@ -15,38 +15,53 @@ export default async (req) => {
   }
 
   try {
-    // Format correct : lon AVANT lat dans POINT, distance en km
-    const where = `within_distance(position,geom'POINT(${lon} ${lat})',${distKm})`;
-    const ecoUrl = `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=${encodeURIComponent(where)}&limit=25&select=nom_etablissement,type_etablissement,statut_public_prive,adresse1,code_postal,nom_commune,latitude,longitude`;
+    let ecoUrl;
+
+    // Méthode 1 : par code commune INSEE si disponible (plus fiable)
+    if (codeInsee) {
+      ecoUrl = `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=code_commune%3D%22${codeInsee}%22&limit=30&select=nom_etablissement,type_etablissement,statut_public_prive,adresse1,code_postal,nom_commune,latitude,longitude`;
+    } else {
+      // Méthode 2 : bounding box autour des coordonnées
+      const deg = dist / 111000;
+      const latMin = lat - deg, latMax = lat + deg;
+      const lonMin = lon - deg, lonMax = lon + deg;
+      ecoUrl = `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=latitude>${latMin} AND latitude<${latMax} AND longitude>${lonMin} AND longitude<${lonMax}&limit=30&select=nom_etablissement,type_etablissement,statut_public_prive,adresse1,code_postal,nom_commune,latitude,longitude`;
+    }
 
     const r = await fetch(ecoUrl, {
       headers: { 'Accept': 'application/json' },
       signal: AbortSignal.timeout(10000)
     });
 
-    if (!r.ok) throw new Error(`API Éducation ${r.status}: ${await r.text()}`);
+    if (!r.ok) {
+      const errText = await r.text();
+      throw new Error(`API Éducation ${r.status}: ${errText.substring(0, 100)}`);
+    }
 
     const data = await r.json();
     const etablissements = data.results || [];
 
-    // Calculer distance depuis l'adresse
-    const withDist = etablissements.map(e => {
-      if (!e.latitude || !e.longitude) return { ...e, distanceM: distM };
-      const dLat = (parseFloat(e.latitude) - lat) * 111000;
-      const dLon = (parseFloat(e.longitude) - lon) * 111000 * Math.cos(lat * Math.PI / 180);
-      return { ...e, distanceM: Math.round(Math.sqrt(dLat * dLat + dLon * dLon)) };
-    }).sort((a, b) => a.distanceM - b.distanceM);
+    // Calculer distance réelle depuis l'adresse
+    const withDist = etablissements
+      .filter(e => e.latitude && e.longitude)
+      .map(e => {
+        const dLat = (parseFloat(e.latitude) - lat) * 111000;
+        const dLon = (parseFloat(e.longitude) - lon) * 111000 * Math.cos(lat * Math.PI / 180);
+        return { ...e, distanceM: Math.round(Math.sqrt(dLat * dLat + dLon * dLon)) };
+      })
+      .filter(e => e.distanceM <= dist * 1.5) // garder dans rayon élargi
+      .sort((a, b) => a.distanceM - b.distanceM);
 
     const types = {
-      maternelle: etablissements.filter(e => (e.type_etablissement||'').toLowerCase().includes('maternelle')).length,
-      elementaire: etablissements.filter(e => (e.type_etablissement||'').toLowerCase().includes('élémentaire') || (e.type_etablissement||'').toLowerCase().includes('elementaire')).length,
-      college: etablissements.filter(e => (e.type_etablissement||'').toLowerCase().includes('collège') || (e.type_etablissement||'').toLowerCase().includes('college')).length,
-      lycee: etablissements.filter(e => (e.type_etablissement||'').toLowerCase().includes('lycée') || (e.type_etablissement||'').toLowerCase().includes('lycee')).length,
+      maternelle: withDist.filter(e => (e.type_etablissement||'').toLowerCase().includes('maternelle')).length,
+      elementaire: withDist.filter(e => (e.type_etablissement||'').toLowerCase().includes('lémentaire') || (e.type_etablissement||'').toLowerCase().includes('primaire')).length,
+      college: withDist.filter(e => (e.type_etablissement||'').toLowerCase().includes('coll')).length,
+      lycee: withDist.filter(e => (e.type_etablissement||'').toLowerCase().includes('lyc')).length,
     };
 
     return new Response(JSON.stringify({
       success: true,
-      total: etablissements.length,
+      total: withDist.length,
       types,
       etablissements: withDist.slice(0, 12).map(e => ({
         nom: e.nom_etablissement,
@@ -56,8 +71,8 @@ export default async (req) => {
         commune: e.nom_commune,
         codePostal: e.code_postal,
         distanceM: e.distanceM,
-        lat: parseFloat(e.latitude) || null,
-        lon: parseFloat(e.longitude) || null
+        lat: parseFloat(e.latitude),
+        lon: parseFloat(e.longitude)
       })),
       source: 'Annuaire Éducation Nationale · data.education.gouv.fr',
       dateExtraction: new Date().toISOString()

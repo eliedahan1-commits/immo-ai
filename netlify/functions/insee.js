@@ -1,105 +1,83 @@
 // ══ NETLIFY FUNCTION : INSEE ══
-// Source : geo.api.gouv.fr + API données locales INSEE
-// Appel : /api/insee?codeInsee=92012
-
+// Source : geo.api.gouv.fr (population, superficie, revenus)
 export default async (req) => {
   const url = new URL(req.url);
-  const codeInsee = url.searchParams.get('codeInsee');
-  const lat = url.searchParams.get('lat');
-  const lon = url.searchParams.get('lon');
+  const lat = parseFloat(url.searchParams.get('lat'));
+  const lon = parseFloat(url.searchParams.get('lon'));
+  const codeInsee = url.searchParams.get('codeInsee') || '';
 
-  if (!codeInsee && (!lat || !lon)) {
-    return new Response(JSON.stringify({ error: 'codeInsee ou lat+lon requis' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+  if (!lat || !lon) {
+    return new Response(JSON.stringify({ error: 'lat et lon requis' }), {
+      status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     });
   }
 
   try {
-    let insee = codeInsee;
+    // Trouver la commune via coordonnées GPS
+    const geoUrl = codeInsee
+      ? `https://geo.api.gouv.fr/communes/${codeInsee}?fields=nom,population,superficie,codesPostaux,codeDepartement`
+      : `https://geo.api.gouv.fr/communes?lat=${lat}&lon=${lon}&fields=nom,population,superficie,codesPostaux,codeDepartement&format=json&limit=1`;
 
-    // Si pas de code INSEE, le trouver via geo.api.gouv.fr
-    if (!insee && lat && lon) {
-      const geoRes = await fetch(
-        `https://geo.api.gouv.fr/communes?lat=${lat}&lon=${lon}&fields=code,nom,population,codesPostaux&format=json`,
-        { signal: AbortSignal.timeout(5000) }
-      );
-      if (geoRes.ok) {
-        const geoData = await geoRes.json();
-        if (geoData?.[0]) {
-          insee = geoData[0].code;
-        }
-      }
-    }
+    const geoRes = await fetch(geoUrl, { signal: AbortSignal.timeout(6000) });
+    if (!geoRes.ok) throw new Error(`geo.api ${geoRes.status}`);
 
-    if (!insee) throw new Error('Code INSEE introuvable');
+    const geoData = await geoRes.json();
+    const commune = Array.isArray(geoData) ? geoData[0] : geoData;
+    if (!commune) throw new Error('Commune introuvable');
 
-    // Données communes via geo.api.gouv.fr
-    const communeRes = await fetch(
-      `https://geo.api.gouv.fr/communes/${insee}?fields=nom,population,superficie,codesPostaux,codeDepartement,codeRegion`,
-      { signal: AbortSignal.timeout(5000) }
-    );
-
-    const commune = communeRes.ok ? await communeRes.json() : {};
-
-    // Données statistiques via API INSEE données locales
-    // Cube : population, logements, revenus médians
-    const statsUrl = `https://api.insee.fr/donnees-locales/V0.1/donnees/geo-REVMEDIAN@GEO2021COM2021/COM-${insee}.all`;
-    let revenuMedian = null;
-    try {
-      const statsRes = await fetch(statsUrl, {
-        headers: { 'Accept': 'application/json' },
-        signal: AbortSignal.timeout(6000)
-      });
-      if (statsRes.ok) {
-        const statsData = await statsRes.json();
-        // Parser la réponse SDMX-JSON
-        const obs = statsData?.dataSets?.[0]?.series?.['0:0:0']?.observations;
-        if (obs) {
-          const vals = Object.values(obs);
-          revenuMedian = vals?.[0]?.[0] ? Math.round(vals[0][0]) : null;
-        }
-      }
-    } catch { /* revenu non disponible */ }
-
-    // Densité
-    const superficie = commune.superficie || 1;
     const population = commune.population || 0;
-    const densite = superficie > 0 ? Math.round(population / (superficie / 100)) : null;
+    const superficie = commune.superficie || 1; // geo.api retourne en km²
+    // Densité = habitants / km²
+    const densite = superficie > 0 ? Math.round(population / superficie) : null;
+
+    // Revenus médians via API données locales INSEE (Filosofi)
+    // Code commune = commune.code ou codeInsee
+    const communeCode = codeInsee || commune.code || '';
+    let revenuMedian = null;
+    let revenuMensuel = null;
+
+    if (communeCode) {
+      try {
+        // API Filosofi revenus par commune
+        const filosUrl = `https://data.opendatasoft.com/api/explore/v2.1/catalog/datasets/revenus-filosofi-des-menages-par-commune@public/records?where=code_commune_de_la_commune%3D%22${communeCode}%22&limit=1&select=median_level_of_standard_of_living_euros`;
+        const filosRes = await fetch(filosUrl, { signal: AbortSignal.timeout(5000) });
+        if (filosRes.ok) {
+          const filosData = await filosRes.json();
+          const val = filosData.results?.[0]?.median_level_of_standard_of_living_euros;
+          if (val) {
+            revenuMedian = Math.round(parseFloat(val));
+            revenuMensuel = Math.round(revenuMedian / 12);
+          }
+        }
+      } catch { /* revenus non disponibles */ }
+    }
 
     return new Response(JSON.stringify({
       success: true,
       commune: {
         nom: commune.nom,
-        codeInsee: insee,
+        codeInsee: communeCode,
         population,
-        superficie: commune.superficie,
+        superficie,
         densite,
         codesPostaux: commune.codesPostaux,
-        departement: commune.codeDepartement,
-        region: commune.codeRegion
+        departement: commune.codeDepartement
       },
       revenus: {
         medianAnnuel: revenuMedian,
-        medianMensuel: revenuMedian ? Math.round(revenuMedian / 12) : null,
+        medianMensuel: revenuMensuel,
         annee: 2021
       },
       source: 'INSEE Filosofi + geo.api.gouv.fr',
       dateExtraction: new Date().toISOString()
     }), {
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'public, max-age=2592000' // Cache 30 jours
-      }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=2592000' }
     });
 
   } catch (error) {
     return new Response(JSON.stringify({ success: false, error: error.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     });
   }
 };
-
 export const config = { path: '/api/insee' };
