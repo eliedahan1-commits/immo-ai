@@ -1700,7 +1700,7 @@ function showINSEEDetail(){
       <div class="stat-box"><span class="stat-n">${r?.medianMensuel?.toLocaleString('fr-FR')||'—'} €</span><span class="stat-l">Rev. médian/mois</span></div>
     </div>
     <p style="font-size:.75rem;color:var(--muted)">Département ${c?.departement||'—'} · Code INSEE ${c?.codeInsee||'—'}</p>
-    ${r?.medianMensuel?`<p style="font-size:.75rem;margin-top:.4rem">Revenu médian : <strong>${r.medianAnnuel?.toLocaleString('fr-FR')||'—'} €/an</strong> soit <strong>${r.medianMensuel?.toLocaleString('fr-FR')||'—'} €/mois</strong> (Filosofi ${r.annee||'2021'})</p>`:'<p style="font-size:.75rem;color:var(--muted);margin-top:.4rem">Revenus médians : données non disponibles via l'API</p>'}
+    ${r?.medianMensuel?`<p style="font-size:.75rem;margin-top:.4rem">Revenu médian : <strong>${r.medianAnnuel?.toLocaleString('fr-FR')||'—'} €/an</strong> soit <strong>${r.medianMensuel?.toLocaleString('fr-FR')||'—'} €/mois</strong> (Filosofi ${r.annee||'2021'})</p>`:'<p style="font-size:.75rem;color:var(--muted);margin-top:.4rem">Revenus médians : données non disponibles via l&#39;API</p>'}
     <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : ${d.source}</p>`);
 }
 
