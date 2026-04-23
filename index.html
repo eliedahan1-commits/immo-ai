@@ -76,7 +76,7 @@ aside{
 /* Nav */
 .nav-section{
   padding:.6rem 1rem .2rem;
-  font-size:.55rem;color:rgba(255,255,255,.5);
+  font-size:.55rem;color:rgba(255,255,255,.72);
   letter-spacing:.18em;text-transform:uppercase;margin-top:.4rem;
 }
 .nav-item{
@@ -114,7 +114,7 @@ aside{
 .sidebar-foot{
   margin-top:auto;padding:.85rem 1.1rem;
   border-top:1px solid rgba(255,255,255,.08);
-  font-size:.6rem;color:rgba(255,255,255,.4);
+  font-size:.6rem;color:rgba(255,255,255,.65);
 }
 
 /* ══ MAIN ══ */
@@ -231,7 +231,7 @@ aside{
 }
 .hero-stat{text-align:center;}
 .hero-stat-n{font-family:'Cormorant Garamond',serif;font-size:1.8rem;color:var(--gold2);font-style:italic;}
-.hero-stat-l{font-size:.6rem;color:rgba(255,255,255,.25);letter-spacing:.12em;text-transform:uppercase;margin-top:.2rem;}
+.hero-stat-l{font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-top:.2rem;}
 
 /* ══ CARTES RÉSULTATS ══ */
 .results-header{padding:1.8rem 2rem 0;max-width:960px;margin:0 auto;}
@@ -347,7 +347,7 @@ aside{
   font-size:1.1rem;color:#fff;
 }
 .detail-close{
-  background:none;border:none;color:rgba(255,255,255,.4);
+  background:none;border:none;color:rgba(255,255,255,.75);
   font-size:1.1rem;cursor:pointer;padding:.2rem;
   transition:color .2s;
 }
@@ -400,10 +400,10 @@ select.inp{
 /* Résultat dark */
 .result-dark{background:var(--ink);border-radius:var(--r);padding:1.5rem;color:#fff;}
 .result-n{font-family:'Cormorant Garamond',serif;font-size:2.2rem;color:var(--gold2);text-align:center;margin:.8rem 0;font-style:italic;}
-.result-row{display:flex;justify-content:space-between;font-size:.76rem;color:rgba(255,255,255,.35);padding:.42rem 0;border-bottom:1px solid rgba(255,255,255,.06);}
+.result-row{display:flex;justify-content:space-between;font-size:.76rem;color:rgba(255,255,255,.72);padding:.42rem 0;border-bottom:1px solid rgba(255,255,255,.06);}
 .result-row:last-child{border-bottom:none;}
 .result-row span:last-child{color:rgba(255,255,255,.82);font-weight:500;}
-.result-insight{background:rgba(184,131,42,.1);border:1px solid rgba(184,131,42,.18);border-radius:4px;padding:.9rem;margin-top:.9rem;font-size:.76rem;color:rgba(255,255,255,.55);line-height:1.65;}
+.result-insight{background:rgba(184,131,42,.12);border:1px solid rgba(184,131,42,.25);border-radius:4px;padding:.9rem;margin-top:.9rem;font-size:.76rem;color:rgba(255,255,255,.85);line-height:1.65;}
 
 /* AI Box */
 .aibox{
@@ -512,7 +512,7 @@ select.inp{
 .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.85rem;margin-bottom:1.5rem;}
 .stat-box{background:var(--ink);border-radius:var(--r);padding:1.1rem;text-align:center;}
 .stat-n{font-family:'Cormorant Garamond',serif;font-size:1.65rem;color:var(--gold2);display:block;font-style:italic;}
-.stat-l{font-size:.58rem;color:rgba(255,255,255,.25);letter-spacing:.1em;text-transform:uppercase;margin-top:.15rem;}
+.stat-l{font-size:.58rem;color:rgba(255,255,255,.65);letter-spacing:.1em;text-transform:uppercase;margin-top:.15rem;}
 
 /* Source badge */
 .source-badge{
@@ -554,7 +554,7 @@ select.inp{
   font-size:1.3rem;color:var(--gold2);display:block;
 }
 .map-stat-l{
-  font-size:.58rem;color:rgba(255,255,255,.25);
+  font-size:.58rem;color:rgba(255,255,255,.68);
   text-transform:uppercase;letter-spacing:.08em;
 }
 
@@ -740,7 +740,7 @@ select.inp{
         <label class="lbl">Taux estimé (%)</label><input class="inp" id="eTaux" type="number" value="3.4" step="0.1" />
         <button class="btn btn-dark btn-full" onclick="calcEmprunt()">✦ Calculer ma capacité</button>
       </div>
-      <div id="resEmprunt"><div class="result-dark"><p style="color:rgba(255,255,255,.22);font-size:.82rem">Renseignez vos revenus pour calculer.</p></div></div>
+      <div id="resEmprunt"><div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez vos revenus pour calculer.</p></div></div>
     </div>
   </div></div>
 
@@ -758,7 +758,7 @@ select.inp{
         <label class="lbl">Durée prêt (ans)</label><input class="inp" id="cDuree" type="number" value="20" />
         <button class="btn btn-dark btn-full" onclick="calcCout()">✦ Calculer le vrai coût</button>
       </div>
-      <div id="resCout"><div class="result-dark"><p style="color:rgba(255,255,255,.22);font-size:.82rem">Renseignez le bien pour voir le coût total réel.</p></div></div>
+      <div id="resCout"><div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez le bien pour voir le coût total réel.</p></div></div>
     </div>
   </div></div>
 
@@ -775,7 +775,7 @@ select.inp{
         <select class="inp" id="dChauff"><option value="gaz">Gaz</option><option value="elec">Électrique</option><option value="fioul">Fioul</option><option value="pompe">Pompe à chaleur</option></select>
         <button class="btn btn-dark btn-full" onclick="calcDpe()">✦ Estimer la facture</button>
       </div>
-      <div id="resDpe"><div class="result-dark"><p style="color:rgba(255,255,255,.22);font-size:.82rem">Renseignez le DPE et la surface.</p></div></div>
+      <div id="resDpe"><div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez le DPE et la surface.</p></div></div>
     </div>
   </div></div>
 
@@ -889,9 +889,9 @@ select.inp{
       <div class="chat-side">
         <div class="card" style="padding:1rem"><div class="ctitle">✦ Taux immo live</div>
           <div style="display:flex;flex-direction:column;gap:.3rem">
-            <div style="display:flex;justify-content:space-between;font-size:.73rem;padding:.28rem 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">15 ans</span><span style="font-weight:500">~3.15%</span></div>
-            <div style="display:flex;justify-content:space-between;font-size:.73rem;padding:.28rem 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">20 ans</span><span style="font-weight:500">~3.40%</span></div>
-            <div style="display:flex;justify-content:space-between;font-size:.73rem;padding:.28rem 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">25 ans</span><span style="font-weight:500">~3.65%</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:.73rem;padding:.28rem 0;border-bottom:1px solid var(--border)"><span style="color:var(--ink">15 ans</span><span style="font-weight:500">~3.15%</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:.73rem;padding:.28rem 0;border-bottom:1px solid var(--border)"><span style="color:var(--ink">20 ans</span><span style="font-weight:500">~3.40%</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:.73rem;padding:.28rem 0;border-bottom:1px solid var(--border)"><span style="color:var(--ink">25 ans</span><span style="font-weight:500">~3.65%</span></div>
             <div style="display:flex;justify-content:space-between;font-size:.73rem;padding:.28rem 0"><span style="color:var(--muted)">Source</span><span style="color:var(--gold);font-weight:500">BdF 2025</span></div>
           </div>
         </div>
@@ -913,7 +913,7 @@ select.inp{
     <div style="background:var(--ink);border-radius:var(--r);padding:2rem;text-align:center;color:#fff">
       <div style="font-size:2.5rem;margin-bottom:1rem">🏗️</div>
       <div style="font-family:'Cormorant Garamond',serif;font-size:1.4rem;color:var(--gold2);margin-bottom:.5rem">Module en construction</div>
-      <p style="font-size:.82rem;color:rgba(255,255,255,.4);max-width:400px;margin:0 auto">Les annonces seront alimentées par les agences et particuliers. Zéro donnée inventée — que du réel.</p>
+      <p style="font-size:.82rem;color:rgba(255,255,255,.7);max-width:400px;margin:0 auto">Les annonces seront alimentées par les agences et particuliers. Zéro donnée inventée — que du réel.</p>
     </div>
   </div></div>
 
@@ -922,7 +922,7 @@ select.inp{
     <div style="background:var(--ink);border-radius:var(--r);padding:2rem;text-align:center;color:#fff">
       <div style="font-size:2.5rem;margin-bottom:1rem">🔔</div>
       <div style="font-family:'Cormorant Garamond',serif;font-size:1.4rem;color:var(--gold2);margin-bottom:.5rem">Alertes en construction</div>
-      <p style="font-size:.82rem;color:rgba(255,255,255,.4);max-width:400px;margin:0 auto">Basées sur les vraies données DVF et les annonces déposées. Disponible en V2.</p>
+      <p style="font-size:.82rem;color:rgba(255,255,255,.7);max-width:400px;margin:0 auto">Basées sur les vraies données DVF et les annonces déposées. Disponible en V2.</p>
     </div>
   </div></div>
 
@@ -1166,7 +1166,7 @@ async function loadAllData(props, coords){
   Promise.all([
     loadDVF(lat, lng),
     loadRisques(lat, lng),
-    loadEcoles(lat, lng),
+    loadEcoles(lat, lng, props.citycode),
     loadMobilite(lat, lng),
     loadFibre(props.citycode, lat, lng),
     loadUrbanisme(lat, lng),
@@ -1190,11 +1190,11 @@ function setCard(id, value, sub, cssClass=''){
 // ── DVF : vraies transactions officielles ──
 async function loadDVF(lat, lng){
   try{
-    const r = await fetch(`/api/dvf?lat=${lat}&lon=${lng}&dist=1000`);
+    const r = await fetch(`/api/dvf?lat=${lat}&lon=${lng}&dist=2000`);
     if(!r.ok) throw new Error();
     const d = await r.json();
     if(!d.success || !d.stats){
-      setCard('dvf','Aucune transaction','Dans un rayon de 500m','warn');
+      setCard('dvf','Aucune transaction','Dans un rayon de 2km','warn');
       return;
     }
     const prix = d.stats.medianM2.toLocaleString('fr-FR');
@@ -1227,9 +1227,9 @@ async function loadRisques(lat, lng){
 }
 
 // ── Écoles : données officielles Éducation nationale ──
-async function loadEcoles(lat, lng){
+async function loadEcoles(lat, lng, codeInsee){
   try{
-    const r = await fetch(`/api/ecoles?lat=${lat}&lon=${lng}&dist=1000`);
+    const r = await fetch(`/api/ecoles?lat=${lat}&lon=${lng}&dist=1500${codeInsee?'&codeInsee='+codeInsee:''}`);
     if(!r.ok) throw new Error();
     const d = await r.json();
     if(!d.success) throw new Error();
@@ -1393,7 +1393,7 @@ function showDetail(cardId){
     fibre:      () => showFibreDetail(),
     services:   () => showServicesMap(),
     dpe:        () => go('energie'),
-    bruit:      () => window.open('https://www.bruit.fr/', '_blank'),
+    bruit:      () => { const addr = currentAddress ? encodeURIComponent(currentAddress) : ''; window.open(`https://www.bruit.fr/?address=${addr}`, '_blank'); },
   };
   if(data[cardId]) data[cardId]();
 }
@@ -1510,8 +1510,8 @@ function showMobiliteDetail(){
     const map = L.map('mapMobilite').setView([lat, lng], 15);
     window._leafletMapMobilite = map;
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution:'© OpenStreetMap', maxZoom:19
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      attribution:'© OpenStreetMap © CartoDB', maxZoom:19
     }).addTo(map);
 
     // Cercles
@@ -1598,8 +1598,8 @@ function showServicesMap(){
     window._leafletMap = map;
 
     // Fond de carte OpenStreetMap
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap',
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      attribution: '© OpenStreetMap © CartoDB',
       maxZoom: 19
     }).addTo(map);
 
@@ -1661,7 +1661,7 @@ function showUrbanismeDetail(){
     <div style="display:flex;gap:1rem;margin-bottom:1.2rem;flex-wrap:wrap">
       <div style="flex:1;background:var(--ink);border-radius:var(--r);padding:1rem;text-align:center">
         <div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--gold2)">${z.code||'NC'}</div>
-        <div style="font-size:.65rem;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em">Zone PLU</div>
+        <div style="font-size:.65rem;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.1em">Zone PLU</div>
       </div>
       <div style="flex:2;background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:1rem">
         <div style="font-size:.82rem;font-weight:500;margin-bottom:.4rem">${z.typeZone||'—'}</div>
@@ -1683,7 +1683,8 @@ function showMeteoDetail(){
       <div class="stat-box"><span class="stat-n">${d.temperatures?.maxMoyenne||'—'}°</span><span class="stat-l">Max. moy.</span></div>
       <div class="stat-box"><span class="stat-n">${d.precipitations?.annuellesMm||'—'} mm</span><span class="stat-l">Précip./an</span></div>
     </div>
-    <p style="font-size:.8rem;color:var(--muted);margin-bottom:.5rem">${d.ensoleillement?.label||''} · ${d.periode||''}</p>
+    <p style="font-size:.8rem;color:var(--ink);font-weight:500;margin-bottom:.3rem">${d.ensoleillement?.label||''}</p>
+    <p style="font-size:.75rem;color:var(--muted);margin-bottom:.5rem">${d.periode||''} · Temp. min moy. : ${d.temperatures?.minMoyenne||'—'}°C</p>
     <p style="font-size:.62rem;color:var(--muted)">Source : ${d.source}</p>`);
 }
 
@@ -1699,7 +1700,7 @@ function showINSEEDetail(){
       <div class="stat-box"><span class="stat-n">${r?.medianMensuel?.toLocaleString('fr-FR')||'—'} €</span><span class="stat-l">Rev. médian/mois</span></div>
     </div>
     <p style="font-size:.75rem;color:var(--muted)">Département ${c?.departement||'—'} · Code INSEE ${c?.codeInsee||'—'}</p>
-    ${r?.medianMensuel?`<p style="font-size:.75rem;margin-top:.4rem">Revenu annuel médian : <strong>${r.medianAnnuel?.toLocaleString('fr-FR')||'—'} €</strong> (${r.annee||'2021'})</p>`:''}
+    ${r?.medianMensuel?`<p style="font-size:.75rem;margin-top:.4rem">Revenu médian : <strong>${r.medianAnnuel?.toLocaleString('fr-FR')||'—'} €/an</strong> soit <strong>${r.medianMensuel?.toLocaleString('fr-FR')||'—'} €/mois</strong> (Filosofi ${r.annee||'2021'})</p>`:'<p style="font-size:.75rem;color:var(--muted);margin-top:.4rem">Revenus médians : données non disponibles via l'API</p>'}
     <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : ${d.source}</p>`);
 }
 
@@ -1715,7 +1716,7 @@ function showFibreDetail(){
   showPanel('📶 Internet & fibre · ARCEP', `
     <div style="background:var(--ink);border-radius:var(--r);padding:1.2rem;text-align:center;margin-bottom:1rem">
       <div style="font-family:'Cormorant Garamond',serif;font-size:1.8rem;color:${f.eligible?'var(--gold2)':'var(--red)'}">${f.eligible?'Éligible FTTH':'Non éligible'}</div>
-      <div style="font-size:.7rem;color:rgba(255,255,255,.3);margin-top:.3rem">${f.technologie||'—'}</div>
+      <div style="font-size:.7rem;color:rgba(255,255,255,.72);margin-top:.3rem">${f.technologie||'—'}</div>
     </div>
     ${f.operateurs?.length?`<p style="font-size:.8rem;margin-bottom:.5rem">Opérateurs : <strong>${f.operateurs.join(', ')}</strong></p>`:''}
     <p style="font-size:.75rem;color:var(--muted)">Vérification précise : <a href="${f.lienVerification}" target="_blank" style="color:var(--gold)">maconnexioninternet.arcep.fr →</a></p>
@@ -1727,7 +1728,7 @@ function showAltitudeDetail(){
   showPanel('🏔️ Altitude & topographie', d ? `
     <div style="background:var(--ink);border-radius:var(--r);padding:1.2rem;text-align:center;margin-bottom:1rem">
       <div style="font-family:'Cormorant Garamond',serif;font-size:2.5rem;color:var(--gold2)">${d.altitude}m</div>
-      <div style="font-size:.7rem;color:rgba(255,255,255,.3);margin-top:.3rem">${d.unite||'NGF'} · Précision ${d.precision||'1m'}</div>
+      <div style="font-size:.7rem;color:rgba(255,255,255,.72);margin-top:.3rem">${d.unite||'NGF'} · Précision ${d.precision||'1m'}</div>
     </div>
     <p style="font-size:.82rem;color:var(--muted)">${d.label||''}</p>
     <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : ${d.source}</p>` :
@@ -1839,7 +1840,7 @@ function calcCout(){
   const total=prix+notaire+travaux+(charges*120)+(taxe*10);
   document.getElementById('resCout').innerHTML=`
     <div class="result-dark">
-      <div style="font-size:.6rem;color:rgba(255,255,255,.2);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem">💰 Coût réel sur 10 ans</div>
+      <div style="font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem">💰 Coût réel sur 10 ans</div>
       <div class="result-n">${fmt(Math.round(total/1000)*1000)}</div>
       ${[['Prix affiché',fmt(prix)],['Frais notaire (7.5%)',fmt(notaire)],[`Travaux DPE ${dpe}`,fmt(travaux)],['Charges copro 10 ans',fmt(charges*120)],['Taxe foncière 10 ans',fmt(taxe*10)],['Mensualité estimée',fmt(mens)+'/mois']].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
     </div>`;
@@ -1858,9 +1859,9 @@ function calcEmprunt(){
   const prixMax=empruntMax+apport;
   document.getElementById('resEmprunt').innerHTML=`
     <div class="result-dark">
-      <div style="font-size:.6rem;color:rgba(255,255,255,.2);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem">🏦 Votre capacité</div>
+      <div style="font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem">🏦 Votre capacité</div>
       <div class="result-n">${fmt(Math.round(prixMax/1000)*1000)}</div>
-      <div style="font-size:.7rem;color:rgba(255,255,255,.25);text-align:center;margin-bottom:1rem">Budget d'achat total estimé</div>
+      <div style="font-size:.7rem;color:rgba(255,255,255,.7);text-align:center;margin-bottom:1rem">Budget d'achat total estimé</div>
       ${[['Mensualité max (35%)',fmt(Math.round(mensMax))+'/mois'],['Capacité d\'emprunt',fmt(Math.round(empruntMax))],['Apport',fmt(apport)]].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
       <div class="result-insight">Budget de <strong>${fmt(Math.round(prixMax/1000)*1000)}</strong> — consultez la page <strong>Prix & marché</strong> pour voir ce que vous pouvez acheter dans votre ville cible.</div>
     </div>`;
