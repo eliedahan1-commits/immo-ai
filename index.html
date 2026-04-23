@@ -1059,7 +1059,7 @@ function setupSearch(inputId, sugsId, isHero){
 
 async function fetchBAN(q, sugsEl, inp, isHero){
   try{
-    const r=await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&limit=6&type=housenumber`);
+    const r=await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&limit=6`);
     const d=await r.json();
     if(!d.features?.length){sugsEl.classList.remove('open');return;}
     sugsEl.innerHTML='';
