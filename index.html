@@ -42,7 +42,7 @@ aside{
 .logo-area{padding:1.8rem 1.4rem 1.4rem;border-bottom:1px solid rgba(255,255,255,.05);}
 .logo{font-family:'Cormorant Garamond',serif;font-size:1.55rem;color:#fff;letter-spacing:.05em;cursor:pointer;line-height:1;}
 .logo em{color:var(--gold2);font-style:italic;}
-.logo-tagline{font-size:.58rem;color:rgba(255,255,255,.2);letter-spacing:.18em;text-transform:uppercase;margin-top:.5rem;}
+.logo-tagline{font-size:.58rem;color:rgba(255,255,255,.45);letter-spacing:.18em;text-transform:uppercase;margin-top:.5rem;}
 
 /* Barre de recherche sidebar */
 .search-area{padding:.75rem .9rem;border-bottom:1px solid rgba(255,255,255,.05);}
@@ -76,23 +76,23 @@ aside{
 /* Nav */
 .nav-section{
   padding:.6rem 1rem .2rem;
-  font-size:.55rem;color:rgba(255,255,255,.2);
+  font-size:.55rem;color:rgba(255,255,255,.5);
   letter-spacing:.18em;text-transform:uppercase;margin-top:.4rem;
 }
 .nav-item{
   display:flex;align-items:center;gap:.65rem;
   padding:.52rem .9rem;margin:.06rem .5rem;
   border-radius:4px;cursor:pointer;
-  color:rgba(255,255,255,.65);font-size:.76rem;
+  color:rgba(255,255,255,.85);font-size:.76rem;
   transition:all .18s;border:1px solid transparent;
   position:relative;
 }
-.nav-item:hover{color:rgba(255,255,255,.9);background:rgba(255,255,255,.06);}
+.nav-item:hover{color:#fff;background:rgba(255,255,255,.09);}
 .nav-item.active{color:var(--gold2);background:rgba(184,131,42,.1);border-color:rgba(184,131,42,.2);}
 .nav-icon{font-size:.88rem;width:18px;text-align:center;flex-shrink:0;}
 .nav-badge{margin-left:auto;background:var(--gold);color:var(--ink);font-size:.54rem;padding:.07rem .4rem;border-radius:10px;font-weight:600;}
 .nav-sub{padding-left:1rem;}
-.nav-sub .nav-item{font-size:.72rem;color:rgba(255,255,255,.45);padding:.42rem .75rem;}
+.nav-sub .nav-item{font-size:.72rem;color:rgba(255,255,255,.72);padding:.42rem .75rem;}
 .nav-sub .nav-item:hover{color:rgba(255,255,255,.75);}
 .nav-sub .nav-item.active{color:var(--gold2);}
 
@@ -109,12 +109,12 @@ aside{
 .ai-dot{width:7px;height:7px;border-radius:50%;background:#444;flex-shrink:0;}
 .ai-dot.on{background:#4caf50;animation:pulse 2s infinite;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
-.ai-lbl{font-size:.7rem;color:rgba(255,255,255,.55);}
+.ai-lbl{font-size:.7rem;color:rgba(255,255,255,.82);}
 
 .sidebar-foot{
   margin-top:auto;padding:.85rem 1.1rem;
-  border-top:1px solid rgba(255,255,255,.05);
-  font-size:.6rem;color:rgba(255,255,255,.18);
+  border-top:1px solid rgba(255,255,255,.08);
+  font-size:.6rem;color:rgba(255,255,255,.4);
 }
 
 /* ══ MAIN ══ */
@@ -318,6 +318,17 @@ aside{
 }
 .spin.w{border-color:rgba(255,255,255,.12);border-top-color:#fff;}
 @keyframes rot{to{transform:rotate(360deg)}}
+
+/* ══ BOUTON RETOUR ══ */
+.back-btn{
+  display:inline-flex;align-items:center;gap:.4rem;
+  background:var(--ink);color:#fff;border:none;
+  padding:.5rem 1rem;border-radius:4px;
+  font-family:'Outfit',sans-serif;font-size:.75rem;
+  cursor:pointer;margin:1rem 2rem 0;
+  transition:all .2s;
+}
+.back-btn:hover{background:var(--gold);color:var(--ink);}
 
 /* ══ DÉTAIL PANEL ══ */
 .detail-panel{
@@ -1383,15 +1394,26 @@ function showDetail(cardId){
 
 function showPanel(title, html){
   const container = document.getElementById('detailContainer');
-  container.innerHTML = `
-    <div class="detail-panel">
+  // Bouton retour vers les cartes
+  const backBtn = `<button class="back-btn" onclick="closePanel()">← Retour aux cartes</button>`;
+  container.innerHTML = backBtn + `
+    <div class="detail-panel" style="margin:0.75rem 2rem 2rem">
       <div class="detail-head">
         <div class="detail-title">${title}</div>
-        <button class="detail-close" onclick="document.getElementById('detailContainer').innerHTML=''">✕ Fermer</button>
+        <button class="detail-close" onclick="closePanel()">✕ Fermer</button>
       </div>
       <div class="detail-body">${html}</div>
     </div>`;
   container.scrollIntoView({behavior:'smooth', block:'start'});
+  // Masquer les cartes
+  document.getElementById('cardsGrid').style.display = 'none';
+}
+
+function closePanel(){
+  document.getElementById('detailContainer').innerHTML = '';
+  document.getElementById('cardsGrid').style.display = 'grid';
+  if(window._leafletMap){window._leafletMap.remove();window._leafletMap=null;}
+  if(window._leafletMapMobilite){window._leafletMapMobilite.remove();window._leafletMapMobilite=null;}
 }
 
 function showDVFDetail(){
@@ -1420,7 +1442,7 @@ function showDVFDetail(){
 function showRisquesDetail(){
   const d = window._risquesData;
   if(!d){showPanel('⚠️ Risques naturels','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
-  const liste = d.detail?.map(r=>`<div style="padding:.4rem 0;border-bottom:1px solid var(--border);font-size:.82rem">⚠️ ${r.libelle}</div>`).join('') || '<p style="color:var(--green)">✓ Aucun risque identifié dans ce secteur</p>';
+  const liste = d.detail?.filter(r=>r&&r.libelle).map(r=>`<div style="padding:.4rem 0;border-bottom:1px solid var(--border);font-size:.82rem">⚠️ ${r.libelle}</div>`).join('') || '<p style="color:var(--green)">✓ Aucun risque identifié dans ce secteur</p>';
   showPanel('⚠️ Risques naturels officiels', `
     <div style="display:flex;gap:1rem;margin-bottom:1rem;flex-wrap:wrap">
       ${d.categories?.inondation?'<span class="tag tag-dn">🌊 Inondation</span>':''}
