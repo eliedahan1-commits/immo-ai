@@ -1277,7 +1277,7 @@ async function loadDVF(lat, lng){
     if(!r.ok) throw new Error();
     const d = await r.json();
     if(!d.success || !d.stats){
-      setCard('dvf','Aucune transaction','Dans un rayon de 2km','warn');
+      setCard('dvf','Données indisponibles','Source DVF temporairement hors ligne','');
       return;
     }
     const prix = d.stats.medianM2.toLocaleString('fr-FR');
@@ -1300,13 +1300,14 @@ async function loadRisques(lat, lng){
       // Format Netlify Function
       nb=d.total; score=d.score; detail=d.detail||[];
     } else {
-      // Format direct API Géorisques : { data: [{libelle_risque_jo, code_risque}] }
-      const data = d.data || [];
-      nb = data.length;
+      // Format direct API Géorisques : { data: [{ risques_detail: [{libelle_risque_long, num_risque}] }] }
+      const communeData = (d.data || [])[0] || {};
+      const risquesDetail = communeData.risques_detail || [];
+      nb = risquesDetail.length;
       score = nb===0?'faible':nb>=3?'élevé':'modéré';
-      detail = data.map(item=>({
-        libelle: item.libelle_risque_jo || item.libelle || item.code_risque || 'Risque non défini',
-        code: item.code_risque || ''
+      detail = risquesDetail.map(item=>({
+        libelle: item.libelle_risque_long || 'Risque non défini',
+        code: item.num_risque || ''
       }));
     }
     // Calculer les catégories depuis le detail (utilisé dans showRisquesDetail)
@@ -2037,5 +2038,3 @@ function toast(msg,type='ok'){
   document.body.appendChild(t);setTimeout(()=>t.remove(),3500);
 }
 </script>
-</body>
-</html>
