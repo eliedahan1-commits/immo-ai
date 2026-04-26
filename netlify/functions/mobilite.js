@@ -65,7 +65,7 @@ export default async (req) => {
       scoreLabel: score >= 8 ? 'Excellent' : score >= 6 ? 'Très bon' : score >= 4 ? 'Bon' : score >= 2 ? 'Moyen' : 'Faible',
       stats: { metro: metro.length, gares: gares.length, trams: trams.length, arretsBus: bus.length, velos: velos.length, bornesElec: bornes.length },
       arretsPrincipaux: noms,
-      elements: elements.filter(e => e.lat && e.lon && e.tags?.name).slice(0, 50),
+      elements: elements.filter(e => e.lat && e.lon).slice(0, 80),
       source: 'OpenStreetMap via Overpass API',
       dateExtraction: new Date().toISOString()
     }), {

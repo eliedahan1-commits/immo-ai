@@ -19,13 +19,13 @@ export default async (req) => {
 
     // Méthode 1 : par code commune INSEE si disponible (plus fiable)
     if (codeInsee) {
-      ecoUrl = `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=code_commune%3D%22${codeInsee}%22&limit=30&select=nom_etablissement,type_etablissement,statut_public_prive,adresse_1,code_postal,nom_commune,latitude,longitude`;
+      ecoUrl = `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=code_commune%3D%22${codeInsee}%22&limit=50&select=nom_etablissement,type_etablissement,statut_public_prive,adresse_1,code_postal,nom_commune,latitude,longitude,ecole_maternelle,ecole_elementaire`;
     } else {
       // Méthode 2 : bounding box autour des coordonnées
       const deg = dist / 111000;
       const latMin = lat - deg, latMax = lat + deg;
       const lonMin = lon - deg, lonMax = lon + deg;
-      ecoUrl = `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=latitude>${latMin} AND latitude<${latMax} AND longitude>${lonMin} AND longitude<${lonMax}&limit=30&select=nom_etablissement,type_etablissement,statut_public_prive,adresse_1,code_postal,nom_commune,latitude,longitude`;
+      ecoUrl = `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=latitude>${latMin} AND latitude<${latMax} AND longitude>${lonMin} AND longitude<${lonMax}&limit=50&select=nom_etablissement,type_etablissement,statut_public_prive,adresse_1,code_postal,nom_commune,latitude,longitude,ecole_maternelle,ecole_elementaire`;
     }
 
     const r = await fetch(ecoUrl, {
@@ -53,8 +53,8 @@ export default async (req) => {
       .sort((a, b) => a.distanceM - b.distanceM);
 
     const types = {
-      maternelle: withDist.filter(e => (e.type_etablissement||'').toLowerCase().includes('maternelle')).length,
-      elementaire: withDist.filter(e => (e.type_etablissement||'').toLowerCase().includes('lémentaire') || (e.type_etablissement||'').toLowerCase().includes('primaire')).length,
+      maternelle: withDist.filter(e => e.ecole_maternelle === true || e.ecole_maternelle === 'true' || (e.type_etablissement||'').toLowerCase().includes('maternelle')).length,
+      elementaire: withDist.filter(e => e.ecole_elementaire === true || e.ecole_elementaire === 'true' || (e.type_etablissement||'').toLowerCase().includes('élémentaire') || (e.type_etablissement||'').toLowerCase().includes('primaire')).length,
       college: withDist.filter(e => (e.type_etablissement||'').toLowerCase().includes('coll')).length,
       lycee: withDist.filter(e => (e.type_etablissement||'').toLowerCase().includes('lyc')).length,
     };

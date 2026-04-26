@@ -67,7 +67,7 @@ export default async (req) => {
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'public, max-age=604800' // Cache 7 jours
+        'Cache-Control': 'no-store'
       }
     });
 
