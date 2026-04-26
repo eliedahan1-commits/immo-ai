@@ -54,9 +54,14 @@ export default async (req) => {
         regleUrba: zone?.destdomin || null
       },
       document: {
-        type: doc?.typedoc || 'PLU',
-        nomCommune: doc?.nomcom || null,
-        dateApprobation: doc?.datappro || null
+        type: doc?.du_type || 'PLU',
+        nomCommune: doc?.grid_title || null,
+        dateApprobation: (() => {
+          const m = (doc?.name || '').match(/(\d{8})$/);
+          if (!m) return null;
+          const d = m[1];
+          return `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`;
+        })()
       },
       prescriptions: prescriptions.slice(0, 5),
       source: 'Géoportail de l\'Urbanisme · IGN / apicarto.ign.fr',

@@ -15,8 +15,8 @@ export default async (req) => {
   try {
     // Trouver la commune via coordonnées GPS
     const geoUrl = codeInsee
-      ? `https://geo.api.gouv.fr/communes/${codeInsee}?fields=nom,population,superficie,codesPostaux,codeDepartement`
-      : `https://geo.api.gouv.fr/communes?lat=${lat}&lon=${lon}&fields=nom,population,superficie,codesPostaux,codeDepartement&format=json&limit=1`;
+      ? `https://geo.api.gouv.fr/communes/${codeInsee}?fields=nom,population,surface,codesPostaux,codeDepartement`
+      : `https://geo.api.gouv.fr/communes?lat=${lat}&lon=${lon}&fields=nom,population,surface,codesPostaux,codeDepartement&format=json&limit=1`;
 
     const geoRes = await fetch(geoUrl, { signal: AbortSignal.timeout(6000) });
     if (!geoRes.ok) throw new Error(`geo.api ${geoRes.status}`);
@@ -26,9 +26,10 @@ export default async (req) => {
     if (!commune) throw new Error('Commune introuvable');
 
     const population = commune.population || 0;
-    const superficie = commune.superficie || 1; // geo.api retourne en km²
+    const surfaceHa = commune.surface || 0; // geo.api retourne en hectares (champ "surface")
+    const superficieKm2 = surfaceHa > 0 ? surfaceHa / 100 : 1; // convertir ha → km²
     // Densité = habitants / km²
-    const densite = superficie > 0 ? Math.round(population / superficie) : null;
+    const densite = superficieKm2 > 0 ? Math.round(population / superficieKm2) : null;
 
     // Revenus médians via API données locales INSEE (Filosofi)
     // Code commune = commune.code ou codeInsee
@@ -58,7 +59,7 @@ export default async (req) => {
         nom: commune.nom,
         codeInsee: communeCode,
         population,
-        superficie,
+        superficie: superficieKm2,
         densite,
         codesPostaux: commune.codesPostaux,
         departement: commune.codeDepartement

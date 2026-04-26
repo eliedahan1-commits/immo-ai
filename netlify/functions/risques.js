@@ -25,16 +25,18 @@ export default async (req) => {
     if (!geoRes.ok) throw new Error(`Géorisques API error: ${geoRes.status}`);
 
     const geoData = await geoRes.json();
-    const risques = geoData.data || [];
+    // L'API retourne { data: [{ risques_detail: [...], code_insee, libelle_commune }] }
+    const communeData = geoData.data?.[0] || {};
+    const risques = communeData.risques_detail || [];
 
-    // Catégorisation des risques
+    // Catégorisation des risques (champ réel : libelle_risque_long)
     const categories = {
-      inondation: risques.filter(r => r.libelle_risque_jo?.toLowerCase().includes('inondation')),
-      seisme: risques.filter(r => r.libelle_risque_jo?.toLowerCase().includes('séisme') || r.libelle_risque_jo?.toLowerCase().includes('seisme')),
-      argile: risques.filter(r => r.libelle_risque_jo?.toLowerCase().includes('argile')),
-      mouvement: risques.filter(r => r.libelle_risque_jo?.toLowerCase().includes('mouvement')),
+      inondation: risques.filter(r => r.libelle_risque_long?.toLowerCase().includes('inondation')),
+      seisme: risques.filter(r => r.libelle_risque_long?.toLowerCase().includes('séisme') || r.libelle_risque_long?.toLowerCase().includes('seisme')),
+      argile: risques.filter(r => r.libelle_risque_long?.toLowerCase().includes('argile')),
+      mouvement: risques.filter(r => r.libelle_risque_long?.toLowerCase().includes('mouvement')),
       autres: risques.filter(r => {
-        const lib = r.libelle_risque_jo?.toLowerCase() || '';
+        const lib = r.libelle_risque_long?.toLowerCase() || '';
         return !lib.includes('inondation') && !lib.includes('séisme') && !lib.includes('seisme') && !lib.includes('argile') && !lib.includes('mouvement');
       })
     };
@@ -56,8 +58,8 @@ export default async (req) => {
         nbAutres: categories.autres.length
       },
       detail: risques.map(r => ({
-        libelle: r.libelle_risque_jo,
-        code: r.code_risque
+        libelle: r.libelle_risque_long,
+        code: r.num_risque
       })),
       source: 'Géorisques - BRGM / État',
       dateExtraction: new Date().toISOString()

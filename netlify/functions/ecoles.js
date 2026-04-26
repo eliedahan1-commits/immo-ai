@@ -19,13 +19,13 @@ export default async (req) => {
 
     // Méthode 1 : par code commune INSEE si disponible (plus fiable)
     if (codeInsee) {
-      ecoUrl = `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=code_commune%3D%22${codeInsee}%22&limit=30&select=nom_etablissement,type_etablissement,statut_public_prive,adresse1,code_postal,nom_commune,latitude,longitude`;
+      ecoUrl = `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=code_commune%3D%22${codeInsee}%22&limit=30&select=nom_etablissement,type_etablissement,statut_public_prive,adresse_1,code_postal,nom_commune,latitude,longitude`;
     } else {
       // Méthode 2 : bounding box autour des coordonnées
       const deg = dist / 111000;
       const latMin = lat - deg, latMax = lat + deg;
       const lonMin = lon - deg, lonMax = lon + deg;
-      ecoUrl = `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=latitude>${latMin} AND latitude<${latMax} AND longitude>${lonMin} AND longitude<${lonMax}&limit=30&select=nom_etablissement,type_etablissement,statut_public_prive,adresse1,code_postal,nom_commune,latitude,longitude`;
+      ecoUrl = `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=latitude>${latMin} AND latitude<${latMax} AND longitude>${lonMin} AND longitude<${lonMax}&limit=30&select=nom_etablissement,type_etablissement,statut_public_prive,adresse_1,code_postal,nom_commune,latitude,longitude`;
     }
 
     const r = await fetch(ecoUrl, {
@@ -67,7 +67,7 @@ export default async (req) => {
         nom: e.nom_etablissement,
         type: e.type_etablissement,
         statut: e.statut_public_prive,
-        adresse: e.adresse1,
+        adresse: e.adresse_1,
         commune: e.nom_commune,
         codePostal: e.code_postal,
         distanceM: e.distanceM,

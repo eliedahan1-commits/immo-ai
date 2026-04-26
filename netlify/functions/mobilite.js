@@ -4,7 +4,7 @@ export default async (req) => {
   const url = new URL(req.url);
   const lat = parseFloat(url.searchParams.get('lat'));
   const lon = parseFloat(url.searchParams.get('lon'));
-  const dist = parseInt(url.searchParams.get('dist') || '500');
+  const dist = parseInt(url.searchParams.get('dist') || '1000');
 
   if (!lat || !lon) {
     return new Response(JSON.stringify({ error: 'lat et lon requis' }), {
@@ -69,7 +69,7 @@ export default async (req) => {
       source: 'OpenStreetMap via Overpass API',
       dateExtraction: new Date().toISOString()
     }), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=86400' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=3600' }
     });
 
   } catch (error) {
