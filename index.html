@@ -522,6 +522,16 @@ select.inp{
   border-radius:20px;margin-top:.4rem;
 }
 
+/* ══ SECTIONS CARTES ══ */
+.cards-section-title{
+  grid-column: 1 / -1;
+  font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--gold);padding:.5rem 0 .2rem;
+  border-bottom:1px solid var(--goldborder);
+  margin-top:.5rem;font-family:'Outfit',sans-serif;font-weight:500;
+}
+.cards-section-title:first-child{margin-top:0;}
+
 /* ══ CARTE LEAFLET ══ */
 .map-container{
   height:420px;border-radius:var(--r);overflow:hidden;
@@ -929,17 +939,44 @@ select.inp{
   <!-- ══ PAGES PLACEHOLDER ══ -->
   <div class="page" id="p-risques"><div class="inner"><div class="ph"><div class="ptag">✦ Source Géorisques</div><h2 class="ptitle">Risques <em>naturels</em></h2><p class="psub">Inondations, séismes, retraits-gonflements des argiles, mouvements de terrain — données officielles Géorisques.</p></div><div class="card"><p style="font-size:.83rem;color:var(--muted)">Entrez une adresse dans la barre de recherche pour voir les risques naturels spécifiques à ce bien.</p></div></div></div>
 
-  <div class="page" id="p-bruit"><div class="inner"><div class="ph"><div class="ptag">✦ Source Bruit.fr</div><h2 class="ptitle">Bruit & <em>nuisances</em></h2><p class="psub">Cartes de bruit routes, trains, avions — données officielles des métropoles.</p></div><div class="card"><p style="font-size:.83rem;color:var(--muted)">Entrez une adresse dans la barre de recherche pour voir le niveau sonore à cet emplacement.</p></div></div></div>
+  <div class="page" id="p-bruit"><div class="inner">
+    <div class="ph"><div class="ptag">✦ Source Bruit.fr</div><h2 class="ptitle">Bruit & <em>nuisances</em></h2><p class="psub">Cartes de bruit officielles — routes, voies ferrées, aéroports.</p></div>
+    <div class="card">
+      <div class="ctitle">🔇 Carte sonore officielle</div>
+      <p style="font-size:.83rem;color:var(--muted);margin-bottom:1rem">Les cartes de bruit sont disponibles sur <strong>bruit.fr</strong>. L'adresse analysée est transmise automatiquement.</p>
+      <button class="btn btn-dark" onclick="ouvrirBruit()">✦ Voir la carte de bruit pour cette adresse</button>
+    </div>
+  </div></div>
 
-  <div class="page" id="p-urbanisme"><div class="inner"><div class="ph"><div class="ptag">✦ Source GPU Géoportail</div><h2 class="ptitle">Urbanisme & <em>PLU</em></h2><p class="psub">Zonage PLU, servitudes, droits à construire — données du Géoportail de l'Urbanisme.</p></div><div class="card"><p style="font-size:.83rem;color:var(--muted)">Entrez une adresse dans la barre de recherche pour voir le zonage PLU de la parcelle.</p></div></div></div>
+  <div class="page" id="p-urbanisme"><div class="inner">
+    <div class="ph"><div class="ptag">✦ Source GPU Géoportail</div><h2 class="ptitle">Urbanisme & <em>PLU</em></h2><p class="psub">Zonage PLU, droits à construire — données officielles IGN.</p></div>
+    <div id="urbanisme-panel-container">
+      <div class="card"><p style="font-size:.83rem;color:var(--muted)">Analysez d'abord une adresse via la barre de recherche pour voir le zonage PLU.</p></div>
+    </div>
+  </div></div>
 
-  <div class="page" id="p-ecoles"><div class="inner"><div class="ph"><div class="ptag">✦ Source Data Éducation</div><h2 class="ptitle">Écoles & <em>IPS</em></h2><p class="psub">Établissements scolaires, taux de réussite, indice de positionnement social — données officielles Ministère Éducation.</p></div><div class="card"><p style="font-size:.83rem;color:var(--muted)">Entrez une adresse dans la barre de recherche pour voir les écoles à proximité.</p></div></div></div>
+  <div class="page" id="p-ecoles"><div class="inner">
+    <div class="ph"><div class="ptag">✦ Source Data Éducation</div><h2 class="ptitle">Écoles & <em>IPS</em></h2></div>
+    <div id="ecoles-panel-container">
+      <div class="card"><p style="font-size:.83rem;color:var(--muted)">Analysez d'abord une adresse via la barre de recherche pour voir les écoles à proximité.</p></div>
+    </div>
+  </div></div>
 
-  <div class="page" id="p-mobilite"><div class="inner"><div class="ph"><div class="ptag">✦ Source Transport.data</div><h2 class="ptitle">Mobilité & <em>transports</em></h2><p class="psub">Arrêts bus/tram/métro, bornes vélos, bornes recharge électrique, covoiturage — données Transport.data.gouv.fr.</p></div><div class="card"><p style="font-size:.83rem;color:var(--muted)">Entrez une adresse dans la barre de recherche pour voir les transports à proximité.</p></div></div></div>
+  <div class="page" id="p-mobilite"><div class="inner">
+    <div class="ph"><div class="ptag">✦ Source Transport.data</div><h2 class="ptitle">Mobilité & <em>transports</em></h2></div>
+    <div id="mobilite-panel-container">
+      <div class="card"><p style="font-size:.83rem;color:var(--muted)">Analysez d'abord une adresse via la barre de recherche pour voir les transports à proximité.</p></div>
+    </div>
+  </div></div>
 
   <div class="page" id="p-fibre"><div class="inner"><div class="ph"><div class="ptag">✦ Source ARCEP</div><h2 class="ptitle">Internet & <em>fibre</em></h2><p class="psub">Éligibilité fibre optique, débits mobiles 4G/5G — données ARCEP officielles.</p></div><div class="card"><p style="font-size:.83rem;color:var(--muted)">Entrez une adresse dans la barre de recherche pour vérifier l'éligibilité fibre.</p></div></div></div>
 
-  <div class="page" id="p-services"><div class="inner"><div class="ph"><div class="ptag">✦ Source SIRENE / Ameli</div><h2 class="ptitle">Services & <em>santé</em></h2><p class="psub">Médecins, pharmacies, commerces, services essentiels à proximité.</p></div><div class="card"><p style="font-size:.83rem;color:var(--muted)">Entrez une adresse dans la barre de recherche pour voir les services à proximité.</p></div></div></div>
+  <div class="page" id="p-services"><div class="inner">
+    <div class="ph"><div class="ptag">✦ Source OpenStreetMap</div><h2 class="ptitle">Services & <em>santé</em></h2></div>
+    <div id="services-panel-container">
+      <div class="card"><p style="font-size:.83rem;color:var(--muted)">Analysez d'abord une adresse via la barre de recherche pour voir les services à proximité.</p></div>
+    </div>
+  </div></div>
 
   <div class="page" id="p-soleil"><div class="inner"><div class="ph"><div class="ptag">✦ Source Météo-France</div><h2 class="ptitle">Météo & <em>ensoleillement</em></h2><p class="psub">Heures d'ensoleillement annuel, températures moyennes, pluviométrie — données Météo-France.</p></div><div class="card"><p style="font-size:.83rem;color:var(--muted)">Entrez une adresse dans la barre de recherche pour voir les données météo locales.</p></div></div></div>
 
@@ -986,6 +1023,15 @@ let chatHistory = [];
 let currentAddress = null;
 let currentCoords = null;
 
+// Détection local vs Netlify
+const IS_LOCAL = location.protocol === 'file:' || location.hostname === 'localhost';
+
+// Appel API : via Netlify Function si déployé, sinon direct
+async function apiCall(netlifyPath, directUrl, options={}) {
+  const url = IS_LOCAL ? directUrl : netlifyPath;
+  return fetch(url, { ...options, signal: options.signal || AbortSignal.timeout(10000) });
+}
+
 const PAGES = {
   home:'Accueil', analyse:'Analyse complète', prix:'Prix & marché DVF',
   risques:'Risques naturels', energie:'Énergie & DPE', bruit:'Bruit & nuisances',
@@ -1020,6 +1066,18 @@ function updateDot(){
 
 // ══ NAV ══
 function go(id){
+  // Si une adresse est analysée et que la page a un panel dispo → l'afficher directement
+  if(currentCoords) {
+    if(id === 'urbanisme') { showUrbanismeFromMenu(); return; }
+    if(id === 'ecoles')    { showEcolesFromMenu(); return; }
+    if(id === 'mobilite')  { showMobiliteFromMenu(); return; }
+    if(id === 'services')  { showServicesFromMenu(); return; }
+    if(id === 'bruit')     { ouvrirBruit(); return; }
+  }
+  _goPage(id);
+}
+
+function _goPage(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   const p=document.getElementById('p-'+id);if(p)p.classList.add('on');
@@ -1028,6 +1086,16 @@ function go(id){
     if(n.getAttribute('onclick')?.includes("'"+id+"'"))n.classList.add('active');
   });
   window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// Fonctions pour afficher les panels depuis le menu (avec adresse déjà analysée)
+function showUrbanismeFromMenu(){ _goPage('analyse'); setTimeout(()=>showUrbanismeDetail(), 100); }
+function showEcolesFromMenu()   { _goPage('analyse'); setTimeout(()=>showEcolesDetail(), 100); }
+function showMobiliteFromMenu() { _goPage('analyse'); setTimeout(()=>showMobiliteDetail(), 100); }
+function showServicesFromMenu() { _goPage('analyse'); setTimeout(()=>showServicesMap(), 100); }
+function ouvrirBruit(){
+  const addr = currentAddress ? encodeURIComponent(currentAddress) : '';
+  window.open('https://www.bruit.fr/' + (addr ? '?address='+addr : ''), '_blank');
 }
 
 // ══ TOGGLES ══
@@ -1123,30 +1191,45 @@ async function analyzeAddressWithFeature(feature){
 
 // ══ CARTES ══
 function renderCards(props, coords){
-  const grid=document.getElementById('cardsGrid');
-  const cards=[
-    {id:'dvf',       icon:'💰', label:'Prix & marché',        value:'<span class="spin"></span>', sub:'Transactions DVF réelles',  source:'DVF DGFiP'},
-    {id:'risques',   icon:'⚠️', label:'Risques naturels',     value:'<span class="spin"></span>', sub:'Géorisques officiel',        source:'Géorisques'},
-    {id:'ecoles',    icon:'🏫', label:'Écoles proches',       value:'<span class="spin"></span>', sub:'IPS & résultats',            source:'Éducation'},
-    {id:'fibre',     icon:'📶', label:'Internet & fibre',     value:'<span class="spin"></span>', sub:'Éligibilité fibre',          source:'ARCEP'},
-    {id:'mobilite',  icon:'🚇', label:'Mobilité',             value:'<span class="spin"></span>', sub:'Transports & vélos',         source:'Transport.data'},
-    {id:'urbanisme', icon:'📋', label:'Urbanisme & PLU',      value:'<span class="spin"></span>', sub:'Zonage officiel IGN',        source:'IGN GPU'},
-    {id:'meteo',     icon:'☀️', label:'Ensoleillement',       value:'<span class="spin"></span>', sub:'Moyenne 10 ans',            source:'open-meteo'},
-    {id:'insee',     icon:'📊', label:'Profil du quartier',   value:'<span class="spin"></span>', sub:'Population & revenus',      source:'INSEE'},
-    {id:'altitude',  icon:'🏔️', label:'Altitude',             value:'<span class="spin"></span>', sub:'Précision 1m · IGN',        source:'IGN RGE Alti'},
-    {id:'services',  icon:'🏥', label:'Services & commerces', value:'<span class="spin"></span>', sub:'Santé, courses, sport',     source:'OSM', wide:true},
-    {id:'dpe',       icon:'⚡', label:'Performance énergie',  value:'Simuler →',                  sub:'Cliquez pour simuler',      source:'ADEME'},
-    {id:'bruit',     icon:'🔇', label:'Bruit & nuisances',    value:'Voir →',                     sub:'Carte officielle Bruit.fr', source:'Bruit.fr'},
+  const grid = document.getElementById('cardsGrid');
+
+  const cardSections = [
+    {
+      title: '🏠 Analyser un bien',
+      cards: [
+        {id:'dvf',       icon:'💰', label:'Prix & marché DVF',      value:'<span class="spin"></span>', sub:'Transactions réelles',      source:'DVF DGFiP'},
+        {id:'risques',   icon:'⚠️', label:'Risques naturels',       value:'<span class="spin"></span>', sub:'Géorisques officiel',       source:'Géorisques'},
+        {id:'dpe',       icon:'⚡', label:'Énergie & DPE',          value:'Simuler →',                  sub:'Cliquez pour simuler',      source:'ADEME'},
+        {id:'bruit',     icon:'🔇', label:'Bruit & nuisances',      value:'Voir →',                     sub:'Ouvre bruit.fr',            source:'Bruit.fr'},
+        {id:'urbanisme', icon:'📋', label:'Urbanisme & PLU',        value:'<span class="spin"></span>', sub:'Zonage officiel IGN',       source:'IGN GPU'},
+      ]
+    },
+    {
+      title: '🏘️ Mon quartier',
+      cards: [
+        {id:'ecoles',    icon:'🏫', label:'Écoles & IPS',           value:'<span class="spin"></span>', sub:'IPS & résultats',           source:'Éducation'},
+        {id:'mobilite',  icon:'🚇', label:'Mobilité & transports',  value:'<span class="spin"></span>', sub:'Transports & vélos',        source:'Transport.data'},
+        {id:'fibre',     icon:'📶', label:'Internet & fibre',       value:'<span class="spin"></span>', sub:'Éligibilité fibre',         source:'ARCEP'},
+        {id:'services',  icon:'🏥', label:'Services & santé',       value:'<span class="spin"></span>', sub:'Santé, courses, sport',     source:'OSM'},
+        {id:'meteo',     icon:'☀️', label:'Météo & ensoleillement', value:'<span class="spin"></span>', sub:'Moyenne 5 ans',            source:'open-meteo'},
+        {id:'insee',     icon:'📊', label:'Profil du quartier',     value:'<span class="spin"></span>', sub:'Population & revenus',      source:'INSEE'},
+        {id:'altitude',  icon:'🏔️', label:'Altitude',               value:'<span class="spin"></span>', sub:'Précision 1m · IGN',       source:'IGN RGE Alti'},
+      ]
+    },
   ];
-  grid.innerHTML=cards.map(c=>`
-    <div class="info-card${c.wide?' wide':''}" id="card-${c.id}" onclick="showDetail('${c.id}')">
-      <span class="card-arrow">↗</span>
-      <div class="card-icon">${c.icon}</div>
-      <div class="card-label">${c.label}</div>
-      <div class="card-value" id="val-${c.id}">${c.value}</div>
-      <div class="card-sub" id="sub-${c.id}">${c.sub}</div>
-      <div class="source-badge">📊 ${c.source}</div>
-    </div>
+
+  grid.innerHTML = cardSections.map(section => `
+    <div class="cards-section-title">${section.title}</div>
+    ${section.cards.map(c => `
+      <div class="info-card${c.wide?' wide':''}" id="card-${c.id}" onclick="showDetail('${c.id}')">
+        <span class="card-arrow">↗</span>
+        <div class="card-icon">${c.icon}</div>
+        <div class="card-label">${c.label}</div>
+        <div class="card-value" id="val-${c.id}">${c.value}</div>
+        <div class="card-sub" id="sub-${c.id}">${c.sub}</div>
+        <div class="source-badge">📊 ${c.source}</div>
+      </div>
+    `).join('')}
   `).join('');
 }
 
@@ -1190,7 +1273,7 @@ function setCard(id, value, sub, cssClass=''){
 // ── DVF : vraies transactions officielles ──
 async function loadDVF(lat, lng){
   try{
-    const r = await fetch(`/api/dvf?lat=${lat}&lon=${lng}&dist=2000`);
+    const r = await apiCall(`/api/dvf?lat=${lat}&lon=${lng}&dist=2000`, `https://api.cquest.org/dvf?lat=${lat}&lon=${lng}&dist=2000&nature_mutation=Vente`);
     if(!r.ok) throw new Error();
     const d = await r.json();
     if(!d.success || !d.stats){
@@ -1202,25 +1285,40 @@ async function loadDVF(lat, lng){
     // Stocker pour le détail
     window._dvfData = d;
   }catch(e){
-    setCard('dvf','Erreur données','Réessayez plus tard','warn');
+    setCard('dvf','Non disponible','Erreur données DVF','');
   }
 }
 
 // ── Géorisques : risques naturels officiels ──
 async function loadRisques(lat, lng){
   try{
-    const r = await fetch(`/api/risques?lat=${lat}&lon=${lng}`);
+    const r = await apiCall(`/api/risques?lat=${lat}&lon=${lng}`, `https://georisques.gouv.fr/api/v1/gaspar/risques?latlon=${lng},${lat}&rayon=500`);
     if(!r.ok) throw new Error();
     const d = await r.json();
-    if(!d.success) throw new Error();
-    const nb = d.total;
+    let nb, score, detail=[];
+    if(d.success !== undefined){
+      // Format Netlify Function
+      nb=d.total; score=d.score; detail=d.detail||[];
+    } else {
+      // Format direct API Géorisques : { data: [{libelle_risque_jo, code_risque}] }
+      const data = d.data || [];
+      nb = data.length;
+      score = nb===0?'faible':nb>=3?'élevé':'modéré';
+      detail = data.map(item=>({
+        libelle: item.libelle_risque_jo || item.libelle || item.code_risque || 'Risque non défini',
+        code: item.code_risque || ''
+      }));
+    }
+    // Calculer les catégories depuis le detail (utilisé dans showRisquesDetail)
+    const categories = {
+      inondation: detail.some(r=>(r.libelle||'').toLowerCase().includes('inondation')),
+      seisme:     detail.some(r=>(r.libelle||'').toLowerCase().includes('sisme') || (r.libelle||'').toLowerCase().includes('seisme') || (r.libelle||'').toLowerCase().includes('séisme')),
+      argile:     detail.some(r=>(r.libelle||'').toLowerCase().includes('argile')),
+      mouvement:  detail.some(r=>(r.libelle||'').toLowerCase().includes('mouvement')),
+    };
     const css = nb===0?'good':nb>=3?'bad':'warn';
-    setCard('risques',
-      nb===0 ? 'Aucun risque' : nb+' risque'+(nb>1?'s':''),
-      nb===0 ? 'Zone non exposée' : 'Score : '+d.score,
-      css
-    );
-    window._risquesData = d;
+    setCard('risques', nb===0?'Aucun risque':nb+' risque'+(nb>1?'s':''), nb===0?'Zone non exposée':'Score : '+score, css);
+    window._risquesData = {success:true, total:nb, score, detail, categories};
   }catch(e){
     setCard('risques','Non disponible','Erreur API Géorisques','');
   }
@@ -1229,7 +1327,7 @@ async function loadRisques(lat, lng){
 // ── Écoles : données officielles Éducation nationale ──
 async function loadEcoles(lat, lng, codeInsee){
   try{
-    const r = await fetch(`/api/ecoles?lat=${lat}&lon=${lng}&dist=1500${codeInsee?'&codeInsee='+codeInsee:''}`);
+    const deg=1500/111000; const where=encodeURIComponent(`latitude>${lat-deg} AND latitude<${lat+deg} AND longitude>${lng-deg} AND longitude<${lng+deg}`); const r = await apiCall(`/api/ecoles?lat=${lat}&lon=${lng}&dist=1500${codeInsee?'&codeInsee='+codeInsee:''}`, `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=${where}&limit=25&select=nom_etablissement,type_etablissement,statut_public_prive,adresse1,code_postal,nom_commune,latitude,longitude`);
     if(!r.ok) throw new Error();
     const d = await r.json();
     if(!d.success) throw new Error();
@@ -1248,7 +1346,7 @@ async function loadEcoles(lat, lng, codeInsee){
 // ── Mobilité : OpenStreetMap via Overpass ──
 async function loadMobilite(lat, lng){
   try{
-    const r = await fetch(`/api/mobilite?lat=${lat}&lon=${lng}&dist=500`);
+    const r = await apiCall(`/api/mobilite?lat=${lat}&lon=${lng}&dist=500`, `https://overpass-api.de/api/interpreter`);
     if(!r.ok) throw new Error();
     const d = await r.json();
     if(!d.success) throw new Error();
@@ -1267,7 +1365,7 @@ async function loadMobilite(lat, lng){
 // ── Fibre ARCEP ──
 async function loadFibre(citycode, lat, lng){
   try{
-    const r = await fetch(`/api/fibre?lat=${lat}&lon=${lng}&codeInsee=${citycode||''}`);
+    const r = await apiCall(`/api/fibre?lat=${lat}&lon=${lng}&codeInsee=${citycode||''}`, `https://api.arcep.fr/api/couverture_fibre/adresses?codeInsee=${citycode||''}`);
     if(!r.ok) throw new Error();
     const d = await r.json();
     if(!d.success) throw new Error();
@@ -1286,7 +1384,7 @@ async function loadFibre(citycode, lat, lng){
 // ── Urbanisme & PLU ──
 async function loadUrbanisme(lat, lng){
   try{
-    const r = await fetch(`/api/urbanisme?lat=${lat}&lon=${lng}`);
+    const geom=encodeURIComponent(JSON.stringify({type:'Point',coordinates:[lng,lat]})); const r = await apiCall(`/api/urbanisme?lat=${lat}&lon=${lng}`, `https://apicarto.ign.fr/api/gpu/zone-urba?geom=${geom}`);
     if(!r.ok) throw new Error();
     const d = await r.json();
     if(!d.success) throw new Error();
@@ -1306,7 +1404,7 @@ async function loadUrbanisme(lat, lng){
 // ── Météo & Ensoleillement ──
 async function loadMeteo(lat, lng){
   try{
-    const r = await fetch(`/api/meteo?lat=${lat}&lon=${lng}`);
+    const r = await apiCall(`/api/meteo?lat=${lat}&lon=${lng}`, `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=2020-01-01&end_date=2024-12-31&daily=sunshine_duration,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Europe%2FParis`);
     if(!r.ok) throw new Error();
     const d = await r.json();
     if(!d.success) throw new Error();
@@ -1325,7 +1423,7 @@ async function loadMeteo(lat, lng){
 // ── INSEE ──
 async function loadINSEE(citycode, lat, lng){
   try{
-    const r = await fetch(`/api/insee?lat=${lat}&lon=${lng}&codeInsee=${citycode||''}`);
+    const r = await apiCall(`/api/insee?lat=${lat}&lon=${lng}&codeInsee=${citycode||''}`, `https://geo.api.gouv.fr/communes?lat=${lat}&lon=${lng}&fields=nom,population,superficie,codesPostaux,codeDepartement&format=json&limit=1`);
     if(!r.ok) throw new Error();
     const d = await r.json();
     if(!d.success) throw new Error();
@@ -1345,7 +1443,7 @@ async function loadINSEE(citycode, lat, lng){
 // ── Services & commerces ──
 async function loadServices(lat, lng){
   try{
-    const r = await fetch(`/api/services?lat=${lat}&lon=${lng}&dist=1000`);
+    const r = await apiCall(`/api/services?lat=${lat}&lon=${lng}&dist=1000`, `https://overpass-api.de/api/interpreter`);
     if(!r.ok) throw new Error();
     const d = await r.json();
     if(!d.success) throw new Error();
@@ -1363,7 +1461,7 @@ async function loadServices(lat, lng){
 // ── Altitude IGN ──
 async function loadAltitude(lat, lng){
   try{
-    const r = await fetch(`/api/altitude?lat=${lat}&lon=${lng}`);
+    const r = await apiCall(`/api/altitude?lat=${lat}&lon=${lng}`, `https://data.geopf.fr/altimetrie/1.0/calcul/alti/rest/elevation.json?lon=${lng}&lat=${lat}&resource=ign_rge_alti_wld&delimiter=|&indent=false&measures=false&zonly=true`);
     if(!r.ok) throw new Error();
     const d = await r.json();
     if(!d.success) throw new Error();
@@ -1393,7 +1491,7 @@ function showDetail(cardId){
     fibre:      () => showFibreDetail(),
     services:   () => showServicesMap(),
     dpe:        () => go('energie'),
-    bruit:      () => { const addr = currentAddress ? encodeURIComponent(currentAddress) : ''; window.open(`https://www.bruit.fr/?address=${addr}`, '_blank'); },
+    bruit:      () => ouvrirBruit(),
   };
   if(data[cardId]) data[cardId]();
 }
@@ -1875,6 +1973,9 @@ function calcDpe(){
   const prix={'gaz':0.13,'elec':0.25,'fioul':0.15,'pompe':0.09}[chauff];
   const facture=Math.round(kwh*surf*prix);
   const vignette={'A':'🟢','B':'🟢','C':'🟡','D':'🟠','E':'🟠','F':'🔴','G':'🔴'}[dpe];
+  // Mettre à jour la carte DPE avec le dernier résultat
+  window._dpeResult = {dpe, facture, surf, vignette};
+  setCard('dpe', vignette+' DPE '+dpe, Math.round(facture/12).toLocaleString('fr-FR')+' €/mois · '+surf+'m²', dpe<='C'?'good':dpe<='D'?'':'bad');
   document.getElementById('resDpe').innerHTML=`
     <div class="result-dark">
       <div style="text-align:center;font-size:2.5rem;margin:.5rem 0">${vignette} DPE ${dpe}</div>
