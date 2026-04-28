@@ -1380,23 +1380,67 @@ function setCard(id, value, sub, cssClass=''){
 }
 
 // ── DVF : vraies transactions officielles ──
+function normaliseDVF(items){
+  return items.map(t => {
+    const p = t.properties || t;
+    const surf = parseFloat(p.surface_reelle_bati || p.surface_carrez || p.surface_habitable || p.surface || 0);
+    const prix = parseFloat(p.valeur_fonciere || p.prix || 0);
+    const prixM2 = (surf > 9 && prix > 10000) ? Math.round(prix / surf) : 0;
+    return { surf: Math.round(surf), prix: Math.round(prix), prixM2,
+      date: p.date_mutation || p.date_vente || p.date || '—',
+      type: p.type_local || p.nature_mutation || p.type || '—',
+      adresse: `${p.adresse_numero||p.no_voie||''} ${p.adresse_nom_voie||p.voie||p.adresse||''}`.trim()
+    };
+  }).filter(t => t.prixM2 > 500 && t.prixM2 < 50000);
+}
+
+function buildDVFResult(valides, rayon, source){
+  const sorted = valides.map(t=>t.prixM2).sort((a,b)=>a-b);
+  return { success:true, count:valides.length, rayon, source,
+    stats:{ medianM2:sorted[Math.floor(sorted.length/2)], minM2:sorted[0], maxM2:sorted[sorted.length-1] },
+    recentes: valides.slice(0,8) };
+}
+
 async function loadDVF(lat, lng){
+  const DIST = 5000; // 5km pour avoir assez de transactions
+
+  // Source 1 : via Vercel function (évite CORS + retries côté serveur)
   try{
-    const r = await apiCall(`/api/dvf?lat=${lat}&lon=${lng}&dist=2000`, `https://api.cquest.org/dvf?lat=${lat}&lon=${lng}&dist=2000&nature_mutation=Vente`);
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    const d = await r.json();
-    if(!d.success || !d.stats){
-      window._dvfData = { failed: true, message: d.message || 'Source DVF temporairement hors ligne' };
-      setCard('dvf','Données indisponibles','Source DVF temporairement hors ligne','');
-      return;
+    const r = await fetch(`/api/dvf?lat=${lat}&lon=${lng}&dist=${DIST}`, { signal: AbortSignal.timeout(10000) });
+    if(r.ok){
+      const d = await r.json();
+      if(d.success && d.stats){ afficherDVF(d); return; }
     }
-    const prix = d.stats.medianM2.toLocaleString('fr-FR');
-    setCard('dvf', prix+' €/m²', `${d.count} ventes · ${d.stats.minM2.toLocaleString('fr-FR')}-${d.stats.maxM2.toLocaleString('fr-FR')} €/m²`, '');
-    window._dvfData = d;
-  }catch(e){
-    window._dvfData = { failed: true, message: 'Erreur de connexion à la source DVF' };
-    setCard('dvf','Non disponible','Erreur données DVF','');
-  }
+  }catch(e){}
+
+  // Source 2 : directement depuis le navigateur (contourne le blocage IP Vercel)
+  try{
+    const r = await fetch(`https://api.dvf.etalab.gouv.fr/dvf/around/?lat=${lat}&lon=${lng}&dist=${DIST}`, { signal: AbortSignal.timeout(10000) });
+    if(r.ok){
+      const data = await r.json();
+      const valides = normaliseDVF(data.features||[]);
+      if(valides.length > 0){ afficherDVF(buildDVFResult(valides, DIST, 'DVF DGFiP · etalab.gouv.fr')); return; }
+    }
+  }catch(e){}
+
+  // Source 3 : cquest direct navigateur
+  try{
+    const r = await fetch(`https://api.cquest.org/dvf?lat=${lat}&lon=${lng}&dist=${DIST}&nature_mutation=Vente`, { signal: AbortSignal.timeout(8000) });
+    if(r.ok){
+      const data = await r.json();
+      const valides = normaliseDVF(data.resultats||data.results||[]);
+      if(valides.length > 0){ afficherDVF(buildDVFResult(valides, DIST, 'DVF DGFiP · cquest.org')); return; }
+    }
+  }catch(e){}
+
+  window._dvfData = { failed: true, message: 'Sources DVF indisponibles pour ce secteur' };
+  setCard('dvf','Indisponible','Données DVF hors ligne','');
+}
+
+function afficherDVF(d){
+  const prix = d.stats.medianM2.toLocaleString('fr-FR');
+  setCard('dvf', prix+' €/m²', `${d.count} ventes · rayon ${(d.rayon/1000).toFixed(0)}km`, '');
+  window._dvfData = d;
 }
 
 // ── Géorisques : risques naturels officiels ──
@@ -1639,7 +1683,7 @@ function showDVFDetail(){
     showPanel('💰 Prix & marché DVF',`
       <p style="color:var(--muted);margin-bottom:1rem">⚠️ ${d.message}</p>
       <p style="font-size:.78rem;color:var(--muted);margin-bottom:1rem">Les données DVF officielles (DGFiP) sont parfois temporairement indisponibles. Vous pouvez consulter directement :</p>
-      <a href="https://app.dvf.etalab.gouv.fr/" target="_blank" class="btn btn-dark" style="display:inline-block;margin-bottom:.5rem">📊 Carte DVF officielle ↗</a><br>
+      <a href="https://explore.data.gouv.fr/fr/immobilier?onglet=carte&filtre=tous" target="_blank" class="btn btn-dark" style="display:inline-block;margin-bottom:.5rem">📊 Carte DVF officielle ↗</a><br>
       <a href="https://www.meilleursagents.com/" target="_blank" class="btn" style="display:inline-block;margin-top:.5rem">Meilleurs Agents ↗</a>
     `);
     return;
