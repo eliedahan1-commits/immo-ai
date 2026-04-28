@@ -1383,17 +1383,18 @@ function setCard(id, value, sub, cssClass=''){
 async function loadDVF(lat, lng){
   try{
     const r = await apiCall(`/api/dvf?lat=${lat}&lon=${lng}&dist=2000`, `https://api.cquest.org/dvf?lat=${lat}&lon=${lng}&dist=2000&nature_mutation=Vente`);
-    if(!r.ok) throw new Error();
+    if(!r.ok) throw new Error('HTTP '+r.status);
     const d = await r.json();
     if(!d.success || !d.stats){
+      window._dvfData = { failed: true, message: d.message || 'Source DVF temporairement hors ligne' };
       setCard('dvf','Données indisponibles','Source DVF temporairement hors ligne','');
       return;
     }
     const prix = d.stats.medianM2.toLocaleString('fr-FR');
     setCard('dvf', prix+' €/m²', `${d.count} ventes · ${d.stats.minM2.toLocaleString('fr-FR')}-${d.stats.maxM2.toLocaleString('fr-FR')} €/m²`, '');
-    // Stocker pour le détail
     window._dvfData = d;
   }catch(e){
+    window._dvfData = { failed: true, message: 'Erreur de connexion à la source DVF' };
     setCard('dvf','Non disponible','Erreur données DVF','');
   }
 }
@@ -1437,14 +1438,15 @@ async function loadRisques(lat, lng){
 // ── Écoles : données officielles Éducation nationale ──
 async function loadEcoles(lat, lng, codeInsee){
   try{
-    const deg=1500/111000; const where=encodeURIComponent(`latitude>${lat-deg} AND latitude<${lat+deg} AND longitude>${lng-deg} AND longitude<${lng+deg}`); const r = await apiCall(`/api/ecoles?lat=${lat}&lon=${lng}&dist=1500${codeInsee?'&codeInsee='+codeInsee:''}`, `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=${where}&limit=25&select=nom_etablissement,type_etablissement,statut_public_prive,adresse1,code_postal,nom_commune,latitude,longitude`);
+    const deg=1500/111000; const where=encodeURIComponent(`latitude>${lat-deg} AND latitude<${lat+deg} AND longitude>${lng-deg} AND longitude<${lng+deg}`); const r = await apiCall(`/api/ecoles?lat=${lat}&lon=${lng}&dist=1500&_v=4${codeInsee?'&codeInsee='+codeInsee:''}`, `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=${where}&limit=25&select=nom_etablissement,type_etablissement,statut_public_prive,adresse1,code_postal,nom_commune,latitude,longitude`);
     if(!r.ok) throw new Error();
     const d = await r.json();
     if(!d.success) throw new Error();
     const total = d.total;
+    const nbEcoles = d.types?.ecoles ?? (d.types?.elementaire||0);
     setCard('ecoles',
       total+' établissement'+(total>1?'s':''),
-      `${d.types.elementaire} école(s) · ${d.types.college} collège(s)`,
+      `${nbEcoles} école(s) · ${d.types?.college||0} collège(s) · ${d.types?.lycee||0} lycée(s)`,
       total>0?'good':''
     );
     window._ecolesData = d;
@@ -1632,7 +1634,17 @@ function closePanel(){
 
 function showDVFDetail(){
   const d = window._dvfData;
-  if(!d||!d.stats){showPanel('💰 Prix & marché DVF','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
+  if(!d){showPanel('💰 Prix & marché DVF','<p style="color:var(--muted)">Données en cours de chargement… Analysez d\'abord une adresse.</p>');return;}
+  if(d.failed){
+    showPanel('💰 Prix & marché DVF',`
+      <p style="color:var(--muted);margin-bottom:1rem">⚠️ ${d.message}</p>
+      <p style="font-size:.78rem;color:var(--muted);margin-bottom:1rem">Les données DVF officielles (DGFiP) sont parfois temporairement indisponibles. Vous pouvez consulter directement :</p>
+      <a href="https://app.dvf.etalab.gouv.fr/" target="_blank" class="btn btn-dark" style="display:inline-block;margin-bottom:.5rem">📊 Carte DVF officielle ↗</a><br>
+      <a href="https://www.meilleursagents.com/" target="_blank" class="btn" style="display:inline-block;margin-top:.5rem">Meilleurs Agents ↗</a>
+    `);
+    return;
+  }
+  if(!d.stats){showPanel('💰 Prix & marché DVF','<p style="color:var(--muted)">Aucune transaction trouvée dans ce secteur.</p>');return;}
   const rows = d.recentes?.map(t=>`
     <tr>
       <td>${t.date||'—'}</td>
@@ -1679,7 +1691,7 @@ function showEcolesDetail(){
     </div>`).join('') || '<p style="color:var(--muted)">Aucun établissement trouvé à proximité</p>';
   showPanel('🏫 Établissements scolaires à proximité', `
     <div style="display:flex;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap">
-      <span class="tag tag-up">🏫 ${d.types?.elementaire||0} école(s)</span>
+      <span class="tag tag-up">🏫 ${d.types?.ecoles ?? (d.types?.elementaire||0)} école(s)</span>
       <span class="tag tag-gold">🎓 ${d.types?.college||0} collège(s)</span>
       <span class="tag tag-up">📚 ${d.types?.lycee||0} lycée(s)</span>
     </div>

@@ -40,14 +40,21 @@ export default async function handler(req, res) {
       const nom = (e.nom_etablissement||'').toLowerCase();
       return mots.some(m => type.includes(m) || nom.includes(m));
     };
+    const isEcole = e => {
+      const t = (e.type_etablissement||'').toLowerCase();
+      return t.includes('ecole') || t.includes('école');
+    };
+    const isCollege = e => matchTexte(e, 'collège', 'college');
+    const isLycee   = e => matchTexte(e, 'lycée', 'lycee');
     const types = {
-      maternelle: withDist.filter(e => e.ecole_maternelle === true || e.ecole_maternelle === 'true' || matchTexte(e, 'maternelle')).length,
-      elementaire: withDist.filter(e => e.ecole_elementaire === true || e.ecole_elementaire === 'true' || matchTexte(e, 'élémentaire', 'elementaire', 'primaire') || (e.type_etablissement||'').toLowerCase() === 'ecole' || (e.type_etablissement||'').toLowerCase() === 'école').length,
-      college: withDist.filter(e => matchTexte(e, 'collège', 'college')).length,
-      lycee: withDist.filter(e => matchTexte(e, 'lycée', 'lycee')).length,
+      ecoles:   withDist.filter(isEcole).length,
+      maternelle: withDist.filter(e => isEcole(e) && matchTexte(e, 'maternelle')).length,
+      elementaire: withDist.filter(e => isEcole(e) && !matchTexte(e, 'maternelle')).length,
+      college: withDist.filter(isCollege).length,
+      lycee:   withDist.filter(isLycee).length,
     };
 
-    res.setHeader('Cache-Control', 'public, max-age=604800');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
     return res.status(200).json({
       success: true, total: withDist.length, types,
       etablissements: withDist.slice(0, 12).map(e => ({
