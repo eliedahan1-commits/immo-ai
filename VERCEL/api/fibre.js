@@ -24,7 +24,7 @@ export default async function handler(req, res) {
     if (eligible === null) {
       const dept = codeInsee?.substring(0, 2);
       if (['75', '92', '93', '94'].includes(dept)) { eligible = true; technologie = 'FTTH'; operateurs = ['Orange', 'SFR', 'Free', 'Bouygues']; }
-      else if (['69', '13', '31', '33', '06', '59', '67'].includes(dept)) { eligible = true; technologie = 'FTTH'; operateurs = ['Orange', 'SFR', 'Free']; }
+      else if (['69', '13', '31', '33', '06', '59', '67', '76', '44', '35', '56', '29', '22', '57', '54', '38', '34', '30', '83', '84', '63', '37', '49', '72', '45', '21', '25', '68', '74', '77', '78', '91', '95'].includes(dept)) { eligible = true; technologie = 'FTTH'; operateurs = ['Orange', 'SFR', 'Free']; }
     }
 
     res.setHeader('Cache-Control', 'public, max-age=86400');

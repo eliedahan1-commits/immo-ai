@@ -35,11 +35,16 @@ export default async function handler(req, res) {
       .filter(e => e.distanceM <= dist * 1.5)
       .sort((a, b) => a.distanceM - b.distanceM);
 
+    const matchTexte = (e, ...mots) => {
+      const type = (e.type_etablissement||'').toLowerCase();
+      const nom = (e.nom_etablissement||'').toLowerCase();
+      return mots.some(m => type.includes(m) || nom.includes(m));
+    };
     const types = {
-      maternelle: withDist.filter(e => e.ecole_maternelle === true || e.ecole_maternelle === 'true' || (e.type_etablissement||'').toLowerCase().includes('maternelle')).length,
-      elementaire: withDist.filter(e => e.ecole_elementaire === true || e.ecole_elementaire === 'true' || (e.type_etablissement||'').toLowerCase().includes('élémentaire') || (e.type_etablissement||'').toLowerCase().includes('primaire')).length,
-      college: withDist.filter(e => (e.type_etablissement||'').toLowerCase().includes('coll')).length,
-      lycee: withDist.filter(e => (e.type_etablissement||'').toLowerCase().includes('lyc')).length,
+      maternelle: withDist.filter(e => e.ecole_maternelle === true || e.ecole_maternelle === 'true' || matchTexte(e, 'maternelle')).length,
+      elementaire: withDist.filter(e => e.ecole_elementaire === true || e.ecole_elementaire === 'true' || matchTexte(e, 'élémentaire', 'elementaire', 'primaire') || (e.type_etablissement||'').toLowerCase() === 'ecole' || (e.type_etablissement||'').toLowerCase() === 'école').length,
+      college: withDist.filter(e => matchTexte(e, 'collège', 'college')).length,
+      lycee: withDist.filter(e => matchTexte(e, 'lycée', 'lycee')).length,
     };
 
     res.setHeader('Cache-Control', 'public, max-age=604800');

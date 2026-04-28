@@ -57,6 +57,14 @@ export default async function handler(req, res) {
       dateExtraction: new Date().toISOString()
     });
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
+    const isTimeout = error.message?.includes('timeout') || error.name === 'TimeoutError';
+    return res.status(200).json({
+      success: false,
+      score: 0, scoreLabel: 'Non disponible',
+      stats: { metro: 0, gares: 0, trams: 0, arretsBus: 0, velos: 0, bornesElec: 0 },
+      arretsPrincipaux: [], elements: [],
+      error: isTimeout ? 'Délai dépassé · Réessayez dans quelques secondes' : error.message,
+      source: 'OpenStreetMap via Overpass API'
+    });
   }
 }

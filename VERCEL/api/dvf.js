@@ -7,45 +7,96 @@ export default async function handler(req, res) {
 
   if (!lat || !lon) return res.status(400).json({ error: 'lat et lon requis' });
 
-  const sources = [
-    `https://api.cquest.org/dvf?lat=${lat}&lon=${lon}&dist=${dist}&nature_mutation=Vente`,
-    `https://dvf.bienici.com/ventes?lat=${lat}&lon=${lon}&radius=${dist}&nb_resultats=30`,
-  ];
-
-  for (const srcUrl of sources) {
-    try {
-      const r = await fetch(srcUrl, {
-        headers: { 'Accept': 'application/json', 'User-Agent': 'IMMOAI/2.0 (immo-ai.vercel.app)' },
-        signal: AbortSignal.timeout(7000)
-      });
-      if (!r.ok) continue;
-      const data = await r.json();
-
-      let items = data.resultats || data.hits || data.ventes || data.results || [];
-      const prixM2 = items.map(t => {
-        const p = t.properties || t;
-        const surf = p.surface_reelle_bati || p.surface_carrez || p.surface_habitable || p.surface || 0;
-        const prix = p.valeur_fonciere || p.prix || 0;
-        return (surf > 9 && prix > 10000) ? Math.round(prix / surf) : null;
-      }).filter(p => p && p > 500 && p < 50000).sort((a, b) => a - b);
-
-      if (!prixM2.length) continue;
-      const median = prixM2[Math.floor(prixM2.length / 2)];
-
-      res.setHeader('Cache-Control', 'public, max-age=86400');
-      return res.status(200).json({
-        success: true, count: prixM2.length, rayon: dist,
-        stats: { medianM2: median, minM2: prixM2[0], maxM2: prixM2[prixM2.length - 1], nbTransactions: prixM2.length },
-        recentes: items.slice(0, 8).map(t => {
-          const p = t.properties || t;
-          const surf = p.surface_reelle_bati || p.surface_carrez || p.surface_habitable || p.surface || 0;
-          const prix = p.valeur_fonciere || p.prix || 0;
-          return { date: p.date_mutation || p.date || '—', type: p.type_local || p.type || '—', surface: surf, prix, prixM2: surf > 0 ? Math.round(prix / surf) : 0, adresse: `${p.adresse_numero || ''} ${p.adresse_nom_voie || p.adresse || p.rue || ''}`.trim() };
-        }).filter(t => t.prixM2 > 0),
-        source: 'DVF DGFiP', dateExtraction: new Date().toISOString()
-      });
-    } catch(e) { continue; }
+  // Normalise les items selon la source et retourne { surf, prix, date, type, adresse }
+  function normalise(items, source) {
+    return items.map(t => {
+      const p = t.properties || t;
+      const surf = p.surface_reelle_bati || p.surface_carrez || p.surface_habitable || p.surface || 0;
+      const prix = p.valeur_fonciere || p.prix || 0;
+      const prixM2 = (surf > 9 && prix > 10000) ? Math.round(prix / surf) : 0;
+      return {
+        surf, prix, prixM2,
+        date: p.date_mutation || p.date_vente || p.date || '—',
+        type: p.type_local || p.nature_mutation || p.type || '—',
+        adresse: `${p.adresse_numero || p.no_voie || ''} ${p.adresse_nom_voie || p.voie || p.adresse || ''}`.trim()
+      };
+    }).filter(t => t.prixM2 > 500 && t.prixM2 < 50000);
   }
+
+  // Source 1 : API Etalab officielle (data.gouv.fr)
+  try {
+    const url = `https://api.dvf.etalab.gouv.fr/dvf/around/?lat=${lat}&lon=${lon}&dist=${dist}`;
+    const r = await fetch(url, {
+      headers: { 'Accept': 'application/json', 'User-Agent': 'IMMOAI/2.0 (immo-ai.vercel.app)' },
+      signal: AbortSignal.timeout(8000)
+    });
+    if (r.ok) {
+      const data = await r.json();
+      const items = data.features || data.results || data.items || [];
+      const valides = normalise(items, 'etalab');
+      if (valides.length > 0) {
+        const sorted = valides.map(t => t.prixM2).sort((a, b) => a - b);
+        const median = sorted[Math.floor(sorted.length / 2)];
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        return res.status(200).json({
+          success: true, count: valides.length, rayon: dist,
+          stats: { medianM2: median, minM2: sorted[0], maxM2: sorted[sorted.length - 1], nbTransactions: valides.length },
+          recentes: valides.slice(0, 8),
+          source: 'DVF DGFiP · data.gouv.fr', dateExtraction: new Date().toISOString()
+        });
+      }
+    }
+  } catch(e) { /* suivant */ }
+
+  // Source 2 : api.cquest.org
+  try {
+    const url = `https://api.cquest.org/dvf?lat=${lat}&lon=${lon}&dist=${dist}&nature_mutation=Vente`;
+    const r = await fetch(url, {
+      headers: { 'Accept': 'application/json', 'User-Agent': 'IMMOAI/2.0 (immo-ai.vercel.app)' },
+      signal: AbortSignal.timeout(7000)
+    });
+    if (r.ok) {
+      const data = await r.json();
+      const items = data.resultats || data.results || [];
+      const valides = normalise(items, 'cquest');
+      if (valides.length > 0) {
+        const sorted = valides.map(t => t.prixM2).sort((a, b) => a - b);
+        const median = sorted[Math.floor(sorted.length / 2)];
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        return res.status(200).json({
+          success: true, count: valides.length, rayon: dist,
+          stats: { medianM2: median, minM2: sorted[0], maxM2: sorted[sorted.length - 1], nbTransactions: valides.length },
+          recentes: valides.slice(0, 8),
+          source: 'DVF DGFiP · api.cquest.org', dateExtraction: new Date().toISOString()
+        });
+      }
+    }
+  } catch(e) { /* suivant */ }
+
+  // Source 3 : dvf.bienici.com
+  try {
+    const url = `https://dvf.bienici.com/ventes?lat=${lat}&lon=${lon}&radius=${dist}&nb_resultats=30`;
+    const r = await fetch(url, {
+      headers: { 'Accept': 'application/json', 'User-Agent': 'IMMOAI/2.0 (immo-ai.vercel.app)' },
+      signal: AbortSignal.timeout(7000)
+    });
+    if (r.ok) {
+      const data = await r.json();
+      const items = data.ventes || data.hits || [];
+      const valides = normalise(items, 'bienici');
+      if (valides.length > 0) {
+        const sorted = valides.map(t => t.prixM2).sort((a, b) => a - b);
+        const median = sorted[Math.floor(sorted.length / 2)];
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        return res.status(200).json({
+          success: true, count: valides.length, rayon: dist,
+          stats: { medianM2: median, minM2: sorted[0], maxM2: sorted[sorted.length - 1], nbTransactions: valides.length },
+          recentes: valides.slice(0, 8),
+          source: 'DVF DGFiP · bienici.com', dateExtraction: new Date().toISOString()
+        });
+      }
+    }
+  } catch(e) { /* suivant */ }
 
   return res.status(200).json({ success: true, count: 0, stats: null, message: 'Données indisponibles · Source DVF temporairement hors ligne' });
 }
