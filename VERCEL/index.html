@@ -371,11 +371,12 @@ aside{
 .lbl{font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin:.7rem 0 .3rem;}
 .lbl:first-child{margin-top:0;}
 .inp{
-  width:100%;border:1px solid var(--border);background:var(--cream);
+  width:100%;border:1.5px solid var(--border);background:#fff;
   padding:.72rem .95rem;font-family:'Outfit',sans-serif;font-size:.83rem;
-  color:var(--ink);border-radius:4px;outline:none;transition:border-color .2s;
+  color:var(--ink);border-radius:4px;outline:none;transition:border-color .2s,box-shadow .2s;
 }
-.inp:focus{border-color:var(--gold);}
+.inp::placeholder{color:#b0a090;}
+.inp:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,131,42,.1);}
 select.inp{
   appearance:none;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238a7d68'/%3E%3C/svg%3E");
@@ -798,16 +799,37 @@ select.inp{
   <!-- ══ AIDES ══ -->
   <div class="page" id="p-aides"><div class="inner">
     <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
-    <div class="ph"><div class="ptag">✦ Financement · Source ANIL</div><h2 class="ptitle">Aides <em>de l'État</em></h2></div>
-    <div class="card"><div class="ctitle">🎁 Simuler mes aides</div>
-      <label class="lbl">Situation</label>
-      <div class="toggles" id="tAideSit"><button class="tog on" onclick="tog('tAideSit',this)">Primo-accédant</button><button class="tog" onclick="tog('tAideSit',this)">Déjà propriétaire</button><button class="tog" onclick="tog('tAideSit',this)">Investisseur locatif</button></div>
-      <div class="g2"><div><label class="lbl">Revenus foyer (€/an)</label><input class="inp" id="aRev" type="number" placeholder="80000" /></div><div><label class="lbl">Nombre de personnes</label><input class="inp" id="aPers" type="number" placeholder="2" /></div></div>
-      <label class="lbl">Prix du bien (€)</label><input class="inp" id="aPrix" type="number" placeholder="500000" />
-      <label class="lbl">Localisation</label><input class="inp" id="aVille" placeholder="Ex: Boulogne-Billancourt, Lyon, Bordeaux…" />
-      <button class="btn btn-dark btn-full" onclick="runIA('aides')" id="btnAides">✦ Calculer mes aides</button>
+    <div class="ph"><div class="ptag">✦ Financement · Barèmes officiels 2025</div><h2 class="ptitle">Aides <em>de l'État</em></h2></div>
+    <div class="g2" style="align-items:start">
+      <div class="card"><div class="ctitle">🎁 Votre situation</div>
+        <label class="lbl">Situation</label>
+        <div class="toggles" id="tAideSit"><button class="tog on" onclick="tog('tAideSit',this)">Primo-accédant</button><button class="tog" onclick="tog('tAideSit',this)">Déjà propriétaire</button><button class="tog" onclick="tog('tAideSit',this)">Investisseur</button></div>
+        <div class="g2">
+          <div><label class="lbl">Revenus foyer N-2 (€/an)</label><input class="inp" id="aRev" type="number" placeholder="60000" /></div>
+          <div><label class="lbl">Personnes dans le foyer</label><input class="inp" id="aPers" type="number" placeholder="2" min="1" max="8" /></div>
+        </div>
+        <label class="lbl">Prix du bien (€)</label><input class="inp" id="aPrix" type="number" placeholder="300000" />
+        <label class="lbl">Zone PTZ <span style="font-weight:400;color:var(--muted);font-size:.75em">— <a href="https://www.service-public.fr/particuliers/vosdroits/F10871" target="_blank" style="color:var(--gold2)">vérifier ma zone</a></span></label>
+        <select class="inp" id="aZone">
+          <option value="Abis">Zone A bis — Paris + petite couronne</option>
+          <option value="A">Zone A — Grandes agglomérations</option>
+          <option value="B1" selected>Zone B1 — Villes moyennes tendues</option>
+          <option value="B2">Zone B2 — Villes moyennes</option>
+          <option value="C">Zone C — Zones rurales / détendues</option>
+        </select>
+        <label class="lbl">Type de bien</label>
+        <div class="toggles" id="tAideType"><button class="tog on" onclick="tog('tAideType',this)">Neuf</button><button class="tog" onclick="tog('tAideType',this)">Ancien</button></div>
+        <button class="btn btn-dark btn-full" style="margin-top:1rem" onclick="calcAides()">✦ Calculer mes aides</button>
+      </div>
+      <div id="resAides"><div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez votre situation pour voir vos aides.</p></div></div>
     </div>
-    <div class="aibox" id="boxAides" style="display:none"><div class="ailabel">✦ Aides disponibles · <span class="source-badge">📊 ANIL 2025</span></div><div id="txtAides" class="aitext"></div></div>
+    <div style="margin-top:1.5rem;padding:1rem;background:var(--warm);border-radius:var(--r);font-size:.78rem;color:var(--muted)">
+      ⚠️ Estimations indicatives basées sur les barèmes officiels 2025. Vérifiez votre éligibilité exacte sur les sites officiels :
+      <a href="https://www.service-public.fr/particuliers/vosdroits/F10871" target="_blank" style="color:var(--gold2);margin-left:.5rem">PTZ — service-public.fr</a>
+      <a href="https://www.actionlogement.fr/le-pret-accession" target="_blank" style="color:var(--gold2);margin-left:.5rem">Action Logement</a>
+      <a href="https://www.maprimerenov.gouv.fr" target="_blank" style="color:var(--gold2);margin-left:.5rem">MaPrimeRénov'</a>
+      <a href="https://www.anil.org/outils/outils-de-calcul/simulation-ptz/" target="_blank" style="color:var(--gold2);margin-left:.5rem">Simulateur ANIL</a>
+    </div>
   </div></div>
 
   <!-- ══ RÉNOVATION ══ -->
@@ -1951,6 +1973,91 @@ async function runDVF(){
 }
 
 // ══ CALCULS LOCAUX ══
+function calcAides(){
+  const rev = parseFloat(document.getElementById('aRev').value)||0;
+  const pers = Math.min(Math.max(parseInt(document.getElementById('aPers').value)||2, 1), 8);
+  const prix = parseFloat(document.getElementById('aPrix').value)||0;
+  const zone = document.getElementById('aZone').value;
+  const sit = document.querySelector('#tAideSit .tog.on')?.textContent || 'Primo-accédant';
+  const type = document.querySelector('#tAideType .tog.on')?.textContent || 'Neuf';
+  if(!rev || !prix){ toast('Renseignez les revenus et le prix.','err'); return; }
+
+  // ── Barèmes PTZ 2025 (revenus fiscaux N-2) ──
+  const plafRev = {
+    Abis:[37000,52000,62500,75000,87500,100000,112500,125000],
+    A:   [37000,52000,62500,75000,87500,100000,112500,125000],
+    B1:  [30000,42000,51000,60000,69000, 78000, 87000, 96000],
+    B2:  [27000,37800,45900,54000,62100, 70200, 78300, 86400],
+    C:   [24000,33600,40800,48000,55200, 62400, 69600, 76800],
+  };
+  const plafOp = {
+    Abis:[150000,210000,255000,300000,345000,345000,345000,345000],
+    A:   [150000,210000,255000,300000,345000,345000,345000,345000],
+    B1:  [135000,189000,230000,270000,311000,311000,311000,311000],
+    B2:  [110000,154000,187000,220000,253000,253000,253000,253000],
+    C:   [100000,140000,170000,200000,230000,230000,230000,230000],
+  };
+  const tauxPTZ = { Abis:0.50, A:0.40, B1:0.40, B2:0.20, C:0.20 };
+  // PTZ ancien avec travaux >25% : B2 et C éligibles à 40% depuis 2024
+  const tauxPTZAncien = { Abis:0, A:0, B1:0, B2:0.40, C:0.40 };
+
+  const idx = Math.min(pers-1, 7);
+  const isPrimo = sit === 'Primo-accédant';
+
+  let html = '<div class="result-dark">';
+  html += '<div style="font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:1rem">🎁 Aides estimées · Barèmes officiels 2025</div>';
+
+  // ── PTZ ──
+  if(isPrimo){
+    const plafRevZone = plafRev[zone][idx];
+    const plafOpZone = plafOp[zone][idx];
+    const eligible = rev <= plafRevZone;
+    const taux = type === 'Neuf' ? tauxPTZ[zone] : tauxPTZAncien[zone];
+    if(eligible && taux > 0){
+      const base = Math.min(prix, plafOpZone);
+      const montantPTZ = Math.round(base * taux);
+      html += `<div class="result-row" style="margin-bottom:.3rem"><span style="color:var(--gold2);font-weight:500">🏦 PTZ — Prêt à Taux Zéro</span><span style="color:var(--gold2);font-weight:600">${fmt(montantPTZ)}</span></div>`;
+      html += `<div style="font-size:.73rem;color:rgba(255,255,255,.6);margin-bottom:1rem;padding-left:.5rem">Prêt sans intérêts · ${Math.round(taux*100)}% de ${fmt(base)} · Zone ${zone} · <a href="https://www.service-public.fr/particuliers/vosdroits/F10871" target="_blank" style="color:var(--gold2)">Vérifier ↗</a></div>`;
+    } else if(eligible && taux === 0){
+      html += `<div class="result-row"><span>PTZ</span><span style="color:#f4a261">Non éligible (type ${type} · Zone ${zone})</span></div>`;
+      html += `<div style="font-size:.73rem;color:rgba(255,255,255,.5);margin-bottom:1rem;padding-left:.5rem">Le PTZ ancien est limité aux zones B2 et C avec travaux ≥ 25% du prix.</div>`;
+    } else {
+      html += `<div class="result-row"><span>PTZ</span><span style="color:#e63946">Revenus trop élevés</span></div>`;
+      html += `<div style="font-size:.73rem;color:rgba(255,255,255,.5);margin-bottom:1rem;padding-left:.5rem">Plafond zone ${zone} pour ${pers} pers. : ${fmt(plafRevZone)} €/an · Vos revenus : ${fmt(rev)} €/an</div>`;
+    }
+  } else {
+    html += `<div class="result-row"><span>PTZ</span><span style="color:rgba(255,255,255,.5)">Réservé aux primo-accédants</span></div><div style="margin-bottom:1rem"></div>`;
+  }
+
+  // ── Action Logement ──
+  html += `<div class="result-row" style="margin-bottom:.3rem"><span style="color:var(--gold2);font-weight:500">🏢 Action Logement</span><span style="color:var(--gold2);font-weight:600">jusqu'à 40 000 €</span></div>`;
+  html += `<div style="font-size:.73rem;color:rgba(255,255,255,.6);margin-bottom:1rem;padding-left:.5rem">Prêt à 1% · Salariés d'entreprises ≥ 10 salariés · Conditions variables · <a href="https://www.actionlogement.fr/le-pret-accession" target="_blank" style="color:var(--gold2)">Vérifier ↗</a></div>`;
+
+  // ── Exonération taxe foncière (neuf) ──
+  if(type === 'Neuf'){
+    html += `<div class="result-row" style="margin-bottom:.3rem"><span style="color:var(--gold2);font-weight:500">🏗️ Exonération taxe foncière</span><span style="color:var(--gold2);font-weight:600">2 ans</span></div>`;
+    html += `<div style="font-size:.73rem;color:rgba(255,255,255,.6);margin-bottom:1rem;padding-left:.5rem">Exonération automatique 2 ans pour construction neuve · Selon commune</div>`;
+  }
+
+  // ── TVA réduite (neuf en zone ANRU) ──
+  if(type === 'Neuf'){
+    html += `<div class="result-row" style="margin-bottom:.3rem"><span style="color:var(--gold2);font-weight:500">📋 TVA réduite 5,5%</span><span style="color:var(--gold2);font-weight:600">si zone ANRU</span></div>`;
+    html += `<div style="font-size:.73rem;color:rgba(255,255,255,.6);margin-bottom:1rem;padding-left:.5rem">TVA 5,5% au lieu de 20% en zone de rénovation urbaine (ANRU) · <a href="https://www.anru.fr/les-programmes/le-pnru" target="_blank" style="color:var(--gold2)">En savoir plus ↗</a></div>`;
+  }
+
+  html += `<div style="margin-top:1rem;padding:.75rem;background:rgba(255,255,255,.06);border-radius:6px;font-size:.73rem;color:rgba(255,255,255,.55)">`;
+  html += `⚠️ Estimations basées sur les barèmes 2025. Simulez précisément sur <a href="https://www.anil.org/outils/outils-de-calcul/simulation-ptz/" target="_blank" style="color:var(--gold2)">anil.org ↗</a>`;
+  html += `</div></div>`;
+
+  document.getElementById('resAides').innerHTML = html;
+
+  // Mettre à jour la carte
+  const montantTotal = isPrimo && rev <= plafRev[zone][idx] && (type==='Neuf'?tauxPTZ[zone]:tauxPTZAncien[zone]) > 0
+    ? fmt(Math.round(Math.min(prix, plafOp[zone][idx]) * (type==='Neuf'?tauxPTZ[zone]:tauxPTZAncien[zone]))) + ' PTZ'
+    : 'Voir les aides';
+  setCard('aides', montantTotal, sit + ' · Zone ' + zone, 'good');
+}
+
 function calcCout(){
   const prix=parseFloat(document.getElementById('cPrix').value)||0;
   if(!prix){toast('Veuillez saisir le prix.','err');return;}
