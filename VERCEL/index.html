@@ -742,6 +742,7 @@ select.inp{
 
   <!-- ══ EMPRUNT ══ -->
   <div class="page" id="p-emprunt"><div class="inner">
+    <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
     <div class="ph"><div class="ptag">✦ Financement</div><h2 class="ptitle">Capacité <em>d'emprunt</em></h2></div>
     <div class="g2" style="align-items:start">
       <div class="card"><div class="ctitle">💶 Vos revenus et charges</div>
@@ -759,6 +760,7 @@ select.inp{
 
   <!-- ══ VRAI COÛT ══ -->
   <div class="page" id="p-cout"><div class="inner">
+    <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
     <div class="ph"><div class="ptag">✦ Financement</div><h2 class="ptitle">Le <em>vrai coût</em> du bien</h2></div>
     <div class="g2" style="align-items:start">
       <div class="card"><div class="ctitle">🏠 Caractéristiques du bien</div>
@@ -794,6 +796,7 @@ select.inp{
 
   <!-- ══ AIDES ══ -->
   <div class="page" id="p-aides"><div class="inner">
+    <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
     <div class="ph"><div class="ptag">✦ Financement · Source ANIL</div><h2 class="ptitle">Aides <em>de l'État</em></h2></div>
     <div class="card"><div class="ctitle">🎁 Simuler mes aides</div>
       <label class="lbl">Situation</label>
@@ -808,6 +811,7 @@ select.inp{
 
   <!-- ══ RÉNOVATION ══ -->
   <div class="page" id="p-renov"><div class="inner">
+    <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
     <div class="ph"><div class="ptag">✦ Travaux · Source ADEME</div><h2 class="ptitle">Rénovation & <em>MaPrimeRénov'</em></h2></div>
     <div class="card"><div class="ctitle">🔨 Simuler les travaux et aides</div>
       <div class="g2">
@@ -823,6 +827,7 @@ select.inp{
 
   <!-- ══ COACHING OFFRE ══ -->
   <div class="page" id="p-offre"><div class="inner">
+    <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
     <div class="ph"><div class="ptag">✦ Stratégie</div><h2 class="ptitle">Coaching <em>de l'offre</em></h2></div>
     <div class="card"><div class="ctitle">🤝 Décrivez le bien</div>
       <div class="g2"><div><label class="lbl">Prix demandé (€)</label><input class="inp" id="oPrix" type="number" placeholder="650000" /></div><div><label class="lbl">Surface (m²)</label><input class="inp" id="oSurf" type="number" placeholder="75" /></div></div>
@@ -838,6 +843,7 @@ select.inp{
 
   <!-- ══ PROFIL DE VIE ══ -->
   <div class="page" id="p-profil"><div class="inner">
+    <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
     <div class="ph"><div class="ptag">✦ Stratégie</div><h2 class="ptitle">Compatibilité <em>de vie</em></h2><p class="psub">L'IA identifie les secteurs vraiment compatibles avec votre style de vie.</p></div>
     <div class="card"><div class="ctitle">🎯 Votre profil de vie</div>
       <p style="font-size:.83rem;font-weight:500;margin-bottom:.5rem">Ville / secteur recherché</p>
@@ -857,6 +863,7 @@ select.inp{
 
   <!-- ══ COMPARER ══ -->
   <div class="page" id="p-comparer"><div class="inner">
+    <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
     <div class="ph"><div class="ptag">✦ Stratégie</div><h2 class="ptitle">Comparer <em>des biens</em></h2></div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem">
       <div class="card"><div class="ctitle">🏠 Bien 1</div>
@@ -1972,8 +1979,13 @@ function calcEmprunt(){
   const charges=parseFloat(document.getElementById('eCharges').value)||0;
   const apport=parseFloat(document.getElementById('eApport').value)||0;
   const duree=parseFloat(document.getElementById('eDuree').value)||20;
-  const taux=(parseFloat(document.getElementById('eTaux').value)||3.4)/100;
+  const taux=(parseFloat(String(document.getElementById('eTaux').value).replace(',','.'))||3.4)/100;
   const mensMax=rev*.35-charges;
+  if(mensMax<=0){
+    document.getElementById('resEmprunt').innerHTML=`<div class="result-dark"><p style="color:#e63946;font-size:.85rem">⚠️ <strong>Capacité nulle.</strong><br><br>Vos charges (${fmt(charges)} €/mois) dépassent 35% de vos revenus (${fmt(Math.round(rev*.35))} €/mois max).<br><br>Réduisez vos charges ou augmentez vos revenus pour emprunter.</p></div>`;
+    setCard('emprunt','Capacité nulle','Charges > 35% des revenus','bad');
+    return;
+  }
   const t=taux/12,n=duree*12;
   const empruntMax=mensMax*(1-Math.pow(1+t,-n))/t;
   const prixMax=empruntMax+apport;
