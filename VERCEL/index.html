@@ -375,7 +375,7 @@ aside{
   padding:.72rem .95rem;font-family:'Outfit',sans-serif;font-size:.83rem;
   color:var(--ink);border-radius:4px;outline:none;transition:border-color .2s,box-shadow .2s;
 }
-.inp::placeholder{color:#b0a090;}
+.inp::placeholder{color:#c8b89a;font-style:italic;}
 .inp:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,131,42,.1);}
 select.inp{
   appearance:none;
@@ -386,12 +386,13 @@ select.inp{
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.85rem;}
 .toggles{display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.6rem;}
 .tog{
-  padding:.35rem .9rem;border:1px solid var(--border);
-  background:var(--cream);font-family:'Outfit',sans-serif;
+  padding:.35rem .9rem;border:1.5px dashed var(--border);
+  background:transparent;font-family:'Outfit',sans-serif;
   font-size:.73rem;cursor:pointer;border-radius:20px;
-  color:var(--muted);transition:all .18s;
+  color:#bbb;transition:all .18s;
 }
-.tog.on{border-color:var(--gold);background:var(--goldpale);color:var(--ink);}
+.tog:hover{border-color:#aaa;color:var(--ink);}
+.tog.on{border:1.5px solid var(--gold);background:var(--goldpale);color:var(--ink);font-weight:500;}
 .btn{
   padding:.72rem 1.3rem;border:none;font-family:'Outfit',sans-serif;
   font-size:.82rem;cursor:pointer;border-radius:4px;transition:all .2s;
@@ -803,7 +804,7 @@ select.inp{
     <div class="g2" style="align-items:start">
       <div class="card"><div class="ctitle">🎁 Votre situation</div>
         <label class="lbl">Situation</label>
-        <div class="toggles" id="tAideSit"><button class="tog on" onclick="tog('tAideSit',this)">Primo-accédant</button><button class="tog" onclick="tog('tAideSit',this)">Déjà propriétaire</button><button class="tog" onclick="tog('tAideSit',this)">Investisseur</button></div>
+        <div class="toggles" id="tAideSit"><button class="tog on" onclick="tog('tAideSit',this);autoCalcAides()">Primo-accédant</button><button class="tog" onclick="tog('tAideSit',this);autoCalcAides()">Déjà propriétaire</button><button class="tog" onclick="tog('tAideSit',this);autoCalcAides()">Investisseur</button></div>
         <div class="g2">
           <div><label class="lbl">Revenus foyer N-2 (€/an)</label><input class="inp" id="aRev" type="number" placeholder="60000" /></div>
           <div><label class="lbl">Personnes dans le foyer</label><input class="inp" id="aPers" type="number" placeholder="2" min="1" max="8" /></div>
@@ -818,7 +819,7 @@ select.inp{
           <option value="C">Zone C — Zones rurales / détendues</option>
         </select>
         <label class="lbl">Type de bien</label>
-        <div class="toggles" id="tAideType"><button class="tog on" onclick="tog('tAideType',this)">Neuf</button><button class="tog" onclick="tog('tAideType',this)">Ancien</button></div>
+        <div class="toggles" id="tAideType"><button class="tog on" onclick="tog('tAideType',this);autoCalcAides()">Neuf</button><button class="tog" onclick="tog('tAideType',this);autoCalcAides()">Ancien</button></div>
         <button class="btn btn-dark btn-full" style="margin-top:1rem" onclick="calcAides()">✦ Calculer mes aides</button>
       </div>
       <div id="resAides"><div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez votre situation pour voir vos aides.</p></div></div>
@@ -835,17 +836,28 @@ select.inp{
   <!-- ══ RÉNOVATION ══ -->
   <div class="page" id="p-renov"><div class="inner">
     <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
-    <div class="ph"><div class="ptag">✦ Travaux · Source ADEME</div><h2 class="ptitle">Rénovation & <em>MaPrimeRénov'</em></h2></div>
-    <div class="card"><div class="ctitle">🔨 Simuler les travaux et aides</div>
-      <div class="g2">
-        <div><label class="lbl">DPE actuel</label><select class="inp" id="rDpeAv"><option value="G">G</option><option value="F">F</option><option value="E" selected>E</option><option value="D">D</option></select></div>
-        <div><label class="lbl">DPE cible</label><select class="inp" id="rDpeAp"><option value="C" selected>C</option><option value="B">B</option><option value="A">A</option></select></div>
+    <div class="ph"><div class="ptag">✦ Travaux · Barèmes MaPrimeRénov' 2025</div><h2 class="ptitle">Rénovation & <em>MaPrimeRénov'</em></h2></div>
+    <div class="g2" style="align-items:start">
+      <div class="card"><div class="ctitle">🔨 Votre projet de rénovation</div>
+        <div class="g2">
+          <div><label class="lbl">DPE actuel</label><select class="inp" id="rDpeAv"><option value="G">G</option><option value="F">F</option><option value="E" selected>E</option><option value="D">D</option></select></div>
+          <div><label class="lbl">DPE cible</label><select class="inp" id="rDpeAp"><option value="C" selected>C</option><option value="B">B</option><option value="A">A</option></select></div>
+        </div>
+        <label class="lbl">Surface (m²)</label><input class="inp" id="rSurf" type="number" placeholder="80" />
+        <label class="lbl">Revenus foyer (€/an)</label><input class="inp" id="rRev" type="number" placeholder="60000" />
+        <label class="lbl">Nombre de personnes</label><input class="inp" id="rPers" type="number" placeholder="2" min="1" max="8" />
+        <label class="lbl">Localisation</label>
+        <div class="toggles" id="tRenovZone"><button class="tog on" onclick="tog('tRenovZone',this)">Province</button><button class="tog" onclick="tog('tRenovZone',this)">Île-de-France</button></div>
+        <button class="btn btn-dark btn-full" style="margin-top:.5rem" onclick="calcRenov()">✦ Estimer les aides</button>
       </div>
-      <label class="lbl">Surface (m²)</label><input class="inp" id="rSurf" type="number" placeholder="80" />
-      <label class="lbl">Revenus foyer (€/an)</label><input class="inp" id="rRev" type="number" placeholder="60000" />
-      <button class="btn btn-dark btn-full" onclick="runIA('renov')" id="btnRenov">✦ Simuler</button>
+      <div id="resRenov"><div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez votre projet pour estimer les aides.</p></div></div>
     </div>
-    <div class="aibox" id="boxRenov" style="display:none"><div class="ailabel">✦ Estimation travaux + aides · <span class="source-badge">📊 MaPrimeRénov' 2025</span></div><div id="txtRenov" class="aitext"></div></div>
+    <div style="margin-top:1.5rem;padding:1rem;background:var(--warm);border-radius:var(--r);font-size:.78rem;color:var(--muted)">
+      ⚠️ Estimations basées sur les barèmes MaPrimeRénov' 2025. Les montants réels dépendent des devis et du type de travaux.
+      <a href="https://www.maprimerenov.gouv.fr" target="_blank" style="color:var(--gold2);margin-left:.5rem">MaPrimeRénov' officiel ↗</a>
+      <a href="https://france-renov.gouv.fr" target="_blank" style="color:var(--gold2);margin-left:.5rem">France Rénov' ↗</a>
+      <a href="https://agirpourlatransition.ademe.fr/particuliers/finances/aides-a-la-renovation" target="_blank" style="color:var(--gold2);margin-left:.5rem">ADEME ↗</a>
+    </div>
   </div></div>
 
   <!-- ══ COACHING OFFRE ══ -->
@@ -861,7 +873,17 @@ select.inp{
       <div class="toggles" id="tOB"><button class="tog" onclick="tog('tOB',this)">Non</button><button class="tog" onclick="tog('tOB',this)">1 baisse</button><button class="tog on" onclick="tog('tOB',this)">2+ baisses</button></div>
       <button class="btn btn-dark btn-full" onclick="runIA('offre')" id="btnOffre">✦ Obtenir ma stratégie d'offre</button>
     </div>
-    <div class="aibox" id="boxOffre" style="display:none"><div class="ailabel">✦ Stratégie IA — Confidentiel</div><div id="txtOffre" class="aitext"></div></div>
+    <div class="aibox" id="boxOffre" style="display:none">
+      <div class="ailabel">✦ Stratégie IA — Conseil indicatif</div>
+      <div id="txtOffre" class="aitext"></div>
+      <div id="offreDvfLink" style="display:none;margin-top:1rem;padding:.75rem 1rem;background:rgba(184,131,42,.1);border:1px solid rgba(184,131,42,.2);border-radius:6px;font-size:.78rem">
+        📊 <strong>Prix DVF du quartier analysé :</strong> <span id="offreDvfVal">—</span> — à croiser avec cette recommandation.
+        <a href="#" onclick="go('prix');return false" style="color:var(--gold2);margin-left:.5rem">Voir le détail DVF ↗</a>
+      </div>
+      <div style="margin-top:.75rem;padding:.6rem 1rem;background:var(--warm);border-radius:6px;font-size:.75rem;color:var(--muted)">
+        ⚠️ Conseil indicatif basé sur les données saisies. À croiser impérativement avec les prix de marché réels avant toute offre.
+      </div>
+    </div>
   </div></div>
 
   <!-- ══ PROFIL DE VIE ══ -->
@@ -1973,6 +1995,97 @@ async function runDVF(){
 }
 
 // ══ CALCULS LOCAUX ══
+function injectDvfIntoOffre(){
+  const dvf = window._dvfData;
+  const link = document.getElementById('offreDvfLink');
+  const val = document.getElementById('offreDvfVal');
+  if(!link||!val) return;
+  if(dvf && dvf.stats && dvf.stats.medianM2){
+    val.textContent = dvf.stats.medianM2.toLocaleString('fr-FR') + ' €/m² médian · ' + dvf.count + ' ventes dans le secteur';
+    link.style.display = 'block';
+  }
+}
+function autoCalcAides(){if(parseFloat(document.getElementById('aRev').value)&&parseFloat(document.getElementById('aPrix').value))calcAides();}
+function calcRenov(){
+  const dpeAv = document.getElementById('rDpeAv').value;
+  const dpeAp = document.getElementById('rDpeAp').value;
+  const surf  = parseFloat(document.getElementById('rSurf').value)||0;
+  const rev   = parseFloat(document.getElementById('rRev').value)||0;
+  const pers  = Math.min(Math.max(parseInt(document.getElementById('rPers').value)||2,1),8);
+  const idf   = document.querySelector('#tRenovZone .tog.on')?.textContent.includes('Île') || false;
+  if(!surf||!rev){toast('Renseignez la surface et les revenus.','err');return;}
+
+  const ordre = ['G','F','E','D','C','B','A'];
+  const idxAv = ordre.indexOf(dpeAv), idxAp = ordre.indexOf(dpeAp);
+  if(idxAp <= idxAv){toast('Le DPE cible doit être meilleur que le DPE actuel.','err');return;}
+  const sauts = idxAp - idxAv;
+
+  // Coût travaux estimé (€/m²) selon nombre de sauts DPE
+  const coutM2 = sauts===1?200:sauts===2?400:sauts===3?650:850;
+  const coutMin = Math.round(surf * coutM2 * 0.8);
+  const coutMax = Math.round(surf * coutM2 * 1.3);
+
+  // Barèmes revenus MaPrimeRénov' 2025
+  const seuilsIDF = {
+    tresModeste:  [23541,34551,41493,48435,55418,62401,69384,76368],
+    modeste:      [28657,42058,50513,58991,67474,75957,84440,92924],
+    intermediaire:[40018,58827,70382,82005,93637,105270,116903,128535],
+  };
+  const seuilsProv = {
+    tresModeste:  [17009,24875,29917,34948,39990,45031,50073,55114],
+    modeste:      [21805,31889,38349,44808,51271,57731,64194,70654],
+    intermediaire:[30549,44907,54071,63235,72400,81564,90729,99893],
+  };
+  const seuils = idf ? seuilsIDF : seuilsProv;
+  const idx = Math.min(pers-1,7);
+
+  let tranche, tauxAide, couleur;
+  if(rev <= seuils.tresModeste[idx]){
+    tranche='Très modeste'; tauxAide=0.70; couleur='#4caf50';
+  } else if(rev <= seuils.modeste[idx]){
+    tranche='Modeste'; tauxAide=0.50; couleur='#8bc34a';
+  } else if(rev <= seuils.intermediaire[idx]){
+    tranche='Intermédiaire'; tauxAide=0.35; couleur='#f4a261';
+  } else {
+    tranche='Supérieure'; tauxAide=0.15; couleur='#e63946';
+  }
+
+  // MaPrimeRénov plafonné à 70 000€ de travaux éligibles (rénovation d'ampleur)
+  const eligible = sauts >= 2; // Rénovation d'ampleur = ≥ 2 sauts DPE
+  const travMax = 70000;
+  const base = Math.min(coutMax, travMax);
+  const aide = eligible ? Math.round(base * tauxAide) : Math.round(Math.min(coutMax, 10000) * tauxAide);
+
+  // Économies annuelles estimées (kWh évités × prix énergie)
+  const kwh = {'G':500,'F':375,'E':290,'D':215,'C':145,'B':90,'A':50};
+  const ecoKwh = (kwh[dpeAv] - kwh[dpeAp]) * surf;
+  const ecoMin = Math.round(ecoKwh * 0.13); // gaz
+  const ecoMax = Math.round(ecoKwh * 0.25); // élec
+
+  let html = '<div class="result-dark">';
+  html += '<div style="font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:1rem">🔨 Estimation rénovation · Barèmes 2025</div>';
+
+  html += `<div class="result-row" style="margin-bottom:.2rem"><span>Votre tranche</span><span style="color:${couleur};font-weight:600">${tranche} · ${Math.round(tauxAide*100)}% pris en charge</span></div>`;
+  html += `<div style="font-size:.73rem;color:rgba(255,255,255,.55);margin-bottom:1rem;padding-left:.5rem">Revenus ${fmt(rev)}€/an · ${pers} pers. · ${idf?'Île-de-France':'Province'}</div>`;
+
+  html += `<div class="result-row" style="margin-bottom:.2rem"><span>💰 Coût travaux estimé</span><span style="font-weight:600">${fmt(coutMin)} – ${fmt(coutMax)}</span></div>`;
+  html += `<div style="font-size:.73rem;color:rgba(255,255,255,.55);margin-bottom:1rem;padding-left:.5rem">DPE ${dpeAv} → ${dpeAp} · ${sauts} saut${sauts>1?'s':''} · ${surf}m²</div>`;
+
+  html += `<div class="result-row" style="margin-bottom:.2rem"><span style="color:var(--gold2);font-weight:500">🎁 MaPrimeRénov' estimée</span><span style="color:var(--gold2);font-weight:700;font-size:1.1rem">${fmt(aide)}</span></div>`;
+  if(!eligible) html += `<div style="font-size:.73rem;color:#f4a261;margin-bottom:.5rem;padding-left:.5rem">⚠️ Moins de 2 sauts DPE : aide partielle (hors rénovation d'ampleur)</div>`;
+  html += `<div style="font-size:.73rem;color:rgba(255,255,255,.55);margin-bottom:1rem;padding-left:.5rem">Plafond travaux éligibles : ${fmt(travMax)} · <a href="https://www.maprimerenov.gouv.fr" target="_blank" style="color:var(--gold2)">Vérifier ↗</a></div>`;
+
+  html += `<div class="result-row" style="margin-bottom:.2rem"><span>⚡ Économies annuelles estimées</span><span style="color:#4caf50;font-weight:600">${fmt(ecoMin)} – ${fmt(ecoMax)}/an</span></div>`;
+  html += `<div style="font-size:.73rem;color:rgba(255,255,255,.55);margin-bottom:1rem;padding-left:.5rem">${Math.round(ecoKwh).toLocaleString('fr-FR')} kWh économisés · gaz vs électrique</div>`;
+
+  html += `<div style="margin-top:.5rem;padding:.75rem;background:rgba(255,255,255,.06);border-radius:6px;font-size:.73rem;color:rgba(255,255,255,.55)">`;
+  html += `Obtenez un devis précis via un <a href="https://france-renov.gouv.fr/espaceconseillers" target="_blank" style="color:var(--gold2)">conseiller France Rénov' ↗</a> (gratuit)`;
+  html += `</div></div>`;
+
+  document.getElementById('resRenov').innerHTML = html;
+  setCard('renov', fmt(aide)+' MaPrimeRénov'', tranche+' · DPE '+dpeAv+'→'+dpeAp, 'good');
+}
+
 function calcAides(){
   const rev = parseFloat(document.getElementById('aRev').value)||0;
   const pers = Math.min(Math.max(parseInt(document.getElementById('aPers').value)||2, 1), 8);
