@@ -1410,7 +1410,7 @@ async function loadDVF(lat, lng){
 
   // Source 1 : via Vercel function (évite CORS + retries côté serveur)
   try{
-    const r = await fetch(`/api/dvf?lat=${lat}&lon=${lng}&dist=${DIST}`, { signal: AbortSignal.timeout(10000) });
+    const r = await fetch(`/api/dvf?lat=${lat}&lon=${lng}&dist=${DIST}&_v=5`, { signal: AbortSignal.timeout(10000) });
     if(r.ok){
       const d = await r.json();
       if(d.success && d.stats){ afficherDVF(d); return; }
@@ -1486,7 +1486,7 @@ async function loadRisques(lat, lng){
 // ── Écoles : données officielles Éducation nationale ──
 async function loadEcoles(lat, lng, codeInsee){
   try{
-    const deg=1500/111000; const where=encodeURIComponent(`latitude>${lat-deg} AND latitude<${lat+deg} AND longitude>${lng-deg} AND longitude<${lng+deg}`); const r = await apiCall(`/api/ecoles?lat=${lat}&lon=${lng}&dist=1500&_v=4${codeInsee?'&codeInsee='+codeInsee:''}`, `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=${where}&limit=25&select=nom_etablissement,type_etablissement,statut_public_prive,adresse1,code_postal,nom_commune,latitude,longitude`);
+    const deg=1500/111000; const where=encodeURIComponent(`latitude>${lat-deg} AND latitude<${lat+deg} AND longitude>${lng-deg} AND longitude<${lng+deg}`); const r = await apiCall(`/api/ecoles?lat=${lat}&lon=${lng}&dist=1500&_v=5${codeInsee?'&codeInsee='+codeInsee:''}`, `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=${where}&limit=25&select=nom_etablissement,type_etablissement,statut_public_prive,adresse1,code_postal,nom_commune,latitude,longitude`);
     if(!r.ok) throw new Error();
     const d = await r.json();
     if(!d.success) throw new Error();
