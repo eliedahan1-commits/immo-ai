@@ -14,6 +14,8 @@ const TIMEOUT_DVF_MS       = 8000;   // timeout appel dvf-api
 const IGN_BBOX_LIMIT       = 50;     // nb max parcelles retournées pour la découverte de sections
 const IDU_COMMUNE_END      = 5;      // position fin du code commune dans l'IDU
 const IDU_SECTION_END      = 10;     // position fin du préfixe section dans l'IDU
+// Décalages en mètres [nord/sud, est/ouest] pour sonder les parcelles voisines si le point exact est sur une voie
+const IGN_OFFSETS_M = [[0,0],[15,0],[-15,0],[0,15],[0,-15],[15,15],[-15,-15]];
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -62,56 +64,61 @@ export default async function handler(req, res) {
       .filter(t => t.prixM2 > PRIX_M2_MIN && t.prixM2 < PRIX_M2_MAX);
   }
 
-  // Étape 1 : récupérer commune + section via IGN Cadastre
+  // Étape 1 : récupérer commune + sections via IGN (plusieurs points décalés car le point exact peut tomber sur une voie)
   try {
-    const ignUrl = `https://apicarto.ign.fr/api/cadastre/parcelle?geom={"type":"Point","coordinates":[${lon},${lat}]}&_limit=1`;
-    const ignRes = await fetch(ignUrl, { signal: AbortSignal.timeout(TIMEOUT_IGN_MS) });
-    if (!ignRes.ok) throw new Error('IGN ' + ignRes.status);
+    const offsetsDeg = IGN_OFFSETS_M.map(([dm, dn]) => [dm / 111000, dn / (111000 * Math.cos(lat * Math.PI / 180))]);
+    const idus = await Promise.all(offsetsDeg.map(async ([dlat, dlon]) => {
+      try {
+        const url = `https://apicarto.ign.fr/api/cadastre/parcelle?geom={"type":"Point","coordinates":[${lon+dlon},${lat+dlat}]}&_limit=1`;
+        const r = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_IGN_MS) });
+        if (!r.ok) return null;
+        const d = await r.json();
+        return d.features?.[0]?.properties?.idu || null;
+      } catch { return null; }
+    }));
 
-    const ignData = await ignRes.json();
-    const idu = ignData.features?.[0]?.properties?.idu;
-    if (!idu || idu.length < IDU_SECTION_END) throw new Error('idu manquant');
+    const validIdus = idus.filter(Boolean);
+    if (!validIdus.length) throw new Error('Aucune parcelle trouvée à proximité');
 
-    const codeCommune = idu.substring(0, IDU_COMMUNE_END);
-    const sectionPrefix = idu.substring(IDU_COMMUNE_END, IDU_SECTION_END);
+    const codeCommune = validIdus[0].substring(0, IDU_COMMUNE_END);
+    const sections = [...new Set(validIdus.map(idu => idu.substring(IDU_COMMUNE_END, IDU_SECTION_END)))];
 
-    // Étape 2 : mutations DVF pour cette section
-    const dvfUrl = `https://dvf-api.data.gouv.fr/mutations/${codeCommune}/${sectionPrefix}`;
-    const dvfRes = await fetch(dvfUrl, { signal: AbortSignal.timeout(TIMEOUT_DVF_MS) });
-    if (!dvfRes.ok) throw new Error('DVF API ' + dvfRes.status);
+    // Étape 2 : interroger toutes les sections trouvées en parallèle
+    let toutesValides = [];
+    await Promise.all(sections.map(async (sec) => {
+      try {
+        const r = await fetch(`https://dvf-api.data.gouv.fr/mutations/${codeCommune}/${sec}`, { signal: AbortSignal.timeout(TIMEOUT_DVF_MS) });
+        if (r.ok) {
+          const d = await r.json();
+          toutesValides = toutesValides.concat(normalise(d.data || [], lat, lon, dist));
+        }
+      } catch(e) {}
+    }));
 
-    const dvfData = await dvfRes.json();
-    const mutations = dvfData.data || [];
-
-    const valides = normalise(mutations, lat, lon, dist);
-
-    if (valides.length >= DIST_MIN_TRANSACTIONS) {
+    if (toutesValides.length >= DIST_MIN_TRANSACTIONS) {
       res.setHeader('Cache-Control', `public, max-age=${CACHE_SECONDES}`);
-      return res.status(200).json(buildResult(valides, dist, 'DVF DGFiP · dvf-api.data.gouv.fr'));
+      return res.status(200).json(buildResult(toutesValides, dist, 'DVF DGFiP · dvf-api.data.gouv.fr'));
     }
 
-    // Si section courante insuffisante : découvrir les sections voisines via IGN (bbox)
+    // Si encore insuffisant : élargir via bbox IGN pour découvrir plus de sections
     const deg = dist / 111000;
     const bbox = `${lon - deg},${lat - deg},${lon + deg},${lat + deg}`;
     const ignWide = await fetch(
       `https://apicarto.ign.fr/api/cadastre/parcelle?bbox=${bbox}&_limit=${IGN_BBOX_LIMIT}`,
       { signal: AbortSignal.timeout(TIMEOUT_DVF_MS) }
     );
-    const sections = new Set([sectionPrefix]);
+    const sectionsEtendues = new Set(sections);
     if (ignWide.ok) {
       const wideData = await ignWide.json();
       for (const f of wideData.features || []) {
         const idu2 = f.properties?.idu;
         if (idu2 && idu2.startsWith(codeCommune)) {
-          sections.add(idu2.substring(IDU_COMMUNE_END, IDU_SECTION_END));
+          sectionsEtendues.add(idu2.substring(IDU_COMMUNE_END, IDU_SECTION_END));
         }
       }
     }
-
-    // Interroger toutes les sections découvertes dynamiquement
-    let toutesValides = [...valides];
-    const autresSections = [...sections].filter(s => s !== sectionPrefix);
-    await Promise.all(autresSections.map(async (sec) => {
+    const nouvellesSections = [...sectionsEtendues].filter(s => !sections.includes(s));
+    await Promise.all(nouvellesSections.map(async (sec) => {
       try {
         const r2 = await fetch(`https://dvf-api.data.gouv.fr/mutations/${codeCommune}/${sec}`, { signal: AbortSignal.timeout(TIMEOUT_IGN_MS) });
         if (r2.ok) {
