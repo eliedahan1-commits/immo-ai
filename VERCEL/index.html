@@ -145,6 +145,7 @@ aside{
 /* ══ PAGES ══ */
 .page{display:none;flex:1;animation:rise .3s ease;}
 .page.on{display:block;}
+#p-home{background:var(--ink);min-height:calc(100vh - 48px);}
 @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 .inner{max-width:min(1600px,96vw);margin:0 auto;padding:2.5rem 2rem;}
 .inner-wide{max-width:min(1800px,96vw);margin:0 auto;padding:2.5rem 2rem;}
@@ -748,7 +749,7 @@ select.inp{
       <div class="card"><div class="ctitle">💶 Vos revenus et charges</div>
         <label class="lbl">Revenus nets mensuels (€)</label><input class="inp" id="eRev" type="number" placeholder="5000" />
         <label class="lbl">Co-emprunteur (€/mois)</label><input class="inp" id="eRev2" type="number" placeholder="0" />
-        <label class="lbl">Charges mensuelles</label><input class="inp" id="eCharges" type="number" placeholder="0" />
+        <label class="lbl">Crédits en cours / mois (€) <span style="font-weight:400;color:var(--muted);font-size:.75em">— loyers, prêts auto, conso…</span></label><input class="inp" id="eCharges" type="number" placeholder="0" />
         <label class="lbl">Apport disponible (€)</label><input class="inp" id="eApport" type="number" placeholder="80000" />
         <label class="lbl">Durée (ans)</label><input class="inp" id="eDuree" type="number" value="20" />
         <label class="lbl">Taux estimé (%)</label><input class="inp" id="eTaux" type="number" value="3.4" step="0.1" />
@@ -1982,7 +1983,7 @@ function calcEmprunt(){
   const taux=(parseFloat(String(document.getElementById('eTaux').value).replace(',','.'))||3.4)/100;
   const mensMax=rev*.35-charges;
   if(mensMax<=0){
-    document.getElementById('resEmprunt').innerHTML=`<div class="result-dark"><p style="color:#e63946;font-size:.85rem">⚠️ <strong>Capacité nulle.</strong><br><br>Vos charges (${fmt(charges)} €/mois) dépassent 35% de vos revenus (${fmt(Math.round(rev*.35))} €/mois max).<br><br>Réduisez vos charges ou augmentez vos revenus pour emprunter.</p></div>`;
+    document.getElementById('resEmprunt').innerHTML=`<div class="result-dark"><p style="color:#e63946;font-size:.85rem">⚠️ <strong>Capacité nulle.</strong><br><br>Vos crédits en cours (${fmt(charges)} €/mois) dépassent déjà 35% de vos revenus (${fmt(Math.round(rev*.35))} €/mois max autorisé par les banques).<br><br>Si vous n'avez pas de crédits en cours, laissez ce champ à 0.</p></div>`;
     setCard('emprunt','Capacité nulle','Charges > 35% des revenus','bad');
     return;
   }
