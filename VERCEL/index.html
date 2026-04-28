@@ -520,6 +520,10 @@ select.inp{
 .stat-n{font-family:'Cormorant Garamond',serif;font-size:1.65rem;color:var(--gold2);display:block;font-style:italic;}
 .stat-l{font-size:.58rem;color:rgba(255,255,255,.65);letter-spacing:.1em;text-transform:uppercase;margin-top:.15rem;}
 
+/* DVF filtres */
+.dvf-filter-btn{transition:background .15s,color .15s;}
+.dvf-filter-btn.active{background:var(--ink)!important;color:var(--gold2)!important;border-color:var(--ink)!important;}
+
 /* Source badge */
 .source-badge{
   display:inline-flex;align-items:center;gap:.35rem;
@@ -1689,24 +1693,37 @@ function showDVFDetail(){
     return;
   }
   if(!d.stats){showPanel('💰 Prix & marché DVF','<p style="color:var(--muted)">Aucune transaction trouvée dans ce secteur.</p>');return;}
-  const rows = d.recentes?.map(t=>`
-    <tr>
-      <td>${t.date||'—'}</td>
-      <td>${t.type||'—'}</td>
-      <td>${t.surf?t.surf+'m²':'—'}</td>
-      <td><strong>${t.prixM2?t.prixM2.toLocaleString('fr-FR')+' €/m²':'—'}</strong></td>
-      <td>${t.prix?t.prix.toLocaleString('fr-FR')+' €':'—'}</td>
-    </tr>`).join('') || '<tr><td colspan="5">Aucune transaction récente</td></tr>';
+  const periodeLabel = d.dateRange ? `Période ${d.dateRange}` : '';
+  window._dvfRecentes = d.recentes || [];
+  function renderDVFRows(n){
+    const liste = n === 0 ? window._dvfRecentes : window._dvfRecentes.slice(0, n);
+    document.getElementById('dvfTbody').innerHTML = liste.map(t=>`
+      <tr>
+        <td>${t.date||'—'}</td>
+        <td>${t.type||'—'}</td>
+        <td>${t.surf?t.surf+'m²':'—'}</td>
+        <td><strong>${t.prixM2?t.prixM2.toLocaleString('fr-FR')+' €/m²':'—'}</strong></td>
+        <td>${t.prix?t.prix.toLocaleString('fr-FR')+' €':'—'}</td>
+      </tr>`).join('') || '<tr><td colspan="5">Aucune transaction</td></tr>';
+    document.querySelectorAll('.dvf-filter-btn').forEach(b=>b.classList.toggle('active', b.dataset.n===String(n)));
+  }
+  window.filterDVF = renderDVFRows;
+  const DVF_FILTRES = [10, 20, 50, 0]; // 0 = toutes
+  const btnsFiltres = DVF_FILTRES.map(n=>`<button class="dvf-filter-btn" data-n="${n}" onclick="filterDVF(${n})" style="padding:.25rem .7rem;font-size:.72rem;border:1px solid var(--border);background:var(--white);border-radius:3px;cursor:pointer;margin-right:.3rem">${n===0?'Toutes':n}</button>`).join('');
   showPanel('💰 Transactions DVF officielles', `
     <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1rem">
       <div class="stat-box"><span class="stat-n">${d.stats.medianM2.toLocaleString('fr-FR')}€</span><span class="stat-l">Médian /m²</span></div>
-      <div class="stat-box"><span class="stat-n">${d.count}</span><span class="stat-l">Transactions</span></div>
+      <div class="stat-box"><span class="stat-n">${d.count}</span><span class="stat-l">Ventes${d.dateRange?' '+d.dateRange:''}</span></div>
       <div class="stat-box"><span class="stat-n">${d.rayon}m</span><span class="stat-l">Rayon analysé</span></div>
     </div>
-    <p style="font-size:.75rem;color:var(--muted);margin-bottom:1rem">Fourchette : ${d.stats.minM2.toLocaleString('fr-FR')} – ${d.stats.maxM2.toLocaleString('fr-FR')} €/m²</p>
+    <p style="font-size:.75rem;color:var(--muted);margin-bottom:.6rem">Fourchette : ${d.stats.minM2.toLocaleString('fr-FR')} – ${d.stats.maxM2.toLocaleString('fr-FR')} €/m²</p>
+    <div style="margin-bottom:.7rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
+      <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Afficher :</span>${btnsFiltres}
+    </div>
     <table class="tbl"><thead><tr><th>Date</th><th>Type</th><th>Surface</th><th>Prix/m²</th><th>Prix total</th></tr></thead>
-    <tbody>${rows}</tbody></table>
-    <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : ${d.source}</p>`);
+    <tbody id="dvfTbody"></tbody></table>
+    <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">${periodeLabel?periodeLabel+' · ':''}Source : ${d.source}</p>`);
+  renderDVFRows(10);
 }
 
 function showRisquesDetail(){
@@ -1728,19 +1745,58 @@ function showRisquesDetail(){
 function showEcolesDetail(){
   const d = window._ecolesData;
   if(!d){showPanel('🏫 Écoles & IPS','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
-  const liste = d.etablissements?.map(e=>`
-    <div style="padding:.6rem 0;border-bottom:1px solid var(--border)">
-      <div style="font-size:.82rem;font-weight:500">${e.nom}</div>
-      <div style="font-size:.7rem;color:var(--muted)">${e.type||''} · ${e.statut||''} · ${e.distanceM?e.distanceM+'m':'—'}</div>
-    </div>`).join('') || '<p style="color:var(--muted)">Aucun établissement trouvé à proximité</p>';
+
+  window._ecolesAll = d.etablissements || [];
+  window._ecolesFilterType = 'tous';
+  window._ecolesFilterN = 20;
+
+  function ecoCategorie(e){
+    const t=(e.type||'').toLowerCase();
+    if(t.includes('lycée')||t.includes('lycee')) return 'lycee';
+    if(t.includes('collège')||t.includes('college')) return 'college';
+    if(t.includes('ecole')||t.includes('école')) return 'ecole';
+    return 'autre';
+  }
+
+  window.renderEcoles = function(){
+    let liste = window._ecolesAll;
+    if(window._ecolesFilterType !== 'tous') liste = liste.filter(e => ecoCategorie(e) === window._ecolesFilterType);
+    const n = window._ecolesFilterN;
+    if(n > 0) liste = liste.slice(0, n);
+    document.getElementById('ecolesListe').innerHTML = liste.map(e=>`
+      <div style="padding:.6rem 0;border-bottom:1px solid var(--border)">
+        <div style="font-size:.82rem;font-weight:500">${e.nom}</div>
+        <div style="font-size:.7rem;color:var(--muted)">${e.type||''} · ${e.statut||''} · ${e.distanceM?e.distanceM+'m':'—'}</div>
+      </div>`).join('') || '<p style="color:var(--muted)">Aucun établissement pour ce filtre.</p>';
+    document.querySelectorAll('.eco-type-btn').forEach(b=>b.classList.toggle('active', b.dataset.t===window._ecolesFilterType));
+    document.querySelectorAll('.eco-n-btn').forEach(b=>b.classList.toggle('active', b.dataset.n===String(window._ecolesFilterN)));
+  };
+  window.setEcoType = function(t){ window._ecolesFilterType=t; window.renderEcoles(); };
+  window.setEcoN    = function(n){ window._ecolesFilterN=n;    window.renderEcoles(); };
+
+  const ECO_TYPES = [['tous','Tous'],['ecole','🏫 Écoles'],['college','🎓 Collèges'],['lycee','📚 Lycées']];
+  const ECO_NS    = [10, 20, 50, 0];
+  const btnStyle  = 'padding:.25rem .7rem;font-size:.72rem;border:1px solid var(--border);background:var(--white);border-radius:3px;cursor:pointer;margin-right:.3rem';
+
+  const btnsType = ECO_TYPES.map(([t,l])=>`<button class="eco-type-btn dvf-filter-btn" data-t="${t}" onclick="setEcoType('${t}')" style="${btnStyle}">${l}</button>`).join('');
+  const btnsN    = ECO_NS.map(n=>`<button class="eco-n-btn dvf-filter-btn" data-n="${n}" onclick="setEcoN(${n})" style="${btnStyle}">${n===0?'Tous':n}</button>`).join('');
+
   showPanel('🏫 Établissements scolaires à proximité', `
     <div style="display:flex;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap">
-      <span class="tag tag-up">🏫 ${d.types?.ecoles ?? (d.types?.elementaire||0)} école(s)</span>
+      <span class="tag tag-up">🏫 ${d.types?.ecoles||0} école(s)</span>
       <span class="tag tag-gold">🎓 ${d.types?.college||0} collège(s)</span>
       <span class="tag tag-up">📚 ${d.types?.lycee||0} lycée(s)</span>
     </div>
-    ${liste}
+    <div style="margin-bottom:.5rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
+      <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Type :</span>${btnsType}
+    </div>
+    <div style="margin-bottom:.8rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
+      <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Afficher :</span>${btnsN}
+    </div>
+    <div id="ecolesListe"></div>
     <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : Annuaire Éducation Nationale · <a href="https://data.education.gouv.fr" target="_blank" style="color:var(--gold)">data.education.gouv.fr</a></p>`);
+
+  window.renderEcoles();
 }
 
 function showMobiliteDetail(){

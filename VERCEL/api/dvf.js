@@ -7,13 +7,15 @@ const PRIX_M2_MIN          = 500;    // filtre : prix/m² minimum valide (€)
 const PRIX_M2_MAX          = 50000;  // filtre : prix/m² maximum valide (€)
 const SURFACE_MIN_M2       = 9;      // filtre : surface minimum (m²)
 const PRIX_MIN_TOTAL       = 10000;  // filtre : valeur foncière minimum (€)
-const NB_RECENTES          = 8;      // nb de transactions récentes retournées dans le détail
+// NB_RECENTES supprimé : toutes les transactions sont retournées, le filtre est côté client
 const CACHE_SECONDES       = 86400;  // durée du cache CDN (1 jour)
 const TIMEOUT_IGN_MS       = 6000;   // timeout appel IGN
 const TIMEOUT_DVF_MS       = 8000;   // timeout appel dvf-api
 const IGN_BBOX_LIMIT       = 50;     // nb max parcelles retournées pour la découverte de sections
 const IDU_COMMUNE_END      = 5;      // position fin du code commune dans l'IDU
 const IDU_SECTION_END      = 10;     // position fin du préfixe section dans l'IDU
+// Types de biens principaux (priorité sur les dépendances lors de la déduplication par mutation)
+const TYPES_PRIORITAIRES   = ['Appartement', 'Maison'];
 // Décalages en mètres [nord/sud, est/ouest] pour sonder les parcelles voisines si le point exact est sur une voie
 const IGN_OFFSETS_M = [[0,0],[15,0],[-15,0],[0,15],[0,-15],[15,15],[-15,-15]];
 
@@ -31,12 +33,35 @@ export default async function handler(req, res) {
     return Math.sqrt(dLat * dLat + dLon * dLon);
   }
 
+  // Déduplique les lots issus d'une même mutation (même vente = même id_mutation)
+  // Conserve le lot principal (Appartement/Maison) plutôt que les dépendances
+  function deduplique(items) {
+    const map = new Map();
+    for (const t of items) {
+      const key = t.idMutation || `${t.date}|${t.prix}|${t.adresse}`;
+      if (!map.has(key)) {
+        map.set(key, t);
+      } else {
+        const existPrio = TYPES_PRIORITAIRES.includes(map.get(key).type);
+        const currPrio  = TYPES_PRIORITAIRES.includes(t.type);
+        if (currPrio && !existPrio) map.set(key, t);
+      }
+    }
+    return [...map.values()];
+  }
+
   function buildResult(valides, rayon, source) {
     const prix = valides.map(t => t.prixM2).sort((a, b) => a - b);
+    const dates = valides.map(t => t.date).filter(d => d && d !== '—').sort();
+    const anneeMin = dates.length ? dates[0].substring(0, 4) : null;
+    const anneeMax = dates.length ? dates[dates.length - 1].substring(0, 4) : null;
+    const dateRange = anneeMin ? (anneeMin === anneeMax ? anneeMin : `${anneeMin}–${anneeMax}`) : null;
+    // Tri par date décroissante (plus récentes en premier)
+    const tries = [...valides].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     return {
-      success: true, count: valides.length, rayon, source,
+      success: true, count: valides.length, rayon, source, dateRange,
       stats: { medianM2: prix[Math.floor(prix.length / 2)], minM2: prix[0], maxM2: prix[prix.length - 1] },
-      recentes: valides.slice(0, NB_RECENTES),
+      recentes: tries,
       dateExtraction: new Date().toISOString()
     };
   }
@@ -58,7 +83,8 @@ export default async function handler(req, res) {
         return { surf: Math.round(surf), prix: Math.round(prix), prixM2,
           date: m.date_mutation || '—',
           type: m.type_local || '—',
-          adresse: `${m.adresse_numero || ''} ${m.adresse_nom_voie || ''}`.trim()
+          adresse: `${m.adresse_numero || ''} ${m.adresse_nom_voie || ''}`.trim(),
+          idMutation: m.id_mutation || null
         };
       })
       .filter(t => t.prixM2 > PRIX_M2_MIN && t.prixM2 < PRIX_M2_MAX);
@@ -95,6 +121,8 @@ export default async function handler(req, res) {
       } catch(e) {}
     }));
 
+    toutesValides = deduplique(toutesValides);
+
     if (toutesValides.length >= DIST_MIN_TRANSACTIONS) {
       res.setHeader('Cache-Control', `public, max-age=${CACHE_SECONDES}`);
       return res.status(200).json(buildResult(toutesValides, dist, 'DVF DGFiP · dvf-api.data.gouv.fr'));
@@ -127,6 +155,8 @@ export default async function handler(req, res) {
         }
       } catch(e) {}
     }));
+
+    toutesValides = deduplique(toutesValides);
 
     if (toutesValides.length > 0) {
       res.setHeader('Cache-Control', `public, max-age=${CACHE_SECONDES}`);
