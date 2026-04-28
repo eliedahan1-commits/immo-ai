@@ -892,7 +892,10 @@ select.inp{
     <div class="ph"><div class="ptag">✦ Stratégie</div><h2 class="ptitle">Compatibilité <em>de vie</em></h2><p class="psub">L'IA identifie les secteurs vraiment compatibles avec votre style de vie.</p></div>
     <div class="card"><div class="ctitle">🎯 Votre profil de vie</div>
       <p style="font-size:.83rem;font-weight:500;margin-bottom:.5rem">Ville / secteur recherché</p>
-      <input class="inp" id="pVille" placeholder="Ex: Paris 15e, Lyon 3e, Bordeaux centre…" style="margin-bottom:.7rem" />
+      <div style="position:relative">
+        <input class="inp" id="pVille" placeholder="Ex: Paris 15e, Lyon 3e, Bordeaux centre…" autocomplete="off" style="margin-bottom:.7rem" />
+        <div class="search-suggestions" id="pVilleSugs" style="top:auto;bottom:auto;left:0;right:0;"></div>
+      </div>
       <p style="font-size:.83rem;font-weight:500;margin-bottom:.5rem">Enfants ?</p>
       <div class="toggles" id="t1"><button class="tog" onclick="tog('t1',this)">Oui, en bas âge</button><button class="tog" onclick="tog('t1',this)">Oui, scolaires</button><button class="tog" onclick="tog('t1',this)">Prévu</button><button class="tog" onclick="tog('t1',this)">Non</button></div>
       <p style="font-size:.83rem;font-weight:500;margin-bottom:.5rem">Mode de travail ?</p>
@@ -1104,6 +1107,7 @@ window.onload = () => {
   if (!groqKey) setTimeout(openModal, 1800);
   setupSearch('heroSearch', 'heroSugs', true);
   setupSearch('sideSearch', 'sideSugs', false);
+  setupVilleSearch();
 };
 
 // ══ MODAL ══
@@ -1156,6 +1160,39 @@ function ouvrirBruit(){
 // ══ TOGGLES ══
 function tog(g,btn){document.querySelectorAll('#'+g+' .tog').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
 function togVal(id){return document.querySelector('#'+id+' .tog.on')?.textContent.trim()||'—';}
+
+// ══ AUTOCOMPLÉTION VILLE (communes) ══
+function setupVilleSearch(){
+  const inp = document.getElementById('pVille');
+  const sugs = document.getElementById('pVilleSugs');
+  if(!inp || !sugs) return;
+  let timer = null;
+  inp.addEventListener('input', () => {
+    clearTimeout(timer);
+    const q = inp.value.trim();
+    if(q.length < 2){ sugs.classList.remove('open'); return; }
+    timer = setTimeout(async () => {
+      try {
+        const r = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&type=municipality&limit=6`);
+        const d = await r.json();
+        if(!d.features?.length){ sugs.classList.remove('open'); return; }
+        sugs.innerHTML = '';
+        d.features.forEach(f => {
+          const div = document.createElement('div');
+          div.className = 'sug-item';
+          const label = f.properties.label;
+          div.innerHTML = `<strong>${f.properties.city}</strong> <span style="color:var(--muted);font-size:.8em">${f.properties.postcode}</span>`;
+          div.onclick = () => { inp.value = label; sugs.classList.remove('open'); };
+          sugs.appendChild(div);
+        });
+        sugs.classList.add('open');
+      } catch(e) {}
+    }, 300);
+  });
+  document.addEventListener('click', e => {
+    if(!inp.contains(e.target) && !sugs.contains(e.target)) sugs.classList.remove('open');
+  });
+}
 
 // ══ AUTOCOMPLÉTION BAN ══
 let banTimer=null;
@@ -1953,7 +1990,12 @@ async function runIA(type){
     aides:()=>`Situation: ${togVal('tAideSit')}, revenus: ${document.getElementById('aRev').value||'?'}€/an, foyer: ${document.getElementById('aPers').value||'2'} pers, bien: ${document.getElementById('aPrix').value||'400000'}€ à ${document.getElementById('aVille').value||'France'}. Aides disponibles (PTZ, Pinel, MaPrimeRénov) avec montants précis.`,
     renov:()=>`Rénovation ${document.getElementById('rSurf').value||80}m², DPE ${document.getElementById('rDpeAv').value} → ${document.getElementById('rDpeAp').value}. Revenus: ${document.getElementById('rRev').value||60000}€/an. Coût travaux estimé, aides MaPrimeRénov, économies annuelles.`,
     offre:()=>{const p=document.getElementById('oPrix').value,s=document.getElementById('oSurf').value,r=document.getElementById('oRue').value;const pm2=s?Math.round(p/s):null;return`Coaching offre: Prix ${fmt(p)}${pm2?` (${pm2.toLocaleString('fr-FR')}€/m²)`:''},  surface ${s||'?'}m², adresse: ${r||'France'}, en vente ${togVal('tOJ')}, baisses: ${togVal('tOB')}. Stratégie précise : montant recommandé, arguments, tactique.`;},
-    profil:()=>`Profil acheteur: Ville: ${document.getElementById('pVille').value||'France'}, Enfants: ${togVal('t1')}, Travail: ${togVal('t2')}, Vie: ${togVal('t3')}, Budget: ${togVal('t5')}. Recommande 2-3 secteurs précis avec rues et type de bien idéal.`,
+    profil:()=>{
+      const ville=document.getElementById('pVille').value.trim();
+      if(ville.length<2){toast('Entrez une ville ou un secteur','err');return null;}
+      if(/^[^a-zA-ZÀ-ÿ]{0,2}$|^[^a-zA-ZÀ-ÿ\s\-'0-9]+$/.test(ville)){toast('Ville non reconnue — choisissez dans la liste','err');return null;}
+      return`Profil acheteur: Ville/secteur: "${ville}", Enfants: ${togVal('t1')}, Travail: ${togVal('t2')}, Vie: ${togVal('t3')}, Budget: ${togVal('t5')}. Tu dois impérativement rester dans le secteur "${ville}" et ses communes limitrophes. Recommande 2-3 quartiers ou rues précises de cette zone uniquement, avec type de bien idéal et prix indicatifs.`;
+    },
     comparer:()=>{const a=[...document.querySelectorAll('.caddr')].map(e=>e.value||'—'),p=[...document.querySelectorAll('.cprix')].map(e=>e.value||'—'),s=[...document.querySelectorAll('.csurf')].map(e=>e.value||'—'),d=[...document.querySelectorAll('.cdpe')].map(e=>e.value);return`Compare ces 3 biens:\n1) ${a[0]}, ${p[0]}€, ${s[0]}m², DPE ${d[0]}\n2) ${a[1]}, ${p[1]}€, ${s[1]}m², DPE ${d[1]}\n3) ${a[2]}, ${p[2]}€, ${s[2]}m², DPE ${d[2]}\nAnalyse comparative, recommandation claire.`;},
     juridique:()=>{const q=document.getElementById('jurQ').value.trim();if(!q){toast('Entrez votre question','err');return null;}return q+' (droit français, info générale non conseil juridique)';},
   };
