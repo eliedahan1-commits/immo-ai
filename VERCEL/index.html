@@ -1402,7 +1402,7 @@ function buildDVFResult(valides, rayon, source){
 }
 
 async function loadDVF(lat, lng){
-  const DIST = 5000; // 5km pour avoir assez de transactions
+  const DIST = 2000; // rayon en mètres
 
   // Source 1 : via Vercel function (évite CORS + retries côté serveur)
   try{
@@ -1693,7 +1693,7 @@ function showDVFDetail(){
     <tr>
       <td>${t.date||'—'}</td>
       <td>${t.type||'—'}</td>
-      <td>${t.surface?t.surface+'m²':'—'}</td>
+      <td>${t.surf?t.surf+'m²':'—'}</td>
       <td><strong>${t.prixM2?t.prixM2.toLocaleString('fr-FR')+' €/m²':'—'}</strong></td>
       <td>${t.prix?t.prix.toLocaleString('fr-FR')+' €':'—'}</td>
     </tr>`).join('') || '<tr><td colspan="5">Aucune transaction récente</td></tr>';
