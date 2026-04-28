@@ -1,0 +1,2042 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IMMO·AI — L'intelligence immobilière</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+/* ══ RESET & VARIABLES ══ */
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --ink:#0f0f0d;--ink2:#1a1a16;
+  --cream:#f5efe4;--warm:#ede5d8;--white:#fff;
+  --gold:#b8832a;--gold2:#d4a843;--gold3:#f0c96a;
+  --goldpale:#fdf5e4;--goldborder:rgba(184,131,42,.25);
+  --muted:#8a7d68;--border:#e2d9cc;--borderl:rgba(226,217,204,.5);
+  --green:#2d6a4f;--red:#7a2d2d;
+  --sidebar:240px;
+  --r:6px;
+  --shadow:0 4px 24px rgba(15,15,13,.08);
+  --shadow-lg:0 16px 48px rgba(15,15,13,.14);
+}
+html{scroll-behavior:smooth;}
+body{background:var(--cream);color:var(--ink);font-family:'Outfit',sans-serif;font-weight:300;display:flex;min-height:100vh;overflow-x:hidden;}
+
+/* ══ SCROLLBAR ══ */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* ══ SIDEBAR ══ */
+aside{
+  width:var(--sidebar);flex-shrink:0;
+  background:var(--ink);
+  display:flex;flex-direction:column;
+  position:fixed;top:0;left:0;height:100vh;
+  overflow-y:auto;z-index:200;
+  border-right:1px solid rgba(255,255,255,.04);
+}
+.logo-area{padding:1.8rem 1.4rem 1.4rem;border-bottom:1px solid rgba(255,255,255,.05);}
+.logo{font-family:'Cormorant Garamond',serif;font-size:1.55rem;color:#fff;letter-spacing:.05em;cursor:pointer;line-height:1;}
+.logo em{color:var(--gold2);font-style:italic;}
+.logo-tagline{font-size:.58rem;color:rgba(255,255,255,.45);letter-spacing:.18em;text-transform:uppercase;margin-top:.5rem;}
+
+/* Barre de recherche sidebar */
+.search-area{padding:.75rem .9rem;border-bottom:1px solid rgba(255,255,255,.05);}
+.search-wrap{position:relative;}
+.search-icon{position:absolute;left:.75rem;top:50%;transform:translateY(-50%);font-size:.8rem;color:rgba(255,255,255,.3);pointer-events:none;}
+.search-inp{
+  width:100%;background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:var(--r);padding:.6rem .75rem .6rem 2rem;
+  font-family:'Outfit',sans-serif;font-size:.75rem;
+  color:#fff;outline:none;transition:all .2s;
+}
+.search-inp::placeholder{color:rgba(255,255,255,.3);}
+.search-inp:focus{border-color:var(--goldborder);background:rgba(255,255,255,.09);}
+.search-suggestions{
+  position:absolute;top:calc(100% + 4px);left:0;right:0;
+  background:var(--ink2);border:1px solid rgba(255,255,255,.1);
+  border-radius:var(--r);z-index:300;
+  max-height:200px;overflow-y:auto;display:none;
+}
+.search-suggestions.open{display:block;}
+.sug-item{
+  padding:.55rem .85rem;font-size:.75rem;color:rgba(255,255,255,.75);
+  cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05);
+  transition:background .15s;
+}
+.sug-item:last-child{border-bottom:none;}
+.sug-item:hover{background:rgba(255,255,255,.07);color:#fff;}
+.sug-item strong{color:var(--gold2);}
+
+/* Nav */
+.nav-section{
+  padding:.6rem 1rem .2rem;
+  font-size:.55rem;color:rgba(255,255,255,.72);
+  letter-spacing:.18em;text-transform:uppercase;margin-top:.4rem;
+}
+.nav-item{
+  display:flex;align-items:center;gap:.65rem;
+  padding:.52rem .9rem;margin:.06rem .5rem;
+  border-radius:4px;cursor:pointer;
+  color:rgba(255,255,255,.85);font-size:.76rem;
+  transition:all .18s;border:1px solid transparent;
+  position:relative;
+}
+.nav-item:hover{color:#fff;background:rgba(255,255,255,.09);}
+.nav-item.active{color:var(--gold2);background:rgba(184,131,42,.1);border-color:rgba(184,131,42,.2);}
+.nav-icon{font-size:.88rem;width:18px;text-align:center;flex-shrink:0;}
+.nav-badge{margin-left:auto;background:var(--gold);color:var(--ink);font-size:.54rem;padding:.07rem .4rem;border-radius:10px;font-weight:600;}
+.nav-sub{padding-left:1rem;}
+.nav-sub .nav-item{font-size:.73rem;color:rgba(255,255,255,.78);padding:.42rem .75rem;}
+.nav-sub .nav-item:hover{color:#fff;}
+.nav-sub .nav-item.active{color:var(--gold2);}
+
+/* Indicateur IA */
+.ai-status{
+  margin:.5rem .5rem 0;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:4px;padding:.5rem .8rem;
+  cursor:pointer;display:flex;align-items:center;gap:.5rem;
+  transition:all .2s;
+}
+.ai-status:hover{border-color:var(--goldborder);}
+.ai-dot{width:7px;height:7px;border-radius:50%;background:#444;flex-shrink:0;}
+.ai-dot.on{background:#4caf50;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.ai-lbl{font-size:.7rem;color:rgba(255,255,255,.82);}
+
+.sidebar-foot{
+  margin-top:auto;padding:.85rem 1.1rem;
+  border-top:1px solid rgba(255,255,255,.08);
+  font-size:.6rem;color:rgba(255,255,255,.65);
+}
+
+/* ══ MAIN ══ */
+.main-wrap{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;min-height:100vh;}
+
+/* Topbar */
+.topbar{
+  background:rgba(245,239,228,.95);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+  padding:.7rem 2rem;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+}
+.topbar-left{display:flex;align-items:center;gap:.8rem;}
+.topbar-title{font-family:'Cormorant Garamond',serif;font-size:1.05rem;font-weight:600;color:var(--ink);}
+.topbar-addr{font-size:.72rem;color:var(--muted);font-style:italic;}
+.topbar-right{display:flex;gap:.5rem;}
+.tb-btn{
+  background:none;border:1px solid var(--border);
+  padding:.35rem .85rem;font-family:'Outfit',sans-serif;
+  font-size:.7rem;color:var(--muted);cursor:pointer;
+  border-radius:3px;transition:all .2s;
+}
+.tb-btn:hover{border-color:var(--ink);color:var(--ink);}
+.tb-btn.primary{background:var(--ink);color:#fff;border-color:var(--ink);}
+.tb-btn.primary:hover{background:var(--gold);border-color:var(--gold);color:var(--ink);}
+
+/* ══ PAGES ══ */
+.page{display:none;flex:1;animation:rise .3s ease;}
+.page.on{display:block;}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.inner{max-width:960px;margin:0 auto;padding:2.5rem 2rem;}
+.inner-wide{max-width:1100px;margin:0 auto;padding:2.5rem 2rem;}
+
+/* ══ HOME ══ */
+.hero{
+  background:var(--ink);
+  padding:4rem 2rem 3.5rem;
+  text-align:center;
+  position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 0%, rgba(184,131,42,.15) 0%, transparent 70%);
+}
+.hero-tag{
+  font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--gold2);margin-bottom:1.2rem;
+  display:flex;align-items:center;justify-content:center;gap:.5rem;
+}
+.hero-tag::before,.hero-tag::after{content:'';display:block;width:30px;height:1px;background:var(--goldborder);}
+.hero-title{
+  font-family:'Cormorant Garamond',serif;
+  font-size:3.2rem;font-weight:300;color:#fff;
+  line-height:1.15;margin-bottom:.6rem;
+}
+.hero-title em{color:var(--gold2);font-style:italic;}
+.hero-sub{color:rgba(255,255,255,.45);font-size:.9rem;margin-bottom:2.5rem;max-width:480px;margin-left:auto;margin-right:auto;line-height:1.7;}
+
+/* Barre de recherche hero */
+.hero-search{
+  max-width:620px;margin:0 auto;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:50px;
+  display:flex;align-items:center;
+  padding:.5rem .5rem .5rem 1.5rem;
+  gap:.75rem;
+  transition:all .3s;
+  position:relative;
+}
+.hero-search:focus-within{
+  border-color:var(--gold2);
+  background:rgba(255,255,255,.09);
+  box-shadow:0 0 0 4px rgba(184,131,42,.1);
+}
+.hero-search-icon{font-size:1rem;color:rgba(255,255,255,.4);flex-shrink:0;}
+.hero-search input{
+  flex:1;background:none;border:none;outline:none;
+  font-family:'Outfit',sans-serif;font-size:.95rem;
+  color:#fff;font-weight:300;
+}
+.hero-search input::placeholder{color:rgba(255,255,255,.35);}
+.hero-search-btn{
+  background:var(--gold);border:none;
+  padding:.7rem 1.5rem;border-radius:40px;
+  font-family:'Outfit',sans-serif;font-size:.82rem;
+  color:var(--ink);font-weight:500;cursor:pointer;
+  transition:all .2s;flex-shrink:0;
+}
+.hero-search-btn:hover{background:var(--gold3);transform:scale(1.02);}
+.hero-suggestions{
+  position:absolute;top:calc(100% + 8px);left:0;right:0;
+  background:var(--ink2);border:1px solid rgba(255,255,255,.12);
+  border-radius:16px;z-index:300;
+  max-height:240px;overflow-y:auto;display:none;
+}
+.hero-suggestions.open{display:block;}
+.hero-sug-item{
+  padding:.7rem 1.5rem;font-size:.82rem;
+  color:rgba(255,255,255,.75);cursor:pointer;
+  border-bottom:1px solid rgba(255,255,255,.05);
+  transition:background .15s;display:flex;align-items:center;gap:.65rem;
+}
+.hero-sug-item:last-child{border-bottom:none;}
+.hero-sug-item:hover{background:rgba(255,255,255,.07);color:#fff;}
+.hero-sug-icon{color:var(--gold2);font-size:.8rem;}
+
+/* Stats hero */
+.hero-stats{
+  display:flex;justify-content:center;gap:3rem;
+  margin-top:2.5rem;padding-top:2rem;
+  border-top:1px solid rgba(255,255,255,.07);
+}
+.hero-stat{text-align:center;}
+.hero-stat-n{font-family:'Cormorant Garamond',serif;font-size:1.8rem;color:var(--gold2);font-style:italic;}
+.hero-stat-l{font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-top:.2rem;}
+
+/* ══ CARTES RÉSULTATS ══ */
+.results-header{padding:1.8rem 2rem 0;max-width:960px;margin:0 auto;}
+.results-addr{
+  display:flex;align-items:center;gap:.75rem;
+  margin-bottom:1.5rem;
+}
+.results-addr-icon{
+  width:38px;height:38px;background:var(--ink);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.95rem;flex-shrink:0;
+}
+.results-addr-text{flex:1;}
+.results-addr-main{font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:400;}
+.results-addr-sub{font-size:.72rem;color:var(--muted);margin-top:.1rem;}
+.results-addr-badge{
+  background:var(--goldpale);border:1px solid var(--goldborder);
+  color:var(--gold);font-size:.62rem;padding:.2rem .65rem;
+  border-radius:20px;font-weight:500;
+}
+
+/* Grille de cartes */
+.cards-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:1rem;
+  padding:0 2rem 2rem;
+  max-width:960px;margin:0 auto;
+}
+
+.info-card{
+  background:#fff;border:1px solid var(--border);
+  border-radius:var(--r);padding:1.2rem;
+  cursor:pointer;transition:all .25s;
+  position:relative;overflow:hidden;
+}
+.info-card::before{
+  content:'';position:absolute;bottom:0;left:0;right:0;
+  height:3px;background:var(--gold);
+  transform:scaleX(0);transform-origin:left;
+  transition:transform .3s;
+}
+.info-card:hover{
+  transform:translateY(-4px);
+  box-shadow:var(--shadow-lg);
+  border-color:var(--goldborder);
+}
+.info-card:hover::before{transform:scaleX(1);}
+
+.card-icon{font-size:1.4rem;margin-bottom:.7rem;}
+.card-label{
+  font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:.3rem;
+}
+.card-value{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.45rem;font-weight:400;color:var(--ink);
+  line-height:1.1;
+}
+.card-value.score{color:var(--gold);font-size:1.6rem;}
+.card-value.good{color:var(--green);}
+.card-value.warn{color:#c47d1a;}
+.card-value.bad{color:var(--red);}
+.card-sub{font-size:.7rem;color:var(--muted);margin-top:.3rem;line-height:1.45;}
+.card-loading{
+  display:flex;align-items:center;gap:.4rem;
+  font-size:.72rem;color:var(--muted);
+}
+.card-arrow{
+  position:absolute;top:.85rem;right:.85rem;
+  color:var(--border);font-size:.75rem;
+  transition:all .22s;
+}
+.info-card:hover .card-arrow{color:var(--gold);transform:translate(2px,-2px);}
+
+/* Carte large (2 colonnes) */
+.info-card.wide{grid-column:span 2;}
+.info-card.tall{grid-row:span 2;}
+
+/* ══ SPINNER ══ */
+.spin{
+  display:inline-block;width:11px;height:11px;
+  border:2px solid rgba(0,0,0,.08);border-top-color:var(--gold);
+  border-radius:50%;animation:rot .65s linear infinite;
+}
+.spin.w{border-color:rgba(255,255,255,.12);border-top-color:#fff;}
+@keyframes rot{to{transform:rotate(360deg)}}
+
+/* ══ BOUTON RETOUR ══ */
+.back-btn{
+  display:inline-flex;align-items:center;gap:.4rem;
+  background:var(--ink);color:#fff;border:none;
+  padding:.5rem 1rem;border-radius:4px;
+  font-family:'Outfit',sans-serif;font-size:.75rem;
+  cursor:pointer;margin:1rem 2rem 0;
+  transition:all .2s;
+}
+.back-btn:hover{background:var(--gold);color:var(--ink);}
+
+/* ══ DÉTAIL PANEL ══ */
+.detail-panel{
+  background:#fff;border:1px solid var(--border);
+  border-radius:var(--r);margin:0 2rem 2rem;
+  max-width:920px;
+  animation:rise .3s ease;overflow:hidden;
+}
+.detail-head{
+  background:var(--ink);padding:1.2rem 1.5rem;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.detail-title{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.1rem;color:#fff;
+}
+.detail-close{
+  background:none;border:none;color:rgba(255,255,255,.75);
+  font-size:1.1rem;cursor:pointer;padding:.2rem;
+  transition:color .2s;
+}
+.detail-close:hover{color:#fff;}
+.detail-body{padding:1.5rem;}
+
+/* ══ PAGES INTERNES ══ */
+.ph{margin-bottom:1.8rem;}
+.ptag{font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:.4rem;}
+.ptitle{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:300;line-height:1.2;}
+.ptitle em{font-style:italic;color:var(--gold);}
+.psub{color:var(--muted);font-size:.83rem;line-height:1.68;margin-top:.4rem;max-width:580px;}
+
+/* Cards communes */
+.card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:1.4rem;margin-bottom:1rem;}
+.ctitle{font-size:.6rem;letter-spacing:.13em;text-transform:uppercase;color:var(--gold);margin-bottom:.9rem;}
+.lbl{font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin:.7rem 0 .3rem;}
+.lbl:first-child{margin-top:0;}
+.inp{
+  width:100%;border:1px solid var(--border);background:var(--cream);
+  padding:.72rem .95rem;font-family:'Outfit',sans-serif;font-size:.83rem;
+  color:var(--ink);border-radius:4px;outline:none;transition:border-color .2s;
+}
+.inp:focus{border-color:var(--gold);}
+select.inp{
+  appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238a7d68'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right .9rem center;
+}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.85rem;}
+.toggles{display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.6rem;}
+.tog{
+  padding:.35rem .9rem;border:1px solid var(--border);
+  background:var(--cream);font-family:'Outfit',sans-serif;
+  font-size:.73rem;cursor:pointer;border-radius:20px;
+  color:var(--muted);transition:all .18s;
+}
+.tog.on{border-color:var(--gold);background:var(--goldpale);color:var(--ink);}
+.btn{
+  padding:.72rem 1.3rem;border:none;font-family:'Outfit',sans-serif;
+  font-size:.82rem;cursor:pointer;border-radius:4px;transition:all .2s;
+  display:inline-flex;align-items:center;gap:.4rem;
+}
+.btn-dark{background:var(--ink);color:#fff;}
+.btn-dark:hover{background:var(--gold);color:var(--ink);}
+.btn-full{width:100%;justify-content:center;margin-top:.9rem;}
+.btn-full:disabled{background:var(--border);cursor:not-allowed;color:var(--muted);}
+
+/* Résultat dark */
+.result-dark{background:var(--ink);border-radius:var(--r);padding:1.5rem;color:#fff;}
+.result-n{font-family:'Cormorant Garamond',serif;font-size:2.2rem;color:var(--gold2);text-align:center;margin:.8rem 0;font-style:italic;}
+.result-row{display:flex;justify-content:space-between;font-size:.76rem;color:rgba(255,255,255,.72);padding:.42rem 0;border-bottom:1px solid rgba(255,255,255,.06);}
+.result-row:last-child{border-bottom:none;}
+.result-row span:last-child{color:rgba(255,255,255,.82);font-weight:500;}
+.result-insight{background:rgba(184,131,42,.12);border:1px solid rgba(184,131,42,.25);border-radius:4px;padding:.9rem;margin-top:.9rem;font-size:.76rem;color:rgba(255,255,255,.85);line-height:1.65;}
+
+/* AI Box */
+.aibox{
+  background:var(--goldpale);border:1px solid var(--goldborder);
+  border-radius:var(--r);padding:1.3rem;margin-top:1rem;
+  animation:rise .4s ease;
+}
+.ailabel{font-size:.6rem;letter-spacing:.13em;text-transform:uppercase;color:var(--gold);margin-bottom:.6rem;display:flex;align-items:center;gap:.4rem;}
+.aitext{font-size:.85rem;line-height:1.8;}
+.aitext strong{color:var(--gold);font-weight:600;}
+.aitext p{margin-bottom:.5rem;}
+.aitext p:last-child{margin-bottom:0;}
+
+/* Table */
+.tbl{width:100%;border-collapse:collapse;font-size:.78rem;}
+.tbl th{text-align:left;padding:.5rem .7rem;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);font-weight:400;}
+.tbl td{padding:.6rem .7rem;border-bottom:1px solid var(--border);}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tr:hover td{background:var(--warm);}
+.tag{display:inline-block;padding:.13rem .5rem;font-size:.63rem;border-radius:3px;font-weight:500;}
+.tag-up{background:rgba(45,106,79,.1);color:var(--green);}
+.tag-dn{background:rgba(122,45,45,.1);color:var(--red);}
+.tag-gold{background:rgba(184,131,42,.12);color:var(--gold);}
+.sep{border:none;border-top:1px solid var(--border);margin:1.8rem 0;}
+
+/* ══ CHAT ══ */
+.chat-wrap{display:grid;grid-template-columns:1fr 280px;gap:1rem;height:calc(100vh - 160px);}
+.chat-box{background:#fff;border:1px solid var(--border);border-radius:var(--r);display:flex;flex-direction:column;overflow:hidden;}
+.chat-head{background:var(--ink);padding:.85rem 1.2rem;display:flex;align-items:center;gap:.8rem;}
+.chat-av{width:32px;height:32px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:var(--ink);flex-shrink:0;}
+.chat-nm{color:#fff;font-size:.82rem;font-weight:500;}
+.chat-st{color:#4caf50;font-size:.62rem;}
+.msgs{flex:1;overflow-y:auto;padding:1.1rem;display:flex;flex-direction:column;gap:.9rem;}
+.msg{display:flex;gap:.5rem;align-items:flex-start;}
+.msg.u{flex-direction:row-reverse;}
+.mav{width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:700;}
+.mav.ai{background:var(--gold);color:var(--ink);}
+.mav.u{background:var(--muted);color:#fff;}
+.bub{max-width:76%;padding:.7rem 1rem;font-size:.8rem;line-height:1.7;}
+.bub.ai{background:var(--cream);border:1px solid var(--border);border-radius:3px 14px 14px 14px;}
+.bub.u{background:var(--ink);color:#fff;border-radius:14px 3px 14px 14px;}
+.bub strong{color:var(--gold);}
+.bub.u strong{color:var(--gold2);}
+.typing{display:flex;gap:4px;padding:.35rem .1rem;}
+.typing span{width:6px;height:6px;background:var(--gold);border-radius:50%;animation:bob .9s infinite;}
+.typing span:nth-child(2){animation-delay:.16s;}
+.typing span:nth-child(3){animation-delay:.32s;}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.chat-sugs{padding:.55rem .9rem;border-top:1px solid var(--border);display:flex;gap:.35rem;flex-wrap:wrap;}
+.csug{background:var(--cream);border:1px solid var(--border);padding:.25rem .65rem;font-size:.68rem;border-radius:20px;cursor:pointer;color:var(--muted);transition:all .18s;font-family:'Outfit',sans-serif;}
+.csug:hover{border-color:var(--gold);color:var(--ink);}
+.chat-foot{display:flex;border-top:1px solid var(--border);}
+.chat-inp{flex:1;border:none;background:#fff;padding:.9rem 1rem;font-family:'Outfit',sans-serif;font-size:.82rem;color:var(--ink);outline:none;}
+.chat-go{background:var(--gold);border:none;padding:0 1.2rem;cursor:pointer;font-size:.9rem;color:var(--ink);transition:all .2s;}
+.chat-go:hover{background:var(--ink);color:#fff;}
+.chat-go:disabled{background:var(--border);cursor:not-allowed;}
+.chat-side{display:flex;flex-direction:column;gap:.75rem;overflow-y:auto;}
+
+/* ══ ANNONCES ══ */
+.ann-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1.2rem;}
+.ann-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:transform .22s,box-shadow .22s;}
+.ann-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg);}
+.ann-img{height:150px;background:var(--ink);display:flex;align-items:center;justify-content:center;font-size:3rem;position:relative;}
+.ann-badge{position:absolute;top:.6rem;left:.6rem;padding:.15rem .55rem;font-size:.6rem;border-radius:3px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
+.badge-v{background:var(--gold);color:var(--ink);}
+.badge-l{background:#2a4a7a;color:#fff;}
+.ann-new{position:absolute;bottom:.6rem;right:.6rem;background:var(--green);color:#fff;padding:.15rem .55rem;font-size:.59rem;border-radius:3px;font-weight:600;}
+.ann-body{padding:1.1rem;}
+.ann-price{font-family:'Cormorant Garamond',serif;font-size:1.3rem;margin-bottom:.2rem;}
+.ann-addr{font-size:.69rem;color:var(--muted);margin-bottom:.65rem;}
+.ann-feats{display:flex;gap:.75rem;font-size:.67rem;color:var(--muted);border-top:1px solid var(--border);padding-top:.65rem;}
+
+/* Alertes */
+.alert-row{display:flex;align-items:center;gap:.9rem;background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:1.1rem;margin-bottom:.7rem;}
+.alert-icon{font-size:1.3rem;flex-shrink:0;}
+.alert-body{flex:1;}
+.alert-title{font-size:.83rem;font-weight:500;margin-bottom:.18rem;}
+.alert-meta{font-size:.68rem;color:var(--muted);}
+.abadge{padding:.15rem .6rem;font-size:.6rem;border-radius:20px;font-weight:600;flex-shrink:0;}
+.ab-red{background:rgba(122,45,45,.1);color:var(--red);}
+.ab-green{background:rgba(45,106,79,.1);color:var(--green);}
+.ab-gold{background:rgba(184,131,42,.1);color:var(--gold);}
+
+/* Pros */
+.pro-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.85rem;}
+.pro-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:1rem;transition:box-shadow .2s;}
+.pro-card:hover{box-shadow:var(--shadow);}
+.pro-icon{font-size:1.2rem;margin-bottom:.45rem;}
+.pro-name{font-size:.83rem;font-weight:500;margin-bottom:.12rem;}
+.pro-spec{font-size:.68rem;color:var(--muted);margin-bottom:.45rem;}
+.pro-badge{background:var(--goldpale);border:1px solid var(--goldborder);color:var(--gold);font-size:.6rem;padding:.12rem .48rem;border-radius:3px;}
+
+/* Modal */
+.overlay{display:none;position:fixed;inset:0;background:rgba(15,15,13,.75);backdrop-filter:blur(6px);z-index:500;align-items:center;justify-content:center;}
+.overlay.open{display:flex;}
+.modal{background:#fff;border-radius:var(--r);padding:2.2rem;width:460px;box-shadow:var(--shadow-lg);animation:rise .3s ease;}
+.modal h3{font-family:'Cormorant Garamond',serif;font-size:1.65rem;margin-bottom:.5rem;}
+.modal p{font-size:.8rem;color:var(--muted);line-height:1.65;margin-bottom:.9rem;}
+
+/* Toast */
+.toast{position:fixed;bottom:1.8rem;right:1.8rem;padding:.9rem 1.4rem;border-radius:var(--r);font-size:.82rem;z-index:1000;animation:rise .3s ease;max-width:320px;box-shadow:var(--shadow-lg);}
+.toast.ok{background:var(--green);color:#fff;}
+.toast.err{background:var(--red);color:#fff;}
+
+/* Stat boxes */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.85rem;margin-bottom:1.5rem;}
+.stat-box{background:var(--ink);border-radius:var(--r);padding:1.1rem;text-align:center;}
+.stat-n{font-family:'Cormorant Garamond',serif;font-size:1.65rem;color:var(--gold2);display:block;font-style:italic;}
+.stat-l{font-size:.58rem;color:rgba(255,255,255,.65);letter-spacing:.1em;text-transform:uppercase;margin-top:.15rem;}
+
+/* Source badge */
+.source-badge{
+  display:inline-flex;align-items:center;gap:.35rem;
+  background:var(--goldpale);border:1px solid var(--goldborder);
+  color:var(--gold);font-size:.58rem;padding:.15rem .55rem;
+  border-radius:20px;margin-top:.4rem;
+}
+
+/* ══ SECTIONS CARTES ══ */
+.cards-section-title{
+  grid-column: 1 / -1;
+  font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--gold);padding:.5rem 0 .2rem;
+  border-bottom:1px solid var(--goldborder);
+  margin-top:.5rem;font-family:'Outfit',sans-serif;font-weight:500;
+}
+.cards-section-title:first-child{margin-top:0;}
+
+/* ══ CARTE LEAFLET ══ */
+.map-container{
+  height:420px;border-radius:var(--r);overflow:hidden;
+  border:1px solid var(--border);margin-bottom:1rem;
+  position:relative;
+}
+.map-legend{
+  display:flex;flex-wrap:wrap;gap:.5rem;
+  margin-bottom:.75rem;
+}
+.legend-item{
+  display:flex;align-items:center;gap:.3rem;
+  font-size:.72rem;color:var(--muted);
+  background:#fff;border:1px solid var(--border);
+  padding:.2rem .55rem;border-radius:20px;
+}
+.legend-dot{
+  width:10px;height:10px;border-radius:50%;flex-shrink:0;
+}
+.map-stats{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  gap:.5rem;margin-bottom:.75rem;
+}
+.map-stat{
+  background:var(--ink);border-radius:4px;
+  padding:.6rem;text-align:center;
+}
+.map-stat-n{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.3rem;color:var(--gold2);display:block;
+}
+.map-stat-l{
+  font-size:.58rem;color:rgba(255,255,255,.68);
+  text-transform:uppercase;letter-spacing:.08em;
+}
+
+/* Responsive */
+@media(max-width:768px){
+  aside{transform:translateX(-100%);transition:transform .3s;}
+  aside.open{transform:translateX(0);}
+  .main-wrap{margin-left:0;}
+  .cards-grid{grid-template-columns:1fr 1fr;}
+  .chat-wrap{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- MODAL IA -->
+<div class="overlay" id="modalAI">
+  <div class="modal">
+    <h3>Configurer l'IA</h3>
+    <p>Entrez votre clé <strong>Groq</strong> — gratuite, sans carte bancaire. Stockée dans votre navigateur uniquement.</p>
+    <label class="lbl">Clé API Groq</label>
+    <input class="inp" type="password" id="groqKeyInput" placeholder="gsk_…" style="margin-bottom:.5rem" />
+    <p style="font-size:.67rem;color:var(--muted)">Clé gratuite sur <a href="https://console.groq.com/keys" target="_blank" style="color:var(--gold)">console.groq.com/keys</a></p>
+    <div style="display:flex;gap:.6rem;margin-top:1rem">
+      <button class="btn btn-dark btn-full" style="margin-top:0" onclick="saveKey()">Enregistrer</button>
+      <button style="padding:.5rem 1rem;border:1px solid var(--border);background:none;cursor:pointer;border-radius:4px;font-family:'Outfit',sans-serif;font-size:.8rem;color:var(--muted)" onclick="closeModal()">Plus tard</button>
+    </div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="logo-area">
+    <div class="logo" onclick="go('home')">IMMO<em>·AI</em></div>
+    <div class="logo-tagline">L'intelligence immobilière</div>
+  </div>
+
+  <!-- Recherche rapide sidebar -->
+  <div class="search-area">
+    <div class="search-wrap">
+      <span class="search-icon">📍</span>
+      <input class="search-inp" id="sideSearch" placeholder="Analyser une adresse…" autocomplete="off" />
+      <div class="search-suggestions" id="sideSugs"></div>
+    </div>
+  </div>
+
+  <div class="ai-status" onclick="openModal()">
+    <div class="ai-dot" id="aiDot"></div>
+    <span class="ai-lbl" id="aiLbl">Configurer l'IA</span>
+  </div>
+
+  <div class="nav-section">Analyser un bien</div>
+  <div class="nav-item" onclick="go('analyse')"><span class="nav-icon">🏠</span>Analyse complète</div>
+  <div class="nav-sub">
+    <div class="nav-item" onclick="go('prix')"><span class="nav-icon">💰</span>Prix & marché DVF</div>
+    <div class="nav-item" onclick="go('risques')"><span class="nav-icon">⚠️</span>Risques naturels</div>
+    <div class="nav-item" onclick="go('energie')"><span class="nav-icon">⚡</span>Énergie & DPE</div>
+    <div class="nav-item" onclick="go('bruit')"><span class="nav-icon">🔇</span>Bruit & nuisances</div>
+    <div class="nav-item" onclick="go('urbanisme')"><span class="nav-icon">📋</span>Urbanisme & PLU</div>
+  </div>
+
+  <div class="nav-section">Mon quartier</div>
+  <div class="nav-sub">
+    <div class="nav-item" onclick="go('ecoles')"><span class="nav-icon">🏫</span>Écoles & IPS</div>
+    <div class="nav-item" onclick="go('mobilite')"><span class="nav-icon">🚇</span>Mobilité & transports</div>
+    <div class="nav-item" onclick="go('fibre')"><span class="nav-icon">📶</span>Internet & fibre</div>
+    <div class="nav-item" onclick="go('services')"><span class="nav-icon">🏥</span>Services & santé</div>
+    <div class="nav-item" onclick="go('soleil')"><span class="nav-icon">☀️</span>Météo & ensoleillement</div>
+  </div>
+
+  <div class="nav-section">Mon financement</div>
+  <div class="nav-sub">
+    <div class="nav-item" onclick="go('emprunt')"><span class="nav-icon">🏦</span>Capacité d'emprunt</div>
+    <div class="nav-item" onclick="go('cout')"><span class="nav-icon">📊</span>Vrai coût du bien</div>
+    <div class="nav-item" onclick="go('aides')"><span class="nav-icon">🎁</span>Aides PTZ & État</div>
+    <div class="nav-item" onclick="go('renov')"><span class="nav-icon">🔨</span>Rénovation & aides</div>
+  </div>
+
+  <div class="nav-section">Ma stratégie</div>
+  <div class="nav-sub">
+    <div class="nav-item" onclick="go('offre')"><span class="nav-icon">🤝</span>Coaching de l'offre</div>
+    <div class="nav-item" onclick="go('profil')"><span class="nav-icon">🎯</span>Compatibilité de vie</div>
+    <div class="nav-item" onclick="go('comparer')"><span class="nav-icon">⚖️</span>Comparer des biens</div>
+  </div>
+
+  <div class="nav-section">Marché & services</div>
+  <div class="nav-item" onclick="go('annonces')"><span class="nav-icon">🏠</span>Annonces<span class="nav-badge">V2</span></div>
+  <div class="nav-item" onclick="go('alertes')"><span class="nav-icon">🔔</span>Alertes<span class="nav-badge">V2</span></div>
+  <div class="nav-item" onclick="go('conseil')"><span class="nav-icon">🤖</span>Conseiller IA 24h/24</div>
+  <div class="nav-item" onclick="go('pros')"><span class="nav-icon">👔</span>Annuaire pros</div>
+  <div class="nav-item" onclick="go('juridique')"><span class="nav-icon">📜</span>Guide juridique</div>
+
+  <div class="sidebar-foot">IMMO·AI © 2026 · France entière · v2.0</div>
+</aside>
+
+<!-- MAIN -->
+<div class="main-wrap">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-title" id="topTitle">Accueil</div>
+      <div class="topbar-addr" id="topAddr"></div>
+    </div>
+    <div class="topbar-right">
+      <button class="tb-btn" onclick="go('conseil')">🤖 Conseiller IA</button>
+      <button class="tb-btn primary" onclick="go('annonces')">🏠 Annonces</button>
+    </div>
+  </div>
+
+  <!-- ══ HOME ══ -->
+  <div class="page on" id="p-home">
+    <div class="hero">
+      <div class="hero-tag">Intelligence immobilière · France entière</div>
+      <h1 class="hero-title">Entrez une adresse.<br><em>Découvrez tout.</em></h1>
+      <p class="hero-sub">Prix DVF réels, risques, énergie, écoles, mobilité, fibre — toutes les données publiques françaises en un clic.</p>
+
+      <div class="hero-search">
+        <span class="hero-search-icon">📍</span>
+        <input type="text" id="heroSearch" placeholder="Ex: 24 rue de la Paix, Paris 75002…" autocomplete="off" />
+        <button class="hero-search-btn" onclick="analyzeAddress()">Analyser ✦</button>
+        <div class="hero-suggestions" id="heroSugs"></div>
+      </div>
+
+      <div class="hero-stats">
+        <div class="hero-stat"><div class="hero-stat-n">100%</div><div class="hero-stat-l">Données officielles</div></div>
+        <div class="hero-stat"><div class="hero-stat-n">15+</div><div class="hero-stat-l">Sources publiques</div></div>
+        <div class="hero-stat"><div class="hero-stat-n">0€</div><div class="hero-stat-l">Gratuit pour tester</div></div>
+        <div class="hero-stat"><div class="hero-stat-n">IA</div><div class="hero-stat-l">Analyse intelligente</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ANALYSE COMPLÈTE ══ -->
+  <div class="page" id="p-analyse">
+    <div class="results-header" id="resultsHeader" style="display:none">
+      <div class="results-addr">
+        <div class="results-addr-icon">📍</div>
+        <div class="results-addr-text">
+          <div class="results-addr-main" id="addrMain">—</div>
+          <div class="results-addr-sub" id="addrSub">—</div>
+        </div>
+        <div class="results-addr-badge" id="addrBadge">Analyse en cours…</div>
+      </div>
+    </div>
+
+    <div class="cards-grid" id="cardsGrid">
+      <!-- Cartes générées dynamiquement -->
+    </div>
+
+    <div id="detailContainer"></div>
+  </div>
+
+  <!-- ══ PRIX & DVF ══ -->
+  <div class="page" id="p-prix"><div class="inner">
+    <div class="ph"><div class="ptag">✦ Données DVF officielles · DGFiP</div><h2 class="ptitle">Prix & marché <em>par adresse</em></h2><p class="psub">Transactions réelles dans un rayon de 200m autour de votre adresse. Source : Demandes de Valeurs Foncières.</p></div>
+    <div class="card"><div class="ctitle">🔍 Analyser une adresse</div>
+      <input class="inp" id="dvfAddr" placeholder="Ex: 58 rue des Abondances, Boulogne-Billancourt 92100" onkeydown="if(event.key==='Enter')runDVF()" />
+      <button class="btn btn-dark btn-full" onclick="runDVF()" id="btnDVF">✦ Analyser les prix DVF</button>
+    </div>
+    <div class="aibox" id="boxDVF" style="display:none"><div class="ailabel">✦ Analyse DVF + IA · <span class="source-badge">📊 DVF DGFiP</span></div><div id="txtDVF" class="aitext"></div></div>
+    <hr class="sep">
+    <div class="ctitle" style="margin-bottom:.8rem">📊 Prix médians nationaux 2025 · Source DVF DGFiP</div>
+    <table class="tbl"><thead><tr><th>Ville</th><th>Appart. /m²</th><th>Maison /m²</th><th>Évol. 12 mois</th></tr></thead><tbody>
+      <tr><td>Paris (75)</td><td><strong>9 800 €</strong></td><td><strong>—</strong></td><td><span class="tag tag-dn">▼ -3.2%</span></td></tr>
+      <tr><td>Boulogne-Billancourt</td><td><strong>8 361 €</strong></td><td><strong>13 144 €</strong></td><td><span class="tag tag-up">▲ +0.8%</span></td></tr>
+      <tr><td>Lyon (69)</td><td><strong>4 800 €</strong></td><td><strong>5 200 €</strong></td><td><span class="tag tag-dn">▼ -1.5%</span></td></tr>
+      <tr><td>Bordeaux (33)</td><td><strong>4 200 €</strong></td><td><strong>4 600 €</strong></td><td><span class="tag tag-dn">▼ -2.1%</span></td></tr>
+      <tr><td>Marseille (13)</td><td><strong>3 100 €</strong></td><td><strong>3 800 €</strong></td><td><span class="tag tag-up">▲ +1.2%</span></td></tr>
+      <tr><td>Nantes (44)</td><td><strong>3 600 €</strong></td><td><strong>4 100 €</strong></td><td><span class="tag tag-dn">▼ -0.8%</span></td></tr>
+    </tbody></table>
+    <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : DVF DGFiP 2025 · Mise à jour : avril & octobre</p>
+  </div></div>
+
+  <!-- ══ EMPRUNT ══ -->
+  <div class="page" id="p-emprunt"><div class="inner">
+    <div class="ph"><div class="ptag">✦ Financement</div><h2 class="ptitle">Capacité <em>d'emprunt</em></h2></div>
+    <div class="g2" style="align-items:start">
+      <div class="card"><div class="ctitle">💶 Vos revenus et charges</div>
+        <label class="lbl">Revenus nets mensuels (€)</label><input class="inp" id="eRev" type="number" placeholder="5000" />
+        <label class="lbl">Co-emprunteur (€/mois)</label><input class="inp" id="eRev2" type="number" placeholder="0" />
+        <label class="lbl">Charges mensuelles</label><input class="inp" id="eCharges" type="number" placeholder="0" />
+        <label class="lbl">Apport disponible (€)</label><input class="inp" id="eApport" type="number" placeholder="80000" />
+        <label class="lbl">Durée (ans)</label><input class="inp" id="eDuree" type="number" value="20" />
+        <label class="lbl">Taux estimé (%)</label><input class="inp" id="eTaux" type="number" value="3.4" step="0.1" />
+        <button class="btn btn-dark btn-full" onclick="calcEmprunt()">✦ Calculer ma capacité</button>
+      </div>
+      <div id="resEmprunt"><div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez vos revenus pour calculer.</p></div></div>
+    </div>
+  </div></div>
+
+  <!-- ══ VRAI COÛT ══ -->
+  <div class="page" id="p-cout"><div class="inner">
+    <div class="ph"><div class="ptag">✦ Financement</div><h2 class="ptitle">Le <em>vrai coût</em> du bien</h2></div>
+    <div class="g2" style="align-items:start">
+      <div class="card"><div class="ctitle">🏠 Caractéristiques du bien</div>
+        <label class="lbl">Prix affiché (€)</label><input class="inp" id="cPrix" type="number" placeholder="650000" />
+        <label class="lbl">Surface (m²)</label><input class="inp" id="cSurf" type="number" placeholder="80" />
+        <label class="lbl">DPE</label>
+        <select class="inp" id="cDpe"><option value="A">A</option><option value="B">B</option><option value="C" selected>C</option><option value="D">D</option><option value="E">E</option><option value="F">F</option><option value="G">G</option></select>
+        <label class="lbl">Charges copro /mois (€)</label><input class="inp" id="cCharges" type="number" placeholder="250" />
+        <label class="lbl">Votre apport (€)</label><input class="inp" id="cApport" type="number" placeholder="150000" />
+        <label class="lbl">Durée prêt (ans)</label><input class="inp" id="cDuree" type="number" value="20" />
+        <button class="btn btn-dark btn-full" onclick="calcCout()">✦ Calculer le vrai coût</button>
+      </div>
+      <div id="resCout"><div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez le bien pour voir le coût total réel.</p></div></div>
+    </div>
+  </div></div>
+
+  <!-- ══ DPE ══ -->
+  <div class="page" id="p-energie"><div class="inner">
+    <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
+    <div class="ph"><div class="ptag">✦ Énergie · Source ADEME</div><h2 class="ptitle">Simulateur <em>DPE</em></h2></div>
+    <div class="g2" style="align-items:start">
+      <div class="card"><div class="ctitle">⚡ Calculer la facture énergétique</div>
+        <label class="lbl">DPE du bien</label>
+        <select class="inp" id="dDpe"><option value="A">A — ≤ 70 kWh/m²/an</option><option value="B">B — 71-110</option><option value="C" selected>C — 111-180</option><option value="D">D — 181-250</option><option value="E">E — 251-330</option><option value="F">F — 331-420</option><option value="G">G — &gt;420</option></select>
+        <label class="lbl">Surface (m²)</label><input class="inp" id="dSurf" type="number" placeholder="75" />
+        <label class="lbl">Type de chauffage</label>
+        <select class="inp" id="dChauff"><option value="gaz">Gaz</option><option value="elec">Électrique</option><option value="fioul">Fioul</option><option value="pompe">Pompe à chaleur</option></select>
+        <button class="btn btn-dark btn-full" onclick="calcDpe()">✦ Estimer la facture</button>
+      </div>
+      <div id="resDpe"><div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez le DPE et la surface.</p></div></div>
+    </div>
+  </div></div>
+
+  <!-- ══ AIDES ══ -->
+  <div class="page" id="p-aides"><div class="inner">
+    <div class="ph"><div class="ptag">✦ Financement · Source ANIL</div><h2 class="ptitle">Aides <em>de l'État</em></h2></div>
+    <div class="card"><div class="ctitle">🎁 Simuler mes aides</div>
+      <label class="lbl">Situation</label>
+      <div class="toggles" id="tAideSit"><button class="tog on" onclick="tog('tAideSit',this)">Primo-accédant</button><button class="tog" onclick="tog('tAideSit',this)">Déjà propriétaire</button><button class="tog" onclick="tog('tAideSit',this)">Investisseur locatif</button></div>
+      <div class="g2"><div><label class="lbl">Revenus foyer (€/an)</label><input class="inp" id="aRev" type="number" placeholder="80000" /></div><div><label class="lbl">Nombre de personnes</label><input class="inp" id="aPers" type="number" placeholder="2" /></div></div>
+      <label class="lbl">Prix du bien (€)</label><input class="inp" id="aPrix" type="number" placeholder="500000" />
+      <label class="lbl">Localisation</label><input class="inp" id="aVille" placeholder="Ex: Boulogne-Billancourt, Lyon, Bordeaux…" />
+      <button class="btn btn-dark btn-full" onclick="runIA('aides')" id="btnAides">✦ Calculer mes aides</button>
+    </div>
+    <div class="aibox" id="boxAides" style="display:none"><div class="ailabel">✦ Aides disponibles · <span class="source-badge">📊 ANIL 2025</span></div><div id="txtAides" class="aitext"></div></div>
+  </div></div>
+
+  <!-- ══ RÉNOVATION ══ -->
+  <div class="page" id="p-renov"><div class="inner">
+    <div class="ph"><div class="ptag">✦ Travaux · Source ADEME</div><h2 class="ptitle">Rénovation & <em>MaPrimeRénov'</em></h2></div>
+    <div class="card"><div class="ctitle">🔨 Simuler les travaux et aides</div>
+      <div class="g2">
+        <div><label class="lbl">DPE actuel</label><select class="inp" id="rDpeAv"><option value="G">G</option><option value="F">F</option><option value="E" selected>E</option><option value="D">D</option></select></div>
+        <div><label class="lbl">DPE cible</label><select class="inp" id="rDpeAp"><option value="C" selected>C</option><option value="B">B</option><option value="A">A</option></select></div>
+      </div>
+      <label class="lbl">Surface (m²)</label><input class="inp" id="rSurf" type="number" placeholder="80" />
+      <label class="lbl">Revenus foyer (€/an)</label><input class="inp" id="rRev" type="number" placeholder="60000" />
+      <button class="btn btn-dark btn-full" onclick="runIA('renov')" id="btnRenov">✦ Simuler</button>
+    </div>
+    <div class="aibox" id="boxRenov" style="display:none"><div class="ailabel">✦ Estimation travaux + aides · <span class="source-badge">📊 MaPrimeRénov' 2025</span></div><div id="txtRenov" class="aitext"></div></div>
+  </div></div>
+
+  <!-- ══ COACHING OFFRE ══ -->
+  <div class="page" id="p-offre"><div class="inner">
+    <div class="ph"><div class="ptag">✦ Stratégie</div><h2 class="ptitle">Coaching <em>de l'offre</em></h2></div>
+    <div class="card"><div class="ctitle">🤝 Décrivez le bien</div>
+      <div class="g2"><div><label class="lbl">Prix demandé (€)</label><input class="inp" id="oPrix" type="number" placeholder="650000" /></div><div><label class="lbl">Surface (m²)</label><input class="inp" id="oSurf" type="number" placeholder="75" /></div></div>
+      <label class="lbl">Adresse / ville</label><input class="inp" id="oRue" placeholder="Ex: 24 rue de la Paix, Paris…" />
+      <label class="lbl">En vente depuis ?</label>
+      <div class="toggles" id="tOJ"><button class="tog" onclick="tog('tOJ',this)">&lt; 15 j</button><button class="tog" onclick="tog('tOJ',this)">15–45 j</button><button class="tog on" onclick="tog('tOJ',this)">45–90 j</button><button class="tog" onclick="tog('tOJ',this)">&gt; 90 j</button></div>
+      <label class="lbl">Baisses de prix ?</label>
+      <div class="toggles" id="tOB"><button class="tog" onclick="tog('tOB',this)">Non</button><button class="tog" onclick="tog('tOB',this)">1 baisse</button><button class="tog on" onclick="tog('tOB',this)">2+ baisses</button></div>
+      <button class="btn btn-dark btn-full" onclick="runIA('offre')" id="btnOffre">✦ Obtenir ma stratégie d'offre</button>
+    </div>
+    <div class="aibox" id="boxOffre" style="display:none"><div class="ailabel">✦ Stratégie IA — Confidentiel</div><div id="txtOffre" class="aitext"></div></div>
+  </div></div>
+
+  <!-- ══ PROFIL DE VIE ══ -->
+  <div class="page" id="p-profil"><div class="inner">
+    <div class="ph"><div class="ptag">✦ Stratégie</div><h2 class="ptitle">Compatibilité <em>de vie</em></h2><p class="psub">L'IA identifie les secteurs vraiment compatibles avec votre style de vie.</p></div>
+    <div class="card"><div class="ctitle">🎯 Votre profil de vie</div>
+      <p style="font-size:.83rem;font-weight:500;margin-bottom:.5rem">Ville / secteur recherché</p>
+      <input class="inp" id="pVille" placeholder="Ex: Paris 15e, Lyon 3e, Bordeaux centre…" style="margin-bottom:.7rem" />
+      <p style="font-size:.83rem;font-weight:500;margin-bottom:.5rem">Enfants ?</p>
+      <div class="toggles" id="t1"><button class="tog" onclick="tog('t1',this)">Oui, en bas âge</button><button class="tog" onclick="tog('t1',this)">Oui, scolaires</button><button class="tog" onclick="tog('t1',this)">Prévu</button><button class="tog" onclick="tog('t1',this)">Non</button></div>
+      <p style="font-size:.83rem;font-weight:500;margin-bottom:.5rem">Mode de travail ?</p>
+      <div class="toggles" id="t2"><button class="tog" onclick="tog('t2',this)">Télétravail total</button><button class="tog" onclick="tog('t2',this)">Hybride</button><button class="tog" onclick="tog('t2',this)">Présentiel Paris</button><button class="tog" onclick="tog('t2',this)">Présentiel La Défense</button></div>
+      <p style="font-size:.83rem;font-weight:500;margin-bottom:.5rem">Style de vie ?</p>
+      <div class="toggles" id="t3"><button class="tog" onclick="tog('t3',this)">Sport & plein air</button><button class="tog" onclick="tog('t3',this)">Restaurants & sorties</button><button class="tog" onclick="tog('t3',this)">Calme & résidentiel</button><button class="tog" onclick="tog('t3',this)">Tout à pied</button></div>
+      <p style="font-size:.83rem;font-weight:500;margin-bottom:.5rem">Budget total ?</p>
+      <div class="toggles" id="t5"><button class="tog" onclick="tog('t5',this)">&lt; 300k€</button><button class="tog" onclick="tog('t5',this)">300–600k€</button><button class="tog" onclick="tog('t5',this)">600k–1M€</button><button class="tog" onclick="tog('t5',this)">&gt; 1M€</button></div>
+      <button class="btn btn-dark btn-full" onclick="runIA('profil')" id="btnProfil">✦ Trouver mes secteurs compatibles</button>
+    </div>
+    <div class="aibox" id="boxProfil" style="display:none"><div class="ailabel">✦ Analyse IA — Compatibilité personnalisée</div><div id="txtProfil" class="aitext"></div></div>
+  </div></div>
+
+  <!-- ══ COMPARER ══ -->
+  <div class="page" id="p-comparer"><div class="inner">
+    <div class="ph"><div class="ptag">✦ Stratégie</div><h2 class="ptitle">Comparer <em>des biens</em></h2></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem">
+      <div class="card"><div class="ctitle">🏠 Bien 1</div>
+        <label class="lbl">Adresse</label><input class="inp caddr" placeholder="Adresse…" />
+        <label class="lbl">Prix (€)</label><input class="inp cprix" type="number" placeholder="650000" />
+        <label class="lbl">Surface (m²)</label><input class="inp csurf" type="number" placeholder="75" />
+        <label class="lbl">DPE</label><select class="inp cdpe"><option>A</option><option>B</option><option selected>C</option><option>D</option><option>E</option><option>F</option><option>G</option></select>
+      </div>
+      <div class="card"><div class="ctitle">🏠 Bien 2</div>
+        <label class="lbl">Adresse</label><input class="inp caddr" placeholder="Adresse…" />
+        <label class="lbl">Prix (€)</label><input class="inp cprix" type="number" placeholder="590000" />
+        <label class="lbl">Surface (m²)</label><input class="inp csurf" type="number" placeholder="68" />
+        <label class="lbl">DPE</label><select class="inp cdpe"><option>A</option><option>B</option><option>C</option><option selected>D</option><option>E</option><option>F</option><option>G</option></select>
+      </div>
+      <div class="card"><div class="ctitle">🏠 Bien 3</div>
+        <label class="lbl">Adresse</label><input class="inp caddr" placeholder="Adresse…" />
+        <label class="lbl">Prix (€)</label><input class="inp cprix" type="number" placeholder="" />
+        <label class="lbl">Surface (m²)</label><input class="inp csurf" type="number" placeholder="" />
+        <label class="lbl">DPE</label><select class="inp cdpe"><option>A</option><option selected>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option></select>
+      </div>
+    </div>
+    <button class="btn btn-dark btn-full" style="max-width:320px;margin:1rem auto" onclick="runIA('comparer')" id="btnComparer">✦ Analyser et comparer par IA</button>
+    <div class="aibox" id="boxComparer" style="display:none"><div class="ailabel">✦ Analyse comparative IA</div><div id="txtComparer" class="aitext"></div></div>
+  </div></div>
+
+  <!-- ══ CONSEILLER IA ══ -->
+  <div class="page" id="p-conseil"><div class="inner" style="max-width:820px">
+    <div class="ph"><div class="ptag">✦ IA 24h/24</div><h2 class="ptitle">Conseiller <em>immobilier IA</em></h2></div>
+    <div class="chat-wrap">
+      <div class="chat-box">
+        <div class="chat-head"><div class="chat-av">IA</div><div><div class="chat-nm">Conseiller IMMO·AI</div><div class="chat-st" id="chatSt">● Prêt · France entière</div></div></div>
+        <div class="msgs" id="msgs">
+          <div class="msg"><div class="mav ai">IA</div><div class="bub ai">Bonjour ! Je suis votre conseiller immobilier <strong>France entière</strong>. Je connais les marchés locaux, la fiscalité, le financement et les stratégies d'achat. Quelle adresse ou ville souhaitez-vous analyser ? 🏠</div></div>
+        </div>
+        <div class="chat-sugs">
+          <span class="csug" onclick="ask('Analyse le marché immobilier de Lyon 3e arrondissement')">Lyon 3e</span>
+          <span class="csug" onclick="ask('Comment négocier un bien en vente depuis 3 mois ?')">Négocier</span>
+          <span class="csug" onclick="ask('Acheter à Paris ou en banlieue avec 500k€ ?')">Paris vs banlieue</span>
+          <span class="csug" onclick="ask('Quels frais prévoir pour un achat à 400k€ ?')">Frais d\'achat</span>
+        </div>
+        <div class="chat-foot"><input class="chat-inp" id="chatIn" placeholder="Votre question immobilière…" onkeydown="if(event.key==='Enter')sendMsg()" /><button class="chat-go" onclick="sendMsg()" id="chatGo">➤</button></div>
+      </div>
+      <div class="chat-side">
+        <div class="card" style="padding:1rem"><div class="ctitle">✦ Taux immo live</div>
+          <div style="display:flex;flex-direction:column;gap:.3rem">
+            <div style="display:flex;justify-content:space-between;font-size:.73rem;padding:.28rem 0;border-bottom:1px solid var(--border)"><span style="color:var(--ink">15 ans</span><span style="font-weight:500">~3.15%</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:.73rem;padding:.28rem 0;border-bottom:1px solid var(--border)"><span style="color:var(--ink">20 ans</span><span style="font-weight:500">~3.40%</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:.73rem;padding:.28rem 0;border-bottom:1px solid var(--border)"><span style="color:var(--ink">25 ans</span><span style="font-weight:500">~3.65%</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:.73rem;padding:.28rem 0"><span style="color:var(--muted)">Source</span><span style="color:var(--gold);font-weight:500">BdF 2025</span></div>
+          </div>
+        </div>
+        <div class="card" style="padding:1rem"><div class="ctitle">✦ Outils rapides</div>
+          <div style="display:flex;flex-direction:column;gap:.38rem">
+            <span class="csug" style="border-radius:3px;display:block;text-align:left" onclick="go('emprunt')">🏦 Simuler mon emprunt</span>
+            <span class="csug" style="border-radius:3px;display:block;text-align:left" onclick="go('offre')">🤝 Coacher mon offre</span>
+            <span class="csug" style="border-radius:3px;display:block;text-align:left" onclick="go('energie')">⚡ Analyser le DPE</span>
+            <span class="csug" style="border-radius:3px;display:block;text-align:left" onclick="go('juridique')">📜 Guide juridique</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div></div>
+
+  <!-- ══ PAGES V2 (annonces, alertes) ══ -->
+  <div class="page" id="p-annonces"><div class="inner">
+    <div class="ph"><div class="ptag">✦ Bientôt disponible · V2</div><h2 class="ptitle">Annonces <em>immobilières</em></h2><p class="psub">Le module d'annonces avec dépôt par particuliers et agences, alertes intelligentes et analyse IA de chaque bien sera disponible dans la version 2.</p></div>
+    <div style="background:var(--ink);border-radius:var(--r);padding:2rem;text-align:center;color:#fff">
+      <div style="font-size:2.5rem;margin-bottom:1rem">🏗️</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:1.4rem;color:var(--gold2);margin-bottom:.5rem">Module en construction</div>
+      <p style="font-size:.82rem;color:rgba(255,255,255,.7);max-width:400px;margin:0 auto">Les annonces seront alimentées par les agences et particuliers. Zéro donnée inventée — que du réel.</p>
+    </div>
+  </div></div>
+
+  <div class="page" id="p-alertes"><div class="inner">
+    <div class="ph"><div class="ptag">✦ Bientôt disponible · V2</div><h2 class="ptitle">Alertes <em>intelligentes</em></h2><p class="psub">Détection automatique de baisses de prix, biens republiés, ventes sous marché — basée sur de vraies transactions.</p></div>
+    <div style="background:var(--ink);border-radius:var(--r);padding:2rem;text-align:center;color:#fff">
+      <div style="font-size:2.5rem;margin-bottom:1rem">🔔</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:1.4rem;color:var(--gold2);margin-bottom:.5rem">Alertes en construction</div>
+      <p style="font-size:.82rem;color:rgba(255,255,255,.7);max-width:400px;margin:0 auto">Basées sur les vraies données DVF et les annonces déposées. Disponible en V2.</p>
+    </div>
+  </div></div>
+
+  <!-- ══ PAGES PLACEHOLDER ══ -->
+  <div class="page" id="p-risques"><div class="inner"><div class="ph"><div class="ptag">✦ Source Géorisques</div><h2 class="ptitle">Risques <em>naturels</em></h2><p class="psub">Inondations, séismes, retraits-gonflements des argiles, mouvements de terrain — données officielles Géorisques.</p></div><div class="card"><p style="font-size:.83rem;color:var(--muted)">Entrez une adresse dans la barre de recherche pour voir les risques naturels spécifiques à ce bien.</p></div></div></div>
+
+  <div class="page" id="p-bruit"><div class="inner">
+    <div class="ph"><div class="ptag">✦ Source Bruit.fr</div><h2 class="ptitle">Bruit & <em>nuisances</em></h2><p class="psub">Cartes de bruit officielles — routes, voies ferrées, aéroports.</p></div>
+    <div class="card">
+      <div class="ctitle">🔇 Carte sonore officielle</div>
+      <p style="font-size:.83rem;color:var(--muted);margin-bottom:1rem">Les cartes de bruit sont disponibles sur <strong>bruit.fr</strong>. L'adresse analysée est transmise automatiquement.</p>
+      <button class="btn btn-dark" onclick="ouvrirBruit()">✦ Voir la carte de bruit pour cette adresse</button>
+    </div>
+  </div></div>
+
+  <div class="page" id="p-urbanisme"><div class="inner">
+    <div class="ph"><div class="ptag">✦ Source GPU Géoportail</div><h2 class="ptitle">Urbanisme & <em>PLU</em></h2><p class="psub">Zonage PLU, droits à construire — données officielles IGN.</p></div>
+    <div id="urbanisme-panel-container">
+      <div class="card"><p style="font-size:.83rem;color:var(--muted)">Analysez d'abord une adresse via la barre de recherche pour voir le zonage PLU.</p></div>
+    </div>
+  </div></div>
+
+  <div class="page" id="p-ecoles"><div class="inner">
+    <div class="ph"><div class="ptag">✦ Source Data Éducation</div><h2 class="ptitle">Écoles & <em>IPS</em></h2></div>
+    <div id="ecoles-panel-container">
+      <div class="card"><p style="font-size:.83rem;color:var(--muted)">Analysez d'abord une adresse via la barre de recherche pour voir les écoles à proximité.</p></div>
+    </div>
+  </div></div>
+
+  <div class="page" id="p-mobilite"><div class="inner">
+    <div class="ph"><div class="ptag">✦ Source Transport.data</div><h2 class="ptitle">Mobilité & <em>transports</em></h2></div>
+    <div id="mobilite-panel-container">
+      <div class="card"><p style="font-size:.83rem;color:var(--muted)">Analysez d'abord une adresse via la barre de recherche pour voir les transports à proximité.</p></div>
+    </div>
+  </div></div>
+
+  <div class="page" id="p-fibre"><div class="inner"><div class="ph"><div class="ptag">✦ Source ARCEP</div><h2 class="ptitle">Internet & <em>fibre</em></h2><p class="psub">Éligibilité fibre optique, débits mobiles 4G/5G — données ARCEP officielles.</p></div><div class="card"><p style="font-size:.83rem;color:var(--muted)">Entrez une adresse dans la barre de recherche pour vérifier l'éligibilité fibre.</p></div></div></div>
+
+  <div class="page" id="p-services"><div class="inner">
+    <div class="ph"><div class="ptag">✦ Source OpenStreetMap</div><h2 class="ptitle">Services & <em>santé</em></h2></div>
+    <div id="services-panel-container">
+      <div class="card"><p style="font-size:.83rem;color:var(--muted)">Analysez d'abord une adresse via la barre de recherche pour voir les services à proximité.</p></div>
+    </div>
+  </div></div>
+
+  <div class="page" id="p-soleil"><div class="inner"><div class="ph"><div class="ptag">✦ Source Météo-France</div><h2 class="ptitle">Météo & <em>ensoleillement</em></h2><p class="psub">Heures d'ensoleillement annuel, températures moyennes, pluviométrie — données Météo-France.</p></div><div class="card"><p style="font-size:.83rem;color:var(--muted)">Entrez une adresse dans la barre de recherche pour voir les données météo locales.</p></div></div></div>
+
+  <!-- ══ JURIDIQUE ══ -->
+  <div class="page" id="p-juridique"><div class="inner">
+    <div class="ph"><div class="ptag">✦ Guide</div><h2 class="ptitle">Guide <em>juridique</em></h2></div>
+    <div class="card"><div class="ctitle">❓ Votre question juridique</div>
+      <input class="inp" id="jurQ" placeholder="Ex: Qu'est-ce que le délai SRU ? Comment se passe le compromis ?" onkeydown="if(event.key==='Enter')runIA('juridique')" />
+      <button class="btn btn-dark btn-full" onclick="runIA('juridique')" id="btnJur">✦ Obtenir la réponse</button>
+    </div>
+    <div class="aibox" id="boxJur" style="display:none"><div class="ailabel">✦ Réponse juridique IA (à titre informatif)</div><div id="txtJur" class="aitext"></div></div>
+    <hr class="sep">
+    <div class="ctitle" style="margin-bottom:.8rem">📚 Les 5 étapes d'un achat</div>
+    <table class="tbl"><thead><tr><th>#</th><th>Étape</th><th>Durée</th><th>Points clés</th></tr></thead><tbody>
+      <tr><td>1</td><td>Offre d'achat</td><td>Immédiat</td><td>Montant, conditions, délai de réponse</td></tr>
+      <tr><td>2</td><td>Compromis</td><td>1–3 semaines</td><td>Signature, dépôt de garantie 5–10%, SRU 10j</td></tr>
+      <tr><td>3</td><td>Délai SRU</td><td>10 jours</td><td>Possibilité de se rétracter sans frais</td></tr>
+      <tr><td>4</td><td>Conditions suspensives</td><td>45–60 jours</td><td>Obtention du crédit</td></tr>
+      <tr><td>5</td><td>Acte authentique</td><td>3–4 mois</td><td>Notaire, remise des clés</td></tr>
+    </tbody></table>
+  </div></div>
+
+  <!-- ══ PROS ══ -->
+  <div class="page" id="p-pros"><div class="inner">
+    <div class="ph"><div class="ptag">✦ Services</div><h2 class="ptitle">Annuaire <em>professionnels</em></h2><p class="psub">Professionnels partenaires vérifiés. Bientôt étendu à toute la France.</p></div>
+    <div class="ctitle" style="margin-bottom:.8rem">⚖️ Notaires · Boulogne-Billancourt</div>
+    <div class="pro-grid">
+      <div class="pro-card"><div class="pro-icon">⚖️</div><div class="pro-name">Maître Dupont & Associés</div><div class="pro-spec">Av. Édouard Vaillant · BB</div><span class="pro-badge">Partenaire</span></div>
+      <div class="pro-card"><div class="pro-icon">⚖️</div><div class="pro-name">Office Notarial BB</div><div class="pro-spec">Rue de Billancourt · BB</div><span class="pro-badge">Partenaire</span></div>
+    </div>
+    <div class="ctitle" style="margin:1.5rem 0 .8rem">🏦 Courtiers</div>
+    <div class="pro-grid">
+      <div class="pro-card"><div class="pro-icon">🏦</div><div class="pro-name">Meilleurtaux BB</div><div class="pro-spec">Hauts-de-Seine</div><span class="pro-badge">Partenaire</span></div>
+      <div class="pro-card"><div class="pro-icon">🏦</div><div class="pro-name">CAFPI Ouest Paris</div><div class="pro-spec">Gros patrimoines</div><span class="pro-badge">Partenaire</span></div>
+    </div>
+  </div></div>
+
+</div><!-- main-wrap -->
+
+<script>
+// ══ STATE ══
+let groqKey = localStorage.getItem('immoai_groq') || '';
+let chatHistory = [];
+let currentAddress = null;
+let currentCoords = null;
+
+// Détection local vs Netlify
+const IS_LOCAL = location.protocol === 'file:' || location.hostname === 'localhost';
+
+// Appel API : via Netlify Function si déployé, sinon direct
+async function apiCall(netlifyPath, directUrl, options={}) {
+  const url = IS_LOCAL ? directUrl : netlifyPath;
+  return fetch(url, { ...options, signal: options.signal || AbortSignal.timeout(10000) });
+}
+
+const PAGES = {
+  home:'Accueil', analyse:'Analyse complète', prix:'Prix & marché DVF',
+  risques:'Risques naturels', energie:'Énergie & DPE', bruit:'Bruit & nuisances',
+  urbanisme:'Urbanisme & PLU', ecoles:'Écoles & IPS', mobilite:'Mobilité & transports',
+  fibre:'Internet & fibre', services:'Services & santé', soleil:'Météo & ensoleillement',
+  emprunt:'Capacité d\'emprunt', cout:'Vrai coût du bien', aides:'Aides de l\'État',
+  renov:'Rénovation & MaPrimeRénov\'', offre:'Coaching de l\'offre',
+  profil:'Compatibilité de vie', comparer:'Comparer des biens',
+  conseil:'Conseiller IA 24h/24', annonces:'Annonces', alertes:'Alertes intelligentes',
+  pros:'Annuaire pros', juridique:'Guide juridique'
+};
+
+window.onload = () => {
+  updateDot();
+  if (!groqKey) setTimeout(openModal, 1800);
+  setupSearch('heroSearch', 'heroSugs', true);
+  setupSearch('sideSearch', 'sideSugs', false);
+};
+
+// ══ MODAL ══
+function openModal(){document.getElementById('modalAI').classList.add('open');}
+function closeModal(){document.getElementById('modalAI').classList.remove('open');}
+function saveKey(){
+  const g = document.getElementById('groqKeyInput').value.trim();
+  if(g){groqKey=g;localStorage.setItem('immoai_groq',g);}
+  updateDot();closeModal();toast('✓ Clé Groq enregistrée','ok');
+}
+function updateDot(){
+  document.getElementById('aiDot').className='ai-dot'+(groqKey?' on':'');
+  document.getElementById('aiLbl').textContent=groqKey?'Groq · IA automatique':'Configurer l\'IA';
+}
+
+// ══ NAV ══
+function go(id){
+  // Si une adresse est analysée et que la page a un panel dispo → l'afficher directement
+  if(currentCoords) {
+    if(id === 'urbanisme') { showUrbanismeFromMenu(); return; }
+    if(id === 'ecoles')    { showEcolesFromMenu(); return; }
+    if(id === 'mobilite')  { showMobiliteFromMenu(); return; }
+    if(id === 'services')  { showServicesFromMenu(); return; }
+    if(id === 'bruit')     { ouvrirBruit(); return; }
+  }
+  _goPage(id);
+}
+
+function _goPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const p=document.getElementById('p-'+id);if(p)p.classList.add('on');
+  document.getElementById('topTitle').textContent=PAGES[id]||id;
+  document.querySelectorAll('.nav-item').forEach(n=>{
+    if(n.getAttribute('onclick')?.includes("'"+id+"'"))n.classList.add('active');
+  });
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// Fonctions pour afficher les panels depuis le menu (avec adresse déjà analysée)
+function showUrbanismeFromMenu(){ _goPage('analyse'); setTimeout(()=>showUrbanismeDetail(), 100); }
+function showEcolesFromMenu()   { _goPage('analyse'); setTimeout(()=>showEcolesDetail(), 100); }
+function showMobiliteFromMenu() { _goPage('analyse'); setTimeout(()=>showMobiliteDetail(), 100); }
+function showServicesFromMenu() { _goPage('analyse'); setTimeout(()=>showServicesMap(), 100); }
+function ouvrirBruit(){
+  const addr = currentAddress ? encodeURIComponent(currentAddress) : '';
+  window.open('https://www.bruit.fr/' + (addr ? '?address='+addr : ''), '_blank');
+}
+
+// ══ TOGGLES ══
+function tog(g,btn){document.querySelectorAll('#'+g+' .tog').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
+function togVal(id){return document.querySelector('#'+id+' .tog.on')?.textContent.trim()||'—';}
+
+// ══ AUTOCOMPLÉTION BAN ══
+let banTimer=null;
+function setupSearch(inputId, sugsId, isHero){
+  const inp=document.getElementById(inputId);
+  const sugs=document.getElementById(sugsId);
+  if(!inp)return;
+  inp.addEventListener('input',()=>{
+    clearTimeout(banTimer);
+    const q=inp.value.trim();
+    if(q.length<3){sugs.classList.remove('open');return;}
+    banTimer=setTimeout(()=>fetchBAN(q,sugs,inp,isHero),350);
+  });
+  inp.addEventListener('keydown',e=>{
+    if(e.key==='Enter'&&inp.value.trim().length>3){
+      sugs.classList.remove('open');
+      analyzeAddressFromInput(inp.value.trim());
+    }
+  });
+  document.addEventListener('click',e=>{
+    if(!inp.contains(e.target)&&!sugs.contains(e.target))sugs.classList.remove('open');
+  });
+}
+
+async function fetchBAN(q, sugsEl, inp, isHero){
+  try{
+    const r=await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&limit=6`);
+    const d=await r.json();
+    if(!d.features?.length){sugsEl.classList.remove('open');return;}
+    sugsEl.innerHTML='';
+    d.features.forEach(f=>{
+      const div=document.createElement('div');
+      div.className=isHero?'hero-sug-item':'sug-item';
+      const label=f.properties.label;
+      const city=f.properties.city;
+      div.innerHTML=isHero
+        ?`<span class="hero-sug-icon">📍</span><span><strong>${label.split(',')[0]}</strong>, ${city}</span>`
+        :`<strong>${label.split(',')[0]}</strong>, ${city}`;
+      div.onclick=()=>{
+        inp.value=label;
+        sugsEl.classList.remove('open');
+        analyzeAddressWithFeature(f);
+      };
+      sugsEl.appendChild(div);
+    });
+    sugsEl.classList.add('open');
+  }catch(e){console.error('BAN error',e);}
+}
+
+// ══ ANALYSE ADRESSE ══
+function analyzeAddress(){
+  const q=document.getElementById('heroSearch').value.trim();
+  if(q.length<5){toast('Entrez une adresse complète','err');return;}
+  analyzeAddressFromInput(q);
+}
+
+async function analyzeAddressFromInput(q){
+  try{
+    const r=await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&limit=1`);
+    const d=await r.json();
+    if(d.features?.length){analyzeAddressWithFeature(d.features[0]);}
+    else toast('Adresse non trouvée — essayez avec code postal','err');
+  }catch(e){toast('Erreur de géolocalisation','err');}
+}
+
+async function analyzeAddressWithFeature(feature){
+  const props=feature.properties;
+  const coords=feature.geometry.coordinates;
+  currentAddress=props.label;
+  currentCoords={lng:coords[0],lat:coords[1]};
+
+  // Mettre à jour topbar
+  document.getElementById('topAddr').textContent=props.label;
+  document.getElementById('addrMain').textContent=props.name||props.label;
+  document.getElementById('addrSub').textContent=`${props.postcode||''} ${props.city||''} · ${props.context||''}`;
+  document.getElementById('addrBadge').textContent='Analyse en cours…';
+  document.getElementById('resultsHeader').style.display='block';
+
+  // Aller sur la page analyse
+  go('analyse');
+
+  // Générer les cartes
+  renderCards(props,coords);
+
+  // Lancer toutes les APIs en parallèle
+  loadAllData(props,coords);
+}
+
+// ══ CARTES ══
+function renderCards(props, coords){
+  const grid = document.getElementById('cardsGrid');
+
+  const cardSections = [
+    {
+      title: '🏠 Analyser un bien',
+      cards: [
+        {id:'dvf',       icon:'💰', label:'Prix & marché DVF',      value:'<span class="spin"></span>', sub:'Transactions réelles',      source:'DVF DGFiP'},
+        {id:'risques',   icon:'⚠️', label:'Risques naturels',       value:'<span class="spin"></span>', sub:'Géorisques officiel',       source:'Géorisques'},
+        {id:'dpe',       icon:'⚡', label:'Énergie & DPE',          value:'Simuler →',                  sub:'Cliquez pour simuler',      source:'ADEME'},
+        {id:'bruit',     icon:'🔇', label:'Bruit & nuisances',      value:'Voir →',                     sub:'Ouvre bruit.fr',            source:'Bruit.fr'},
+        {id:'urbanisme', icon:'📋', label:'Urbanisme & PLU',        value:'<span class="spin"></span>', sub:'Zonage officiel IGN',       source:'IGN GPU'},
+      ]
+    },
+    {
+      title: '🏘️ Mon quartier',
+      cards: [
+        {id:'ecoles',    icon:'🏫', label:'Écoles & IPS',           value:'<span class="spin"></span>', sub:'IPS & résultats',           source:'Éducation'},
+        {id:'mobilite',  icon:'🚇', label:'Mobilité & transports',  value:'<span class="spin"></span>', sub:'Transports & vélos',        source:'Transport.data'},
+        {id:'fibre',     icon:'📶', label:'Internet & fibre',       value:'<span class="spin"></span>', sub:'Éligibilité fibre',         source:'ARCEP'},
+        {id:'services',  icon:'🏥', label:'Services & santé',       value:'<span class="spin"></span>', sub:'Santé, courses, sport',     source:'OSM'},
+        {id:'meteo',     icon:'☀️', label:'Météo & ensoleillement', value:'<span class="spin"></span>', sub:'Moyenne 5 ans',            source:'open-meteo'},
+        {id:'insee',     icon:'📊', label:'Profil du quartier',     value:'<span class="spin"></span>', sub:'Population & revenus',      source:'INSEE'},
+        {id:'altitude',  icon:'🏔️', label:'Altitude',               value:'<span class="spin"></span>', sub:'Précision 1m · IGN',       source:'IGN RGE Alti'},
+      ]
+    },
+  ];
+
+  grid.innerHTML = cardSections.map(section => `
+    <div class="cards-section-title">${section.title}</div>
+    ${section.cards.map(c => `
+      <div class="info-card${c.wide?' wide':''}" id="card-${c.id}" onclick="showDetail('${c.id}')">
+        <span class="card-arrow">↗</span>
+        <div class="card-icon">${c.icon}</div>
+        <div class="card-label">${c.label}</div>
+        <div class="card-value" id="val-${c.id}">${c.value}</div>
+        <div class="card-sub" id="sub-${c.id}">${c.sub}</div>
+        <div class="source-badge">📊 ${c.source}</div>
+      </div>
+    `).join('')}
+  `).join('');
+}
+
+// ══ CHARGEMENT DONNÉES RÉELLES via Netlify Functions ══
+async function loadAllData(props, coords){
+  const [lng,lat]=[coords[0],coords[1]];
+
+  // DPE — nécessite infos du bien, afficher formulaire
+  setCard('dpe','Simuler →','Entrez les caractéristiques du bien','');
+
+  // Altitude via BAN
+  // Altitude non disponible directement via BAN standard
+  const alt = null;
+  setCard('altitude', alt ? alt+'m' : 'N/A', 'Altitude NGF · Source IGN', '');
+
+  // Lancer toutes les vraies APIs en parallèle
+  Promise.all([
+    loadDVF(lat, lng),
+    loadRisques(lat, lng),
+    loadEcoles(lat, lng, props.citycode),
+    loadMobilite(lat, lng),
+    loadFibre(props.citycode, lat, lng),
+    loadUrbanisme(lat, lng),
+    loadMeteo(lat, lng),
+    loadINSEE(props.citycode, lat, lng),
+    loadAltitude(lat, lng),
+    loadServices(lat, lng),
+  ]).then(() => {
+    document.getElementById('addrBadge').textContent = '✓ Analyse complète';
+  });
+}
+
+function setCard(id, value, sub, cssClass=''){
+  const v=document.getElementById('val-'+id);
+  const s=document.getElementById('sub-'+id);
+  if(v)v.innerHTML=value;
+  if(s&&sub)s.textContent=sub;
+  if(cssClass&&v)v.className='card-value '+cssClass;
+}
+
+// ── DVF : vraies transactions officielles ──
+async function loadDVF(lat, lng){
+  try{
+    const r = await apiCall(`/api/dvf?lat=${lat}&lon=${lng}&dist=2000`, `https://api.cquest.org/dvf?lat=${lat}&lon=${lng}&dist=2000&nature_mutation=Vente`);
+    if(!r.ok) throw new Error();
+    const d = await r.json();
+    if(!d.success || !d.stats){
+      setCard('dvf','Données indisponibles','Source DVF temporairement hors ligne','');
+      return;
+    }
+    const prix = d.stats.medianM2.toLocaleString('fr-FR');
+    setCard('dvf', prix+' €/m²', `${d.count} ventes · ${d.stats.minM2.toLocaleString('fr-FR')}-${d.stats.maxM2.toLocaleString('fr-FR')} €/m²`, '');
+    // Stocker pour le détail
+    window._dvfData = d;
+  }catch(e){
+    setCard('dvf','Non disponible','Erreur données DVF','');
+  }
+}
+
+// ── Géorisques : risques naturels officiels ──
+async function loadRisques(lat, lng){
+  try{
+    const r = await apiCall(`/api/risques?lat=${lat}&lon=${lng}&_v=2`, `https://georisques.gouv.fr/api/v1/gaspar/risques?latlon=${lng},${lat}&rayon=500`);
+    if(!r.ok) throw new Error();
+    const d = await r.json();
+    let nb, score, detail=[];
+    if(d.success !== undefined){
+      // Format Netlify Function
+      nb=d.total; score=d.score; detail=d.detail||[];
+    } else {
+      // Format direct API Géorisques : { data: [{ risques_detail: [{libelle_risque_long, num_risque}] }] }
+      const communeData = (d.data || [])[0] || {};
+      const risquesDetail = communeData.risques_detail || [];
+      nb = risquesDetail.length;
+      score = nb===0?'faible':nb>=3?'élevé':'modéré';
+      detail = risquesDetail.map(item=>({
+        libelle: item.libelle_risque_long || 'Risque non défini',
+        code: item.num_risque || ''
+      }));
+    }
+    // Calculer les catégories depuis le detail (utilisé dans showRisquesDetail)
+    const categories = {
+      inondation: detail.some(r=>(r.libelle||'').toLowerCase().includes('inondation')),
+      seisme:     detail.some(r=>(r.libelle||'').toLowerCase().includes('sisme') || (r.libelle||'').toLowerCase().includes('seisme') || (r.libelle||'').toLowerCase().includes('séisme')),
+      argile:     detail.some(r=>(r.libelle||'').toLowerCase().includes('argile')),
+      mouvement:  detail.some(r=>(r.libelle||'').toLowerCase().includes('mouvement')),
+    };
+    const css = nb===0?'good':nb>=3?'bad':'warn';
+    setCard('risques', nb===0?'Aucun risque':nb+' risque'+(nb>1?'s':''), nb===0?'Zone non exposée':'Score : '+score, css);
+    window._risquesData = {success:true, total:nb, score, detail, categories};
+  }catch(e){
+    setCard('risques','Non disponible','Erreur API Géorisques','');
+  }
+}
+
+// ── Écoles : données officielles Éducation nationale ──
+async function loadEcoles(lat, lng, codeInsee){
+  try{
+    const deg=1500/111000; const where=encodeURIComponent(`latitude>${lat-deg} AND latitude<${lat+deg} AND longitude>${lng-deg} AND longitude<${lng+deg}`); const r = await apiCall(`/api/ecoles?lat=${lat}&lon=${lng}&dist=1500${codeInsee?'&codeInsee='+codeInsee:''}`, `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=${where}&limit=25&select=nom_etablissement,type_etablissement,statut_public_prive,adresse1,code_postal,nom_commune,latitude,longitude`);
+    if(!r.ok) throw new Error();
+    const d = await r.json();
+    if(!d.success) throw new Error();
+    const total = d.total;
+    setCard('ecoles',
+      total+' établissement'+(total>1?'s':''),
+      `${d.types.elementaire} école(s) · ${d.types.college} collège(s)`,
+      total>0?'good':''
+    );
+    window._ecolesData = d;
+  }catch(e){
+    setCard('ecoles','Non disponible','Erreur API Éducation','');
+  }
+}
+
+// ── Mobilité : OpenStreetMap via Overpass ──
+async function loadMobilite(lat, lng){
+  try{
+    const r = await apiCall(`/api/mobilite?lat=${lat}&lon=${lng}&dist=500`, `https://overpass-api.de/api/interpreter`);
+    if(!r.ok) throw new Error();
+    const d = await r.json();
+    if(!d.success) throw new Error();
+    const css = d.score>=7?'good':d.score>=4?'warn':'bad';
+    setCard('mobilite',
+      d.score+'/10',
+      d.scoreLabel+' · '+d.stats.arretsBus+' arrêts bus',
+      css
+    );
+    window._mobiliteData = d;
+  }catch(e){
+    setCard('mobilite','Non disponible','Erreur API transport','');
+  }
+}
+
+// ── Fibre ARCEP ──
+async function loadFibre(citycode, lat, lng){
+  try{
+    const r = await apiCall(`/api/fibre?lat=${lat}&lon=${lng}&codeInsee=${citycode||''}`, `https://api.arcep.fr/api/couverture_fibre/adresses?codeInsee=${citycode||''}`);
+    if(!r.ok) throw new Error();
+    const d = await r.json();
+    if(!d.success) throw new Error();
+    const eligible = d.fibre?.eligible;
+    setCard('fibre',
+      eligible === true ? 'Éligible fibre' : eligible === false ? 'Non éligible' : 'À vérifier',
+      eligible === true ? `FTTH · ${d.fibre.operateurs?.join(', ')||''}` : 'maconnexioninternet.arcep.fr',
+      eligible === true ? 'good' : 'warn'
+    );
+    window._fibreData = d;
+  }catch{
+    setCard('fibre','Vérifier →','maconnexioninternet.arcep.fr','');
+  }
+}
+
+// ── Urbanisme & PLU ──
+async function loadUrbanisme(lat, lng){
+  try{
+    const geom=encodeURIComponent(JSON.stringify({type:'Point',coordinates:[lng,lat]})); const r = await apiCall(`/api/urbanisme?lat=${lat}&lon=${lng}`, `https://apicarto.ign.fr/api/gpu/zone-urba?geom=${geom}`);
+    if(!r.ok) throw new Error();
+    const d = await r.json();
+    if(!d.success) throw new Error();
+    const z = d.zone;
+    const css = z.constructible ? 'good' : z.constructible === false ? 'warn' : '';
+    setCard('urbanisme',
+      z.code || 'NC',
+      z.typeZone || z.libelle || 'Voir détail',
+      css
+    );
+    window._urbanismeData = d;
+  }catch{
+    setCard('urbanisme','Non disponible','Erreur API GPU IGN','');
+  }
+}
+
+// ── Météo & Ensoleillement ──
+async function loadMeteo(lat, lng){
+  try{
+    const r = await apiCall(`/api/meteo?lat=${lat}&lon=${lng}`, `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=2020-01-01&end_date=2024-12-31&daily=sunshine_duration,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Europe%2FParis`);
+    if(!r.ok) throw new Error();
+    const d = await r.json();
+    if(!d.success) throw new Error();
+    const h = d.ensoleillement?.heuresAnnuelles;
+    setCard('meteo',
+      h ? h.toLocaleString('fr-FR')+' h/an' : d.ensoleillement?.label||'—',
+      d.temperatures?.maxMoyenne ? `Moy. max : ${d.temperatures.maxMoyenne}°C` : d.ensoleillement?.label||'',
+      h > 1800 ? 'good' : h > 1400 ? '' : 'warn'
+    );
+    window._meteoData = d;
+  }catch{
+    setCard('meteo','Non disponible','Erreur open-meteo','');
+  }
+}
+
+// ── INSEE ──
+async function loadINSEE(citycode, lat, lng){
+  try{
+    const r = await apiCall(`/api/insee?lat=${lat}&lon=${lng}&codeInsee=${citycode||''}`, `https://geo.api.gouv.fr/communes?lat=${lat}&lon=${lng}&fields=nom,population,superficie,codesPostaux,codeDepartement&format=json&limit=1`);
+    if(!r.ok) throw new Error();
+    const d = await r.json();
+    if(!d.success) throw new Error();
+    const pop = d.commune?.population;
+    const rev = d.revenus?.medianMensuel;
+    setCard('insee',
+      pop ? pop.toLocaleString('fr-FR')+' hab.' : '—',
+      rev ? `Revenu médian : ${rev.toLocaleString('fr-FR')} €/mois` : d.commune?.nom||'',
+      ''
+    );
+    window._inseeData = d;
+  }catch{
+    setCard('insee','Non disponible','Erreur INSEE','');
+  }
+}
+
+// ── Services & commerces ──
+async function loadServices(lat, lng){
+  try{
+    const r = await apiCall(`/api/services?lat=${lat}&lon=${lng}&dist=1000`, `https://overpass-api.de/api/interpreter`);
+    if(!r.ok) throw new Error();
+    const d = await r.json();
+    if(!d.success) throw new Error();
+    setCard('services',
+      d.score+'/10',
+      `${d.stats.sante} santé · ${d.stats.commerce} commerces · ${d.total} services`,
+      d.score>=7?'good':d.score>=4?'':'warn'
+    );
+    window._servicesData = d;
+  }catch{
+    setCard('services','Non disponible','Erreur API services','');
+  }
+}
+
+// ── Altitude IGN ──
+async function loadAltitude(lat, lng){
+  try{
+    const r = await apiCall(`/api/altitude?lat=${lat}&lon=${lng}`, `https://data.geopf.fr/altimetrie/1.0/calcul/alti/rest/elevation.json?lon=${lng}&lat=${lat}&resource=ign_rge_alti_wld&delimiter=|&indent=false&measures=false&zonly=true`);
+    if(!r.ok) throw new Error();
+    const d = await r.json();
+    if(!d.success) throw new Error();
+    setCard('altitude',
+      d.altitude+'m',
+      d.label||'Altitude NGF',
+      ''
+    );
+    window._altitudeData = d;
+  }catch{
+    setCard('altitude','Non disponible','Erreur IGN','');
+  }
+}
+
+// ══ DÉTAIL CARTE — Panel inline ══
+function showDetail(cardId){
+  const container = document.getElementById('detailContainer');
+  const data = {
+    dvf:        () => showDVFDetail(),
+    risques:    () => showRisquesDetail(),
+    ecoles:     () => showEcolesDetail(),
+    mobilite:   () => showMobiliteDetail(),
+    urbanisme:  () => showUrbanismeDetail(),
+    meteo:      () => showMeteoDetail(),
+    insee:      () => showINSEEDetail(),
+    altitude:   () => showAltitudeDetail(),
+    fibre:      () => showFibreDetail(),
+    services:   () => showServicesMap(),
+    dpe:        () => go('energie'),
+    bruit:      () => ouvrirBruit(),
+  };
+  if(data[cardId]) data[cardId]();
+}
+
+function showPanel(title, html){
+  const container = document.getElementById('detailContainer');
+  // Bouton retour vers les cartes
+  const backBtn = `<button class="back-btn" onclick="closePanel()">← Retour aux cartes</button>`;
+  container.innerHTML = backBtn + `
+    <div class="detail-panel" style="margin:0.75rem 2rem 2rem">
+      <div class="detail-head">
+        <div class="detail-title">${title}</div>
+        <button class="detail-close" onclick="closePanel()">✕ Fermer</button>
+      </div>
+      <div class="detail-body">${html}</div>
+    </div>`;
+  container.scrollIntoView({behavior:'smooth', block:'start'});
+  // Masquer les cartes
+  document.getElementById('cardsGrid').style.display = 'none';
+}
+
+function closePanel(){
+  document.getElementById('detailContainer').innerHTML = '';
+  document.getElementById('cardsGrid').style.display = 'grid';
+  if(window._leafletMap){window._leafletMap.remove();window._leafletMap=null;}
+  if(window._leafletMapMobilite){window._leafletMapMobilite.remove();window._leafletMapMobilite=null;}
+}
+
+function showDVFDetail(){
+  const d = window._dvfData;
+  if(!d||!d.stats){showPanel('💰 Prix & marché DVF','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
+  const rows = d.recentes?.map(t=>`
+    <tr>
+      <td>${t.date||'—'}</td>
+      <td>${t.type||'—'}</td>
+      <td>${t.surface?t.surface+'m²':'—'}</td>
+      <td><strong>${t.prixM2?t.prixM2.toLocaleString('fr-FR')+' €/m²':'—'}</strong></td>
+      <td>${t.prix?t.prix.toLocaleString('fr-FR')+' €':'—'}</td>
+    </tr>`).join('') || '<tr><td colspan="5">Aucune transaction récente</td></tr>';
+  showPanel('💰 Transactions DVF officielles', `
+    <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1rem">
+      <div class="stat-box"><span class="stat-n">${d.stats.medianM2.toLocaleString('fr-FR')}€</span><span class="stat-l">Médian /m²</span></div>
+      <div class="stat-box"><span class="stat-n">${d.count}</span><span class="stat-l">Transactions</span></div>
+      <div class="stat-box"><span class="stat-n">${d.rayon}m</span><span class="stat-l">Rayon analysé</span></div>
+    </div>
+    <p style="font-size:.75rem;color:var(--muted);margin-bottom:1rem">Fourchette : ${d.stats.minM2.toLocaleString('fr-FR')} – ${d.stats.maxM2.toLocaleString('fr-FR')} €/m²</p>
+    <table class="tbl"><thead><tr><th>Date</th><th>Type</th><th>Surface</th><th>Prix/m²</th><th>Prix total</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : ${d.source}</p>`);
+}
+
+function showRisquesDetail(){
+  const d = window._risquesData;
+  if(!d){showPanel('⚠️ Risques naturels','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
+  const liste = d.detail?.filter(r=>r&&r.libelle).map(r=>`<div style="padding:.4rem 0;border-bottom:1px solid var(--border);font-size:.82rem">⚠️ ${r.libelle}</div>`).join('') || '<p style="color:var(--green)">✓ Aucun risque identifié dans ce secteur</p>';
+  showPanel('⚠️ Risques naturels officiels', `
+    <div style="display:flex;gap:1rem;margin-bottom:1rem;flex-wrap:wrap">
+      ${d.categories?.inondation?'<span class="tag tag-dn">🌊 Inondation</span>':''}
+      ${d.categories?.seisme?'<span class="tag tag-dn">🌍 Séisme</span>':''}
+      ${d.categories?.argile?'<span class="tag tag-gold">🪨 Argile (RGA)</span>':''}
+      ${d.categories?.mouvement?'<span class="tag tag-dn">⛰️ Mouvement terrain</span>':''}
+      ${d.total===0?'<span class="tag tag-up">✓ Zone non exposée</span>':''}
+    </div>
+    ${liste}
+    <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : Géorisques - BRGM / État · <a href="https://www.georisques.gouv.fr/" target="_blank" style="color:var(--gold)">georisques.gouv.fr</a></p>`);
+}
+
+function showEcolesDetail(){
+  const d = window._ecolesData;
+  if(!d){showPanel('🏫 Écoles & IPS','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
+  const liste = d.etablissements?.map(e=>`
+    <div style="padding:.6rem 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:.82rem;font-weight:500">${e.nom}</div>
+      <div style="font-size:.7rem;color:var(--muted)">${e.type||''} · ${e.statut||''} · ${e.distanceM?e.distanceM+'m':'—'}</div>
+    </div>`).join('') || '<p style="color:var(--muted)">Aucun établissement trouvé à proximité</p>';
+  showPanel('🏫 Établissements scolaires à proximité', `
+    <div style="display:flex;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap">
+      <span class="tag tag-up">🏫 ${d.types?.elementaire||0} école(s)</span>
+      <span class="tag tag-gold">🎓 ${d.types?.college||0} collège(s)</span>
+      <span class="tag tag-up">📚 ${d.types?.lycee||0} lycée(s)</span>
+    </div>
+    ${liste}
+    <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : Annuaire Éducation Nationale · <a href="https://data.education.gouv.fr" target="_blank" style="color:var(--gold)">data.education.gouv.fr</a></p>`);
+}
+
+function showMobiliteDetail(){
+  const d = window._mobiliteData;
+  if(!d){showPanel('🚇 Mobilité & transports','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
+
+  showPanel('🚇 Mobilité & transports', `
+    <div class="map-stats">
+      <div class="map-stat"><span class="map-stat-n">${d.score}/10</span><span class="map-stat-l">Score</span></div>
+      <div class="map-stat"><span class="map-stat-n">${d.stats?.metro||0}</span><span class="map-stat-l">Métro/RER</span></div>
+      <div class="map-stat"><span class="map-stat-n">${d.stats?.arretsBus||0}</span><span class="map-stat-l">Arrêts bus</span></div>
+      <div class="map-stat"><span class="map-stat-n">${d.stats?.velos||0}</span><span class="map-stat-l">Vélos/bornes</span></div>
+    </div>
+    <div class="map-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#1a73e8"></div>Métro/RER</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#34a853"></div>Bus/Tram</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#4caf50"></div>Vélos/Trottinettes</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#9c27b0"></div>Bornes recharge</div>
+    </div>
+    <div class="map-container" id="mapMobilite"></div>
+    ${d.arretsPrincipaux?.length?`<p style="font-size:.75rem;color:var(--muted);margin-top:.5rem">Principaux arrêts : ${d.arretsPrincipaux.join(' · ')}</p>`:''}
+    <p style="font-size:.62rem;color:var(--muted);margin-top:.4rem">Source : OpenStreetMap via Overpass API · Rayon 1000m</p>
+  `);
+
+  setTimeout(() => {
+    const lat = currentCoords.lat;
+    const lng = currentCoords.lng;
+
+    if(window._leafletMapMobilite){window._leafletMapMobilite.remove();window._leafletMapMobilite=null;}
+
+    const map = L.map('mapMobilite').setView([lat, lng], 15);
+    window._leafletMapMobilite = map;
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      attribution:'© OpenStreetMap © CartoDB', maxZoom:19
+    }).addTo(map);
+
+    // Cercles
+    L.circle([lat,lng],{radius:300,color:'rgba(184,131,42,.4)',fillColor:'rgba(184,131,42,.05)',fillOpacity:1,weight:1,dashArray:'4'}).addTo(map);
+    L.circle([lat,lng],{radius:500,color:'rgba(184,131,42,.2)',fillColor:'transparent',weight:1,dashArray:'4'}).addTo(map);
+
+    // Marqueur adresse
+    const homeIcon = L.divIcon({
+      html:`<div style="background:var(--gold,#c09030);border:3px solid #fff;border-radius:50%;width:18px;height:18px;box-shadow:0 2px 8px rgba(0,0,0,.3)"></div>`,
+      iconSize:[18,18],iconAnchor:[9,9],className:''
+    });
+    L.marker([lat,lng],{icon:homeIcon}).addTo(map).bindPopup(`<strong>📍 ${currentAddress}</strong>`);
+
+    // Points transport depuis _mobiliteData
+    if(d.elements){
+      d.elements.forEach(e => {
+        if(!e.lat||!e.lon) return;
+        const tags = e.tags||{};
+        let icone='🚏', couleur='#34a853';
+        if(tags.railway==='subway_entrance'||tags.station==='subway'){icone='🚇';couleur='#1a73e8';}
+        else if(tags.railway==='station'){icone='🚂';couleur='#1a73e8';}
+        else if(tags.amenity==='bicycle_rental'){icone='🚲';couleur='#4caf50';}
+        else if(tags.amenity==='charging_station'){icone='⚡';couleur='#9c27b0';}
+
+        const icon = L.divIcon({
+          html:`<div style="background:${couleur};border:2px solid #fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 2px 6px rgba(0,0,0,.25)">${icone}</div>`,
+          iconSize:[26,26],iconAnchor:[13,13],className:''
+        });
+
+        L.marker([e.lat,e.lon],{icon})
+          .addTo(map)
+          .bindPopup(`<strong>${icone} ${tags.name||tags.railway||tags.amenity||'Arrêt'}</strong>`);
+      });
+    }
+  }, 150);
+}
+
+function showAltitudeDetail(){
+  if(!currentCoords) return;
+  showPanel('🏔️ Altitude & topographie', `
+    <p style="font-size:.85rem;line-height:1.7;margin-bottom:1rem">L'altitude est extraite de la Base Adresse Nationale (BAN) lors de la géolocalisation de l'adresse.</p>
+    <p style="font-size:.85rem;line-height:1.7">Pour une analyse topographique détaillée (exposition, relief, pentes), consultez le <a href="https://geoservices.ign.fr/" target="_blank" style="color:var(--gold)">Géoportail IGN</a>.</p>`);
+}
+
+function showServicesMap(){
+  const d = window._servicesData;
+  if(!d){
+    showPanel('🏥 Services & commerces','<p style="color:var(--muted)">Données en cours de chargement… Réessayez dans quelques secondes.</p>');
+    return;
+  }
+
+  const legendItems = [
+    {couleur:'#e63946', label:'Santé'},
+    {couleur:'#f4a261', label:'Commerces'},
+    {couleur:'#2a9d8f', label:'Éducation'},
+    {couleur:'#e9c46a', label:'Restaurants'},
+    {couleur:'#4caf50', label:'Mobilité'},
+    {couleur:'#457b9d', label:'Services'},
+  ];
+
+  showPanel('🏥 Services & commerces à proximité', `
+    <div class="map-stats">
+      <div class="map-stat"><span class="map-stat-n">${d.score}/10</span><span class="map-stat-l">Score</span></div>
+      <div class="map-stat"><span class="map-stat-n">${d.stats.sante}</span><span class="map-stat-l">Santé</span></div>
+      <div class="map-stat"><span class="map-stat-n">${d.stats.commerce}</span><span class="map-stat-l">Commerces</span></div>
+      <div class="map-stat"><span class="map-stat-n">${d.total}</span><span class="map-stat-l">Total services</span></div>
+    </div>
+    <div class="map-legend">
+      ${legendItems.map(l=>`<div class="legend-item"><div class="legend-dot" style="background:${l.couleur}"></div>${l.label}</div>`).join('')}
+    </div>
+    <div class="map-container" id="mapServices"></div>
+    <p style="font-size:.62rem;color:var(--muted)">Source : OpenStreetMap · Rayon 1km · ${d.total} établissements trouvés</p>
+  `);
+
+  // Initialiser la carte Leaflet après rendu DOM
+  setTimeout(() => {
+    const lat = currentCoords.lat;
+    const lng = currentCoords.lng;
+
+    // Détruire carte existante si nécessaire
+    if(window._leafletMap){window._leafletMap.remove();window._leafletMap=null;}
+
+    const map = L.map('mapServices', {zoomControl:true}).setView([lat, lng], 15);
+    window._leafletMap = map;
+
+    // Fond de carte OpenStreetMap
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      attribution: '© OpenStreetMap © CartoDB',
+      maxZoom: 19
+    }).addTo(map);
+
+    // Cercles de distance
+    L.circle([lat, lng], {radius:300, color:'rgba(184,131,42,.4)', fillColor:'rgba(184,131,42,.05)', fillOpacity:1, weight:1, dashArray:'4'}).addTo(map);
+    L.circle([lat, lng], {radius:500, color:'rgba(184,131,42,.25)', fillColor:'transparent', weight:1, dashArray:'4'}).addTo(map);
+    L.circle([lat, lng], {radius:1000, color:'rgba(184,131,42,.15)', fillColor:'transparent', weight:1, dashArray:'4'}).addTo(map);
+
+    // Marqueur adresse analysée
+    const homeIcon = L.divIcon({
+      html: `<div style="background:var(--gold);border:3px solid #fff;border-radius:50%;width:18px;height:18px;box-shadow:0 2px 8px rgba(0,0,0,.3)"></div>`,
+      iconSize: [18,18], iconAnchor: [9,9], className:''
+    });
+    L.marker([lat, lng], {icon: homeIcon})
+      .addTo(map)
+      .bindPopup(`<strong>📍 Adresse analysée</strong><br>${currentAddress}`)
+      .openPopup();
+
+    // Points de services
+    d.services.forEach(s => {
+      const icon = L.divIcon({
+        html: `<div style="background:${s.couleur};border:2px solid #fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 6px rgba(0,0,0,.25);cursor:pointer">${s.icone}</div>`,
+        iconSize: [28,28], iconAnchor: [14,14], className:''
+      });
+
+      const popupContent = `
+        <strong>${s.icone} ${s.nom}</strong><br>
+        <span style="font-size:.78rem;color:#666">${s.categorie} · ${s.distanceM}m</span>
+        ${s.tags.opening_hours ? `<br><span style="font-size:.72rem">🕐 ${s.tags.opening_hours}</span>` : ''}
+        ${s.tags.phone ? `<br><span style="font-size:.72rem">📞 ${s.tags.phone}</span>` : ''}
+      `;
+
+      L.marker([s.lat, s.lon], {icon})
+        .addTo(map)
+        .bindPopup(popupContent);
+    });
+
+    // Labels distances cercles
+    L.tooltip({permanent:true, direction:'right', className:'leaflet-dist-label'})
+      .setContent('300m')
+      .setLatLng([lat + 0.0027, lng])
+      .addTo(map);
+
+  }, 150);
+}
+
+function showBruitDetail(){
+  showPanel('🔇 Bruit & nuisances', `
+    <p style="font-size:.85rem;line-height:1.7;margin-bottom:1rem">Les cartes de bruit officielles sont disponibles sur <a href="https://www.bruit.fr/" target="_blank" style="color:var(--gold)">bruit.fr</a>.</p>
+    <p style="font-size:.85rem;line-height:1.7">Elles couvrent : routes, voies ferrées, aéroports et industrie. L'intégration directe est prévue en V3.</p>`);
+}
+
+function showUrbanismeDetail(){
+  const d = window._urbanismeData;
+  if(!d){showPanel('📋 Urbanisme & PLU','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
+  const z = d.zone;
+  const doc = d.document;
+  showPanel('📋 Urbanisme & PLU · ' + (doc?.nomCommune||''), `
+    <div style="display:flex;gap:1rem;margin-bottom:1.2rem;flex-wrap:wrap">
+      <div style="flex:1;background:var(--ink);border-radius:var(--r);padding:1rem;text-align:center">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--gold2)">${z.code||'NC'}</div>
+        <div style="font-size:.65rem;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.1em">Zone PLU</div>
+      </div>
+      <div style="flex:2;background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:1rem">
+        <div style="font-size:.82rem;font-weight:500;margin-bottom:.4rem">${z.typeZone||'—'}</div>
+        <div style="font-size:.75rem;color:var(--muted);margin-bottom:.3rem">${z.libelle||''}</div>
+        <div style="font-size:.75rem">Constructible : <strong style="color:${z.constructible?'var(--green)':'var(--red)'}">${z.constructible===true?'Oui':z.constructible===false?'Non':'À vérifier'}</strong></div>
+      </div>
+    </div>
+    ${d.prescriptions?.length?`<p style="font-size:.78rem;margin-bottom:.5rem"><strong>Prescriptions :</strong> ${d.prescriptions.join(', ')}</p>`:''}
+    <p style="font-size:.62rem;color:var(--muted)">Source : ${d.source} · Document approuvé le ${doc?.dateApprobation||'—'}</p>
+    <p style="font-size:.72rem;margin-top:.5rem"><a href="https://www.geoportail-urbanisme.gouv.fr/" target="_blank" style="color:var(--gold)">Consulter le PLU complet sur Géoportail Urbanisme →</a></p>`);
+}
+
+function showMeteoDetail(){
+  const d = window._meteoData;
+  if(!d){showPanel('☀️ Météo & ensoleillement','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
+  showPanel('☀️ Météo & ensoleillement · Moyenne 10 ans', `
+    <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1rem">
+      <div class="stat-box"><span class="stat-n">${d.ensoleillement?.heuresAnnuelles?.toLocaleString('fr-FR')||'—'}</span><span class="stat-l">Heures/an</span></div>
+      <div class="stat-box"><span class="stat-n">${d.temperatures?.maxMoyenne||'—'}°</span><span class="stat-l">Max. moy.</span></div>
+      <div class="stat-box"><span class="stat-n">${d.precipitations?.annuellesMm||'—'} mm</span><span class="stat-l">Précip./an</span></div>
+    </div>
+    <p style="font-size:.8rem;color:var(--ink);font-weight:500;margin-bottom:.3rem">${d.ensoleillement?.label||''}</p>
+    <p style="font-size:.75rem;color:var(--muted);margin-bottom:.5rem">${d.periode||''} · Temp. min moy. : ${d.temperatures?.minMoyenne||'—'}°C</p>
+    <p style="font-size:.62rem;color:var(--muted)">Source : ${d.source}</p>`);
+}
+
+function showINSEEDetail(){
+  const d = window._inseeData;
+  if(!d){showPanel('📊 Profil du quartier','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
+  const c = d.commune;
+  const r = d.revenus;
+  showPanel('📊 Profil démographique · ' + (c?.nom||''), `
+    <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1rem">
+      <div class="stat-box"><span class="stat-n">${c?.population?.toLocaleString('fr-FR')||'—'}</span><span class="stat-l">Habitants</span></div>
+      <div class="stat-box"><span class="stat-n">${c?.densite?.toLocaleString('fr-FR')||'—'}</span><span class="stat-l">Hab./km²</span></div>
+      <div class="stat-box"><span class="stat-n">${r?.medianMensuel?.toLocaleString('fr-FR')||'—'} €</span><span class="stat-l">Rev. médian/mois</span></div>
+    </div>
+    <p style="font-size:.75rem;color:var(--muted)">Département ${c?.departement||'—'} · Code INSEE ${c?.codeInsee||'—'}</p>
+    ${r?.medianMensuel?`<p style="font-size:.75rem;margin-top:.4rem">Revenu médian : <strong>${r.medianAnnuel?.toLocaleString('fr-FR')||'—'} €/an</strong> soit <strong>${r.medianMensuel?.toLocaleString('fr-FR')||'—'} €/mois</strong> (Filosofi ${r.annee||'2021'})</p>`:'<p style="font-size:.75rem;color:var(--muted);margin-top:.4rem">Revenus médians : données non disponibles via l&#39;API</p>'}
+    <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : ${d.source}</p>`);
+}
+
+function showFibreDetail(){
+  const d = window._fibreData;
+  if(!d){
+    showPanel('📶 Internet & fibre', `
+      <p style="font-size:.85rem;line-height:1.7;margin-bottom:1rem">Vérifiez directement votre éligibilité sur le site officiel ARCEP :</p>
+      <a href="https://maconnexioninternet.arcep.fr/" target="_blank" style="color:var(--gold);font-size:.85rem">maconnexioninternet.arcep.fr →</a>`);
+    return;
+  }
+  const f = d.fibre;
+  showPanel('📶 Internet & fibre · ARCEP', `
+    <div style="background:var(--ink);border-radius:var(--r);padding:1.2rem;text-align:center;margin-bottom:1rem">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:1.8rem;color:${f.eligible?'var(--gold2)':'var(--red)'}">${f.eligible?'Éligible FTTH':'Non éligible'}</div>
+      <div style="font-size:.7rem;color:rgba(255,255,255,.72);margin-top:.3rem">${f.technologie||'—'}</div>
+    </div>
+    ${f.operateurs?.length?`<p style="font-size:.8rem;margin-bottom:.5rem">Opérateurs : <strong>${f.operateurs.join(', ')}</strong></p>`:''}
+    <p style="font-size:.75rem;color:var(--muted)">Vérification précise : <a href="${f.lienVerification}" target="_blank" style="color:var(--gold)">maconnexioninternet.arcep.fr →</a></p>
+    <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : ${d.source}</p>`);
+}
+
+function showAltitudeDetail(){
+  const d = window._altitudeData;
+  showPanel('🏔️ Altitude & topographie', d ? `
+    <div style="background:var(--ink);border-radius:var(--r);padding:1.2rem;text-align:center;margin-bottom:1rem">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:2.5rem;color:var(--gold2)">${d.altitude}m</div>
+      <div style="font-size:.7rem;color:rgba(255,255,255,.72);margin-top:.3rem">${d.unite||'NGF'} · Précision ${d.precision||'1m'}</div>
+    </div>
+    <p style="font-size:.82rem;color:var(--muted)">${d.label||''}</p>
+    <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : ${d.source}</p>` :
+    '<p style="color:var(--muted)">Données en cours de chargement…</p>');
+}
+
+// ══ CALL IA — Cascade Groq ══
+const GROQ_MODELS = {
+  complex:['llama-3.3-70b-versatile','meta-llama/llama-4-scout-17b-16e-instruct','llama-3.1-8b-instant','groq/compound-mini','groq/compound'],
+  simple:['llama-3.1-8b-instant','llama-3.3-70b-versatile','meta-llama/llama-4-scout-17b-16e-instruct','groq/compound-mini','groq/compound']
+};
+const COMPLEX=['profil','offre','comparer','conseil'];
+let exhausted=JSON.parse(sessionStorage.getItem('groq_ex')||'[]');
+function markEx(m){if(!exhausted.includes(m)){exhausted.push(m);sessionStorage.setItem('groq_ex',JSON.stringify(exhausted));}}
+
+async function callAI(prompt,system='',taskType=''){
+  if(!groqKey)throw new Error('no_key');
+  const msgs=[];
+  if(system)msgs.push({role:'system',content:system});
+  msgs.push({role:'user',content:prompt});
+  const tier=COMPLEX.includes(taskType)?'complex':'simple';
+  let candidates=GROQ_MODELS[tier].filter(m=>!exhausted.includes(m));
+  if(!candidates.length){exhausted=[];sessionStorage.setItem('groq_ex','[]');candidates=[...GROQ_MODELS[tier]];}
+  for(const model of candidates){
+    try{
+      const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+groqKey},
+        body:JSON.stringify({model,messages:msgs,max_tokens:700,temperature:0.7})
+      });
+      if(r.status===429){markEx(model);continue;}
+      if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error?.message||'Erreur Groq');}
+      return(await r.json()).choices[0].message.content;
+    }catch(e){
+      if(e.message==='no_key')throw e;
+      if(candidates.indexOf(model)===candidates.length-1)throw e;
+    }
+  }
+  throw new Error('Tous les modèles temporairement épuisés.');
+}
+
+function md(t){
+  return t.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\*(.*?)\*/g,'<em>$1</em>').replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>');
+}
+function fmt(n){return parseFloat(n||0).toLocaleString('fr-FR')+' €';}
+
+// ══ RUN IA (pages spécifiques) ══
+async function runIA(type){
+  const SYS='Tu es un expert immobilier France entière. Réponds en français, concis (5-7 lignes), **gras** pour chiffres clés.';
+  const prompts={
+    aides:()=>`Situation: ${togVal('tAideSit')}, revenus: ${document.getElementById('aRev').value||'?'}€/an, foyer: ${document.getElementById('aPers').value||'2'} pers, bien: ${document.getElementById('aPrix').value||'400000'}€ à ${document.getElementById('aVille').value||'France'}. Aides disponibles (PTZ, Pinel, MaPrimeRénov) avec montants précis.`,
+    renov:()=>`Rénovation ${document.getElementById('rSurf').value||80}m², DPE ${document.getElementById('rDpeAv').value} → ${document.getElementById('rDpeAp').value}. Revenus: ${document.getElementById('rRev').value||60000}€/an. Coût travaux estimé, aides MaPrimeRénov, économies annuelles.`,
+    offre:()=>{const p=document.getElementById('oPrix').value,s=document.getElementById('oSurf').value,r=document.getElementById('oRue').value;const pm2=s?Math.round(p/s):null;return`Coaching offre: Prix ${fmt(p)}${pm2?` (${pm2.toLocaleString('fr-FR')}€/m²)`:''},  surface ${s||'?'}m², adresse: ${r||'France'}, en vente ${togVal('tOJ')}, baisses: ${togVal('tOB')}. Stratégie précise : montant recommandé, arguments, tactique.`;},
+    profil:()=>`Profil acheteur: Ville: ${document.getElementById('pVille').value||'France'}, Enfants: ${togVal('t1')}, Travail: ${togVal('t2')}, Vie: ${togVal('t3')}, Budget: ${togVal('t5')}. Recommande 2-3 secteurs précis avec rues et type de bien idéal.`,
+    comparer:()=>{const a=[...document.querySelectorAll('.caddr')].map(e=>e.value||'—'),p=[...document.querySelectorAll('.cprix')].map(e=>e.value||'—'),s=[...document.querySelectorAll('.csurf')].map(e=>e.value||'—'),d=[...document.querySelectorAll('.cdpe')].map(e=>e.value);return`Compare ces 3 biens:\n1) ${a[0]}, ${p[0]}€, ${s[0]}m², DPE ${d[0]}\n2) ${a[1]}, ${p[1]}€, ${s[1]}m², DPE ${d[1]}\n3) ${a[2]}, ${p[2]}€, ${s[2]}m², DPE ${d[2]}\nAnalyse comparative, recommandation claire.`;},
+    juridique:()=>{const q=document.getElementById('jurQ').value.trim();if(!q){toast('Entrez votre question','err');return null;}return q+' (droit français, info générale non conseil juridique)';},
+  };
+  const fn=prompts[type];if(!fn)return;
+  const prompt=fn();if(!prompt)return;
+  const tid=type.charAt(0).toUpperCase()+type.slice(1);
+  const box=document.getElementById('box'+tid),txt=document.getElementById('txt'+tid),btn=document.getElementById('btn'+tid);
+  if(!box||!txt)return;
+  box.style.display='block';txt.innerHTML='<span class="spin"></span> Analyse en cours…';
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="spin w"></span> Analyse…';}
+  try{
+    const res=await callAI(prompt,SYS+(type==='aides'?' Expert fiscalité immo.':type==='renov'?' Expert rénovation MaPrimeRénov.':''),type);
+    txt.innerHTML='<p>'+md(res)+'</p>';
+  }catch(e){
+    if(e.message==='no_key'){box.style.display='none';openModal();}
+    else txt.innerHTML='⚠️ '+e.message;
+  }
+  if(btn){btn.disabled=false;btn.innerHTML='✦ Analyser';}
+}
+
+async function runDVF(){
+  const addr=document.getElementById('dvfAddr').value.trim();
+  if(!addr){toast('Entrez une adresse','err');return;}
+  const box=document.getElementById('boxDVF'),txt=document.getElementById('txtDVF'),btn=document.getElementById('btnDVF');
+  box.style.display='block';txt.innerHTML='<span class="spin"></span> Analyse DVF en cours…';
+  btn.disabled=true;
+  try{
+    const res=await callAI(
+      `Analyse immobilière de "${addr}". Prix médian estimé au m² (appartement et maison séparément), tendance 12 mois, profil acheteurs, points forts/faibles, conseil d'achat. Base toi sur les données DVF nationales connues.`,
+      'Tu es expert immobilier France, données DVF 2025. Prix médian national appartements: Paris 9800€, Lyon 4800€, Bordeaux 4200€, Marseille 3100€, Nantes 3600€, Boulogne-Billancourt 8361€. **Gras** pour chiffres. 6 lignes max.',
+      'simple'
+    );
+    txt.innerHTML='<p>'+md(res)+'</p>';
+  }catch(e){
+    if(e.message==='no_key'){box.style.display='none';openModal();}
+    else txt.innerHTML='⚠️ '+e.message;
+  }
+  btn.disabled=false;btn.innerHTML='✦ Analyser les prix DVF';
+}
+
+// ══ CALCULS LOCAUX ══
+function calcCout(){
+  const prix=parseFloat(document.getElementById('cPrix').value)||0;
+  if(!prix){toast('Veuillez saisir le prix.','err');return;}
+  const dpe=document.getElementById('cDpe').value;
+  const charges=parseFloat(document.getElementById('cCharges').value)||250;
+  const apport=parseFloat(document.getElementById('cApport').value)||0;
+  const duree=parseFloat(document.getElementById('cDuree').value)||20;
+  const notaire=Math.round(prix*.075);
+  const travaux={'A':0,'B':0,'C':5000,'D':15000,'E':35000,'F':60000,'G':90000}[dpe]||0;
+  const taxe=Math.round(prix*.006);
+  const emprunt=prix-apport+notaire;
+  const t=0.034/12,n=duree*12;
+  const mens=emprunt>0?Math.round((emprunt*t)/(1-Math.pow(1+t,-n))):0;
+  const total=prix+notaire+travaux+(charges*120)+(taxe*10);
+  document.getElementById('resCout').innerHTML=`
+    <div class="result-dark">
+      <div style="font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem">💰 Coût réel sur 10 ans</div>
+      <div class="result-n">${fmt(Math.round(total/1000)*1000)}</div>
+      ${[['Prix affiché',fmt(prix)],['Frais notaire (7.5%)',fmt(notaire)],[`Travaux DPE ${dpe}`,fmt(travaux)],['Charges copro 10 ans',fmt(charges*120)],['Taxe foncière 10 ans',fmt(taxe*10)],['Mensualité estimée',fmt(mens)+'/mois']].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
+    </div>`;
+}
+
+function calcEmprunt(){
+  const rev=(parseFloat(document.getElementById('eRev').value)||0)+(parseFloat(document.getElementById('eRev2').value)||0);
+  if(!rev){toast('Renseignez vos revenus.','err');return;}
+  const charges=parseFloat(document.getElementById('eCharges').value)||0;
+  const apport=parseFloat(document.getElementById('eApport').value)||0;
+  const duree=parseFloat(document.getElementById('eDuree').value)||20;
+  const taux=(parseFloat(document.getElementById('eTaux').value)||3.4)/100;
+  const mensMax=rev*.35-charges;
+  const t=taux/12,n=duree*12;
+  const empruntMax=mensMax*(1-Math.pow(1+t,-n))/t;
+  const prixMax=empruntMax+apport;
+  document.getElementById('resEmprunt').innerHTML=`
+    <div class="result-dark">
+      <div style="font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem">🏦 Votre capacité</div>
+      <div class="result-n">${fmt(Math.round(prixMax/1000)*1000)}</div>
+      <div style="font-size:.7rem;color:rgba(255,255,255,.7);text-align:center;margin-bottom:1rem">Budget d'achat total estimé</div>
+      ${[['Mensualité max (35%)',fmt(Math.round(mensMax))+'/mois'],['Capacité d\'emprunt',fmt(Math.round(empruntMax))],['Apport',fmt(apport)]].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
+      <div class="result-insight">Budget de <strong>${fmt(Math.round(prixMax/1000)*1000)}</strong> — consultez la page <strong>Prix & marché</strong> pour voir ce que vous pouvez acheter dans votre ville cible.</div>
+    </div>`;
+}
+
+function calcDpe(){
+  const dpe=document.getElementById('dDpe').value;
+  const surf=parseFloat(document.getElementById('dSurf').value)||75;
+  const chauff=document.getElementById('dChauff').value;
+  const kwh={'A':50,'B':90,'C':145,'D':215,'E':290,'F':375,'G':500}[dpe];
+  const prix={'gaz':0.13,'elec':0.25,'fioul':0.15,'pompe':0.09}[chauff];
+  const facture=Math.round(kwh*surf*prix);
+  const vignette={'A':'🟢','B':'🟢','C':'🟡','D':'🟠','E':'🟠','F':'🔴','G':'🔴'}[dpe];
+  // Mettre à jour la carte DPE avec le dernier résultat
+  window._dpeResult = {dpe, facture, surf, vignette};
+  setCard('dpe', vignette+' DPE '+dpe, Math.round(facture/12).toLocaleString('fr-FR')+' €/mois · '+surf+'m²', dpe<='C'?'good':dpe<='D'?'':'bad');
+  document.getElementById('resDpe').innerHTML=`
+    <div class="result-dark">
+      <div style="text-align:center;font-size:2.5rem;margin:.5rem 0">${vignette} DPE ${dpe}</div>
+      <div class="result-n">${facture.toLocaleString('fr-FR')} €/an</div>
+      ${[['Consommation',kwh+' kWh/m²/an'],['Surface',surf+'m²'],['Facture mensuelle',Math.round(facture/12).toLocaleString('fr-FR')+' €/mois']].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
+      ${dpe>='E'?`<div class="result-insight">⚠️ <strong>Passoire énergétique.</strong> Des travaux peuvent diviser la facture par 2-3. Voir <strong>Rénovation & aides</strong>.</div>`:''}
+    </div>`;
+}
+
+// ══ CHAT ══
+function addMsg(role,text){
+  const msgs=document.getElementById('msgs');
+  const d=document.createElement('div');d.className='msg'+(role==='u'?' u':'');
+  d.innerHTML=`<div class="mav ${role}">${role==='ai'?'IA':'V'}</div><div class="bub ${role}">${role==='ai'?'<p>'+md(text)+'</p>':text}</div>`;
+  msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;
+}
+function addTyping(){
+  const msgs=document.getElementById('msgs');
+  const d=document.createElement('div');d.className='msg';d.id='typing';
+  d.innerHTML=`<div class="mav ai">IA</div><div class="bub ai"><div class="typing"><span></span><span></span><span></span></div></div>`;
+  msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;
+}
+async function sendMsg(){
+  const inp=document.getElementById('chatIn'),msg=inp.value.trim();if(!msg)return;
+  inp.value='';addMsg('u',msg);chatHistory.push({role:'user',content:msg});
+  document.getElementById('chatGo').disabled=true;
+  document.getElementById('chatSt').textContent='● En train d\'écrire…';
+  addTyping();
+  const addrCtx=currentAddress?` L'utilisateur analyse actuellement: "${currentAddress}".`:'';
+  try{
+    const SYS=`Tu es un conseiller immobilier expert France entière.${addrCtx} Connais les marchés locaux, la fiscalité française (PTZ, Pinel, LMNP), le financement, les stratégies achat/investissement. Réponds en français, direct, **gras** pour chiffres clés, 6-7 lignes max.`;
+    if(!groqKey)throw new Error('no_key');
+    const msgs=[{role:'system',content:SYS},...chatHistory.slice(-10)];
+    let candidates=GROQ_MODELS.complex.filter(m=>!exhausted.includes(m));
+    if(!candidates.length)candidates=[...GROQ_MODELS.complex];
+    let res,done=false;
+    for(const model of candidates){
+      const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+groqKey},body:JSON.stringify({model,messages:msgs,max_tokens:700,temperature:0.7})});
+      if(r.status===429){markEx(model);continue;}
+      if(!r.ok)throw new Error('Erreur Groq');
+      res=(await r.json()).choices[0].message.content;done=true;break;
+    }
+    if(!done)throw new Error('Tous les modèles épuisés.');
+    document.getElementById('typing')?.remove();addMsg('ai',res);
+    chatHistory.push({role:'assistant',content:res});
+  }catch(e){
+    document.getElementById('typing')?.remove();
+    if(e.message==='no_key'){addMsg('ai','Configurez votre clé Groq pour activer le conseiller.');openModal();}
+    else addMsg('ai','⚠️ '+e.message);
+  }
+  document.getElementById('chatGo').disabled=false;
+  document.getElementById('chatSt').textContent='● Prêt · France entière';
+}
+function ask(q){document.getElementById('chatIn').value=q;sendMsg();}
+
+// ══ TOAST ══
+function toast(msg,type='ok'){
+  const t=document.createElement('div');t.className='toast '+type;t.textContent=msg;
+  document.body.appendChild(t);setTimeout(()=>t.remove(),3500);
+}
+</script>
+</body>
+</html>
