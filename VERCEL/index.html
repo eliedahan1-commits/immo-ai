@@ -893,24 +893,100 @@ select.inp{
   <!-- ══ PROFIL DE VIE ══ -->
   <div class="page" id="p-profil"><div class="inner">
     <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
-    <div class="ph"><div class="ptag">✦ Stratégie</div><h2 class="ptitle">Compatibilité <em>de vie</em></h2><p class="psub">L'IA identifie les secteurs vraiment compatibles avec votre style de vie.</p></div>
+    <div class="ph"><div class="ptag">✦ Stratégie</div><h2 class="ptitle">Compatibilité <em>de vie</em></h2><p class="psub">L'IA identifie les secteurs vraiment compatibles avec votre style de vie, en s'appuyant sur les données réelles DVF, OpenStreetMap et l'annuaire scolaire.</p></div>
     <div class="card"><div class="ctitle">🎯 Votre profil de vie</div>
-      <p style="font-size:.83rem;font-weight:500;margin-bottom:.5rem">Ville / secteur recherché</p>
-      <div style="position:relative">
-        <input class="inp" id="pVille" placeholder="Ex: Paris 15e, Lyon 3e, Bordeaux centre…" autocomplete="off" style="margin-bottom:.7rem" />
+
+      <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Ville / secteur recherché</p>
+      <div style="position:relative;margin-bottom:.9rem">
+        <input class="inp" id="pVille" placeholder="Ex: Paris 15e, Lyon 3e, Bordeaux centre…" autocomplete="off" />
         <div class="search-suggestions" id="pVilleSugs" style="top:auto;bottom:auto;left:0;right:0;"></div>
       </div>
-      <p style="font-size:.83rem;font-weight:500;margin-bottom:.5rem">Enfants ?</p>
-      <div class="toggles" id="t1"><button class="tog" onclick="tog('t1',this)">Oui, en bas âge</button><button class="tog" onclick="tog('t1',this)">Oui, scolaires</button><button class="tog" onclick="tog('t1',this)">Prévu</button><button class="tog" onclick="tog('t1',this)">Non</button></div>
-      <p style="font-size:.83rem;font-weight:500;margin-bottom:.5rem">Mode de travail ?</p>
-      <div class="toggles" id="t2"><button class="tog" onclick="tog('t2',this)">Télétravail total</button><button class="tog" onclick="tog('t2',this)">Hybride</button><button class="tog" onclick="tog('t2',this)">Présentiel Paris</button><button class="tog" onclick="tog('t2',this)">Présentiel La Défense</button></div>
-      <p style="font-size:.83rem;font-weight:500;margin-bottom:.5rem">Style de vie ?</p>
-      <div class="toggles" id="t3"><button class="tog" onclick="tog('t3',this)">Sport & plein air</button><button class="tog" onclick="tog('t3',this)">Restaurants & sorties</button><button class="tog" onclick="tog('t3',this)">Calme & résidentiel</button><button class="tog" onclick="tog('t3',this)">Tout à pied</button></div>
-      <p style="font-size:.83rem;font-weight:500;margin-bottom:.5rem">Budget total ?</p>
-      <div class="toggles" id="t5"><button class="tog" onclick="tog('t5',this)">&lt; 300k€</button><button class="tog" onclick="tog('t5',this)">300–600k€</button><button class="tog" onclick="tog('t5',this)">600k–1M€</button><button class="tog" onclick="tog('t5',this)">&gt; 1M€</button></div>
+
+      <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Enfants ?</p>
+      <div class="toggles" style="margin-bottom:.9rem" id="tPE">
+        <button class="tog" onclick="tog('tPE',this)">Oui, en bas âge</button>
+        <button class="tog" onclick="tog('tPE',this)">Oui, scolaires</button>
+        <button class="tog" onclick="tog('tPE',this)">Prévu</button>
+        <button class="tog" onclick="tog('tPE',this)">Non</button>
+      </div>
+
+      <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Animaux de compagnie ?</p>
+      <div class="toggles" style="margin-bottom:.9rem" id="tPAnim">
+        <button class="tog" onclick="tog('tPAnim',this)">Oui</button>
+        <button class="tog" onclick="tog('tPAnim',this)">Non</button>
+      </div>
+
+      <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Mode de travail ?</p>
+      <div class="toggles" style="margin-bottom:.5rem" id="tPT">
+        <button class="tog" onclick="tog('tPT',this);updateTravailDiv()">Télétravail</button>
+        <button class="tog" onclick="tog('tPT',this);updateTravailDiv()">Hybride</button>
+        <button class="tog" onclick="tog('tPT',this);updateTravailDiv()">Présentiel</button>
+      </div>
+      <div id="pTravailDiv" style="display:none;margin-bottom:.9rem">
+        <p class="lbl" style="margin-bottom:.4rem">Lieu de travail (adresse ou ville)</p>
+        <div style="position:relative">
+          <input class="inp" id="pTravailLieu" placeholder="Ex: La Défense, Paris 8e, Versailles…" autocomplete="off" />
+          <div class="search-suggestions" id="pTravailSugs" style="top:auto;bottom:auto;left:0;right:0;"></div>
+        </div>
+      </div>
+
+      <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Transport principal ?</p>
+      <div class="toggles" style="margin-bottom:.9rem" id="tPTrans">
+        <button class="tog" onclick="tog('tPTrans',this)">Voiture</button>
+        <button class="tog" onclick="tog('tPTrans',this)">Métro / RER</button>
+        <button class="tog" onclick="tog('tPTrans',this)">Vélo</button>
+        <button class="tog" onclick="tog('tPTrans',this)">À pied</button>
+      </div>
+
+      <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Espaces verts ?</p>
+      <div class="toggles" style="margin-bottom:.9rem" id="tPNature">
+        <button class="tog" onclick="tog('tPNature',this)">Parc à proximité</button>
+        <button class="tog" onclick="tog('tPNature',this)">Nature &amp; forêt</button>
+        <button class="tog" onclick="tog('tPNature',this)">Bord d'eau</button>
+        <button class="tog" onclick="tog('tPNature',this)">Peu importe</button>
+      </div>
+
+      <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Ambiance souhaitée ?</p>
+      <div class="toggles" style="margin-bottom:.9rem" id="tPAmb">
+        <button class="tog" onclick="tog('tPAmb',this)">Calme &amp; résidentiel</button>
+        <button class="tog" onclick="tog('tPAmb',this)">Animé &amp; commerçant</button>
+        <button class="tog" onclick="tog('tPAmb',this)">Village urbain</button>
+      </div>
+
+      <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Extérieur souhaité ?</p>
+      <div class="toggles" style="margin-bottom:.9rem" id="tPExt">
+        <button class="tog" onclick="tog('tPExt',this)">Balcon</button>
+        <button class="tog" onclick="tog('tPExt',this)">Jardin</button>
+        <button class="tog" onclick="tog('tPExt',this)">Terrasse</button>
+        <button class="tog" onclick="tog('tPExt',this)">Sans préférence</button>
+      </div>
+
+      <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Type de bien ?</p>
+      <div class="toggles" style="margin-bottom:.9rem" id="tPLoge">
+        <button class="tog" onclick="tog('tPLoge',this)">Appartement</button>
+        <button class="tog" onclick="tog('tPLoge',this)">Maison</button>
+        <button class="tog" onclick="tog('tPLoge',this)">Indifférent</button>
+      </div>
+
+      <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Priorité de vie ?</p>
+      <div class="toggles" style="margin-bottom:.9rem" id="tPS">
+        <button class="tog" onclick="tog('tPS',this)">Sport &amp; plein air</button>
+        <button class="tog" onclick="tog('tPS',this)">Gastronomie &amp; sorties</button>
+        <button class="tog" onclick="tog('tPS',this)">Culture &amp; musées</button>
+        <button class="tog" onclick="tog('tPS',this)">Tranquillité</button>
+      </div>
+
+      <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Budget total ?</p>
+      <div class="toggles" style="margin-bottom:1.2rem" id="tPB">
+        <button class="tog" onclick="tog('tPB',this)">&lt; 300k€</button>
+        <button class="tog" onclick="tog('tPB',this)">300–600k€</button>
+        <button class="tog" onclick="tog('tPB',this)">600k–1M€</button>
+        <button class="tog" onclick="tog('tPB',this)">&gt; 1M€</button>
+      </div>
+
       <button class="btn btn-dark btn-full" onclick="runIA('profil')" id="btnProfil">✦ Trouver mes secteurs compatibles</button>
     </div>
-    <div class="aibox" id="boxProfil" style="display:none"><div class="ailabel">✦ Analyse IA — Compatibilité personnalisée</div><div id="txtProfil" class="aitext"></div></div>
+    <div class="aibox" id="boxProfil" style="display:none"><div class="ailabel">✦ Analyse IA — Compatibilité personnalisée · <span class="source-badge">📊 DVF + OSM + Écoles</span></div><div id="txtProfil" class="aitext"></div></div>
   </div></div>
 
   <!-- ══ COMPARER ══ -->
@@ -1112,6 +1188,7 @@ window.onload = () => {
   setupSearch('heroSearch', 'heroSugs', true);
   setupSearch('sideSearch', 'sideSugs', false);
   setupVilleSearch();
+  setupTravailSearch();
 };
 
 // ══ MODAL ══
@@ -1174,6 +1251,52 @@ function ouvrirBruit(){
 // ══ TOGGLES ══
 function tog(g,btn){document.querySelectorAll('#'+g+' .tog').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
 function togVal(id){return document.querySelector('#'+id+' .tog.on')?.textContent.trim()||'—';}
+
+// ══ PROFIL : afficher/masquer le champ lieu de travail ══
+function updateTravailDiv(){
+  const v = togVal('tPT');
+  const show = v === 'Hybride' || v === 'Présentiel';
+  const div = document.getElementById('pTravailDiv');
+  if(div) div.style.display = show ? 'block' : 'none';
+}
+
+// ══ AUTOCOMPLÉTION LIEU DE TRAVAIL (adresse complète) ══
+function setupTravailSearch(){
+  const inp = document.getElementById('pTravailLieu');
+  const sugs = document.getElementById('pTravailSugs');
+  if(!inp || !sugs) return;
+  window._travailCoords = null;
+  let timer = null;
+  inp.addEventListener('input', () => {
+    clearTimeout(timer);
+    window._travailCoords = null;
+    const q = inp.value.trim();
+    if(q.length < 2){ sugs.classList.remove('open'); return; }
+    timer = setTimeout(async () => {
+      try {
+        const r = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&limit=6`);
+        const d = await r.json();
+        if(!d.features?.length){ sugs.classList.remove('open'); return; }
+        sugs.innerHTML = '';
+        d.features.forEach(f => {
+          const div = document.createElement('div');
+          div.className = 'sug-item';
+          div.textContent = f.properties.label;
+          div.onclick = () => {
+            inp.value = f.properties.label;
+            window._travailCoords = { lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0] };
+            sugs.classList.remove('open');
+          };
+          sugs.appendChild(div);
+        });
+        sugs.classList.add('open');
+      } catch(e) {}
+    }, 300);
+  });
+  document.addEventListener('click', e => {
+    if(!inp.contains(e.target) && !sugs.contains(e.target)) sugs.classList.remove('open');
+  });
+}
 
 // ══ AUTOCOMPLÉTION VILLE (communes) ══
 function setupVilleSearch(){
@@ -1380,6 +1503,7 @@ async function loadAllData(props, coords){
     loadINSEE(props.citycode, lat, lng),
     loadAltitude(lat, lng),
     loadServices(lat, lng),
+    loadAmenites(lat, lng),
   ]).then(() => {
     document.getElementById('addrBadge').textContent = '✓ Analyse complète';
   });
@@ -1643,6 +1767,17 @@ async function loadAltitude(lat, lng){
     window._altitudeData = d;
   }catch{
     setCard('altitude','Non disponible','Erreur IGN','');
+  }
+}
+
+async function loadAmenites(lat, lng){
+  try {
+    const r = await fetch(`/api/amenites?lat=${lat}&lon=${lng}&_v=1`, { signal: AbortSignal.timeout(20000) });
+    if(!r.ok) throw new Error('API amenites ' + r.status);
+    const d = await r.json();
+    window._amenitesData = d.success ? d : null;
+  } catch(e) {
+    window._amenitesData = null;
   }
 }
 
@@ -2124,7 +2259,44 @@ async function runIA(type){
       const ville=document.getElementById('pVille').value.trim();
       if(ville.length<2){toast('Entrez une ville ou un secteur','err');return null;}
       if(/^[^a-zA-ZÀ-ÿ]{0,2}$|^[^a-zA-ZÀ-ÿ\s\-'0-9]+$/.test(ville)){toast('Ville non reconnue — choisissez dans la liste','err');return null;}
-      return`Profil acheteur: Ville/secteur: "${ville}", Enfants: ${togVal('t1')}, Travail: ${togVal('t2')}, Vie: ${togVal('t3')}, Budget: ${togVal('t5')}. Tu dois impérativement rester dans le secteur "${ville}" et ses communes limitrophes. Recommande 2-3 quartiers ou rues précises de cette zone uniquement, avec type de bien idéal et prix indicatifs.`;
+
+      // Données réelles injectées dans le prompt
+      const dvf=window._dvfData;
+      const dvfCtx=dvf?.stats?.medianM2
+        ? `Prix médian DVF réel du secteur analysé : ${dvf.stats.medianM2.toLocaleString('fr-FR')} €/m² (fourchette ${dvf.stats.minM2.toLocaleString('fr-FR')}–${dvf.stats.maxM2.toLocaleString('fr-FR')} €/m², ${dvf.count} ventes${dvf.dateRange?' sur '+dvf.dateRange:''}). `
+        : '';
+      const am=window._amenitesData?.counts;
+      const amCtx=am
+        ? `Données OpenStreetMap réelles (rayon 500–1000m) : ${am.restaurants} restaurants/cafés/bars, ${am.culture} lieux culturels (musées/cinémas/théâtres/bibliothèques), ${am.parcs} espaces verts/parcs, ${am.sport} équipements sportifs, ${am.commerces} commerces alimentaires. `
+        : '';
+      const eco=window._ecolesData?.types;
+      const ecoCtx=eco
+        ? `Écoles à proximité : ${eco.ecoles} écoles (dont ${eco.maternelle} maternelles), ${eco.college} collèges, ${eco.lycee} lycées. `
+        : '';
+      const mob=window._mobiliteData;
+      const mobCtx=mob?.score
+        ? `Score mobilité du secteur : ${mob.score}/10 (${mob.stats?.metro||0} stations métro/RER, ${mob.stats?.arretsBus||0} arrêts bus). `
+        : '';
+      const travailLieu=document.getElementById('pTravailLieu')?.value.trim();
+      const travailCtx=travailLieu ? `Lieu de travail déclaré : "${travailLieu}" — évalue la compatibilité transports/distance. ` : '';
+
+      const criteres=[
+        `Enfants: ${togVal('tPE')}`,
+        `Animaux: ${togVal('tPAnim')}`,
+        `Travail: ${togVal('tPT')}${travailLieu?' (lieu: '+travailLieu+')':''}`,
+        `Transport principal: ${togVal('tPTrans')}`,
+        `Espaces verts: ${togVal('tPNature')}`,
+        `Ambiance: ${togVal('tPAmb')}`,
+        `Extérieur: ${togVal('tPExt')}`,
+        `Type de bien: ${togVal('tPLoge')}`,
+        `Priorité de vie: ${togVal('tPS')}`,
+        `Budget: ${togVal('tPB')}`,
+      ].join(' | ');
+
+      return `Profil acheteur pour la ville/secteur "${ville}" : ${criteres}. `
+        +`${dvfCtx}${amCtx}${ecoCtx}${mobCtx}${travailCtx}`
+        +`En te basant sur ces données réelles et ton expertise des quartiers français, recommande 2-3 secteurs ou quartiers précis de "${ville}" uniquement. `
+        +`Pour chaque recommandation : nom du quartier, pourquoi il correspond au profil point par point, type de bien disponible, fourchette de prix réaliste cohérente avec les données DVF, avantages et un inconvénient honnête.`;
     },
     comparer:()=>{const a=[...document.querySelectorAll('.caddr')].map(e=>e.value||'—'),p=[...document.querySelectorAll('.cprix')].map(e=>e.value||'—'),s=[...document.querySelectorAll('.csurf')].map(e=>e.value||'—'),d=[...document.querySelectorAll('.cdpe')].map(e=>e.value);return`Compare ces 3 biens:\n1) ${a[0]}, ${p[0]}€, ${s[0]}m², DPE ${d[0]}\n2) ${a[1]}, ${p[1]}€, ${s[1]}m², DPE ${d[1]}\n3) ${a[2]}, ${p[2]}€, ${s[2]}m², DPE ${d[2]}\nAnalyse comparative, recommandation claire.`;},
     juridique:()=>{const q=document.getElementById('jurQ').value.trim();if(!q){toast('Entrez votre question','err');return null;}return q+' (droit français, info générale non conseil juridique)';},
