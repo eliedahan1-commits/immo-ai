@@ -984,37 +984,100 @@ select.inp{
         <button class="tog" onclick="tog('tPB',this)">&gt; 1M€</button>
       </div>
 
-      <button class="btn btn-dark btn-full" onclick="runProfil()" id="btnProfil">✦ Trouver mes secteurs compatibles</button>
     </div>
-    <div class="aibox" id="boxProfil" style="display:none"><div class="ailabel">✦ Analyse IA — Compatibilité personnalisée · <span class="source-badge">📊 DVF + OSM + Écoles</span></div><div id="txtProfil" class="aitext"></div></div>
+
+    <div class="card" style="margin-top:1rem"><div class="ctitle">📍 Comparer 2 adresses</div>
+      <p class="lbl" style="margin-bottom:.35rem">Adresse A</p>
+      <div style="position:relative;margin-bottom:.85rem">
+        <input class="inp" id="pInp1" placeholder="Ex: 12 rue de Rivoli, Paris…" autocomplete="off" />
+        <div class="search-suggestions" id="pSugs1" style="top:auto;left:0;right:0"></div>
+      </div>
+      <p class="lbl" style="margin-bottom:.35rem">Adresse B</p>
+      <div style="position:relative;margin-bottom:1rem">
+        <input class="inp" id="pInp2" placeholder="Ex: 5 avenue Foch, Boulogne…" autocomplete="off" />
+        <div class="search-suggestions" id="pSugs2" style="top:auto;left:0;right:0"></div>
+      </div>
+      <button class="btn btn-dark btn-full" onclick="runProfil()" id="btnProfil">✦ Comparer les 2 adresses</button>
+    </div>
+    <div class="aibox" id="boxProfil" style="display:none"><div class="ailabel">✦ Comparaison · <span class="source-badge">📊 DVF + OSM + Écoles + Risques</span></div><div id="txtProfil" class="aitext"></div></div>
   </div></div>
 
   <!-- ══ COMPARER ══ -->
   <div class="page" id="p-comparer"><div class="inner">
     <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
-    <div class="ph"><div class="ptag">✦ Stratégie</div><h2 class="ptitle">Comparer <em>des biens</em></h2></div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem">
-      <div class="card"><div class="ctitle">🏠 Bien 1</div>
-        <label class="lbl">Adresse</label><input class="inp caddr" placeholder="Adresse…" />
-        <label class="lbl">Prix (€)</label><input class="inp cprix" type="number" placeholder="650000" />
-        <label class="lbl">Surface (m²)</label><input class="inp csurf" type="number" placeholder="75" />
-        <label class="lbl">DPE</label><select class="inp cdpe"><option>A</option><option>B</option><option selected>C</option><option>D</option><option>E</option><option>F</option><option>G</option></select>
+    <div class="ph"><div class="ptag">✦ Stratégie</div><h2 class="ptitle">Comparer <em>des biens</em></h2><p class="psub">Comparez 2 ou 3 biens avec toutes les données réelles : DVF, mobilité, écoles, aménités, risques. Score global pondéré selon votre profil.</p></div>
+
+    <!-- Profil acheteur -->
+    <div class="card" style="margin-bottom:1rem"><div class="ctitle">🎯 Votre profil acheteur</div>
+      <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Enfants ?</p>
+      <div class="toggles" style="margin-bottom:.85rem" id="tCEnf">
+        <button class="tog" onclick="tog('tCEnf',this)">Oui</button>
+        <button class="tog" onclick="tog('tCEnf',this)">Non</button>
       </div>
-      <div class="card"><div class="ctitle">🏠 Bien 2</div>
-        <label class="lbl">Adresse</label><input class="inp caddr" placeholder="Adresse…" />
-        <label class="lbl">Prix (€)</label><input class="inp cprix" type="number" placeholder="590000" />
-        <label class="lbl">Surface (m²)</label><input class="inp csurf" type="number" placeholder="68" />
-        <label class="lbl">DPE</label><select class="inp cdpe"><option>A</option><option>B</option><option>C</option><option selected>D</option><option>E</option><option>F</option><option>G</option></select>
+      <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Transport principal ?</p>
+      <div class="toggles" style="margin-bottom:.85rem" id="tCTrans">
+        <button class="tog" onclick="tog('tCTrans',this)">Voiture</button>
+        <button class="tog" onclick="tog('tCTrans',this)">Métro / RER</button>
+        <button class="tog" onclick="tog('tCTrans',this)">Vélo</button>
+        <button class="tog" onclick="tog('tCTrans',this)">À pied</button>
       </div>
-      <div class="card"><div class="ctitle">🏠 Bien 3</div>
-        <label class="lbl">Adresse</label><input class="inp caddr" placeholder="Adresse…" />
-        <label class="lbl">Prix (€)</label><input class="inp cprix" type="number" placeholder="" />
-        <label class="lbl">Surface (m²)</label><input class="inp csurf" type="number" placeholder="" />
-        <label class="lbl">DPE</label><select class="inp cdpe"><option>A</option><option selected>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option></select>
+      <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Priorité de vie ?</p>
+      <div class="toggles" id="tCStyle">
+        <button class="tog" onclick="tog('tCStyle',this)">Sport &amp; plein air</button>
+        <button class="tog" onclick="tog('tCStyle',this)">Gastronomie &amp; sorties</button>
+        <button class="tog" onclick="tog('tCStyle',this)">Culture &amp; musées</button>
+        <button class="tog" onclick="tog('tCStyle',this)">Tranquillité</button>
       </div>
     </div>
-    <button class="btn btn-dark btn-full" style="max-width:320px;margin:1rem auto" onclick="runIA('comparer')" id="btnComparer">✦ Analyser et comparer par IA</button>
-    <div class="aibox" id="boxComparer" style="display:none"><div class="ailabel">✦ Analyse comparative IA</div><div id="txtComparer" class="aitext"></div></div>
+
+    <!-- 3 biens -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1rem">
+
+      <div class="card"><div class="ctitle">🏠 Bien 1</div>
+        <p class="lbl" style="margin-bottom:.3rem">Adresse</p>
+        <div style="position:relative;margin-bottom:.7rem">
+          <input class="inp" id="cInp1" placeholder="Adresse complète…" autocomplete="off" />
+          <div class="search-suggestions" id="cSugs1" style="top:auto;left:0;right:0"></div>
+        </div>
+        <label class="lbl">Prix demandé (€)</label>
+        <input class="inp" id="cPrix1" type="number" placeholder="650 000" style="margin-bottom:.6rem"/>
+        <label class="lbl">Surface (m²)</label>
+        <input class="inp" id="cSurf1" type="number" placeholder="75" style="margin-bottom:.6rem"/>
+        <label class="lbl">DPE</label>
+        <select class="inp" id="cDpe1"><option>A</option><option>B</option><option selected>C</option><option>D</option><option>E</option><option>F</option><option>G</option></select>
+      </div>
+
+      <div class="card"><div class="ctitle">🏠 Bien 2</div>
+        <p class="lbl" style="margin-bottom:.3rem">Adresse</p>
+        <div style="position:relative;margin-bottom:.7rem">
+          <input class="inp" id="cInp2" placeholder="Adresse complète…" autocomplete="off" />
+          <div class="search-suggestions" id="cSugs2" style="top:auto;left:0;right:0"></div>
+        </div>
+        <label class="lbl">Prix demandé (€)</label>
+        <input class="inp" id="cPrix2" type="number" placeholder="590 000" style="margin-bottom:.6rem"/>
+        <label class="lbl">Surface (m²)</label>
+        <input class="inp" id="cSurf2" type="number" placeholder="68" style="margin-bottom:.6rem"/>
+        <label class="lbl">DPE</label>
+        <select class="inp" id="cDpe2"><option>A</option><option>B</option><option>C</option><option selected>D</option><option>E</option><option>F</option><option>G</option></select>
+      </div>
+
+      <div class="card"><div class="ctitle">🏠 Bien 3 <span style="font-size:.65rem;color:var(--muted);font-weight:400">(optionnel)</span></div>
+        <p class="lbl" style="margin-bottom:.3rem">Adresse</p>
+        <div style="position:relative;margin-bottom:.7rem">
+          <input class="inp" id="cInp3" placeholder="Adresse complète…" autocomplete="off" />
+          <div class="search-suggestions" id="cSugs3" style="top:auto;left:0;right:0"></div>
+        </div>
+        <label class="lbl">Prix demandé (€)</label>
+        <input class="inp" id="cPrix3" type="number" placeholder="" style="margin-bottom:.6rem"/>
+        <label class="lbl">Surface (m²)</label>
+        <input class="inp" id="cSurf3" type="number" placeholder="" style="margin-bottom:.6rem"/>
+        <label class="lbl">DPE</label>
+        <select class="inp" id="cDpe3"><option>A</option><option selected>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option></select>
+      </div>
+    </div>
+
+    <button class="btn btn-dark btn-full" style="max-width:360px;margin:0 auto 1rem" onclick="runComparerBiens()" id="btnComparer">✦ Analyser et comparer les biens</button>
+    <div class="aibox" id="boxComparer" style="display:none"><div class="ailabel">✦ Comparaison · <span class="source-badge">📊 DVF + OSM + Écoles + Risques</span></div><div id="txtComparer" class="aitext"></div></div>
   </div></div>
 
   <!-- ══ CONSEILLER IA ══ -->
@@ -1189,6 +1252,13 @@ window.onload = () => {
   setupSearch('sideSearch', 'sideSugs', false);
   setupVilleSearch();
   setupTravailSearch();
+  // BAN autocomplete pour Compatibilité de vie
+  setupBanInput('pInp1','pSugs1','pAddr1');
+  setupBanInput('pInp2','pSugs2','pAddr2');
+  // BAN autocomplete pour Comparer des biens
+  setupBanInput('cInp1','cSugs1','cAddr1');
+  setupBanInput('cInp2','cSugs2','cAddr2');
+  setupBanInput('cInp3','cSugs3','cAddr3');
 };
 
 // ══ MODAL ══
@@ -1222,8 +1292,8 @@ function go(id){
     const extractVille = addr => { const m=addr.match(/\d{5}\s+(.+)$/); return m?m[1]:addr; };
     if(id === 'prix')     set('dvfAddr', currentAddress);
     if(id === 'offre')    set('oRue',    currentAddress);
-    if(id === 'profil')   set('pVille',  extractVille(currentAddress));
-    if(id === 'comparer') setFirst('.caddr', currentAddress);
+    if(id === 'profil')   { set('pVille', extractVille(currentAddress)); set('pInp1', currentAddress); }
+    if(id === 'comparer') set('cInp1', currentAddress);
   }
 }
 
@@ -2252,15 +2322,21 @@ async function runIA(type){
       const r=document.getElementById('oRue').value;
       const pm2=s?Math.round(p/s):null;
       const dvf=window._dvfData;
-      let dvfCtx='';
+      let dvfCtx='', strategieBase='';
       if(dvf?.stats?.medianM2 && pm2){
         const med=dvf.stats.medianM2;
         const ecartPct=Math.round((pm2-med)/med*100);
         const sens=ecartPct>0?`${ecartPct}% AU-DESSUS`:`${Math.abs(ecartPct)}% EN DESSOUS`;
         dvfCtx=`Données DVF officielles : médiane ${med.toLocaleString('fr-FR')} €/m² (fourchette ${dvf.stats.minM2.toLocaleString('fr-FR')}–${dvf.stats.maxM2.toLocaleString('fr-FR')} €/m², ${dvf.count} ventes${dvf.dateRange?' sur '+dvf.dateRange:''}). `
-          +`Le prix demandé de ${pm2.toLocaleString('fr-FR')} €/m² est donc ${sens} de la médiane du secteur. `;
+          +`Le prix demandé (${pm2.toLocaleString('fr-FR')} €/m²) est ${sens} de la médiane. `;
+        if(ecartPct <= -5)
+          strategieBase=`RÈGLE ABSOLUE : le prix est déjà sous le marché. NE PAS proposer de forte baisse. Offre recommandée : 0 à 2% sous le prix demandé maximum, soit environ ${Math.round(p*0.98/1000)*1000} €. Stratégie : vitesse et solidité du financement, pas la négociation de prix.`;
+        else if(ecartPct >= 10)
+          strategieBase=`Le prix est au-dessus du marché. Négociation justifiée : propose une offre entre la médiane (${Math.round(med*s/1000)*1000} €) et le prix demandé.`;
+        else
+          strategieBase=`Prix dans la fourchette du marché. Marge de négociation limitée : 3 à 5% maximum.`;
       }
-      return`Coaching offre : prix demandé ${p.toLocaleString('fr-FR')} €${pm2?' ('+pm2.toLocaleString('fr-FR')+' €/m²)':''}, surface ${s||'?'}m², adresse : ${r||'France'}, en vente ${togVal('tOJ')}, baisses de prix : ${togVal('tOB')}. ${dvfCtx}Donne une stratégie précise : montant d'offre recommandé chiffré, 3 arguments de négociation, tactique concrète. Ne recalcule pas le prix/m², utilise exactement les données fournies.`;
+      return`Coaching offre : prix demandé ${p.toLocaleString('fr-FR')} € (${pm2?pm2.toLocaleString('fr-FR')+' €/m²':'?'}), surface ${s||'?'}m², adresse : ${r||'France'}, en vente ${togVal('tOJ')}, baisses de prix : ${togVal('tOB')}. ${dvfCtx}${strategieBase} Donne une stratégie précise avec montant d'offre chiffré, 3 arguments adaptés à la situation réelle, tactique concrète. Ne recalcule pas les données, utilise exactement les chiffres fournis.`;
     },
     profil:()=>{
       const ville=document.getElementById('pVille').value.trim();
@@ -2325,79 +2401,249 @@ async function runIA(type){
   if(btn){btn.disabled=false;btn.innerHTML='✦ Analyser';}
 }
 
-// ══ COMPATIBILITÉ DE VIE — approche 2 étapes ══
-function buildProfilCriteres(){
-  const travailLieu=document.getElementById('pTravailLieu')?.value.trim();
-  return[
-    `Enfants: ${togVal('tPE')}`,`Animaux: ${togVal('tPAnim')}`,
-    `Travail: ${togVal('tPT')}${travailLieu?' à '+travailLieu:''}`,
-    `Transport: ${togVal('tPTrans')}`,`Espaces verts: ${togVal('tPNature')}`,
-    `Ambiance: ${togVal('tPAmb')}`,`Extérieur: ${togVal('tPExt')}`,
-    `Type de bien: ${togVal('tPLoge')}`,`Priorité: ${togVal('tPS')}`,
-    `Budget: ${togVal('tPB')}`,
-  ].join(' | ');
+// ══ COMPARAISON D'ADRESSES — fonctions partagées ══
+
+// Constantes de scoring
+const SC_ECOLES_COEFF  = 0.5;   // nb établissements × coeff → /10
+const SC_RESTAU_DIV    = 5;     // 1 point par tranche de N restaurants
+const SC_CULTURE_COEFF = 2;     // multiplicateur lieux culturels
+const SC_SPORT_COEFF   = 2;     // multiplicateur équipements sport
+const SC_RISQUES_TABLE = [10,7,4,1]; // score selon nb risques (3+ → dernier)
+
+// Autocomplétion BAN générique
+function setupBanInput(inputId, sugsId, key){
+  const inp=document.getElementById(inputId), sugs=document.getElementById(sugsId);
+  if(!inp||!sugs) return;
+  if(!window._banCoords) window._banCoords={};
+  window._banCoords[key]=null;
+  let t=null;
+  inp.addEventListener('input',()=>{
+    clearTimeout(t); window._banCoords[key]=null;
+    const q=inp.value.trim();
+    if(q.length<2){sugs.classList.remove('open');return;}
+    t=setTimeout(async()=>{
+      try{
+        const r=await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&limit=6`);
+        const d=await r.json();
+        if(!d.features?.length){sugs.classList.remove('open');return;}
+        sugs.innerHTML='';
+        d.features.forEach(f=>{
+          const div=document.createElement('div');
+          div.className='sug-item'; div.textContent=f.properties.label;
+          div.onclick=()=>{
+            inp.value=f.properties.label;
+            window._banCoords[key]={lat:f.geometry.coordinates[1],lon:f.geometry.coordinates[0],label:f.properties.label};
+            sugs.classList.remove('open');
+          };
+          sugs.appendChild(div);
+        });
+        sugs.classList.add('open');
+      }catch(e){}
+    },300);
+  });
+  document.addEventListener('click',e=>{if(!inp.contains(e.target)&&!sugs.contains(e.target))sugs.classList.remove('open');});
 }
 
-async function runProfil(){
-  const ville=document.getElementById('pVille').value.trim();
-  if(ville.length<2){toast('Entrez une ville ou un secteur','err');return;}
-  if(/^[^a-zA-ZÀ-ÿ]{0,2}$|^[^a-zA-ZÀ-ÿ\s\-'0-9]+$/.test(ville)){toast('Ville non reconnue — choisissez dans la liste','err');return;}
-  const btn=document.getElementById('btnProfil'),box=document.getElementById('boxProfil'),txt=document.getElementById('txtProfil');
-  box.style.display='block';btn.disabled=true;
-  const SYS='Tu es expert immobilier France. Réponds en français.';
-  const criteres=buildProfilCriteres();
-  try{
-    // ── Étape 1 : l'IA propose 2 noms de quartiers en JSON ──
-    txt.innerHTML='<span class="spin"></span> Étape 1/3 — Identification des quartiers…';
-    const p1=`Profil acheteur pour "${ville}" : ${criteres}. Réponds UNIQUEMENT avec ce JSON valide, sans texte autour :`
-      +`{"quartiers":[{"nom":"Quartier ou rue précise","raison":"1 phrase courte"},{"nom":"Quartier ou rue précise","raison":"1 phrase courte"}]}`
-      +` Exactement 2 quartiers de "${ville}" uniquement, noms réels et précis.`;
-    const r1=await callAI(p1,'Réponds UNIQUEMENT en JSON valide, aucun texte autour, aucun markdown.','profil');
-    let quartiers;
-    try{ const m=r1.match(/\{[\s\S]*\}/); quartiers=JSON.parse(m[0]).quartiers; }
-    catch(e){ throw new Error('Réponse IA non parsable — réessayez'); }
+// Fetch toutes données réelles d'une adresse
+async function fetchAdresseData(lat,lon){
+  const[dvf,eco,mob,am,ris]=await Promise.allSettled([
+    fetch(`/api/dvf?lat=${lat}&lon=${lon}&dist=1500&_v=5`).then(r=>r.json()),
+    fetch(`/api/ecoles?lat=${lat}&lon=${lon}&dist=1000&_v=5`).then(r=>r.json()),
+    fetch(`/api/mobilite?lat=${lat}&lon=${lon}&dist=500`).then(r=>r.json()),
+    fetch(`/api/amenites?lat=${lat}&lon=${lon}&_v=1`).then(r=>r.json()),
+    fetch(`/api/risques?lat=${lat}&lon=${lon}&_v=2`).then(r=>r.json()),
+  ]);
+  return{
+    dvf:dvf.status==='fulfilled'?dvf.value:null,
+    eco:eco.status==='fulfilled'?eco.value:null,
+    mob:mob.status==='fulfilled'?mob.value:null,
+    am: am.status==='fulfilled'?am.value:null,
+    ris:ris.status==='fulfilled'?ris.value:null,
+  };
+}
 
-    // ── Étape 2 : géocoder + récupérer données réelles pour chaque quartier ──
-    txt.innerHTML='<span class="spin"></span> Étape 2/3 — Données réelles en cours…';
-    const enrichis=await Promise.all(quartiers.slice(0,2).map(async q=>{
-      try{
-        const geoR=await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q.nom+', '+ville)}&limit=1`);
-        const geoD=await geoR.json();
-        const feat=geoD.features?.[0];
-        if(!feat) return{...q,erreur:'localisation non trouvée'};
-        const[qLon,qLat]=feat.geometry.coordinates;
-        const[dvfR,amR,mobR]=await Promise.allSettled([
-          fetch(`/api/dvf?lat=${qLat}&lon=${qLon}&dist=1000&_v=5`).then(r=>r.json()),
-          fetch(`/api/amenites?lat=${qLat}&lon=${qLon}&_v=1`).then(r=>r.json()),
-          fetch(`/api/mobilite?lat=${qLat}&lon=${qLon}&dist=500`).then(r=>r.json()),
-        ]);
-        return{...q,label:feat.properties.label,lat:qLat,lon:qLon,
-          dvf:dvfR.status==='fulfilled'?dvfR.value:null,
-          amenites:amR.status==='fulfilled'?amR.value:null,
-          mobilite:mobR.status==='fulfilled'?mobR.value:null};
-      }catch(e){return{...q,erreur:e.message};}
-    }));
+// Scores bruts 0-10 par critère
+function calcScores(d){
+  const ecoTotal=(d.eco?.types?.ecoles||0)+(d.eco?.types?.college||0)+(d.eco?.types?.lycee||0);
+  const nbRisq=Math.min(d.ris?.total||0, SC_RISQUES_TABLE.length-1);
+  return{
+    mob:  Math.min(10,Math.round(d.mob?.score||0)),
+    eco:  Math.min(10,Math.round(ecoTotal*SC_ECOLES_COEFF)),
+    parc: Math.min(10,d.am?.counts?.parcs||0),
+    rest: Math.min(10,Math.round((d.am?.counts?.restaurants||0)/SC_RESTAU_DIV)),
+    cult: Math.min(10,Math.min((d.am?.counts?.culture||0)*SC_CULTURE_COEFF,10)),
+    sprt: Math.min(10,Math.min((d.am?.counts?.sport||0)*SC_SPORT_COEFF,10)),
+    risq: SC_RISQUES_TABLE[nbRisq],
+  };
+}
 
-    // ── Étape 3 : synthèse IA avec données réelles ──
-    txt.innerHTML='<span class="spin"></span> Étape 3/3 — Synthèse finale…';
-    const ctxQuartiers=enrichis.map((q,i)=>{
-      if(q.erreur) return `Quartier ${i+1}: ${q.nom} — ${q.erreur}`;
-      const dvfTxt=q.dvf?.stats?.medianM2?`DVF médiane ${q.dvf.stats.medianM2.toLocaleString('fr-FR')} €/m² (${q.dvf.count} ventes${q.dvf.dateRange?' '+q.dvf.dateRange:''})`:'DVF indisponible';
-      const amTxt=q.amenites?.counts?`${q.amenites.counts.restaurants} restaurants, ${q.amenites.counts.parcs} espaces verts, ${q.amenites.counts.culture} lieux culturels`:'';
-      const mobTxt=q.mobilite?.score?`mobilité ${q.mobilite.score}/10, ${q.mobilite.stats?.metro||0} stations métro/RER, ${q.mobilite.stats?.arretsBus||0} bus`:'';
-      return`Quartier ${i+1}: ${q.nom} — ${dvfTxt}. ${amTxt}. ${mobTxt}. Raison: ${q.raison}`;
-    }).join('\n');
-    const p2=`Profil acheteur "${ville}" : ${criteres}.\nDonnées réelles collectées :\n${ctxQuartiers}\n`
-      +`Rédige une analyse comparative de ces 2 quartiers en utilisant UNIQUEMENT les données fournies ci-dessus. `
-      +`Pour chaque quartier : prix réel DVF, adéquation au profil, avantage principal, inconvénient honnête basé sur les données. `
-      +`Conclus par une recommandation motivée. **Gras** pour chiffres clés. 10 lignes max.`;
-    const r2=await callAI(p2,SYS,'profil');
-    txt.innerHTML='<p>'+md(r2)+'</p>';
-  }catch(e){
-    if(e.message==='no_key'){box.style.display='none';openModal();}
-    else txt.innerHTML='⚠️ '+e.message;
+// Poids du profil (Compatibilité de vie)
+function getProfilWeights(){
+  const enfants=togVal('tPE'),trans=togVal('tPTrans'),nature=togVal('tPNature'),style=togVal('tPS');
+  return{
+    mob:  trans==='Métro / RER'?3:1.5,
+    eco:  (enfants==='Non'||enfants==='—')?0.5:2.5,
+    parc: (nature==='Parc à proximité'||nature==='Nature & forêt'||style==='Sport & plein air')?2.5:1,
+    rest: style==='Gastronomie & sorties'?2.5:1,
+    cult: style==='Culture & musées'?2.5:1,
+    sprt: style==='Sport & plein air'?2:0.5,
+    risq: 2,
+  };
+}
+
+// Poids du profil (Comparer des biens)
+function getComparerWeights(){
+  const enfants=togVal('tCEnf'),trans=togVal('tCTrans'),style=togVal('tCStyle');
+  return{
+    mob:  trans==='Métro / RER'?3:1.5,
+    eco:  (enfants==='Non'||enfants==='—')?0.5:2.5,
+    parc: style==='Sport & plein air'?2.5:1,
+    rest: style==='Gastronomie & sorties'?2.5:1,
+    cult: style==='Culture & musées'?2.5:1,
+    sprt: style==='Sport & plein air'?2:0.5,
+    risq: 2,
+  };
+}
+
+// Score global pondéré
+function globalScore(scores,weights){
+  const keys=Object.keys(weights);
+  const tw=keys.reduce((a,k)=>a+(weights[k]||0),0);
+  const sum=keys.reduce((a,k)=>a+(scores[k]||0)*(weights[k]||0),0);
+  return Math.round(sum/tw);
+}
+
+// Rendu tableau de comparaison
+function renderCompTable(items,weights,showBien){
+  const sColor=s=>s>=7?'#2d6a4f':s>=4?'#b8832a':'#7a2d2d';
+  const bar=s=>`<div style="height:5px;background:var(--border);border-radius:3px;margin-top:3px;overflow:hidden"><div style="height:100%;width:${s*10}%;background:${sColor(s)};border-radius:3px"></div></div>`;
+  const stag=s=>`<span style="font-size:.68rem;color:${sColor(s)};font-weight:600">${s}/10</span>`;
+  const dcell=(val,s)=>`<td style="padding:.5rem .4rem;text-align:center;border-bottom:1px solid var(--borderl);vertical-align:top"><div style="font-size:.79rem;font-weight:500;line-height:1.35">${val}</div>${bar(s)}${stag(s)}</td>`;
+  const icell=html=>`<td style="padding:.5rem .4rem;text-align:center;border-bottom:1px solid var(--borderl);vertical-align:middle">${html}</td>`;
+  const lcell=(e,l,bold)=>`<td style="padding:.5rem .4rem;font-size:.76rem;font-weight:${bold?'600':'400'};white-space:nowrap;border-bottom:1px solid var(--borderl)">${e} ${l}</td>`;
+  const colW=Math.floor(75/items.length);
+  const ths=items.map(it=>`<th style="padding:.6rem .4rem;font-size:.72rem;font-weight:600;text-align:center;border-bottom:2px solid var(--border);width:${colW}%;line-height:1.3">${it.label}</th>`).join('');
+  const rows=[];
+
+  rows.push(`<tr>${lcell('🚇','Mobilité')}${items.map(it=>{
+    const m=it.data.mob;
+    const v=m?.score!=null?`${m.score}/10<br><small style="color:var(--muted)">${m.stats?.metro||0} métro · ${m.stats?.arretsBus||0} bus</small>`:'—';
+    return dcell(v,it.scores.mob);}).join('')}</tr>`);
+
+  rows.push(`<tr>${lcell('🏫','Écoles')}${items.map(it=>{
+    const e=it.data.eco?.types;
+    const tot=(e?.ecoles||0)+(e?.college||0)+(e?.lycee||0);
+    const v=e?`${tot} établissements<br><small style="color:var(--muted)">${e.ecoles||0} éc. · ${e.college||0} col. · ${e.lycee||0} lyc.</small>`:'—';
+    return dcell(v,it.scores.eco);}).join('')}</tr>`);
+
+  rows.push(`<tr>${lcell('🌳','Espaces verts')}${items.map(it=>{
+    const v=it.data.am?.counts?.parcs!=null?`${it.data.am.counts.parcs} parcs/jardins`:'—';
+    return dcell(v,it.scores.parc);}).join('')}</tr>`);
+
+  rows.push(`<tr>${lcell('🍽️','Restaurants')}${items.map(it=>{
+    const v=it.data.am?.counts?.restaurants!=null?`${it.data.am.counts.restaurants} établissements`:'—';
+    return dcell(v,it.scores.rest);}).join('')}</tr>`);
+
+  rows.push(`<tr>${lcell('🎭','Culture')}${items.map(it=>{
+    const v=it.data.am?.counts?.culture!=null?`${it.data.am.counts.culture} lieux`:'—';
+    return dcell(v,it.scores.cult);}).join('')}</tr>`);
+
+  rows.push(`<tr>${lcell('🏋️','Sport')}${items.map(it=>{
+    const v=it.data.am?.counts?.sport!=null?`${it.data.am.counts.sport} équipements`:'—';
+    return dcell(v,it.scores.sprt);}).join('')}</tr>`);
+
+  rows.push(`<tr>${lcell('⚠️','Risques')}${items.map(it=>{
+    const r=it.data.ris;
+    const v=r!=null?(r.total===0?'✓ Aucun':`${r.total} risque(s)`):'—';
+    return dcell(v,it.scores.risq);}).join('')}</tr>`);
+
+  // DVF : score relatif entre les items (moins cher = plus accessible)
+  rows.push(`<tr>${lcell('💰','Prix DVF')}${items.map(it=>{
+    const med=it.data.dvf?.stats?.medianM2;
+    const v=med?`${med.toLocaleString('fr-FR')} €/m²<br><small style="color:var(--muted)">${it.data.dvf.count} ventes</small>`:'—';
+    const allMeds=items.map(x=>x.data.dvf?.stats?.medianM2||0);
+    const minM=Math.min(...allMeds),maxM=Math.max(...allMeds);
+    const dvfS=med&&maxM>minM?Math.round(10-(med-minM)/(maxM-minM)*4):5;
+    return dcell(v,isFinite(dvfS)?dvfS:5);}).join('')}</tr>`);
+
+  if(showBien){
+    rows.push(`<tr><td colspan="${items.length+1}" style="padding:.3rem .5rem;font-size:.68rem;font-weight:600;color:var(--gold);letter-spacing:.08em;text-transform:uppercase;background:rgba(184,131,42,.05)">Détails du bien</td></tr>`);
+    rows.push(`<tr>${lcell('🏠','Prix demandé')}${items.map(it=>{
+      if(!it.bien?.prix||!it.bien?.surf) return icell('<span style="color:var(--muted)">—</span>');
+      const pm2=Math.round(it.bien.prix/it.bien.surf);
+      const med=it.data.dvf?.stats?.medianM2;
+      const ecart=med?Math.round((pm2-med)/med*100):null;
+      const ec=ecart!=null?(ecart>0?`<span style="color:var(--red);font-size:.7rem">+${ecart}% vs marché</span>`:`<span style="color:var(--green);font-size:.7rem">${ecart}% vs marché</span>`):'';
+      return icell(`<div style="font-size:.79rem;font-weight:600">${it.bien.prix.toLocaleString('fr-FR')} €</div><div style="font-size:.7rem;color:var(--muted)">${pm2.toLocaleString('fr-FR')} €/m²</div>${ec}`);}).join('')}</tr>`);
+    rows.push(`<tr>${lcell('📐','Surface')}${items.map(it=>icell(it.bien?.surf?`<div style="font-size:.79rem;font-weight:500">${it.bien.surf} m²</div>`:'<span style="color:var(--muted)">—</span>')).join('')}</tr>`);
+    rows.push(`<tr>${lcell('🌡️','DPE')}${items.map(it=>{
+      const dpe=it.bien?.dpe||'—';
+      const dc={'A':'#1a7a4a','B':'#57b86e','C':'#b5d334','D':'#f5c842','E':'#e08030','F':'#d94f27','G':'#c0392b'}[dpe]||'var(--muted)';
+      return icell(dpe!=='—'?`<div style="font-size:1.2rem;font-weight:700;color:${dc}">${dpe}</div>`:'<span style="color:var(--muted)">—</span>');}).join('')}</tr>`);
   }
-  btn.disabled=false;btn.innerHTML='✦ Trouver mes secteurs compatibles';
+
+  const globals=items.map(it=>globalScore(it.scores,weights));
+  const winIdx=globals.indexOf(Math.max(...globals));
+  rows.push(`<tr style="background:rgba(15,15,13,.03)">${lcell('⭐','Score global',true)}${items.map((it,i)=>{
+    const g=globals[i],c=sColor(g);
+    return `<td style="padding:.7rem .4rem;text-align:center;border-top:2px solid var(--border)">
+      <div style="font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1.6rem;color:${c};font-weight:600;line-height:1">${g}<span style="font-size:.85rem">/10</span></div>
+      ${bar(g)}
+      ${i===winIdx&&globals.filter(x=>x===g).length===1?'<div style="font-size:.65rem;color:#2d6a4f;font-weight:600;margin-top:3px">✅ RECOMMANDÉ</div>':''}
+    </td>`;}).join('')}</tr>`);
+
+  return `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.8rem">
+    <thead><tr><th style="padding:.6rem .4rem;text-align:left;border-bottom:2px solid var(--border);width:22%">Critère</th>${ths}</tr></thead>
+    <tbody>${rows.join('')}</tbody>
+  </table></div>`;
+}
+
+// ── Runner : Compatibilité de vie ──
+async function runProfil(){
+  const a1=window._banCoords?.pAddr1, a2=window._banCoords?.pAddr2;
+  if(!a1){toast('Sélectionnez l\'adresse A dans la liste','err');return;}
+  if(!a2){toast('Sélectionnez l\'adresse B dans la liste','err');return;}
+  const btn=document.getElementById('btnProfil'),box=document.getElementById('boxProfil'),txt=document.getElementById('txtProfil');
+  box.style.display='block';btn.disabled=true;btn.innerHTML='<span class="spin w"></span> Analyse…';
+  txt.innerHTML='<span class="spin"></span> Récupération des données réelles…';
+  try{
+    const[d1,d2]=await Promise.all([fetchAdresseData(a1.lat,a1.lon),fetchAdresseData(a2.lat,a2.lon)]);
+    const weights=getProfilWeights();
+    const items=[
+      {label:a1.label,data:d1,scores:calcScores(d1)},
+      {label:a2.label,data:d2,scores:calcScores(d2)},
+    ];
+    txt.innerHTML=renderCompTable(items,weights,false);
+  }catch(e){txt.innerHTML='⚠️ '+e.message;}
+  btn.disabled=false;btn.innerHTML='✦ Comparer les 2 adresses';
+}
+
+// ── Runner : Comparer des biens ──
+async function runComparerBiens(){
+  if(!window._banCoords) window._banCoords={};
+  const keys=['cAddr1','cAddr2','cAddr3'];
+  const filled=keys.map(k=>window._banCoords[k]).filter(Boolean);
+  if(filled.length<2){toast('Sélectionnez au moins 2 adresses dans la liste','err');return;}
+  const btn=document.getElementById('btnComparer'),box=document.getElementById('boxComparer'),txt=document.getElementById('txtComparer');
+  box.style.display='block';btn.disabled=true;btn.innerHTML='<span class="spin w"></span> Analyse…';
+  txt.innerHTML='<span class="spin"></span> Récupération des données réelles…';
+  try{
+    const datas=await Promise.all(filled.map(c=>fetchAdresseData(c.lat,c.lon)));
+    const weights=getComparerWeights();
+    const nums=['1','2','3'].slice(0,filled.length);
+    const items=filled.map((c,i)=>({
+      label:c.label,
+      data:datas[i],
+      scores:calcScores(datas[i]),
+      bien:{
+        prix:parseFloat(document.getElementById('cPrix'+nums[i])?.value)||0,
+        surf:parseFloat(document.getElementById('cSurf'+nums[i])?.value)||0,
+        dpe: document.getElementById('cDpe'+nums[i])?.value||'—',
+      },
+    }));
+    txt.innerHTML=renderCompTable(items,weights,true);
+  }catch(e){txt.innerHTML='⚠️ '+e.message;}
+  btn.disabled=false;btn.innerHTML='✦ Analyser et comparer';
 }
 
 async function runDVF(){
