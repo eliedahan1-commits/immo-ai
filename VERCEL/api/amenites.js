@@ -6,10 +6,15 @@ const RAYON_CULTURE_M  = 1000;  // rayon lieux culturels
 const RAYON_PARCS_M    = 1000;  // rayon espaces verts
 const RAYON_SPORT_M    = 1000;  // rayon équipements sportifs
 const RAYON_COMMERCE_M = 500;   // rayon commerces alimentaires
-const TIMEOUT_MS       = 12000; // timeout par requête Overpass
+const TIMEOUT_MS       = 7000;  // timeout par requête Overpass (Vercel max 30s configuré)
 const CACHE_SECONDES   = 86400; // 1 jour
 
-const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
+// Instances Overpass en fallback (la première disponible est utilisée)
+const OVERPASS_URLS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.openstreetmap.ru/api/interpreter',
+];
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -18,18 +23,21 @@ export default async function handler(req, res) {
   if (!lat || !lon) return res.status(400).json({ error: 'lat et lon requis' });
 
   async function countOverpass(filtre, rayon) {
-    const query = `[out:json][timeout:10];\nnwr${filtre}(around:${rayon},${lat},${lon});\nout count;`;
-    try {
-      const r = await fetch(OVERPASS_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'data=' + encodeURIComponent(query),
-        signal: AbortSignal.timeout(TIMEOUT_MS)
-      });
-      if (!r.ok) return 0;
-      const d = await r.json();
-      return parseInt(d.elements?.[0]?.tags?.total || 0);
-    } catch { return 0; }
+    const query = `[out:json][timeout:6];\nnwr${filtre}(around:${rayon},${lat},${lon});\nout count;`;
+    for (const url of OVERPASS_URLS) {
+      try {
+        const r = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'data=' + encodeURIComponent(query),
+          signal: AbortSignal.timeout(TIMEOUT_MS)
+        });
+        if (!r.ok) continue;
+        const d = await r.json();
+        return parseInt(d.elements?.[0]?.tags?.total || 0);
+      } catch { continue; }
+    }
+    return 0;
   }
 
   const [restaurants, culture, parcs, sport, commerces] = await Promise.all([
