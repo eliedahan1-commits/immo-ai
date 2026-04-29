@@ -1138,6 +1138,16 @@ function go(id){
     if(id === 'bruit')     { ouvrirBruit(); return; }
   }
   _goPage(id);
+  // Pré-remplissage automatique si une adresse est déjà analysée
+  if(currentAddress) {
+    const set = (id, val) => { const el=document.getElementById(id); if(el && !el.value) el.value=val; };
+    const setFirst = (sel, val) => { const el=document.querySelector(sel); if(el && !el.value) el.value=val; };
+    const extractVille = addr => { const m=addr.match(/\d{5}\s+(.+)$/); return m?m[1]:addr; };
+    if(id === 'prix')     set('dvfAddr', currentAddress);
+    if(id === 'offre')    set('oRue',    currentAddress);
+    if(id === 'profil')   set('pVille',  extractVille(currentAddress));
+    if(id === 'comparer') setFirst('.caddr', currentAddress);
+  }
 }
 
 function _goPage(id){
@@ -2101,7 +2111,15 @@ async function runIA(type){
   const prompts={
     aides:()=>`Situation: ${togVal('tAideSit')}, revenus: ${document.getElementById('aRev').value||'?'}€/an, foyer: ${document.getElementById('aPers').value||'2'} pers, bien: ${document.getElementById('aPrix').value||'400000'}€ à ${document.getElementById('aVille').value||'France'}. Aides disponibles (PTZ, Pinel, MaPrimeRénov) avec montants précis.`,
     renov:()=>`Rénovation ${document.getElementById('rSurf').value||80}m², DPE ${document.getElementById('rDpeAv').value} → ${document.getElementById('rDpeAp').value}. Revenus: ${document.getElementById('rRev').value||60000}€/an. Coût travaux estimé, aides MaPrimeRénov, économies annuelles.`,
-    offre:()=>{const p=document.getElementById('oPrix').value,s=document.getElementById('oSurf').value,r=document.getElementById('oRue').value;const pm2=s?Math.round(p/s):null;return`Coaching offre: Prix ${fmt(p)}${pm2?` (${pm2.toLocaleString('fr-FR')}€/m²)`:''},  surface ${s||'?'}m², adresse: ${r||'France'}, en vente ${togVal('tOJ')}, baisses: ${togVal('tOB')}. Stratégie précise : montant recommandé, arguments, tactique.`;},
+    offre:()=>{
+      const p=document.getElementById('oPrix').value,s=document.getElementById('oSurf').value,r=document.getElementById('oRue').value;
+      const pm2=s?Math.round(p/s):null;
+      const dvf=window._dvfData;
+      const dvfCtx=dvf?.stats?.medianM2
+        ? `Données DVF officielles du secteur : médiane ${dvf.stats.medianM2.toLocaleString('fr-FR')} €/m² (fourchette ${dvf.stats.minM2.toLocaleString('fr-FR')}–${dvf.stats.maxM2.toLocaleString('fr-FR')} €/m², ${dvf.count} ventes réelles${dvf.dateRange?' sur '+dvf.dateRange:''}). `
+        : '';
+      return`Coaching offre: Prix demandé ${fmt(p)}${pm2?` (${pm2.toLocaleString('fr-FR')} €/m²)`:''},  surface ${s||'?'}m², adresse: ${r||'France'}, en vente ${togVal('tOJ')}, baisses: ${togVal('tOB')}. ${dvfCtx}Évalue si le prix est justifié par rapport au marché réel DVF. Stratégie précise : montant d'offre recommandé, arguments de négociation, tactique.`;
+    },
     profil:()=>{
       const ville=document.getElementById('pVille').value.trim();
       if(ville.length<2){toast('Entrez une ville ou un secteur','err');return null;}
