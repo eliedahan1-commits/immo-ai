@@ -984,7 +984,7 @@ select.inp{
         <button class="tog" onclick="tog('tPB',this)">&gt; 1M€</button>
       </div>
 
-      <button class="btn btn-dark btn-full" onclick="runIA('profil')" id="btnProfil">✦ Trouver mes secteurs compatibles</button>
+      <button class="btn btn-dark btn-full" onclick="runProfil()" id="btnProfil">✦ Trouver mes secteurs compatibles</button>
     </div>
     <div class="aibox" id="boxProfil" style="display:none"><div class="ailabel">✦ Analyse IA — Compatibilité personnalisée · <span class="source-badge">📊 DVF + OSM + Écoles</span></div><div id="txtProfil" class="aitext"></div></div>
   </div></div>
@@ -2247,13 +2247,20 @@ async function runIA(type){
     aides:()=>`Situation: ${togVal('tAideSit')}, revenus: ${document.getElementById('aRev').value||'?'}€/an, foyer: ${document.getElementById('aPers').value||'2'} pers, bien: ${document.getElementById('aPrix').value||'400000'}€ à ${document.getElementById('aVille').value||'France'}. Aides disponibles (PTZ, Pinel, MaPrimeRénov) avec montants précis.`,
     renov:()=>`Rénovation ${document.getElementById('rSurf').value||80}m², DPE ${document.getElementById('rDpeAv').value} → ${document.getElementById('rDpeAp').value}. Revenus: ${document.getElementById('rRev').value||60000}€/an. Coût travaux estimé, aides MaPrimeRénov, économies annuelles.`,
     offre:()=>{
-      const p=document.getElementById('oPrix').value,s=document.getElementById('oSurf').value,r=document.getElementById('oRue').value;
+      const p=parseFloat(document.getElementById('oPrix').value)||0;
+      const s=parseFloat(document.getElementById('oSurf').value)||0;
+      const r=document.getElementById('oRue').value;
       const pm2=s?Math.round(p/s):null;
       const dvf=window._dvfData;
-      const dvfCtx=dvf?.stats?.medianM2
-        ? `Données DVF officielles du secteur : médiane ${dvf.stats.medianM2.toLocaleString('fr-FR')} €/m² (fourchette ${dvf.stats.minM2.toLocaleString('fr-FR')}–${dvf.stats.maxM2.toLocaleString('fr-FR')} €/m², ${dvf.count} ventes réelles${dvf.dateRange?' sur '+dvf.dateRange:''}). `
-        : '';
-      return`Coaching offre: Prix demandé ${fmt(p)}${pm2?` (${pm2.toLocaleString('fr-FR')} €/m²)`:''},  surface ${s||'?'}m², adresse: ${r||'France'}, en vente ${togVal('tOJ')}, baisses: ${togVal('tOB')}. ${dvfCtx}Évalue si le prix est justifié par rapport au marché réel DVF. Stratégie précise : montant d'offre recommandé, arguments de négociation, tactique.`;
+      let dvfCtx='';
+      if(dvf?.stats?.medianM2 && pm2){
+        const med=dvf.stats.medianM2;
+        const ecartPct=Math.round((pm2-med)/med*100);
+        const sens=ecartPct>0?`${ecartPct}% AU-DESSUS`:`${Math.abs(ecartPct)}% EN DESSOUS`;
+        dvfCtx=`Données DVF officielles : médiane ${med.toLocaleString('fr-FR')} €/m² (fourchette ${dvf.stats.minM2.toLocaleString('fr-FR')}–${dvf.stats.maxM2.toLocaleString('fr-FR')} €/m², ${dvf.count} ventes${dvf.dateRange?' sur '+dvf.dateRange:''}). `
+          +`Le prix demandé de ${pm2.toLocaleString('fr-FR')} €/m² est donc ${sens} de la médiane du secteur. `;
+      }
+      return`Coaching offre : prix demandé ${p.toLocaleString('fr-FR')} €${pm2?' ('+pm2.toLocaleString('fr-FR')+' €/m²)':''}, surface ${s||'?'}m², adresse : ${r||'France'}, en vente ${togVal('tOJ')}, baisses de prix : ${togVal('tOB')}. ${dvfCtx}Donne une stratégie précise : montant d'offre recommandé chiffré, 3 arguments de négociation, tactique concrète. Ne recalcule pas le prix/m², utilise exactement les données fournies.`;
     },
     profil:()=>{
       const ville=document.getElementById('pVille').value.trim();
@@ -2316,6 +2323,81 @@ async function runIA(type){
     else txt.innerHTML='⚠️ '+e.message;
   }
   if(btn){btn.disabled=false;btn.innerHTML='✦ Analyser';}
+}
+
+// ══ COMPATIBILITÉ DE VIE — approche 2 étapes ══
+function buildProfilCriteres(){
+  const travailLieu=document.getElementById('pTravailLieu')?.value.trim();
+  return[
+    `Enfants: ${togVal('tPE')}`,`Animaux: ${togVal('tPAnim')}`,
+    `Travail: ${togVal('tPT')}${travailLieu?' à '+travailLieu:''}`,
+    `Transport: ${togVal('tPTrans')}`,`Espaces verts: ${togVal('tPNature')}`,
+    `Ambiance: ${togVal('tPAmb')}`,`Extérieur: ${togVal('tPExt')}`,
+    `Type de bien: ${togVal('tPLoge')}`,`Priorité: ${togVal('tPS')}`,
+    `Budget: ${togVal('tPB')}`,
+  ].join(' | ');
+}
+
+async function runProfil(){
+  const ville=document.getElementById('pVille').value.trim();
+  if(ville.length<2){toast('Entrez une ville ou un secteur','err');return;}
+  if(/^[^a-zA-ZÀ-ÿ]{0,2}$|^[^a-zA-ZÀ-ÿ\s\-'0-9]+$/.test(ville)){toast('Ville non reconnue — choisissez dans la liste','err');return;}
+  const btn=document.getElementById('btnProfil'),box=document.getElementById('boxProfil'),txt=document.getElementById('txtProfil');
+  box.style.display='block';btn.disabled=true;
+  const SYS='Tu es expert immobilier France. Réponds en français.';
+  const criteres=buildProfilCriteres();
+  try{
+    // ── Étape 1 : l'IA propose 2 noms de quartiers en JSON ──
+    txt.innerHTML='<span class="spin"></span> Étape 1/3 — Identification des quartiers…';
+    const p1=`Profil acheteur pour "${ville}" : ${criteres}. Réponds UNIQUEMENT avec ce JSON valide, sans texte autour :`
+      +`{"quartiers":[{"nom":"Quartier ou rue précise","raison":"1 phrase courte"},{"nom":"Quartier ou rue précise","raison":"1 phrase courte"}]}`
+      +` Exactement 2 quartiers de "${ville}" uniquement, noms réels et précis.`;
+    const r1=await callAI(p1,'Réponds UNIQUEMENT en JSON valide, aucun texte autour, aucun markdown.','profil');
+    let quartiers;
+    try{ const m=r1.match(/\{[\s\S]*\}/); quartiers=JSON.parse(m[0]).quartiers; }
+    catch(e){ throw new Error('Réponse IA non parsable — réessayez'); }
+
+    // ── Étape 2 : géocoder + récupérer données réelles pour chaque quartier ──
+    txt.innerHTML='<span class="spin"></span> Étape 2/3 — Données réelles en cours…';
+    const enrichis=await Promise.all(quartiers.slice(0,2).map(async q=>{
+      try{
+        const geoR=await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q.nom+', '+ville)}&limit=1`);
+        const geoD=await geoR.json();
+        const feat=geoD.features?.[0];
+        if(!feat) return{...q,erreur:'localisation non trouvée'};
+        const[qLon,qLat]=feat.geometry.coordinates;
+        const[dvfR,amR,mobR]=await Promise.allSettled([
+          fetch(`/api/dvf?lat=${qLat}&lon=${qLon}&dist=1000&_v=5`).then(r=>r.json()),
+          fetch(`/api/amenites?lat=${qLat}&lon=${qLon}&_v=1`).then(r=>r.json()),
+          fetch(`/api/mobilite?lat=${qLat}&lon=${qLon}&dist=500`).then(r=>r.json()),
+        ]);
+        return{...q,label:feat.properties.label,lat:qLat,lon:qLon,
+          dvf:dvfR.status==='fulfilled'?dvfR.value:null,
+          amenites:amR.status==='fulfilled'?amR.value:null,
+          mobilite:mobR.status==='fulfilled'?mobR.value:null};
+      }catch(e){return{...q,erreur:e.message};}
+    }));
+
+    // ── Étape 3 : synthèse IA avec données réelles ──
+    txt.innerHTML='<span class="spin"></span> Étape 3/3 — Synthèse finale…';
+    const ctxQuartiers=enrichis.map((q,i)=>{
+      if(q.erreur) return `Quartier ${i+1}: ${q.nom} — ${q.erreur}`;
+      const dvfTxt=q.dvf?.stats?.medianM2?`DVF médiane ${q.dvf.stats.medianM2.toLocaleString('fr-FR')} €/m² (${q.dvf.count} ventes${q.dvf.dateRange?' '+q.dvf.dateRange:''})`:'DVF indisponible';
+      const amTxt=q.amenites?.counts?`${q.amenites.counts.restaurants} restaurants, ${q.amenites.counts.parcs} espaces verts, ${q.amenites.counts.culture} lieux culturels`:'';
+      const mobTxt=q.mobilite?.score?`mobilité ${q.mobilite.score}/10, ${q.mobilite.stats?.metro||0} stations métro/RER, ${q.mobilite.stats?.arretsBus||0} bus`:'';
+      return`Quartier ${i+1}: ${q.nom} — ${dvfTxt}. ${amTxt}. ${mobTxt}. Raison: ${q.raison}`;
+    }).join('\n');
+    const p2=`Profil acheteur "${ville}" : ${criteres}.\nDonnées réelles collectées :\n${ctxQuartiers}\n`
+      +`Rédige une analyse comparative de ces 2 quartiers en utilisant UNIQUEMENT les données fournies ci-dessus. `
+      +`Pour chaque quartier : prix réel DVF, adéquation au profil, avantage principal, inconvénient honnête basé sur les données. `
+      +`Conclus par une recommandation motivée. **Gras** pour chiffres clés. 10 lignes max.`;
+    const r2=await callAI(p2,SYS,'profil');
+    txt.innerHTML='<p>'+md(r2)+'</p>';
+  }catch(e){
+    if(e.message==='no_key'){box.style.display='none';openModal();}
+    else txt.innerHTML='⚠️ '+e.message;
+  }
+  btn.disabled=false;btn.innerHTML='✦ Trouver mes secteurs compatibles';
 }
 
 async function runDVF(){
