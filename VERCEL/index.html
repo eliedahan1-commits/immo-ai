@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 /* ══ RESET & VARIABLES ══ */
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -985,20 +986,12 @@ select.inp{
 
     </div>
 
-    <div class="card" style="margin-top:1rem"><div class="ctitle">📍 Comparer 2 adresses</div>
-      <p class="lbl" style="margin-bottom:.35rem">Adresse A</p>
-      <div style="position:relative;margin-bottom:.85rem">
-        <input class="inp" id="pInp1" placeholder="Ex: 12 rue de Rivoli, Paris…" autocomplete="off" />
-        <div class="search-suggestions" id="pSugs1" style="top:auto;left:0;right:0"></div>
-      </div>
-      <p class="lbl" style="margin-bottom:.35rem">Adresse B</p>
-      <div style="position:relative;margin-bottom:1rem">
-        <input class="inp" id="pInp2" placeholder="Ex: 5 avenue Foch, Boulogne…" autocomplete="off" />
-        <div class="search-suggestions" id="pSugs2" style="top:auto;left:0;right:0"></div>
-      </div>
-      <button class="btn btn-dark btn-full" onclick="runProfil()" id="btnProfil">✦ Comparer les 2 adresses</button>
+    <div class="card" style="margin-top:1rem">
+      <div class="ctitle">📍 Adresse analysée</div>
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:1rem" id="pAdresseLabel">Analysez d'abord une adresse depuis la page principale.</p>
+      <button class="btn btn-dark btn-full" onclick="runProfil()" id="btnProfil">✦ Analyser la compatibilité</button>
     </div>
-    <div class="aibox" id="boxProfil" style="display:none"><div class="ailabel">✦ Comparaison · <span class="source-badge">📊 DVF + OSM + Écoles + Risques</span></div><div id="txtProfil" class="aitext"></div></div>
+    <div class="aibox" id="boxProfil" style="display:none"><div class="ailabel">✦ Compatibilité · <span class="source-badge">📊 DVF + OSM + Écoles + Risques</span></div><div id="txtProfil" class="aitext"></div></div>
   </div></div>
 
   <!-- ══ CONSEILLER IA ══ -->
@@ -1174,8 +1167,6 @@ window.onload = () => {
   setupVilleSearch();
   setupTravailSearch();
   // BAN autocomplete pour Compatibilité de vie
-  setupBanInput('pInp1','pSugs1','pAddr1');
-  setupBanInput('pInp2','pSugs2','pAddr2');
 };
 
 // ══ MODAL ══
@@ -1209,7 +1200,7 @@ function go(id){
     const extractVille = addr => { const m=addr.match(/\d{5}\s+(.+)$/); return m?m[1]:addr; };
     if(id === 'prix')     set('dvfAddr', currentAddress);
     if(id === 'offre')    set('oRue',    currentAddress);
-    if(id === 'profil')   { set('pVille', extractVille(currentAddress)); set('pInp1', currentAddress); }
+    if(id === 'profil')   { set('pVille', extractVille(currentAddress)); const pLbl=document.getElementById('pAdresseLabel'); if(pLbl&&currentAddress) pLbl.innerHTML='📍 <strong>'+currentAddress+'</strong>'; }
   }
 }
 
@@ -1415,7 +1406,7 @@ function renderCards(props, coords){
         {id:'dvf',       icon:'💰', label:'Prix & marché DVF',      value:'<span class="spin"></span>', sub:'Transactions réelles',      source:'DVF DGFiP'},
         {id:'risques',   icon:'⚠️', label:'Risques naturels',       value:'<span class="spin"></span>', sub:'Géorisques officiel',       source:'Géorisques'},
         {id:'dpe',       icon:'⚡', label:'Énergie & DPE',          value:'Simuler →',                  sub:'Cliquez pour simuler',      source:'ADEME'},
-        {id:'bruit',     icon:'🔇', label:'Bruit & nuisances',      value:'Voir →',                     sub:'Ouvre bruit.fr',            source:'Bruit.fr'},
+        {id:'bruit',     icon:'🔇', label:'Bruit & nuisances',      value:'<span class="spin"></span>', sub:'Routes, voies ferrées, aéroports', source:'OSM'},
         {id:'urbanisme', icon:'📋', label:'Urbanisme & PLU',        value:'<span class="spin"></span>', sub:'Zonage officiel IGN',       source:'IGN GPU'},
       ]
     },
@@ -1489,6 +1480,7 @@ async function loadAllData(props, coords){
     loadAltitude(lat, lng),
     loadServices(lat, lng),
     loadAmenites(lat, lng),
+    loadBruit(lat, lng),
   ]).then(() => {
     document.getElementById('addrBadge').textContent = '✓ Analyse complète';
   });
@@ -1625,7 +1617,7 @@ async function loadEcoles(lat, lng, codeInsee){
 // ── Mobilité : OpenStreetMap via Overpass ──
 async function loadMobilite(lat, lng){
   try{
-    const r = await apiCall(`/api/mobilite?lat=${lat}&lon=${lng}&dist=500`, `https://overpass-api.de/api/interpreter`);
+    const r = await apiCall(`/api/mobilite?lat=${lat}&lon=${lng}&dist=1000`, `https://overpass-api.de/api/interpreter`);
     if(!r.ok) throw new Error();
     const d = await r.json();
     if(!d.success) throw new Error();
@@ -1765,6 +1757,22 @@ async function loadAmenites(lat, lng){
   }
 }
 
+async function loadBruit(lat, lng){
+  try {
+    const r = await fetch(`/api/bruit?lat=${lat}&lon=${lng}`, { signal: AbortSignal.timeout(15000) });
+    if(!r.ok) throw new Error('API bruit ' + r.status);
+    const d = await r.json();
+    window._bruitData = d;
+    if(d.success && d.niveau){
+      const css = d.niveauCode==='eleve'?'bad':d.niveauCode==='modere'?'warn':'good';
+      setCard('bruit', d.niveau, d.sources.length ? d.sources.map(s=>s.icone).join(' ')+' · Estimation OSM' : 'Aucune source identifiée', css);
+    }
+  } catch(e) {
+    window._bruitData = null;
+    setCard('bruit','Non disponible','Erreur API bruit','');
+  }
+}
+
 // ══ DÉTAIL CARTE — Panel inline ══
 function showDetail(cardId){
   const container = document.getElementById('detailContainer');
@@ -1780,7 +1788,7 @@ function showDetail(cardId){
     fibre:      () => showFibreDetail(),
     services:   () => showServicesMap(),
     dpe:        () => go('energie'),
-    bruit:      () => ouvrirBruit(),
+    bruit:      () => showBruitDetail(),
   };
   if(data[cardId]) data[cardId]();
 }
@@ -1803,6 +1811,7 @@ function showPanel(title, html){
 }
 
 function closePanel(){
+  ['_dvfChart','_risquesChart','_ecolesChart','_mobiliteChart'].forEach(k=>{if(window[k]){window[k].destroy();window[k]=null;}});
   document.getElementById('detailContainer').innerHTML = '';
   document.getElementById('cardsGrid').style.display = 'grid';
   if(window._leafletMap){window._leafletMap.remove();window._leafletMap=null;}
@@ -1824,8 +1833,22 @@ function showDVFDetail(){
   if(!d.stats){showPanel('💰 Prix & marché DVF','<p style="color:var(--muted)">Aucune transaction trouvée dans ce secteur.</p>');return;}
   const periodeLabel = d.dateRange ? `Période ${d.dateRange}` : '';
   window._dvfRecentes = d.recentes || [];
-  function renderDVFRows(n){
-    const liste = n === 0 ? window._dvfRecentes : window._dvfRecentes.slice(0, n);
+  window._dvfFilterType = 'tous';
+  window._dvfFilterSurf = 0;
+  window._dvfFilterN    = 10;
+  function renderDVFRows(){
+    let liste = window._dvfRecentes;
+    if(window._dvfFilterType !== 'tous') liste = liste.filter(t => {
+      const tp = (t.type||'').toLowerCase();
+      return window._dvfFilterType === 'appt' ? tp.includes('appartement') : tp.includes('maison');
+    });
+    if(window._dvfFilterSurf > 0){
+      if(window._dvfFilterSurf === 50)  liste = liste.filter(t => (t.surf||0) < 50);
+      if(window._dvfFilterSurf === 100) liste = liste.filter(t => (t.surf||0) >= 50 && (t.surf||0) <= 100);
+      if(window._dvfFilterSurf === 200) liste = liste.filter(t => (t.surf||0) > 100);
+    }
+    const n = window._dvfFilterN;
+    if(n > 0) liste = liste.slice(0, n);
     document.getElementById('dvfTbody').innerHTML = liste.map(t=>`
       <tr>
         <td>${t.date||'—'}</td>
@@ -1833,12 +1856,19 @@ function showDVFDetail(){
         <td>${t.surf?t.surf+'m²':'—'}</td>
         <td><strong>${t.prixM2?t.prixM2.toLocaleString('fr-FR')+' €/m²':'—'}</strong></td>
         <td>${t.prix?t.prix.toLocaleString('fr-FR')+' €':'—'}</td>
-      </tr>`).join('') || '<tr><td colspan="5">Aucune transaction</td></tr>';
+      </tr>`).join('') || '<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:.8rem">Aucune transaction pour ce filtre</td></tr>';
     document.querySelectorAll('.dvf-filter-btn').forEach(b=>b.classList.toggle('active', b.dataset.n===String(n)));
+    document.querySelectorAll('.dvf-type-btn').forEach(b=>b.classList.toggle('active', b.dataset.t===window._dvfFilterType));
+    document.querySelectorAll('.dvf-surf-btn').forEach(b=>b.classList.toggle('active', b.dataset.s===String(window._dvfFilterSurf)));
   }
-  window.filterDVF = renderDVFRows;
-  const DVF_FILTRES = [10, 20, 50, 0]; // 0 = toutes
-  const btnsFiltres = DVF_FILTRES.map(n=>`<button class="dvf-filter-btn" data-n="${n}" onclick="filterDVF(${n})" style="padding:.25rem .7rem;font-size:.72rem;border:1px solid var(--border);background:var(--white);border-radius:3px;cursor:pointer;margin-right:.3rem">${n===0?'Toutes':n}</button>`).join('');
+  window.filterDVF     = n  => { window._dvfFilterN=n;    renderDVFRows(); };
+  window.filterDVFType = t  => { window._dvfFilterType=t; renderDVFRows(); };
+  window.filterDVFSurf = s  => { window._dvfFilterSurf=s; renderDVFRows(); };
+  const btnStyle = 'padding:.25rem .7rem;font-size:.72rem;border:1px solid var(--border);background:var(--white);border-radius:3px;cursor:pointer;margin-right:.3rem';
+  const DVF_FILTRES = [10, 20, 50, 0];
+  const btnsFiltres = DVF_FILTRES.map(n=>`<button class="dvf-filter-btn" data-n="${n}" onclick="filterDVF(${n})" style="${btnStyle}">${n===0?'Toutes':n}</button>`).join('');
+  const btnsType = [['tous','Tous'],['appt','🏢 Appartement'],['maison','🏠 Maison']].map(([t,l])=>`<button class="dvf-type-btn dvf-filter-btn" data-t="${t}" onclick="filterDVFType('${t}')" style="${btnStyle}">${l}</button>`).join('');
+  const btnsSurf = [[0,'Toute'],[50,'< 50m²'],[100,'50–100m²'],[200,'> 100m²']].map(([s,l])=>`<button class="dvf-surf-btn dvf-filter-btn" data-s="${s}" onclick="filterDVFSurf(${s})" style="${btnStyle}">${l}</button>`).join('');
   showPanel('💰 Transactions DVF officielles', `
     <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1rem">
       <div class="stat-box"><span class="stat-n">${d.stats.medianM2.toLocaleString('fr-FR')}€</span><span class="stat-l">Médian /m²</span></div>
@@ -1846,13 +1876,41 @@ function showDVFDetail(){
       <div class="stat-box"><span class="stat-n">${d.rayon}m</span><span class="stat-l">Rayon analysé</span></div>
     </div>
     <p style="font-size:.75rem;color:var(--muted);margin-bottom:.6rem">Fourchette : ${d.stats.minM2.toLocaleString('fr-FR')} – ${d.stats.maxM2.toLocaleString('fr-FR')} €/m²</p>
+    <div style="margin-bottom:.5rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
+      <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Type :</span>${btnsType}
+    </div>
+    <div style="margin-bottom:.5rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
+      <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Surface :</span>${btnsSurf}
+    </div>
     <div style="margin-bottom:.7rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Afficher :</span>${btnsFiltres}
     </div>
     <table class="tbl"><thead><tr><th>Date</th><th>Type</th><th>Surface</th><th>Prix/m²</th><th>Prix total</th></tr></thead>
     <tbody id="dvfTbody"></tbody></table>
-    <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">${periodeLabel?periodeLabel+' · ':''}Source : ${d.source}</p>`);
-  renderDVFRows(10);
+    <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">${periodeLabel?periodeLabel+' · ':''}Source : ${d.source}</p>
+    <div style="margin-top:1.2rem"><canvas id="dvfHistChart" height="140"></canvas></div>`);
+  renderDVFRows();
+  // Histogramme prix/m²
+  setTimeout(()=>{
+    const ctx=document.getElementById('dvfHistChart');
+    if(!ctx||!window.Chart) return;
+    const vals=(window._dvfRecentes||[]).map(t=>t.prixM2).filter(v=>v>0);
+    if(!vals.length) return;
+    const mn=Math.min(...vals), mx=Math.max(...vals);
+    const buckets=6; const step=(mx-mn)/buckets||1;
+    const labels=[], counts=[];
+    for(let i=0;i<buckets;i++){
+      const lo=Math.round(mn+i*step), hi=Math.round(mn+(i+1)*step);
+      labels.push(lo.toLocaleString('fr-FR')+'–'+hi.toLocaleString('fr-FR'));
+      counts.push(vals.filter(v=>v>=lo&&(i===buckets-1?v<=hi:v<hi)).length);
+    }
+    if(window._dvfChart){window._dvfChart.destroy();}
+    window._dvfChart=new Chart(ctx,{
+      type:'bar',
+      data:{labels,datasets:[{label:'Transactions',data:counts,backgroundColor:'rgba(184,131,42,.6)',borderColor:'#b8832a',borderWidth:1,borderRadius:4}]},
+      options:{plugins:{legend:{display:false},title:{display:true,text:'Distribution des prix (€/m²)',font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68'}},scales:{x:{ticks:{font:{size:9},color:'#8a7d68'},grid:{display:false}},y:{ticks:{stepSize:1,font:{size:9},color:'#8a7d68'},grid:{color:'rgba(0,0,0,.05)'}}},animation:{duration:500}}
+    });
+  },80);
 }
 
 function showRisquesDetail(){
@@ -1868,7 +1926,21 @@ function showRisquesDetail(){
       ${d.total===0?'<span class="tag tag-up">✓ Zone non exposée</span>':''}
     </div>
     ${liste}
+    <div style="margin-top:1.2rem"><canvas id="risquesChart" height="100"></canvas></div>
     <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : Géorisques - BRGM / État · <a href="https://www.georisques.gouv.fr/" target="_blank" style="color:var(--gold)">georisques.gouv.fr</a></p>`);
+  setTimeout(()=>{
+    const ctx=document.getElementById('risquesChart');
+    if(!ctx||!window.Chart) return;
+    const cats={inondation:'🌊 Inondation',seisme:'🌍 Séisme',argile:'🪨 Argile',mouvement:'⛰️ Mouvement terrain'};
+    const vals=Object.keys(cats).map(k=>d.categories?.[k]?1:0);
+    const colors=vals.map(v=>v?'rgba(122,45,45,.7)':'rgba(45,106,79,.5)');
+    if(window._risquesChart){window._risquesChart.destroy();}
+    window._risquesChart=new Chart(ctx,{
+      type:'bar',
+      data:{labels:Object.values(cats),datasets:[{data:vals,backgroundColor:colors,borderWidth:0,borderRadius:4}]},
+      options:{indexAxis:'y',plugins:{legend:{display:false},title:{display:true,text:'Exposition aux risques',font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68'}},scales:{x:{min:0,max:1,ticks:{display:false},grid:{display:false}},y:{ticks:{font:{size:10},color:'#8a7d68'},grid:{display:false}}},animation:{duration:500}}
+    });
+  },80);
 }
 
 function showEcolesDetail(){
@@ -1923,9 +1995,25 @@ function showEcolesDetail(){
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Afficher :</span>${btnsN}
     </div>
     <div id="ecolesListe"></div>
+    <div style="margin-top:1.2rem;max-width:240px;margin-left:auto;margin-right:auto"><canvas id="ecolesChart" height="200"></canvas></div>
     <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : Annuaire Éducation Nationale · <a href="https://data.education.gouv.fr" target="_blank" style="color:var(--gold)">data.education.gouv.fr</a></p>`);
 
   window.renderEcoles();
+  setTimeout(()=>{
+    const ctx=document.getElementById('ecolesChart');
+    if(!ctx||!window.Chart) return;
+    const ecoles=d.types?.ecoles||0, college=d.types?.college||0, lycee=d.types?.lycee||0;
+    if(ecoles+college+lycee===0) return;
+    if(window._ecolesChart){window._ecolesChart.destroy();}
+    window._ecolesChart=new Chart(ctx,{
+      type:'doughnut',
+      data:{
+        labels:['🏫 Écoles','🎓 Collèges','📚 Lycées'],
+        datasets:[{data:[ecoles,college,lycee],backgroundColor:['rgba(184,131,42,.75)','rgba(45,106,79,.75)','rgba(26,26,22,.65)'],borderWidth:2,borderColor:'#f5efe4'}]
+      },
+      options:{plugins:{legend:{position:'bottom',labels:{font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68',padding:12}},title:{display:true,text:'Répartition par niveau',font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68'}},animation:{duration:500},cutout:'60%'}
+    });
+  },80);
 }
 
 function showMobiliteDetail(){
@@ -1941,11 +2029,13 @@ function showMobiliteDetail(){
     </div>
     <div class="map-legend">
       <div class="legend-item"><div class="legend-dot" style="background:#1a73e8"></div>Métro/RER</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#34a853"></div>Bus/Tram</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#4caf50"></div>Vélos/Trottinettes</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#9c27b0"></div>Bornes recharge</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#e67e22"></div>Bus/Tram</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#27ae60"></div>Vélos/Trottinettes</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#8e44ad"></div>Bornes recharge</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#c0392b"></div>Gare</div>
     </div>
     <div class="map-container" id="mapMobilite"></div>
+    <div style="margin-top:1.2rem;max-width:360px"><canvas id="mobiliteChart" height="110"></canvas></div>
     ${d.arretsPrincipaux?.length?`<p style="font-size:.75rem;color:var(--muted);margin-top:.5rem">Principaux arrêts : ${d.arretsPrincipaux.join(' · ')}</p>`:''}
     <p style="font-size:.62rem;color:var(--muted);margin-top:.4rem">Source : OpenStreetMap via Overpass API · Rayon 1000m</p>
   `);
@@ -1956,7 +2046,7 @@ function showMobiliteDetail(){
 
     if(window._leafletMapMobilite){window._leafletMapMobilite.remove();window._leafletMapMobilite=null;}
 
-    const map = L.map('mapMobilite').setView([lat, lng], 15);
+    const map = L.map('mapMobilite').setView([lat, lng], 14);
     window._leafletMapMobilite = map;
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
@@ -1964,8 +2054,8 @@ function showMobiliteDetail(){
     }).addTo(map);
 
     // Cercles
-    L.circle([lat,lng],{radius:300,color:'rgba(184,131,42,.4)',fillColor:'rgba(184,131,42,.05)',fillOpacity:1,weight:1,dashArray:'4'}).addTo(map);
-    L.circle([lat,lng],{radius:500,color:'rgba(184,131,42,.2)',fillColor:'transparent',weight:1,dashArray:'4'}).addTo(map);
+    L.circle([lat,lng],{radius:500,color:'rgba(184,131,42,.4)',fillColor:'rgba(184,131,42,.04)',fillOpacity:1,weight:1,dashArray:'4'}).addTo(map);
+    L.circle([lat,lng],{radius:1000,color:'rgba(184,131,42,.2)',fillColor:'transparent',weight:1,dashArray:'4'}).addTo(map);
 
     // Marqueur adresse
     const homeIcon = L.divIcon({
@@ -1979,11 +2069,12 @@ function showMobiliteDetail(){
       d.elements.forEach(e => {
         if(!e.lat||!e.lon) return;
         const tags = e.tags||{};
-        let icone='🚏', couleur='#34a853';
+        let icone='🚏', couleur='#e67e22';
         if(tags.railway==='subway_entrance'||tags.station==='subway'){icone='🚇';couleur='#1a73e8';}
-        else if(tags.railway==='station'){icone='🚂';couleur='#1a73e8';}
-        else if(tags.amenity==='bicycle_rental'){icone='🚲';couleur='#4caf50';}
-        else if(tags.amenity==='charging_station'){icone='⚡';couleur='#9c27b0';}
+        else if(tags.railway==='station'){icone='🚂';couleur='#c0392b';}
+        else if(tags.railway==='tram_stop'){icone='🚊';couleur='#e67e22';}
+        else if(tags.amenity==='bicycle_rental'){icone='🚲';couleur='#27ae60';}
+        else if(tags.amenity==='charging_station'){icone='⚡';couleur='#8e44ad';}
 
         const icon = L.divIcon({
           html:`<div style="background:${couleur};border:2px solid #fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 2px 6px rgba(0,0,0,.25)">${icone}</div>`,
@@ -1996,13 +2087,24 @@ function showMobiliteDetail(){
       });
     }
   }, 150);
-}
-
-function showAltitudeDetail(){
-  if(!currentCoords) return;
-  showPanel('🏔️ Altitude & topographie', `
-    <p style="font-size:.85rem;line-height:1.7;margin-bottom:1rem">L'altitude est extraite de la Base Adresse Nationale (BAN) lors de la géolocalisation de l'adresse.</p>
-    <p style="font-size:.85rem;line-height:1.7">Pour une analyse topographique détaillée (exposition, relief, pentes), consultez le <a href="https://geoservices.ign.fr/" target="_blank" style="color:var(--gold)">Géoportail IGN</a>.</p>`);
+  // Bar chart mobilité
+  setTimeout(()=>{
+    const ctx=document.getElementById('mobiliteChart');
+    if(!ctx||!window.Chart) return;
+    if(window._mobiliteChart){window._mobiliteChart.destroy();}
+    window._mobiliteChart=new Chart(ctx,{
+      type:'bar',
+      data:{
+        labels:['🚇 Métro/RER','🚌 Arrêts bus','🚲 Vélos/bornes'],
+        datasets:[{
+          data:[d.stats?.metro||0, d.stats?.arretsBus||0, d.stats?.velos||0],
+          backgroundColor:['rgba(26,115,232,.7)','rgba(52,168,83,.7)','rgba(76,175,80,.7)'],
+          borderWidth:0,borderRadius:4
+        }]
+      },
+      options:{plugins:{legend:{display:false},title:{display:true,text:'Équipements à proximité (1000m)',font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68'}},scales:{x:{ticks:{font:{size:10},color:'#8a7d68'},grid:{display:false}},y:{ticks:{font:{size:9},color:'#8a7d68'},grid:{color:'rgba(0,0,0,.05)'}}},animation:{duration:500}}
+    });
+  },200);
 }
 
 function showServicesMap(){
@@ -2096,9 +2198,39 @@ function showServicesMap(){
 }
 
 function showBruitDetail(){
+  const d = window._bruitData;
+  if(!d || !d.success){
+    showPanel('🔇 Bruit & nuisances', `
+      <p style="color:var(--muted);margin-bottom:1rem">${d?.error||'Données en cours de chargement…'}</p>
+      <p style="font-size:.75rem;color:var(--muted)">Cartes officielles : <a href="https://www.bruit.fr/" target="_blank" style="color:var(--gold)">bruit.fr →</a></p>`);
+    return;
+  }
+  const colors = {eleve:'#7a2d2d', modere:'#b8832a', faible:'#2d6a4f', inconnu:'#8a7d68'};
+  const color = colors[d.niveauCode] || colors.inconnu;
+  const score = d.score ?? 0;
   showPanel('🔇 Bruit & nuisances', `
-    <p style="font-size:.85rem;line-height:1.7;margin-bottom:1rem">Les cartes de bruit officielles sont disponibles sur <a href="https://www.bruit.fr/" target="_blank" style="color:var(--gold)">bruit.fr</a>.</p>
-    <p style="font-size:.85rem;line-height:1.7">Elles couvrent : routes, voies ferrées, aéroports et industrie. L'intégration directe est prévue en V3.</p>`);
+    <div style="background:var(--ink);border-radius:var(--r);padding:1.2rem;text-align:center;margin-bottom:1.2rem">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:2.2rem;color:${color};line-height:1">${d.niveau}</div>
+      <div style="font-size:.65rem;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.14em;margin-top:.35rem">Risque sonore estimé</div>
+      <div style="margin-top:.8rem;height:6px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden;max-width:200px;margin-left:auto;margin-right:auto">
+        <div style="height:100%;width:${Math.round(score/10*100)}%;background:${color};border-radius:3px;transition:width .5s"></div>
+      </div>
+    </div>
+    ${d.sources.length ? `
+    <div style="margin-bottom:1rem">
+      ${d.sources.map(s=>`
+        <div style="display:flex;align-items:flex-start;gap:.6rem;padding:.55rem 0;border-bottom:1px solid var(--borderl)">
+          <span style="font-size:1.1rem;flex-shrink:0">${s.icone}</span>
+          <div>
+            <div style="font-size:.82rem;font-weight:500">${s.label}</div>
+            ${s.detail?`<div style="font-size:.72rem;color:var(--muted)">${s.detail}</div>`:''}
+          </div>
+        </div>`).join('')}
+    </div>` : `<p style="color:var(--green);margin-bottom:1rem">✓ Aucune source de bruit majeure identifiée à proximité</p>`}
+    <div style="background:rgba(184,131,42,.06);border:1px solid var(--goldborder);border-radius:var(--r);padding:.7rem;font-size:.72rem;color:var(--muted);line-height:1.5">
+      ⚠️ ${d.avertissement}. Pour une mesure officielle, consultez <a href="https://www.bruit.fr/" target="_blank" style="color:var(--gold)">bruit.fr</a>.
+    </div>
+    <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : ${d.source}</p>`);
 }
 
 function showUrbanismeDetail(){
@@ -2106,30 +2238,71 @@ function showUrbanismeDetail(){
   if(!d){showPanel('📋 Urbanisme & PLU','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
   const z = d.zone;
   const doc = d.document;
+  // Traduction des codes de zone PLU
+  const ZONES_PLU = {
+    'U':'Zone urbaine — secteur déjà construit',
+    'UA':'Zone urbaine dense — centre-ville ou centre ancien',
+    'UB':'Zone urbaine résidentielle — habitat collectif ou mixte',
+    'UC':'Zone urbaine périphérique — habitat individuel',
+    'UD':'Zone urbaine de densité moyenne',
+    'UE':'Zone urbaine dédiée à l\'activité économique',
+    'UF':'Zone urbaine spécifique (équipements publics…)',
+    'UI':'Zone urbaine industrielle ou artisanale',
+    'AU':'Zone à urbaniser — constructible à terme',
+    '1AU':'Zone à urbaniser à court terme',
+    '2AU':'Zone à urbaniser à long terme',
+    'A':'Zone agricole — non constructible (sauf bâtiments agricoles)',
+    'N':'Zone naturelle — non constructible, protégée',
+    'Nh':'Zone naturelle avec habitations existantes',
+    'Ne':'Zone naturelle dédiée aux équipements',
+  };
+  const PRESC_FR = {
+    'plan de prévention':'Plan de prévention des risques (PPR) applicable',
+    'secteur sauvegardé':'Secteur sauvegardé — architecture protégée',
+    'zone inondable':'Zone inondable — contraintes constructives renforcées',
+    'emplacement réservé':'Emplacement réservé pour un projet public',
+    'mixité sociale':'Obligation de logements sociaux',
+    'hauteur':'Hauteur maximale de construction limitée',
+  };
+  const code = z.code?.replace(/\s/g,'').toUpperCase() || '';
+  const zoneLabel = ZONES_PLU[code] || ZONES_PLU[code.slice(0,2)] || ZONES_PLU[code.slice(0,1)] || z.typeZone || z.libelle || 'Voir détail sur Géoportail Urbanisme';
+  const prescriptions = d.prescriptions?.map(p => {
+    const key = Object.keys(PRESC_FR).find(k => p.toLowerCase().includes(k));
+    return key ? PRESC_FR[key] : p;
+  }) || [];
   showPanel('📋 Urbanisme & PLU · ' + (doc?.nomCommune||''), `
     <div style="display:flex;gap:1rem;margin-bottom:1.2rem;flex-wrap:wrap">
-      <div style="flex:1;background:var(--ink);border-radius:var(--r);padding:1rem;text-align:center">
+      <div style="flex:1;background:var(--ink);border-radius:var(--r);padding:1rem;text-align:center;min-width:80px">
         <div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--gold2)">${z.code||'NC'}</div>
-        <div style="font-size:.65rem;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.1em">Zone PLU</div>
+        <div style="font-size:.6rem;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.1em;margin-top:.2rem">Zone PLU</div>
       </div>
-      <div style="flex:2;background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:1rem">
-        <div style="font-size:.82rem;font-weight:500;margin-bottom:.4rem">${z.typeZone||'—'}</div>
-        <div style="font-size:.75rem;color:var(--muted);margin-bottom:.3rem">${z.libelle||''}</div>
-        <div style="font-size:.75rem">Constructible : <strong style="color:${z.constructible?'var(--green)':'var(--red)'}">${z.constructible===true?'Oui':z.constructible===false?'Non':'À vérifier'}</strong></div>
+      <div style="flex:3;background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:1rem">
+        <div style="font-size:.83rem;font-weight:500;margin-bottom:.5rem;line-height:1.4">${zoneLabel}</div>
+        <div style="font-size:.75rem;margin-bottom:.4rem">Constructible : <strong style="color:${z.constructible?'var(--green)':'var(--red)'}">${z.constructible===true?'✓ Oui':z.constructible===false?'✗ Non':'À vérifier sur le PLU'}</strong></div>
+        ${z.libelle&&z.libelle!==zoneLabel?`<div style="font-size:.7rem;color:var(--muted)">${z.libelle}</div>`:''}
       </div>
     </div>
-    ${d.prescriptions?.length?`<p style="font-size:.78rem;margin-bottom:.5rem"><strong>Prescriptions :</strong> ${d.prescriptions.join(', ')}</p>`:''}
-    <p style="font-size:.62rem;color:var(--muted)">Source : ${d.source} · Document approuvé le ${doc?.dateApprobation||'—'}</p>
+    ${prescriptions.length?`
+    <div style="background:rgba(184,131,42,.06);border:1px solid var(--goldborder);border-radius:var(--r);padding:.9rem;margin-bottom:.8rem">
+      <div style="font-size:.7rem;color:var(--gold);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.5rem">Prescriptions applicables</div>
+      ${prescriptions.map(p=>`<div style="font-size:.8rem;padding:.25rem 0;border-bottom:1px solid var(--borderl)">• ${p}</div>`).join('')}
+    </div>`:''}
+    <p style="font-size:.62rem;color:var(--muted)">Document ${doc?.dateApprobation?'approuvé le '+doc.dateApprobation:''} · ${d.source}</p>
     <p style="font-size:.72rem;margin-top:.5rem"><a href="https://www.geoportail-urbanisme.gouv.fr/" target="_blank" style="color:var(--gold)">Consulter le PLU complet sur Géoportail Urbanisme →</a></p>`);
 }
 
 function showMeteoDetail(){
   const d = window._meteoData;
   if(!d){showPanel('☀️ Météo & ensoleillement','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
+  const hAn = d.ensoleillement?.heuresAnnuelles || 0;
+  const hJour = hAn ? (hAn/365).toFixed(1) : null;
   showPanel('☀️ Météo & ensoleillement · Moyenne 10 ans', `
-    <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1rem">
-      <div class="stat-box"><span class="stat-n">${d.ensoleillement?.heuresAnnuelles?.toLocaleString('fr-FR')||'—'}</span><span class="stat-l">Heures/an</span></div>
-      <div class="stat-box"><span class="stat-n">${d.temperatures?.maxMoyenne||'—'}°</span><span class="stat-l">Max. moy.</span></div>
+    <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:.5rem">
+      <div class="stat-box"><span class="stat-n">${hAn?hAn.toLocaleString('fr-FR'):'—'}</span><span class="stat-l">Heures soleil/an</span></div>
+      <div class="stat-box"><span class="stat-n">${hJour||'—'} h</span><span class="stat-l">Moy. par jour</span></div>
+    </div>
+    <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:1rem">
+      <div class="stat-box"><span class="stat-n">${d.temperatures?.maxMoyenne||'—'}°</span><span class="stat-l">Temp. max. moy.</span></div>
       <div class="stat-box"><span class="stat-n">${d.precipitations?.annuellesMm||'—'} mm</span><span class="stat-l">Précip./an</span></div>
     </div>
     <p style="font-size:.8rem;color:var(--ink);font-weight:500;margin-bottom:.3rem">${d.ensoleillement?.label||''}</p>
@@ -2534,25 +2707,81 @@ function distScore(km){ return km<=2?10:km<=5?8:km<=10?6:km<=20?4:km<=35?2:0; }
 
 // ── Runner : Compatibilité de vie ──
 async function runProfil(){
+  if(!currentCoords){toast('Analysez d\'abord une adresse','err');return;}
   const btn=document.getElementById('btnProfil'),box=document.getElementById('boxProfil'),txt=document.getElementById('txtProfil');
-  box.style.display='block';btn.disabled=true;btn.innerHTML='<span class="spin w"></span> Géocodage…';
-  txt.innerHTML='<span class="spin"></span> Récupération des coordonnées…';
+  box.style.display='block';btn.disabled=true;btn.innerHTML='<span class="spin w"></span> Analyse…';
+  txt.innerHTML='<span class="spin"></span> Récupération des données réelles…';
   try{
-    const[a1,a2]=await Promise.all([geocodeIfNeeded('pAddr1','pInp1'),geocodeIfNeeded('pAddr2','pInp2')]);
-    if(!a1){toast('Adresse A non reconnue','err');box.style.display='none';btn.disabled=false;btn.innerHTML='✦ Comparer les 2 adresses';return;}
-    if(!a2){toast('Adresse B non reconnue','err');box.style.display='none';btn.disabled=false;btn.innerHTML='✦ Comparer les 2 adresses';return;}
-    txt.innerHTML='<span class="spin"></span> Récupération des données réelles…';
-    const[d1,d2]=await Promise.all([fetchAdresseData(a1.lat,a1.lon),fetchAdresseData(a2.lat,a2.lon)]);
+    const lat=currentCoords.lat, lon=currentCoords.lng;
+    const d=await fetchAdresseData(lat,lon);
+    const scores=calcScores(d);
     const weights=getProfilWeights();
+    const gScore=globalScore(scores,weights);
     const travail=window._travailCoords||null;
-    const items=[
-      {label:a1.label,data:d1,scores:calcScores(d1),travailKm:travail?distKm(a1.lat,a1.lon,travail.lat,travail.lon):null},
-      {label:a2.label,data:d2,scores:calcScores(d2),travailKm:travail?distKm(a2.lat,a2.lon,travail.lat,travail.lon):null},
-    ];
+    const travailKm=travail?distKm(lat,lon,travail.lat,travail.lon):null;
     const travailLabel=document.getElementById('pTravailLieu')?.value.trim()||null;
-    txt.innerHTML=renderCompTable(items,weights,false,travailLabel);
+    const dims=[
+      {key:'mob', label:'Mobilité',      emoji:'🚇'},
+      {key:'eco', label:'Écoles',        emoji:'🏫'},
+      {key:'parc',label:'Espaces verts', emoji:'🌳'},
+      {key:'rest',label:'Restaurants',   emoji:'🍽️'},
+      {key:'cult',label:'Culture',       emoji:'🎭'},
+      {key:'sprt',label:'Sport',         emoji:'🏋️'},
+      {key:'risq',label:'Risques',       emoji:'⚠️'},
+    ];
+    const sc=gScore>=7?'#2d6a4f':gScore>=4?'#b8832a':'#7a2d2d';
+    txt.innerHTML=`
+      <div style="text-align:center;margin-bottom:1.4rem">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:3rem;color:${sc};line-height:1">${gScore}<span style="font-size:1.4rem">/10</span></div>
+        <div style="font-size:.65rem;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;margin-top:.3rem">Score de compatibilité</div>
+        <div style="font-size:.75rem;color:var(--muted);margin-top:.3rem">📍 ${currentAddress}</div>
+      </div>
+      <div style="position:relative;max-width:320px;margin:0 auto 1.6rem"><canvas id="radarProfil" height="280"></canvas></div>
+      ${travailKm!=null?`<p style="font-size:.82rem;color:var(--muted);margin-bottom:1.2rem;text-align:center">🏢 ${travailLabel||'Travail'} : <strong>${travailKm} km</strong> à vol d'oiseau</p>`:''}
+      <table style="width:100%;border-collapse:collapse;font-size:.79rem">
+        ${dims.map(dim=>{
+          const s=scores[dim.key]||0;
+          const sc2=s>=7?'#2d6a4f':s>=4?'#b8832a':'#7a2d2d';
+          return `<tr>
+            <td style="padding:.45rem .4rem;border-bottom:1px solid var(--borderl);width:38%">${dim.emoji} ${dim.label}</td>
+            <td style="padding:.45rem .4rem;border-bottom:1px solid var(--borderl)">
+              <div style="display:flex;align-items:center;gap:.5rem">
+                <div style="flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden"><div style="height:100%;width:${s*10}%;background:${sc2};border-radius:3px"></div></div>
+                <span style="color:${sc2};font-weight:600;min-width:2.5rem;text-align:right">${s}/10</span>
+              </div>
+            </td>
+          </tr>`;
+        }).join('')}
+      </table>
+      <p style="font-size:.62rem;color:var(--muted);margin-top:.75rem">Source : DVF · OSM Overpass · Éducation nationale · Géorisques</p>`;
+    setTimeout(()=>{
+      const ctx=document.getElementById('radarProfil');
+      if(!ctx||!window.Chart) return;
+      if(window._radarProfilChart){window._radarProfilChart.destroy();}
+      window._radarProfilChart=new Chart(ctx,{
+        type:'radar',
+        data:{
+          labels:dims.map(d=>d.emoji+' '+d.label),
+          datasets:[{
+            label:'Score',
+            data:dims.map(d=>scores[d.key]||0),
+            backgroundColor:'rgba(184,131,42,.15)',
+            borderColor:'#b8832a',
+            borderWidth:2,
+            pointBackgroundColor:'#b8832a',
+            pointRadius:4,
+            pointHoverRadius:6,
+          }]
+        },
+        options:{
+          scales:{r:{min:0,max:10,ticks:{stepSize:2,display:false},grid:{color:'rgba(0,0,0,.08)'},angleLines:{color:'rgba(0,0,0,.08)'},pointLabels:{font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68'}}},
+          plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.raw}/10`}}},
+          animation:{duration:700},
+        }
+      });
+    },80);
   }catch(e){txt.innerHTML='⚠️ '+e.message;}
-  btn.disabled=false;btn.innerHTML='✦ Comparer les 2 adresses';
+  btn.disabled=false;btn.innerHTML='✦ Analyser la compatibilité';
 }
 
 // ── Runner : Comparer des biens ──

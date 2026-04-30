@@ -1,11 +1,11 @@
 // ══ VERCEL FUNCTION : AMÉNITÉS (OpenStreetMap via Overpass API) ══
 
 // ── Configuration ──
-const RAYON_RESTAU_M   = 500;   // rayon restaurants / cafés / bars (mètres)
-const RAYON_CULTURE_M  = 1000;  // rayon lieux culturels
-const RAYON_PARCS_M    = 1000;  // rayon espaces verts
-const RAYON_SPORT_M    = 1000;  // rayon équipements sportifs
-const RAYON_COMMERCE_M = 500;   // rayon commerces alimentaires
+const RAYON_RESTAU_M   = 1000;  // rayon restaurants / cafés / bars (mètres)
+const RAYON_CULTURE_M  = 2000;  // rayon lieux culturels
+const RAYON_PARCS_M    = 2000;  // rayon espaces verts
+const RAYON_SPORT_M    = 2000;  // rayon équipements sportifs
+const RAYON_COMMERCE_M = 1000;  // rayon commerces alimentaires
 const TIMEOUT_MS       = 7000;  // timeout par requête Overpass (Vercel max 30s configuré)
 const CACHE_SECONDES   = 86400; // 1 jour
 
