@@ -1816,6 +1816,13 @@ function showPanel(title, html){
 
 async function runProfil(){
   if(!currentAddress){toast('Analysez d\'abord une adresse','err');return;}
+  // Si amenites manque (timeout Overpass), on retente avant de tracer
+  if(!window._amenitesData && currentCoords){
+    const btn=document.getElementById('btnProfil');
+    if(btn){btn.disabled=true;btn.innerHTML='<span class="spin w"></span> Chargement…';}
+    await loadAmenites(currentCoords.lat, currentCoords.lng);
+    if(btn){btn.disabled=false;btn.innerHTML='✦ Analyser la compatibilité';}
+  }
   const d={
     dvf: window._dvfData,
     eco: window._ecolesData,
@@ -1903,7 +1910,7 @@ function showDVFDetail(){
   window._dvfRecentes = d.recentes || [];
   window._dvfFilterType = 'tous';
   window._dvfFilterSurf = 0;
-  window._dvfFilterN    = 10;
+  window._dvfFilterN    = 0;
   function renderDVFRows(){
     let liste = window._dvfRecentes;
     if(window._dvfFilterType !== 'tous') liste = liste.filter(t => {
@@ -1942,6 +1949,7 @@ function showDVFDetail(){
     let l=window._dvfRecentes||[];
     if(window._dvfFilterType!=='tous') l=l.filter(t=>{const tp=(t.type||'').toLowerCase();if(window._dvfFilterType==='appt')return tp.includes('appartement');if(window._dvfFilterType==='maison')return tp.includes('maison');if(window._dvfFilterType==='local')return tp.includes('local');if(window._dvfFilterType==='depend')return tp.includes('dépendance')||tp.includes('dependance');return true;});
     const s=window._dvfFilterSurf;if(s>0){const T=[[25,0,25],[50,25,50],[75,50,75],[100,75,100],[125,100,125],[150,125,150],[999,150,99999]];const tr=T.find(t=>t[0]===s);if(tr)l=l.filter(t=>(t.surf||0)>=tr[1]&&(t.surf||0)<tr[2]);}
+    const n=window._dvfFilterN;if(n>0)l=l.slice(0,n);
     return l.map(t=>t.prixM2).filter(v=>v>0);
   }
   function refreshDVFChart(){
@@ -1951,8 +1959,8 @@ function showDVFDetail(){
     for(let i=0;i<buckets;i++){const lo=Math.round(mn+i*step),hi=Math.round(mn+(i+1)*step);labels.push(lo.toLocaleString('fr-FR')+'–'+hi.toLocaleString('fr-FR'));counts.push(vals.filter(v=>v>=lo&&(i===buckets-1?v<=hi:v<hi)).length);los.push(lo);his.push(hi);}
     if(window._dvfChart){window._dvfChart.data.labels=labels;window._dvfChart.data.datasets[0].data=counts;window._dvfChart.update();return;}
     const ctx=document.getElementById('dvfHistChart'); if(!ctx||!window.Chart)return;
-    window._dvfChart=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Transactions',data:counts,backgroundColor:'rgba(184,131,42,.6)',borderColor:'#b8832a',borderWidth:1,borderRadius:4}]},
-      options:{plugins:{legend:{display:false},datalabels:{anchor:'end',align:'top',color:'#8a7d68',font:{size:9}},title:{display:true,text:'Distribution des prix (€/m²) — cliquer une barre pour filtrer',font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68'}},
+    window._dvfChart=new Chart(ctx,{type:'bar',plugins:[ChartDataLabels],data:{labels,datasets:[{label:'Transactions',data:counts,backgroundColor:'rgba(184,131,42,.6)',borderColor:'#b8832a',borderWidth:1,borderRadius:4}]},
+      options:{plugins:{legend:{display:false},datalabels:{anchor:'end',align:'top',color:'#8a7d68',font:{size:9,weight:'600'}},title:{display:true,text:'Distribution des prix (€/m²) — cliquer une barre pour filtrer',font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68'}},
         scales:{x:{ticks:{font:{size:8},color:'#8a7d68'},grid:{display:false}},y:{ticks:{font:{size:9},color:'#8a7d68'},grid:{color:'rgba(0,0,0,.05)'}}},
         animation:{duration:300},
         onClick:(_,els)=>{if(!els.length){window._dvfFilterPrixLo=null;window._dvfFilterPrixHi=null;renderDVFRows();return;}const i=els[0].index;window._dvfFilterPrixLo=los[i];window._dvfFilterPrixHi=his[i];let l=getFilteredVals().filter((_,j)=>window._dvfRecentes[j]?.prixM2>=los[i]&&window._dvfRecentes[j]?.prixM2<=his[i]);const sl=window._dvfRecentes.filter(t=>t.prixM2>=los[i]&&t.prixM2<=his[i]);document.getElementById('dvfTbody').innerHTML=sl.map(t=>`<tr><td>${t.date||'—'}</td><td>${t.type||'—'}</td><td>${t.surf?t.surf+'m²':'—'}</td><td><strong>${t.prixM2?t.prixM2.toLocaleString('fr-FR')+' €/m²':'—'}</strong></td><td>${t.prix?t.prix.toLocaleString('fr-FR')+' €':'—'}</td></tr>`).join('')||'<tr><td colspan="5" style="color:var(--muted);text-align:center">Aucune transaction</td></tr>'; toast(sl.length+' transaction(s) dans cette fourchette','');},
