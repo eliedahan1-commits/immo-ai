@@ -986,6 +986,15 @@ select.inp{
       <p style="font-size:.82rem;color:var(--muted);margin-bottom:1rem" id="pAdresseLabel">Analysez d'abord une adresse depuis la page principale.</p>
       <button class="btn btn-dark btn-full" onclick="runProfil()" id="btnProfil">✦ Analyser la compatibilité</button>
     </div>
+    <div class="card" id="radarCard" style="margin-top:1rem;display:none">
+      <div class="ctitle">📊 Score de compatibilité</div>
+      <div style="text-align:center;margin-bottom:.5rem">
+        <span id="radarGlobalScore" style="font-size:2.2rem;font-weight:700;color:var(--accent)"></span>
+        <span style="font-size:.9rem;color:var(--muted)">/10</span>
+        <div id="radarGlobalLabel" style="font-size:.82rem;color:var(--muted);margin-top:.2rem"></div>
+      </div>
+      <div style="max-width:460px;margin:0 auto"><canvas id="radarCanvas" height="380"></canvas></div>
+    </div>
     <div class="aibox" id="boxProfil" style="display:none"><div class="ailabel">✦ Compatibilité · <span class="source-badge">📊 DVF + OSM + Écoles + Risques</span></div><div id="txtProfil" class="aitext"></div></div>
   </div></div>
 
@@ -1805,8 +1814,72 @@ function showPanel(title, html){
   document.getElementById('cardsGrid').style.display = 'none';
 }
 
+async function runProfil(){
+  if(!currentAddress){toast('Analysez d\'abord une adresse','err');return;}
+  const d={
+    dvf: window._dvfData,
+    eco: window._ecolesData,
+    mob: window._mobiliteData,
+    am:  window._amenitesData,
+    ris: window._risquesData,
+  };
+  if(!d.mob && !d.eco && !d.am && !d.ris){
+    toast('Données non chargées — analysez d\'abord une adresse','err');
+    return;
+  }
+  const scores  = calcScores(d);
+  const weights = getProfilWeights();
+  const global  = globalScore(scores, weights);
+
+  const LABELS = ['Mobilité','Écoles','Parcs','Restaurants','Culture','Sport','Sécurité'];
+  const KEYS   = ['mob','eco','parc','rest','cult','sprt','risq'];
+  const values = KEYS.map(k=>scores[k]||0);
+
+  // Radar card
+  document.getElementById('radarCard').style.display='block';
+  document.getElementById('radarGlobalScore').textContent=global;
+  document.getElementById('radarGlobalLabel').textContent=
+    global>=8?'Excellent match':global>=6?'Très compatible':global>=4?'Compatible':'Peu compatible';
+
+  if(window._radarChart){window._radarChart.destroy();window._radarChart=null;}
+  const ctx=document.getElementById('radarCanvas').getContext('2d');
+  window._radarChart=new Chart(ctx,{
+    type:'radar',
+    plugins:[ChartDataLabels],
+    data:{
+      labels:LABELS,
+      datasets:[{
+        label:'Score',
+        data:values,
+        backgroundColor:'rgba(162,128,90,0.18)',
+        borderColor:'#a2805a',
+        borderWidth:2,
+        pointBackgroundColor:'#a2805a',
+        pointRadius:4,
+      }]
+    },
+    options:{
+      scales:{r:{
+        min:0,max:10,
+        ticks:{stepSize:2,font:{size:9},color:'#8a7d68',backdropColor:'transparent'},
+        pointLabels:{font:{size:11,family:'Outfit,sans-serif'},color:'#3d2f1e'},
+        grid:{color:'rgba(0,0,0,.07)'},
+        angleLines:{color:'rgba(0,0,0,.07)'},
+      }},
+      plugins:{
+        legend:{display:false},
+        datalabels:{anchor:'end',align:'end',color:'#a2805a',font:{size:10,weight:'600'},formatter:v=>v+'/10'}
+      },
+      animation:{duration:600}
+    }
+  });
+
+  // IA text analysis
+  runIA('profil');
+}
+
 function closePanel(){
-  ['_dvfChart','_risquesChart','_ecolesChart','_mobiliteChart'].forEach(k=>{if(window[k]){window[k].destroy();window[k]=null;}});
+  ['_dvfChart','_risquesChart','_ecolesChart','_mobiliteChart','_radarChart'].forEach(k=>{if(window[k]){window[k].destroy();window[k]=null;}});
   document.getElementById('detailContainer').innerHTML = '';
   document.getElementById('cardsGrid').style.display = 'grid';
   if(window._leafletMap){window._leafletMap.remove();window._leafletMap=null;}
@@ -2764,7 +2837,14 @@ async function runProfil(){
   txt.innerHTML='<span class="spin"></span> Récupération des données réelles…';
   try{
     const lat=currentCoords.lat, lon=currentCoords.lng;
-    const d=await fetchAdresseData(lat,lon);
+    // Utiliser les données déjà chargées plutôt que de refaire les appels API
+    const d = {
+      dvf: window._dvfData,
+      eco: window._ecolesData,
+      mob: window._mobiliteData,
+      am:  window._amenitesData,
+      ris: window._risquesData,
+    };
     const scores=calcScores(d);
     const weights=getProfilWeights();
     const gScore=globalScore(scores,weights);
