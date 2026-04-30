@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <style>
 /* ══ RESET & VARIABLES ══ */
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -896,12 +897,6 @@ select.inp{
     <div class="ph"><div class="ptag">✦ Stratégie</div><h2 class="ptitle">Compatibilité <em>de vie</em></h2><p class="psub">L'IA identifie les secteurs vraiment compatibles avec votre style de vie, en s'appuyant sur les données réelles DVF, OpenStreetMap et l'annuaire scolaire.</p></div>
     <div class="card"><div class="ctitle">🎯 Votre profil de vie</div>
 
-      <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Ville / secteur recherché</p>
-      <div style="position:relative;margin-bottom:.9rem">
-        <input class="inp" id="pVille" placeholder="Ex: Paris 15e, Lyon 3e, Bordeaux centre…" autocomplete="off" />
-        <div class="search-suggestions" id="pVilleSugs" style="top:auto;bottom:auto;left:0;right:0;"></div>
-      </div>
-
       <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Enfants ?</p>
       <div class="toggles" style="margin-bottom:.9rem" id="tPE">
         <button class="tog" onclick="tog('tPE',this)">Oui, en bas âge</button>
@@ -1200,7 +1195,7 @@ function go(id){
     const extractVille = addr => { const m=addr.match(/\d{5}\s+(.+)$/); return m?m[1]:addr; };
     if(id === 'prix')     set('dvfAddr', currentAddress);
     if(id === 'offre')    set('oRue',    currentAddress);
-    if(id === 'profil')   { set('pVille', extractVille(currentAddress)); const pLbl=document.getElementById('pAdresseLabel'); if(pLbl&&currentAddress) pLbl.innerHTML='📍 <strong>'+currentAddress+'</strong>'; }
+    if(id === 'profil')   { const pLbl=document.getElementById('pAdresseLabel'); if(pLbl&&currentAddress) pLbl.innerHTML='📍 <strong>'+currentAddress+'</strong>'; }
   }
 }
 
@@ -1840,12 +1835,17 @@ function showDVFDetail(){
     let liste = window._dvfRecentes;
     if(window._dvfFilterType !== 'tous') liste = liste.filter(t => {
       const tp = (t.type||'').toLowerCase();
-      return window._dvfFilterType === 'appt' ? tp.includes('appartement') : tp.includes('maison');
+      if(window._dvfFilterType==='appt')   return tp.includes('appartement');
+      if(window._dvfFilterType==='maison') return tp.includes('maison');
+      if(window._dvfFilterType==='local')  return tp.includes('local');
+      if(window._dvfFilterType==='depend') return tp.includes('dépendance')||tp.includes('dependance');
+      return true;
     });
-    if(window._dvfFilterSurf > 0){
-      if(window._dvfFilterSurf === 50)  liste = liste.filter(t => (t.surf||0) < 50);
-      if(window._dvfFilterSurf === 100) liste = liste.filter(t => (t.surf||0) >= 50 && (t.surf||0) <= 100);
-      if(window._dvfFilterSurf === 200) liste = liste.filter(t => (t.surf||0) > 100);
+    const s=window._dvfFilterSurf;
+    if(s>0){
+      const SURF_TRANCHES=[[25,0,25],[50,25,50],[75,50,75],[100,75,100],[125,100,125],[150,125,150],[999,150,99999]];
+      const tranche=SURF_TRANCHES.find(t=>t[0]===s);
+      if(tranche) liste=liste.filter(t=>(t.surf||0)>=tranche[1]&&(t.surf||0)<tranche[2]);
     }
     const n = window._dvfFilterN;
     if(n > 0) liste = liste.slice(0, n);
@@ -1861,14 +1861,37 @@ function showDVFDetail(){
     document.querySelectorAll('.dvf-type-btn').forEach(b=>b.classList.toggle('active', b.dataset.t===window._dvfFilterType));
     document.querySelectorAll('.dvf-surf-btn').forEach(b=>b.classList.toggle('active', b.dataset.s===String(window._dvfFilterSurf)));
   }
-  window.filterDVF     = n  => { window._dvfFilterN=n;    renderDVFRows(); };
-  window.filterDVFType = t  => { window._dvfFilterType=t; renderDVFRows(); };
-  window.filterDVFSurf = s  => { window._dvfFilterSurf=s; renderDVFRows(); };
+  window.filterDVF     = n  => { window._dvfFilterN=n;    renderDVFRows(); refreshDVFChart(); };
+  window.filterDVFType = t  => { window._dvfFilterType=t; renderDVFRows(); refreshDVFChart(); };
+  window.filterDVFSurf = s  => { window._dvfFilterSurf=s; renderDVFRows(); refreshDVFChart(); };
+  window.filterDVFPrix = (lo,hi) => { window._dvfFilterPrixLo=lo; window._dvfFilterPrixHi=hi; renderDVFRows(); };
+  function getFilteredVals(){
+    let l=window._dvfRecentes||[];
+    if(window._dvfFilterType!=='tous') l=l.filter(t=>{const tp=(t.type||'').toLowerCase();if(window._dvfFilterType==='appt')return tp.includes('appartement');if(window._dvfFilterType==='maison')return tp.includes('maison');if(window._dvfFilterType==='local')return tp.includes('local');if(window._dvfFilterType==='depend')return tp.includes('dépendance')||tp.includes('dependance');return true;});
+    const s=window._dvfFilterSurf;if(s>0){const T=[[25,0,25],[50,25,50],[75,50,75],[100,75,100],[125,100,125],[150,125,150],[999,150,99999]];const tr=T.find(t=>t[0]===s);if(tr)l=l.filter(t=>(t.surf||0)>=tr[1]&&(t.surf||0)<tr[2]);}
+    return l.map(t=>t.prixM2).filter(v=>v>0);
+  }
+  function refreshDVFChart(){
+    const vals=getFilteredVals(); if(!vals.length){if(window._dvfChart){window._dvfChart.destroy();window._dvfChart=null;}return;}
+    const mn=Math.min(...vals),mx=Math.max(...vals);const buckets=6;const step=(mx-mn)/buckets||1;
+    const labels=[],counts=[],los=[],his=[];
+    for(let i=0;i<buckets;i++){const lo=Math.round(mn+i*step),hi=Math.round(mn+(i+1)*step);labels.push(lo.toLocaleString('fr-FR')+'–'+hi.toLocaleString('fr-FR'));counts.push(vals.filter(v=>v>=lo&&(i===buckets-1?v<=hi:v<hi)).length);los.push(lo);his.push(hi);}
+    if(window._dvfChart){window._dvfChart.data.labels=labels;window._dvfChart.data.datasets[0].data=counts;window._dvfChart.update();return;}
+    const ctx=document.getElementById('dvfHistChart'); if(!ctx||!window.Chart)return;
+    window._dvfChart=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Transactions',data:counts,backgroundColor:'rgba(184,131,42,.6)',borderColor:'#b8832a',borderWidth:1,borderRadius:4}]},
+      options:{plugins:{legend:{display:false},datalabels:{anchor:'end',align:'top',color:'#8a7d68',font:{size:9}},title:{display:true,text:'Distribution des prix (€/m²) — cliquer une barre pour filtrer',font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68'}},
+        scales:{x:{ticks:{font:{size:8},color:'#8a7d68'},grid:{display:false}},y:{ticks:{font:{size:9},color:'#8a7d68'},grid:{color:'rgba(0,0,0,.05)'}}},
+        animation:{duration:300},
+        onClick:(_,els)=>{if(!els.length){window._dvfFilterPrixLo=null;window._dvfFilterPrixHi=null;renderDVFRows();return;}const i=els[0].index;window._dvfFilterPrixLo=los[i];window._dvfFilterPrixHi=his[i];let l=getFilteredVals().filter((_,j)=>window._dvfRecentes[j]?.prixM2>=los[i]&&window._dvfRecentes[j]?.prixM2<=his[i]);const sl=window._dvfRecentes.filter(t=>t.prixM2>=los[i]&&t.prixM2<=his[i]);document.getElementById('dvfTbody').innerHTML=sl.map(t=>`<tr><td>${t.date||'—'}</td><td>${t.type||'—'}</td><td>${t.surf?t.surf+'m²':'—'}</td><td><strong>${t.prixM2?t.prixM2.toLocaleString('fr-FR')+' €/m²':'—'}</strong></td><td>${t.prix?t.prix.toLocaleString('fr-FR')+' €':'—'}</td></tr>`).join('')||'<tr><td colspan="5" style="color:var(--muted);text-align:center">Aucune transaction</td></tr>'; toast(sl.length+' transaction(s) dans cette fourchette','');},
+      }
+    });
+  }
   const btnStyle = 'padding:.25rem .7rem;font-size:.72rem;border:1px solid var(--border);background:var(--white);border-radius:3px;cursor:pointer;margin-right:.3rem';
   const DVF_FILTRES = [10, 20, 50, 0];
   const btnsFiltres = DVF_FILTRES.map(n=>`<button class="dvf-filter-btn" data-n="${n}" onclick="filterDVF(${n})" style="${btnStyle}">${n===0?'Toutes':n}</button>`).join('');
-  const btnsType = [['tous','Tous'],['appt','🏢 Appartement'],['maison','🏠 Maison']].map(([t,l])=>`<button class="dvf-type-btn dvf-filter-btn" data-t="${t}" onclick="filterDVFType('${t}')" style="${btnStyle}">${l}</button>`).join('');
-  const btnsSurf = [[0,'Toute'],[50,'< 50m²'],[100,'50–100m²'],[200,'> 100m²']].map(([s,l])=>`<button class="dvf-surf-btn dvf-filter-btn" data-s="${s}" onclick="filterDVFSurf(${s})" style="${btnStyle}">${l}</button>`).join('');
+  const btnsType = [['tous','Tous'],['appt','🏢 Appt.'],['maison','🏠 Maison'],['local','🏗️ Local/comm.'],['depend','📦 Dépendance']].map(([t,l])=>`<button class="dvf-type-btn dvf-filter-btn" data-t="${t}" onclick="filterDVFType('${t}')" style="${btnStyle}">${l}</button>`).join('');
+  const SURF_TRANCHES=[[0,'Toute'],[25,'<25m²'],[50,'25–50'],[75,'50–75'],[100,'75–100'],[125,'100–125'],[150,'125–150'],[999,'>150m²']];
+  const btnsSurf = SURF_TRANCHES.map(([s,l])=>`<button class="dvf-surf-btn dvf-filter-btn" data-s="${s}" onclick="filterDVFSurf(${s})" style="${btnStyle}">${l}</button>`).join('');
   showPanel('💰 Transactions DVF officielles', `
     <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1rem">
       <div class="stat-box"><span class="stat-n">${d.stats.medianM2.toLocaleString('fr-FR')}€</span><span class="stat-l">Médian /m²</span></div>
@@ -1890,27 +1913,7 @@ function showDVFDetail(){
     <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">${periodeLabel?periodeLabel+' · ':''}Source : ${d.source}</p>
     <div style="margin-top:1.2rem"><canvas id="dvfHistChart" height="140"></canvas></div>`);
   renderDVFRows();
-  // Histogramme prix/m²
-  setTimeout(()=>{
-    const ctx=document.getElementById('dvfHistChart');
-    if(!ctx||!window.Chart) return;
-    const vals=(window._dvfRecentes||[]).map(t=>t.prixM2).filter(v=>v>0);
-    if(!vals.length) return;
-    const mn=Math.min(...vals), mx=Math.max(...vals);
-    const buckets=6; const step=(mx-mn)/buckets||1;
-    const labels=[], counts=[];
-    for(let i=0;i<buckets;i++){
-      const lo=Math.round(mn+i*step), hi=Math.round(mn+(i+1)*step);
-      labels.push(lo.toLocaleString('fr-FR')+'–'+hi.toLocaleString('fr-FR'));
-      counts.push(vals.filter(v=>v>=lo&&(i===buckets-1?v<=hi:v<hi)).length);
-    }
-    if(window._dvfChart){window._dvfChart.destroy();}
-    window._dvfChart=new Chart(ctx,{
-      type:'bar',
-      data:{labels,datasets:[{label:'Transactions',data:counts,backgroundColor:'rgba(184,131,42,.6)',borderColor:'#b8832a',borderWidth:1,borderRadius:4}]},
-      options:{plugins:{legend:{display:false},title:{display:true,text:'Distribution des prix (€/m²)',font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68'}},scales:{x:{ticks:{font:{size:9},color:'#8a7d68'},grid:{display:false}},y:{ticks:{stepSize:1,font:{size:9},color:'#8a7d68'},grid:{color:'rgba(0,0,0,.05)'}}},animation:{duration:500}}
-    });
-  },80);
+  setTimeout(()=>refreshDVFChart(), 80);
 }
 
 function showRisquesDetail(){
@@ -1926,21 +1929,7 @@ function showRisquesDetail(){
       ${d.total===0?'<span class="tag tag-up">✓ Zone non exposée</span>':''}
     </div>
     ${liste}
-    <div style="margin-top:1.2rem"><canvas id="risquesChart" height="100"></canvas></div>
     <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : Géorisques - BRGM / État · <a href="https://www.georisques.gouv.fr/" target="_blank" style="color:var(--gold)">georisques.gouv.fr</a></p>`);
-  setTimeout(()=>{
-    const ctx=document.getElementById('risquesChart');
-    if(!ctx||!window.Chart) return;
-    const cats={inondation:'🌊 Inondation',seisme:'🌍 Séisme',argile:'🪨 Argile',mouvement:'⛰️ Mouvement terrain'};
-    const vals=Object.keys(cats).map(k=>d.categories?.[k]?1:0);
-    const colors=vals.map(v=>v?'rgba(122,45,45,.7)':'rgba(45,106,79,.5)');
-    if(window._risquesChart){window._risquesChart.destroy();}
-    window._risquesChart=new Chart(ctx,{
-      type:'bar',
-      data:{labels:Object.values(cats),datasets:[{data:vals,backgroundColor:colors,borderWidth:0,borderRadius:4}]},
-      options:{indexAxis:'y',plugins:{legend:{display:false},title:{display:true,text:'Exposition aux risques',font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68'}},scales:{x:{min:0,max:1,ticks:{display:false},grid:{display:false}},y:{ticks:{font:{size:10},color:'#8a7d68'},grid:{display:false}}},animation:{duration:500}}
-    });
-  },80);
 }
 
 function showEcolesDetail(){
@@ -1983,19 +1972,23 @@ function showEcolesDetail(){
   const btnsN    = ECO_NS.map(n=>`<button class="eco-n-btn dvf-filter-btn" data-n="${n}" onclick="setEcoN(${n})" style="${btnStyle}">${n===0?'Tous':n}</button>`).join('');
 
   showPanel('🏫 Établissements scolaires à proximité', `
-    <div style="display:flex;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap">
-      <span class="tag tag-up">🏫 ${d.types?.ecoles||0} école(s)</span>
-      <span class="tag tag-gold">🎓 ${d.types?.college||0} collège(s)</span>
-      <span class="tag tag-up">📚 ${d.types?.lycee||0} lycée(s)</span>
-    </div>
-    <div style="margin-bottom:.5rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
-      <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Type :</span>${btnsType}
-    </div>
-    <div style="margin-bottom:.8rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
-      <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Afficher :</span>${btnsN}
+    <div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;margin-bottom:.8rem">
+      <div style="flex:1;min-width:200px">
+        <div style="display:flex;gap:.5rem;margin-bottom:.6rem;flex-wrap:wrap">
+          <span class="tag tag-up">🏫 ${d.types?.ecoles||0} école(s)</span>
+          <span class="tag tag-gold">🎓 ${d.types?.college||0} collège(s)</span>
+          <span class="tag tag-up">📚 ${d.types?.lycee||0} lycée(s)</span>
+        </div>
+        <div style="margin-bottom:.5rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
+          <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Type :</span>${btnsType}
+        </div>
+        <div style="display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
+          <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Afficher :</span>${btnsN}
+        </div>
+      </div>
+      <div style="width:180px;flex-shrink:0"><canvas id="ecolesChart" height="160"></canvas></div>
     </div>
     <div id="ecolesListe"></div>
-    <div style="margin-top:1.2rem;max-width:240px;margin-left:auto;margin-right:auto"><canvas id="ecolesChart" height="200"></canvas></div>
     <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : Annuaire Éducation Nationale · <a href="https://data.education.gouv.fr" target="_blank" style="color:var(--gold)">data.education.gouv.fr</a></p>`);
 
   window.renderEcoles();
@@ -2005,13 +1998,22 @@ function showEcolesDetail(){
     const ecoles=d.types?.ecoles||0, college=d.types?.college||0, lycee=d.types?.lycee||0;
     if(ecoles+college+lycee===0) return;
     if(window._ecolesChart){window._ecolesChart.destroy();}
+    const total=ecoles+college+lycee;
     window._ecolesChart=new Chart(ctx,{
       type:'doughnut',
+      plugins:[ChartDataLabels],
       data:{
         labels:['🏫 Écoles','🎓 Collèges','📚 Lycées'],
-        datasets:[{data:[ecoles,college,lycee],backgroundColor:['rgba(184,131,42,.75)','rgba(45,106,79,.75)','rgba(26,26,22,.65)'],borderWidth:2,borderColor:'#f5efe4'}]
+        datasets:[{data:[ecoles,college,lycee],backgroundColor:['rgba(184,131,42,.8)','rgba(45,106,79,.8)','rgba(26,26,22,.7)'],borderWidth:2,borderColor:'#f5efe4'}]
       },
-      options:{plugins:{legend:{position:'bottom',labels:{font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68',padding:12}},title:{display:true,text:'Répartition par niveau',font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68'}},animation:{duration:500},cutout:'60%'}
+      options:{
+        plugins:{
+          legend:{position:'bottom',labels:{font:{size:10,family:'Outfit,sans-serif'},color:'#8a7d68',padding:8,boxWidth:10}},
+          title:{display:true,text:'Répartition',font:{size:10,family:'Outfit,sans-serif'},color:'#8a7d68'},
+          datalabels:{color:'#fff',font:{size:10,weight:'600'},formatter:(v)=>v>0?v+'\n'+Math.round(v/total*100)+'%':'',textAlign:'center'}
+        },
+        animation:{duration:500},cutout:'55%'
+      }
     });
   },80);
 }
@@ -2027,12 +2029,12 @@ function showMobiliteDetail(){
       <div class="map-stat"><span class="map-stat-n">${d.stats?.arretsBus||0}</span><span class="map-stat-l">Arrêts bus</span></div>
       <div class="map-stat"><span class="map-stat-n">${d.stats?.velos||0}</span><span class="map-stat-l">Vélos/bornes</span></div>
     </div>
-    <div class="map-legend">
-      <div class="legend-item"><div class="legend-dot" style="background:#1a73e8"></div>Métro/RER</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#e67e22"></div>Bus/Tram</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#27ae60"></div>Vélos/Trottinettes</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#8e44ad"></div>Bornes recharge</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#c0392b"></div>Gare</div>
+    <div class="map-legend" style="flex-wrap:wrap;gap:.4rem">
+      <button onclick="toggleMobiliteLayer('metro',this)" class="mob-layer-btn on" data-layer="metro" style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid #1a73e8;border-radius:3px;background:rgba(26,115,232,.1);cursor:pointer;font-size:.7rem"><span style="width:10px;height:10px;border-radius:50%;background:#1a73e8;display:inline-block"></span>Métro/RER (${d.stats?.metro||0})</button>
+      <button onclick="toggleMobiliteLayer('bus',this)" class="mob-layer-btn on" data-layer="bus" style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid #e67e22;border-radius:3px;background:rgba(230,126,34,.1);cursor:pointer;font-size:.7rem"><span style="width:10px;height:10px;border-radius:50%;background:#e67e22;display:inline-block"></span>Bus/Tram (${d.stats?.arretsBus||0})</button>
+      <button onclick="toggleMobiliteLayer('velo',this)" class="mob-layer-btn on" data-layer="velo" style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid #27ae60;border-radius:3px;background:rgba(39,174,96,.1);cursor:pointer;font-size:.7rem"><span style="width:10px;height:10px;border-radius:50%;background:#27ae60;display:inline-block"></span>Vélos (${d.stats?.velos||0})</button>
+      <button onclick="toggleMobiliteLayer('gare',this)" class="mob-layer-btn on" data-layer="gare" style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid #c0392b;border-radius:3px;background:rgba(192,57,43,.1);cursor:pointer;font-size:.7rem"><span style="width:10px;height:10px;border-radius:50%;background:#c0392b;display:inline-block"></span>Gares (${d.stats?.gares||0})</button>
+      <button onclick="toggleMobiliteLayer('borne',this)" class="mob-layer-btn on" data-layer="borne" style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid #8e44ad;border-radius:3px;background:rgba(142,68,173,.1);cursor:pointer;font-size:.7rem"><span style="width:10px;height:10px;border-radius:50%;background:#8e44ad;display:inline-block"></span>Bornes (${d.stats?.bornesElec||0})</button>
     </div>
     <div class="map-container" id="mapMobilite"></div>
     <div style="margin-top:1.2rem;max-width:360px"><canvas id="mobiliteChart" height="110"></canvas></div>
@@ -2040,11 +2042,21 @@ function showMobiliteDetail(){
     <p style="font-size:.62rem;color:var(--muted);margin-top:.4rem">Source : OpenStreetMap via Overpass API · Rayon 1000m</p>
   `);
 
+  window._mobiliteMarkers = {};
+  window.toggleMobiliteLayer = function(layer, btn){
+    btn.classList.toggle('on');
+    const isOn = btn.classList.contains('on');
+    btn.style.opacity = isOn ? '1' : '.45';
+    const markers = window._mobiliteMarkers[layer] || [];
+    markers.forEach(m => isOn ? m.addTo(window._leafletMapMobilite) : window._leafletMapMobilite.removeLayer(m));
+  };
+
   setTimeout(() => {
     const lat = currentCoords.lat;
     const lng = currentCoords.lng;
 
     if(window._leafletMapMobilite){window._leafletMapMobilite.remove();window._leafletMapMobilite=null;}
+    window._mobiliteMarkers = {metro:[],bus:[],velo:[],gare:[],borne:[]};
 
     const map = L.map('mapMobilite').setView([lat, lng], 14);
     window._leafletMapMobilite = map;
@@ -2081,9 +2093,14 @@ function showMobiliteDetail(){
           iconSize:[26,26],iconAnchor:[13,13],className:''
         });
 
-        L.marker([e.lat,e.lon],{icon})
-          .addTo(map)
-          .bindPopup(`<strong>${icone} ${tags.name||tags.railway||tags.amenity||'Arrêt'}</strong>`);
+        const marker = L.marker([e.lat,e.lon],{icon}).addTo(map).bindPopup(`<strong>${icone} ${tags.name||tags.railway||tags.amenity||'Arrêt'}</strong>`);
+        let layerKey = 'bus';
+        if(tags.railway==='subway_entrance'||tags.station==='subway') layerKey='metro';
+        else if(tags.railway==='station') layerKey='gare';
+        else if(tags.railway==='tram_stop') layerKey='bus';
+        else if(tags.amenity==='bicycle_rental') layerKey='velo';
+        else if(tags.amenity==='charging_station') layerKey='borne';
+        if(window._mobiliteMarkers[layerKey]) window._mobiliteMarkers[layerKey].push(marker);
       });
     }
   }, 150);
@@ -2094,15 +2111,25 @@ function showMobiliteDetail(){
     if(window._mobiliteChart){window._mobiliteChart.destroy();}
     window._mobiliteChart=new Chart(ctx,{
       type:'bar',
+      plugins:[ChartDataLabels],
       data:{
-        labels:['🚇 Métro/RER','🚌 Arrêts bus','🚲 Vélos/bornes'],
+        labels:['🚇 Métro/RER','🚌 Bus/Tram','🚲 Vélos','🚂 Gares','⚡ Bornes'],
         datasets:[{
-          data:[d.stats?.metro||0, d.stats?.arretsBus||0, d.stats?.velos||0],
-          backgroundColor:['rgba(26,115,232,.7)','rgba(52,168,83,.7)','rgba(76,175,80,.7)'],
+          data:[d.stats?.metro||0, d.stats?.arretsBus||0, d.stats?.velos||0, d.stats?.gares||0, d.stats?.bornesElec||0],
+          backgroundColor:['rgba(26,115,232,.7)','rgba(230,126,34,.7)','rgba(39,174,96,.7)','rgba(192,57,43,.7)','rgba(142,68,173,.7)'],
           borderWidth:0,borderRadius:4
         }]
       },
-      options:{plugins:{legend:{display:false},title:{display:true,text:'Équipements à proximité (1000m)',font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68'}},scales:{x:{ticks:{font:{size:10},color:'#8a7d68'},grid:{display:false}},y:{ticks:{font:{size:9},color:'#8a7d68'},grid:{color:'rgba(0,0,0,.05)'}}},animation:{duration:500}}
+      options:{
+        plugins:{
+          legend:{display:false},
+          datalabels:{anchor:'end',align:'top',color:'#8a7d68',font:{size:10,weight:'600'},formatter:v=>v||''},
+          title:{display:true,text:'Équipements à proximité (1000m)',font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68'}
+        },
+        scales:{x:{ticks:{font:{size:9},color:'#8a7d68'},grid:{display:false}},y:{ticks:{font:{size:9},color:'#8a7d68'},grid:{color:'rgba(0,0,0,.05)'}}},
+        animation:{duration:500},
+        layout:{padding:{top:16}}
+      }
     });
   },200);
 }
@@ -2123,16 +2150,39 @@ function showServicesMap(){
     {couleur:'#457b9d', label:'Services'},
   ];
 
+  const CAT_INFO = [
+    {key:'sante',       label:'Santé',        couleur:'#e63946', emoji:'🏥'},
+    {key:'commerce',    label:'Commerces',    couleur:'#f4a261', emoji:'🛒'},
+    {key:'restauration',label:'Restaurants',  couleur:'#e9c46a', emoji:'🍽️'},
+    {key:'sport',       label:'Sport',        couleur:'#2a9d8f', emoji:'🏋️'},
+    {key:'service',     label:'Services',     couleur:'#457b9d', emoji:'🏦'},
+    {key:'mobilite',    label:'Mobilité',     couleur:'#4caf50', emoji:'⚡'},
+  ];
+  window._servicesActiveFilter = 'tous';
+  window._servicesAllMarkers = {};
+  window.filterServicesMap = function(cat, btn){
+    document.querySelectorAll('.svc-filter-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    window._servicesActiveFilter = cat;
+    Object.keys(window._servicesAllMarkers).forEach(k=>{
+      window._servicesAllMarkers[k].forEach(m=>{
+        if(cat==='tous'||k===cat) m.addTo(window._leafletMap);
+        else window._leafletMap.removeLayer(m);
+      });
+    });
+  };
+  const btnStyleSvc = 'padding:.2rem .55rem;font-size:.72rem;border:1px solid var(--border);background:var(--white);border-radius:3px;cursor:pointer;margin-right:.3rem;margin-bottom:.3rem';
+  const btnsTous = `<button class="svc-filter-btn active" onclick="filterServicesMap('tous',this)" style="${btnStyleSvc}">Tous (${d.total})</button>`;
+  const btnsCateg = CAT_INFO.map(c=>`<button class="svc-filter-btn" onclick="filterServicesMap('${c.key}',this)" style="${btnStyleSvc}">${c.emoji} ${c.label} (${d.stats[c.key]||0})</button>`).join('');
   showPanel('🏥 Services & commerces à proximité', `
     <div class="map-stats">
       <div class="map-stat"><span class="map-stat-n">${d.score}/10</span><span class="map-stat-l">Score</span></div>
       <div class="map-stat"><span class="map-stat-n">${d.stats.sante}</span><span class="map-stat-l">Santé</span></div>
       <div class="map-stat"><span class="map-stat-n">${d.stats.commerce}</span><span class="map-stat-l">Commerces</span></div>
-      <div class="map-stat"><span class="map-stat-n">${d.total}</span><span class="map-stat-l">Total services</span></div>
+      <div class="map-stat"><span class="map-stat-n">${d.total}</span><span class="map-stat-l">Total</span></div>
     </div>
-    <div class="map-legend">
-      ${legendItems.map(l=>`<div class="legend-item"><div class="legend-dot" style="background:${l.couleur}"></div>${l.label}</div>`).join('')}
-    </div>
+    <div style="margin-bottom:.6rem;flex-wrap:wrap">${btnsTous}${btnsCateg}</div>
+    <div style="max-width:400px;margin-bottom:.8rem"><canvas id="servicesChart" height="110"></canvas></div>
     <div class="map-container" id="mapServices"></div>
     <p style="font-size:.62rem;color:var(--muted)">Source : OpenStreetMap · Rayon 1km · ${d.total} établissements trouvés</p>
   `);
@@ -2169,24 +2219,25 @@ function showServicesMap(){
       .bindPopup(`<strong>📍 Adresse analysée</strong><br>${currentAddress}`)
       .openPopup();
 
-    // Points de services
+    // Points de services par catégorie
+    window._servicesAllMarkers = {};
     d.services.forEach(s => {
       const icon = L.divIcon({
         html: `<div style="background:${s.couleur};border:2px solid #fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 6px rgba(0,0,0,.25);cursor:pointer">${s.icone}</div>`,
         iconSize: [28,28], iconAnchor: [14,14], className:''
       });
-
-      const popupContent = `
-        <strong>${s.icone} ${s.nom}</strong><br>
-        <span style="font-size:.78rem;color:#666">${s.categorie} · ${s.distanceM}m</span>
-        ${s.tags.opening_hours ? `<br><span style="font-size:.72rem">🕐 ${s.tags.opening_hours}</span>` : ''}
-        ${s.tags.phone ? `<br><span style="font-size:.72rem">📞 ${s.tags.phone}</span>` : ''}
-      `;
-
-      L.marker([s.lat, s.lon], {icon})
-        .addTo(map)
-        .bindPopup(popupContent);
+      const popupContent = `<strong>${s.icone} ${s.nom}</strong><br><span style="font-size:.78rem;color:#666">${s.categorie} · ${s.distanceM}m</span>${s.tags.opening_hours?`<br><span style="font-size:.72rem">🕐 ${s.tags.opening_hours}</span>`:''}${s.tags.phone?`<br><span style="font-size:.72rem">📞 ${s.tags.phone}</span>`:''}`;
+      const marker = L.marker([s.lat, s.lon], {icon}).addTo(map).bindPopup(popupContent);
+      if(!window._servicesAllMarkers[s.categorie]) window._servicesAllMarkers[s.categorie]=[];
+      window._servicesAllMarkers[s.categorie].push(marker);
     });
+    // Chart services
+    const ctxSvc=document.getElementById('servicesChart');
+    if(ctxSvc&&window.Chart){
+      if(window._servicesChart){window._servicesChart.destroy();}
+      const CAT_INFO2=[{key:'sante',label:'🏥 Santé',c:'rgba(230,57,70,.7)'},{key:'commerce',label:'🛒 Commerces',c:'rgba(244,162,97,.7)'},{key:'restauration',label:'🍽️ Restau.',c:'rgba(233,196,106,.7)'},{key:'sport',label:'🏋️ Sport',c:'rgba(42,157,143,.7)'},{key:'service',label:'🏦 Services',c:'rgba(69,123,157,.7)'},{key:'mobilite',label:'⚡ Mobilité',c:'rgba(76,175,80,.7)'}];
+      window._servicesChart=new Chart(ctxSvc,{type:'bar',plugins:[ChartDataLabels],data:{labels:CAT_INFO2.map(c=>c.label),datasets:[{data:CAT_INFO2.map(c=>d.stats[c.key]||0),backgroundColor:CAT_INFO2.map(c=>c.c),borderWidth:0,borderRadius:4}]},options:{plugins:{legend:{display:false},datalabels:{anchor:'end',align:'top',color:'#8a7d68',font:{size:10,weight:'600'},formatter:v=>v||''},title:{display:true,text:'Répartition par catégorie',font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68'}},scales:{x:{ticks:{font:{size:8},color:'#8a7d68'},grid:{display:false}},y:{ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.05)'}}},layout:{padding:{top:16}},animation:{duration:400}}});
+    }
 
     // Labels distances cercles
     L.tooltip({permanent:true, direction:'right', className:'leaflet-dist-label'})
@@ -2296,14 +2347,15 @@ function showMeteoDetail(){
   if(!d){showPanel('☀️ Météo & ensoleillement','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
   const hAn = d.ensoleillement?.heuresAnnuelles || 0;
   const hJour = hAn ? (hAn/365).toFixed(1) : null;
-  showPanel('☀️ Météo & ensoleillement · Moyenne 10 ans', `
+  showPanel('☀️ Météo & ensoleillement · 2019-2023', `
     <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:.5rem">
       <div class="stat-box"><span class="stat-n">${hAn?hAn.toLocaleString('fr-FR'):'—'}</span><span class="stat-l">Heures soleil/an</span></div>
       <div class="stat-box"><span class="stat-n">${hJour||'—'} h</span><span class="stat-l">Moy. par jour</span></div>
     </div>
-    <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:1rem">
+    <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1rem">
       <div class="stat-box"><span class="stat-n">${d.temperatures?.maxMoyenne||'—'}°</span><span class="stat-l">Temp. max. moy.</span></div>
       <div class="stat-box"><span class="stat-n">${d.precipitations?.annuellesMm||'—'} mm</span><span class="stat-l">Précip./an</span></div>
+      <div class="stat-box"><span class="stat-n">${d.precipitations?.joursParAn||'—'}</span><span class="stat-l">Jours de pluie/an</span></div>
     </div>
     <p style="font-size:.8rem;color:var(--ink);font-weight:500;margin-bottom:.3rem">${d.ensoleillement?.label||''}</p>
     <p style="font-size:.75rem;color:var(--muted);margin-bottom:.5rem">${d.periode||''} · Temp. min moy. : ${d.temperatures?.minMoyenne||'—'}°C</p>
@@ -2424,9 +2476,8 @@ async function runIA(type){
       return`Coaching offre : prix demandé ${p.toLocaleString('fr-FR')} € (${pm2?pm2.toLocaleString('fr-FR')+' €/m²':'?'}), surface ${s||'?'}m², adresse : ${r||'France'}, en vente ${togVal('tOJ')}, baisses de prix : ${togVal('tOB')}. ${dvfCtx}${strategieBase} Donne une stratégie précise avec montant d'offre chiffré, 3 arguments adaptés à la situation réelle, tactique concrète. Ne recalcule pas les données, utilise exactement les chiffres fournis.`;
     },
     profil:()=>{
-      const ville=document.getElementById('pVille').value.trim();
-      if(ville.length<2){toast('Entrez une ville ou un secteur','err');return null;}
-      if(/^[^a-zA-ZÀ-ÿ]{0,2}$|^[^a-zA-ZÀ-ÿ\s\-'0-9]+$/.test(ville)){toast('Ville non reconnue — choisissez dans la liste','err');return null;}
+      if(!currentAddress){toast('Analysez d\'abord une adresse','err');return null;}
+      const ville=currentAddress;
 
       // Données réelles injectées dans le prompt
       const dvf=window._dvfData;
@@ -2736,30 +2787,16 @@ async function runProfil(){
         <div style="font-size:.65rem;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;margin-top:.3rem">Score de compatibilité</div>
         <div style="font-size:.75rem;color:var(--muted);margin-top:.3rem">📍 ${currentAddress}</div>
       </div>
-      <div style="position:relative;max-width:320px;margin:0 auto 1.6rem"><canvas id="radarProfil" height="280"></canvas></div>
-      ${travailKm!=null?`<p style="font-size:.82rem;color:var(--muted);margin-bottom:1.2rem;text-align:center">🏢 ${travailLabel||'Travail'} : <strong>${travailKm} km</strong> à vol d'oiseau</p>`:''}
-      <table style="width:100%;border-collapse:collapse;font-size:.79rem">
-        ${dims.map(dim=>{
-          const s=scores[dim.key]||0;
-          const sc2=s>=7?'#2d6a4f':s>=4?'#b8832a':'#7a2d2d';
-          return `<tr>
-            <td style="padding:.45rem .4rem;border-bottom:1px solid var(--borderl);width:38%">${dim.emoji} ${dim.label}</td>
-            <td style="padding:.45rem .4rem;border-bottom:1px solid var(--borderl)">
-              <div style="display:flex;align-items:center;gap:.5rem">
-                <div style="flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden"><div style="height:100%;width:${s*10}%;background:${sc2};border-radius:3px"></div></div>
-                <span style="color:${sc2};font-weight:600;min-width:2.5rem;text-align:right">${s}/10</span>
-              </div>
-            </td>
-          </tr>`;
-        }).join('')}
-      </table>
-      <p style="font-size:.62rem;color:var(--muted);margin-top:.75rem">Source : DVF · OSM Overpass · Éducation nationale · Géorisques</p>`;
+      <div style="position:relative;max-width:460px;margin:0 auto 1.2rem"><canvas id="radarProfil" height="380"></canvas></div>
+      ${travailKm!=null?`<p style="font-size:.82rem;color:var(--muted);margin-bottom:.6rem;text-align:center">🏢 ${travailLabel||'Travail'} : <strong>${travailKm} km</strong> à vol d'oiseau</p>`:''}
+      <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem;text-align:center">Source : DVF · OSM Overpass · Éducation nationale · Géorisques</p>`;
     setTimeout(()=>{
       const ctx=document.getElementById('radarProfil');
       if(!ctx||!window.Chart) return;
       if(window._radarProfilChart){window._radarProfilChart.destroy();}
       window._radarProfilChart=new Chart(ctx,{
         type:'radar',
+        plugins:[ChartDataLabels],
         data:{
           labels:dims.map(d=>d.emoji+' '+d.label),
           datasets:[{
@@ -2769,14 +2806,26 @@ async function runProfil(){
             borderColor:'#b8832a',
             borderWidth:2,
             pointBackgroundColor:'#b8832a',
-            pointRadius:4,
-            pointHoverRadius:6,
+            pointRadius:5,
+            pointHoverRadius:7,
           }]
         },
         options:{
-          scales:{r:{min:0,max:10,ticks:{stepSize:2,display:false},grid:{color:'rgba(0,0,0,.08)'},angleLines:{color:'rgba(0,0,0,.08)'},pointLabels:{font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68'}}},
-          plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.raw}/10`}}},
+          scales:{r:{min:0,max:10,ticks:{stepSize:2,display:false},grid:{color:'rgba(0,0,0,.08)'},angleLines:{color:'rgba(0,0,0,.08)'},pointLabels:{font:{size:12,family:'Outfit,sans-serif'},color:'#8a7d68'}}},
+          plugins:{
+            legend:{display:false},
+            tooltip:{callbacks:{label:c=>`${c.raw}/10`}},
+            datalabels:{
+              color:'#b8832a',
+              font:{size:13,weight:'600',family:'Outfit,sans-serif'},
+              formatter:v=>v+'/10',
+              anchor:'end',
+              align:'end',
+              offset:4,
+            }
+          },
           animation:{duration:700},
+          layout:{padding:20},
         }
       });
     },80);
