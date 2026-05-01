@@ -58,7 +58,7 @@ export default async function handler(req, res) {
 
     res.setHeader('Cache-Control', 'public, max-age=3600');
     return res.status(200).json({
-      success: true, total: withDist.length, types,
+      success: true, total: types.ecoles + types.college + types.lycee, types,
       etablissements: withDist.map(e => ({
         nom: e.nom_etablissement, type: e.type_etablissement, statut: e.statut_public_prive,
         adresse: e.adresse_1, commune: e.nom_commune, codePostal: e.code_postal,
