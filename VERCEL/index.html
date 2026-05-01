@@ -1598,50 +1598,21 @@ async function loadRisques(lat, lng){
   }
 }
 
-// ── Écoles : données officielles Éducation nationale (appel direct navigateur) ──
+// ── Écoles : données officielles Éducation nationale ──
 async function loadEcoles(lat, lng, codeInsee, dist=1500){
   window._ecolesCodeInsee = codeInsee;
   try{
-    const fields = 'nom_etablissement,type_etablissement,statut_public_prive,adresse_1,code_postal,nom_commune,latitude,longitude';
-    const limit = dist <= 1000 ? 100 : dist <= 2000 ? 200 : 400;
-    let ecoUrl;
-    if(codeInsee){
-      ecoUrl = `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=code_commune%3D%22${codeInsee}%22&limit=${limit}&select=${fields}`;
-    } else {
-      const deg=dist/111000;
-      const where=encodeURIComponent(`latitude>${lat-deg} AND latitude<${lat+deg} AND longitude>${lng-deg} AND longitude<${lng+deg}`);
-      ecoUrl = `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=${where}&limit=${limit}&select=${fields}`;
-    }
-    const r = await fetch(ecoUrl, { headers:{'Accept':'application/json'}, signal:AbortSignal.timeout(10000) });
-    if(!r.ok) throw new Error(`HTTP ${r.status}`);
-    const raw = await r.json();
-    const etablissements = (raw.results||[])
-      .filter(e=>e.latitude&&e.longitude)
-      .map(e=>{
-        const dLat=(parseFloat(e.latitude)-lat)*111000;
-        const dLon=(parseFloat(e.longitude)-lng)*111000*Math.cos(lat*Math.PI/180);
-        return {...e, distanceM:Math.round(Math.sqrt(dLat*dLat+dLon*dLon)),
-          nom:e.nom_etablissement, type:e.type_etablissement, statut:e.statut_public_prive,
-          adresse:e.adresse_1, commune:e.nom_commune, codePostal:e.code_postal,
-          lat:parseFloat(e.latitude), lon:parseFloat(e.longitude)};
-      })
-      .filter(e=>e.distanceM<=dist)
-      .sort((a,b)=>a.distanceM-b.distanceM);
-    const isEcole=e=>{const t=(e.type||'').toLowerCase();return t.includes('ecole')||t.includes('école');};
-    const isCollege=e=>{const t=(e.type||'').toLowerCase();const n=(e.nom||'').toLowerCase();return t.includes('collège')||t.includes('college')||n.includes('collège');};
-    const isLycee=e=>{const t=(e.type||'').toLowerCase();const n=(e.nom||'').toLowerCase();return t.includes('lycée')||t.includes('lycee')||n.includes('lycée');};
-    const types={
-      ecoles:etablissements.filter(isEcole).length,
-      maternelle:etablissements.filter(e=>isEcole(e)&&(e.type||'').toLowerCase().includes('maternelle')).length,
-      elementaire:etablissements.filter(e=>isEcole(e)&&!(e.type||'').toLowerCase().includes('maternelle')).length,
-      college:etablissements.filter(isCollege).length,
-      lycee:etablissements.filter(isLycee).length,
-    };
-    const total = types.ecoles+types.college+types.lycee;
-    const d = {success:true, total, types, etablissements, source:'data.education.gouv.fr'};
-    setCard('ecoles', total+' établissement'+(total>1?'s':''),
-      `${types.ecoles} école(s) · ${types.college} collège(s) · ${types.lycee} lycée(s)`,
-      total>0?'good':'');
+    const deg=dist/111000; const where=encodeURIComponent(`latitude>${lat-deg} AND latitude<${lat+deg} AND longitude>${lng-deg} AND longitude<${lng+deg}`); const r = await apiCall(`/api/ecoles?lat=${lat}&lon=${lng}&dist=${dist}&_v=6${codeInsee?'&codeInsee='+codeInsee:''}`, `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=${where}&limit=50&select=nom_etablissement,type_etablissement,statut_public_prive,adresse_1,code_postal,nom_commune,latitude,longitude`);
+    if(!r.ok) throw new Error();
+    const d = await r.json();
+    if(!d.success) throw new Error();
+    const total = d.total;
+    const nbEcoles = d.types?.ecoles ?? (d.types?.elementaire||0);
+    setCard('ecoles',
+      total+' établissement'+(total>1?'s':''),
+      `${nbEcoles} école(s) · ${d.types?.college||0} collège(s) · ${d.types?.lycee||0} lycée(s)`,
+      total>0?'good':''
+    );
     window._ecolesData = d;
   }catch(e){
     setCard('ecoles','Non disponible','Erreur API Éducation','');
