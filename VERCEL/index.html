@@ -1177,7 +1177,7 @@ const PAGES = {
 };
 
 const APP_VERSION = 'v2.1';
-const BUILD_DATE  = '01/05/2026 22h16';
+const BUILD_DATE  = '01/05/2026 22h41';
 window.onload = () => {
   const badge = document.getElementById('versionBadge');
   if(badge) badge.textContent = `${APP_VERSION} · ${BUILD_DATE}`;
@@ -1616,7 +1616,7 @@ async function loadRisques(lat, lng){
 }
 
 // ── Écoles : via Vercel function (proxy → data.education.gouv.fr, pas de CORS) ──
-async function loadEcoles(lat, lng, codeInsee, dist=1500){
+async function loadEcoles(lat, lng, codeInsee, dist=500){
   window._ecolesCodeInsee = codeInsee;
   try{
     const url = `/api/ecoles?lat=${lat}&lon=${lng}&dist=${dist}${codeInsee?'&codeInsee='+codeInsee:''}`;
@@ -1978,8 +1978,8 @@ function showEcolesDetail(){
   if(!d){showPanel('🏫 Écoles & IPS','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
 
   window._ecolesAll = d.etablissements || [];
-  window._ecolesFilterType = 'tous';
-  window._ecolesFilterN = 20;
+  if(!window._ecolesFilterType) window._ecolesFilterType = 'tous';
+  if(!window._ecolesFilterN) window._ecolesFilterN = 20;
 
   function ecoCategorie(e){
     const t=(e.type||'').toLowerCase();
@@ -2024,7 +2024,7 @@ function showEcolesDetail(){
 
   const btnsType  = ECO_TYPES.map(([t,l])=>`<button class="eco-type-btn dvf-filter-btn" data-t="${t}" onclick="setEcoType('${t}')" style="${btnStyle}">${l}</button>`).join('');
   const btnsN     = ECO_NS.map(n=>`<button class="eco-n-btn dvf-filter-btn" data-n="${n}" onclick="setEcoN(${n})" style="${btnStyle}">${n===0?'Tous':n}</button>`).join('');
-  const btnsRayon = ECO_RAYONS.map(([r,l])=>`<button class="eco-rayon-btn" data-r="${r}" onclick="reloadEcolesWithDist(${r})" style="${btnStyleRayon};${currentDist===r||(!window._ecolesCurrentDist&&r===1500)?'background:var(--ink);color:#fff;border-color:var(--ink)':''}">${l}</button>`).join('');
+  const btnsRayon = ECO_RAYONS.map(([r,l])=>`<button class="eco-rayon-btn" data-r="${r}" onclick="reloadEcolesWithDist(${r})" style="${btnStyleRayon};${currentDist===r||(!window._ecolesCurrentDist&&r===500)?'background:var(--ink);color:#fff;border-color:var(--ink)':''}">${l}</button>`).join('');
   const ecoles=d.types?.ecoles||0, college=d.types?.college||0, lycee=d.types?.lycee||0;
   const total=d.total||0;
 
@@ -2361,7 +2361,7 @@ function showServicesMap(){
   };
   window.reloadServicesWithDist = async function(dist){
     window._servicesCurrentDist = dist;
-    window._servicesActiveFilters = new Set(SVC_CATS); // reset filtres à tous actifs
+    // Ne pas réinitialiser les filtres actifs au changement de rayon
     document.querySelectorAll('.svc-rayon-btn').forEach(b=>{
       const active = parseInt(b.dataset.r)===dist;
       b.style.background = active?'var(--ink)':'var(--white)';
@@ -2622,16 +2622,16 @@ function showINSEEDetail(){
     const getDensColor = d => d>10000?'#c0392b':d>5000?'#e67e22':d>2000?'#f39c12':d>500?'#27ae60':'#2980b9';
 
     // Charger toutes les communes visibles dans le bbox de la carte en parallèle
-    try{
+    map.whenReady(async ()=>{ try{
       const b = map.getBounds();
       const bbox = `${b.getWest().toFixed(4)},${b.getSouth().toFixed(4)},${b.getEast().toFixed(4)},${b.getNorth().toFixed(4)}`;
-      const communesResp = await fetch(`https://geo.api.gouv.fr/communes?bbox=${bbox}&fields=nom,population,superficie,codeDepartement&format=json&limit=60`);
+      const communesResp = await fetch(`https://geo.api.gouv.fr/communes?bbox=${bbox}&fields=nom,population,surface,codeDepartement&format=json&limit=60`);
       if(communesResp.ok){
         const communes = await communesResp.json();
         // Charger tous les contours en parallèle
         await Promise.all(communes.map(async v=>{
           try{
-            const sup = v.superficie||0;
+            const sup = v.surface||0;  // geo.api.gouv.fr retourne 'surface' en hectares
             const pop = v.population||0;
             const vDens = sup>=50 ? Math.round(pop/(sup/100)) : null;
             const vColor = vDens!=null ? getDensColor(vDens) : '#aaa';
@@ -2648,7 +2648,7 @@ function showINSEEDetail(){
           }catch(e){}
         }));
       }
-    }catch(e){}
+    }catch(e){} }); // fin map.whenReady
 
     // Légende
     const legend=L.control({position:'bottomright'});

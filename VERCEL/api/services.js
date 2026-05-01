@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   if (!lat || !lon) return res.status(400).json({ error: 'lat et lon requis' });
 
   try {
-    const query = `[out:json][timeout:15];(
+    const query = `[out:json][timeout:25];(
       node["amenity"="pharmacy"](around:${dist},${lat},${lon});
       node["amenity"="doctors"](around:${dist},${lat},${lon});
       node["amenity"="hospital"](around:${dist},${lat},${lon});
@@ -33,7 +33,7 @@ export default async function handler(req, res) {
         'User-Agent': 'IMMOAI/2.0 (https://immo-ai.vercel.app)',
         'Accept': 'application/json'
       },
-      signal: AbortSignal.timeout(15000)
+      signal: AbortSignal.timeout(25000)
     });
 
     if (!r.ok) throw new Error(`Overpass ${r.status}`);
