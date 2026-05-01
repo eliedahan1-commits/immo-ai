@@ -6,7 +6,10 @@
 <title>IMMO·AI — L'intelligence immobilière</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <style>
@@ -1174,14 +1177,10 @@ const PAGES = {
 };
 
 const APP_VERSION = 'v2.1';
+const BUILD_DATE  = '01/05/2026 22h16';
 window.onload = () => {
   const badge = document.getElementById('versionBadge');
-  if(badge){
-    const now = new Date();
-    const d = now.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});
-    const h = now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}).replace(':','h');
-    badge.textContent = `${APP_VERSION} · ${d} ${h}`;
-  }
+  if(badge) badge.textContent = `${APP_VERSION} · ${BUILD_DATE}`;
   updateDot();
   if (!groqKey) setTimeout(openModal, 1800);
   setupSearch('heroSearch', 'heroSugs', true);
@@ -2003,7 +2002,17 @@ function showEcolesDetail(){
     document.querySelectorAll('.eco-type-btn').forEach(b=>b.classList.toggle('active', b.dataset.t===window._ecolesFilterType));
     document.querySelectorAll('.eco-n-btn').forEach(b=>b.classList.toggle('active', b.dataset.n===String(window._ecolesFilterN)));
   };
-  window.setEcoType = function(t){ window._ecolesFilterType=t; window.renderEcoles(); };
+  window._applyEcoMapFilter = function(t){
+    const map = window._ecolesLeafletMap;
+    if(!map || !window._ecolesMarkersMap) return;
+    const allCats = ['ecole','college','lycee','autre'];
+    allCats.forEach(cat=>{
+      (window._ecolesMarkersMap[cat]||[]).forEach(m=>{
+        if(t==='tous'||t===cat) m.addTo(map); else map.removeLayer(m);
+      });
+    });
+  };
+  window.setEcoType = function(t){ window._ecolesFilterType=t; window.renderEcoles(); window._applyEcoMapFilter(t); };
   window.setEcoN    = function(n){ window._ecolesFilterN=n;    window.renderEcoles(); };
 
   const ECO_TYPES = [['tous','Tous'],['ecole','🏫 Écoles'],['college','🎓 Collèges'],['lycee','📚 Lycées']];
@@ -2097,14 +2106,20 @@ function showEcolesDetail(){
     L.circle([lat,lng],{radius:dist,color:'#b8832a',fillColor:'rgba(184,131,42,.08)',fillOpacity:1,weight:2.5,dashArray:'6 4',opacity:.85}).addTo(map);
     const homeIcon=L.divIcon({html:`<div style="background:#c09030;border:3px solid #fff;border-radius:50%;width:16px;height:16px;box-shadow:0 2px 6px rgba(0,0,0,.3)"></div>`,iconSize:[16,16],iconAnchor:[8,8],className:''});
     L.marker([lat,lng],{icon:homeIcon}).addTo(map).bindPopup(`<strong>📍 ${currentAddress}</strong>`);
+    window._ecolesMarkersMap = {ecole:[], college:[], lycee:[], autre:[]};
     (d.etablissements||[]).forEach(e=>{
       if(!e.lat||!e.lon) return;
       const t=(e.type||'').toLowerCase();
-      const couleur=t.includes('lycée')||t.includes('lycee')?'#c0392b':t.includes('collège')||t.includes('college')?'#2d6a4f':'#b8832a';
-      const emoji=t.includes('lycée')||t.includes('lycee')?'📚':t.includes('collège')||t.includes('college')?'🎓':'🏫';
+      const cat=t.includes('lycée')||t.includes('lycee')?'lycee':t.includes('collège')||t.includes('college')?'college':'ecole';
+      const couleur=cat==='lycee'?'#c0392b':cat==='college'?'#2d6a4f':'#b8832a';
+      const emoji=cat==='lycee'?'📚':cat==='college'?'🎓':'🏫';
       const icon=L.divIcon({html:`<div style="background:${couleur};border:2px solid #fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 2px 6px rgba(0,0,0,.25)">${emoji}</div>`,iconSize:[26,26],iconAnchor:[13,13],className:''});
-      L.marker([e.lat, e.lon],{icon}).addTo(map).bindPopup(`<strong>${emoji} ${e.nom}</strong><br><span style="font-size:.75rem">${e.type||''} · ${e.distanceM||'?'}m</span>`);
+      const marker=L.marker([e.lat, e.lon],{icon}).addTo(map).bindPopup(`<strong>${emoji} ${e.nom}</strong><br><span style="font-size:.75rem">${e.type||''} · ${e.distanceM||'?'}m</span>`);
+      window._ecolesMarkersMap[cat].push(marker);
     });
+    window._ecolesLeafletMap = map;
+    // Appliquer le filtre courant si déjà actif
+    if(window._ecolesFilterType && window._ecolesFilterType !== 'tous') window._applyEcoMapFilter(window._ecolesFilterType);
   },120);
 }
 
@@ -2217,32 +2232,25 @@ function showMobiliteDetail(){
     });
     L.marker([lat,lng],{icon:homeIcon}).addTo(map).bindPopup(`<strong>📍 ${currentAddress}</strong>`);
 
-    // Points transport depuis _mobiliteData
+    // Points transport avec clustering
     if(d.elements){
+      const clusters = {metro:L.markerClusterGroup({maxClusterRadius:40}),bus:L.markerClusterGroup({maxClusterRadius:40}),velo:L.markerClusterGroup({maxClusterRadius:40}),gare:L.markerClusterGroup({maxClusterRadius:40}),borne:L.markerClusterGroup({maxClusterRadius:40})};
       d.elements.forEach(e => {
         if(!e.lat||!e.lon) return;
         const tags = e.tags||{};
-        let icone='🚏', couleur='#e67e22';
-        if(tags.railway==='subway_entrance'||tags.station==='subway'){icone='🚇';couleur='#1a73e8';}
-        else if(tags.railway==='station'){icone='🚂';couleur='#c0392b';}
-        else if(tags.railway==='tram_stop'){icone='🚊';couleur='#e67e22';}
-        else if(tags.amenity==='bicycle_rental'){icone='🚲';couleur='#27ae60';}
-        else if(tags.amenity==='charging_station'){icone='⚡';couleur='#8e44ad';}
-
-        const icon = L.divIcon({
-          html:`<div style="background:${couleur};border:2px solid #fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 2px 6px rgba(0,0,0,.25)">${icone}</div>`,
-          iconSize:[26,26],iconAnchor:[13,13],className:''
-        });
-
-        const marker = L.marker([e.lat,e.lon],{icon}).addTo(map).bindPopup(`<strong>${icone} ${tags.name||tags.railway||tags.amenity||'Arrêt'}</strong>`);
-        let layerKey = 'bus';
-        if(tags.railway==='subway_entrance'||tags.station==='subway') layerKey='metro';
-        else if(tags.railway==='station') layerKey='gare';
-        else if(tags.railway==='tram_stop') layerKey='bus';
-        else if(tags.amenity==='bicycle_rental') layerKey='velo';
-        else if(tags.amenity==='charging_station') layerKey='borne';
-        if(window._mobiliteMarkers[layerKey]) window._mobiliteMarkers[layerKey].push(marker);
+        let icone='🚏', couleur='#e67e22', layerKey='bus';
+        if(tags.railway==='subway_entrance'||tags.station==='subway'){icone='🚇';couleur='#1a73e8';layerKey='metro';}
+        else if(tags.railway==='station'){icone='🚂';couleur='#c0392b';layerKey='gare';}
+        else if(tags.railway==='tram_stop'){icone='🚊';couleur='#e67e22';layerKey='bus';}
+        else if(tags.amenity==='bicycle_rental'){icone='🚲';couleur='#27ae60';layerKey='velo';}
+        else if(tags.amenity==='charging_station'){icone='⚡';couleur='#8e44ad';layerKey='borne';}
+        const icon=L.divIcon({html:`<div style="background:${couleur};border:2px solid #fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;box-shadow:0 2px 5px rgba(0,0,0,.25)">${icone}</div>`,iconSize:[22,22],iconAnchor:[11,11],className:''});
+        const marker=L.marker([e.lat,e.lon],{icon}).bindPopup(`<strong>${icone} ${tags.name||tags.railway||tags.amenity||'Arrêt'}</strong>`);
+        clusters[layerKey].addLayer(marker);
+        window._mobiliteMarkers[layerKey].push(marker);
       });
+      Object.values(clusters).forEach(c=>map.addLayer(c));
+      window._mobiliteClusterGroups = clusters;
     }
     window._mobiliteMarkersReady = true;
   }, 250);
@@ -2330,13 +2338,13 @@ function showServicesMap(){
       b.style.opacity = on ? '1' : '.4';
       b.style.fontWeight = on ? '600' : '400';
     });
-    // Marqueurs
+    // Clusters par catégorie
     if(!window._leafletMap) return;
-    Object.keys(window._servicesAllMarkers).forEach(k=>{
-      window._servicesAllMarkers[k].forEach(m=>{
-        if(window._servicesActiveFilters.has(k)) m.addTo(window._leafletMap);
-        else window._leafletMap.removeLayer(m);
-      });
+    Object.keys(window._servicesClusters||{}).forEach(k=>{
+      const cluster = window._servicesClusters[k];
+      if(!cluster) return;
+      if(window._servicesActiveFilters.has(k)) window._leafletMap.addLayer(cluster);
+      else window._leafletMap.removeLayer(cluster);
     });
   };
 
@@ -2420,17 +2428,26 @@ function showServicesMap(){
       .bindPopup(`<strong>📍 Adresse analysée</strong><br>${currentAddress}`)
       .openPopup();
 
-    // Points de services par catégorie
+    // Points de services par catégorie avec clustering
     window._servicesAllMarkers = {};
+    window._servicesClusters = {};
+    const SVC_CATS_LIST = ['sante','commerce','restauration','sport','service','mobilite'];
+    SVC_CATS_LIST.forEach(cat => {
+      window._servicesClusters[cat] = L.markerClusterGroup({maxClusterRadius:50});
+      window._servicesAllMarkers[cat] = [];
+      map.addLayer(window._servicesClusters[cat]);
+    });
     d.services.forEach(s => {
       const icon = L.divIcon({
-        html: `<div style="background:${s.couleur};border:2px solid #fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 6px rgba(0,0,0,.25);cursor:pointer">${s.icone}</div>`,
-        iconSize: [28,28], iconAnchor: [14,14], className:''
+        html: `<div style="background:${s.couleur};border:2px solid #fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 2px 5px rgba(0,0,0,.25);cursor:pointer">${s.icone}</div>`,
+        iconSize: [26,26], iconAnchor: [13,13], className:''
       });
-      const popupContent = `<strong>${s.icone} ${s.nom}</strong><br><span style="font-size:.78rem;color:#666">${s.categorie} · ${s.distanceM}m</span>${s.tags.opening_hours?`<br><span style="font-size:.72rem">🕐 ${s.tags.opening_hours}</span>`:''}${s.tags.phone?`<br><span style="font-size:.72rem">📞 ${s.tags.phone}</span>`:''}`;
-      const marker = L.marker([s.lat, s.lon], {icon}).addTo(map).bindPopup(popupContent);
-      if(!window._servicesAllMarkers[s.categorie]) window._servicesAllMarkers[s.categorie]=[];
-      window._servicesAllMarkers[s.categorie].push(marker);
+      const popupContent = `<strong>${s.icone} ${s.nom}</strong><br><span style="font-size:.78rem;color:#666">${s.categorie} · ${s.distanceM}m</span>${s.tags?.opening_hours?`<br><span style="font-size:.72rem">🕐 ${s.tags.opening_hours}</span>`:''}${s.tags?.phone?`<br><span style="font-size:.72rem">📞 ${s.tags.phone}</span>`:''}`;
+      const marker = L.marker([s.lat, s.lon], {icon}).bindPopup(popupContent);
+      const cat = s.categorie||'service';
+      if(window._servicesClusters[cat]) window._servicesClusters[cat].addLayer(marker);
+      if(!window._servicesAllMarkers[cat]) window._servicesAllMarkers[cat]=[];
+      window._servicesAllMarkers[cat].push(marker);
     });
     // Appliquer l'état des filtres actifs sur la nouvelle carte
     window._applySvcFilters();
@@ -2601,44 +2618,37 @@ function showINSEEDetail(){
     const densColor = dens>10000?'#c0392b':dens>5000?'#e67e22':dens>2000?'#f39c12':dens>500?'#27ae60':'#2980b9';
     const densLabel = dens>10000?'Très dense':dens>5000?'Dense':dens>2000?'Urbain':dens>500?'Péri-urbain':'Rural';
 
-    // Charger le contour GeoJSON de la commune
-    if(c?.codeInsee){
-      try{
-        const geoResp = await fetch(`https://geo.api.gouv.fr/communes/${c.codeInsee}?format=geojson&geometry=contour`);
-        if(geoResp.ok){
-          const geoJSON = await geoResp.json();
-          L.geoJSON(geoJSON,{
-            style:{color:densColor,weight:2,fillColor:densColor,fillOpacity:0.25}
-          }).addTo(map);
-          // Charger communes voisines pour contexte
+    // Fonction helper : couleur selon densité
+    const getDensColor = d => d>10000?'#c0392b':d>5000?'#e67e22':d>2000?'#f39c12':d>500?'#27ae60':'#2980b9';
+
+    // Charger toutes les communes visibles dans le bbox de la carte en parallèle
+    try{
+      const b = map.getBounds();
+      const bbox = `${b.getWest().toFixed(4)},${b.getSouth().toFixed(4)},${b.getEast().toFixed(4)},${b.getNorth().toFixed(4)}`;
+      const communesResp = await fetch(`https://geo.api.gouv.fr/communes?bbox=${bbox}&fields=nom,population,superficie,codeDepartement&format=json&limit=60`);
+      if(communesResp.ok){
+        const communes = await communesResp.json();
+        // Charger tous les contours en parallèle
+        await Promise.all(communes.map(async v=>{
           try{
-            const bbox = map.getBounds();
-            const voisinesResp = await fetch(`https://geo.api.gouv.fr/communes?lat=${lat}&lon=${lng}&fields=nom,population,superficie,codeDepartement&format=json&limit=8`);
-            if(voisinesResp.ok){
-              const voisines = await voisinesResp.json();
-              for(const v of voisines){
-                if(v.code===c.codeInsee) continue;
-                const sup = v.superficie||0;
-                const pop = v.population||0;
-                // superficie en hectares, garde : min 50 ha pour éviter les valeurs aberrantes
-                const vDens = (sup >= 50) ? Math.round(pop/(sup/100)) : null;
-                const vColor = !vDens?'#999':vDens>10000?'#c0392b':vDens>5000?'#e67e22':vDens>2000?'#f39c12':vDens>500?'#27ae60':'#2980b9';
-                const vGeo = await fetch(`https://geo.api.gouv.fr/communes/${v.code}?format=geojson&geometry=contour`);
-                if(vGeo.ok){
-                  const vGeoJSON = await vGeo.json();
-                  const densLine = vDens
-                    ? `<span style="color:${vColor}">${vDens.toLocaleString('fr-FR')} hab./km²</span>`
-                    : `<span style="color:#999">Densité non disponible</span>`;
-                  L.geoJSON(vGeoJSON,{
-                    style:{color:vColor,weight:1,fillColor:vColor,fillOpacity:0.15}
-                  }).addTo(map).bindPopup(`<strong>${v.nom}</strong><br>${pop.toLocaleString('fr-FR')} hab.<br>${densLine}`);
-                }
-              }
-            }
+            const sup = v.superficie||0;
+            const pop = v.population||0;
+            const vDens = sup>=50 ? Math.round(pop/(sup/100)) : null;
+            const vColor = vDens!=null ? getDensColor(vDens) : '#aaa';
+            const vGeo = await fetch(`https://geo.api.gouv.fr/communes/${v.code}?format=geojson&geometry=contour`);
+            if(!vGeo.ok) return;
+            const vGeoJSON = await vGeo.json();
+            const isMain = v.code===c?.codeInsee;
+            L.geoJSON(vGeoJSON,{
+              style:{color:vColor,weight:isMain?2.5:1,fillColor:vColor,fillOpacity:isMain?0.3:0.18}
+            }).addTo(map).bindPopup(
+              `<strong>${v.nom}</strong><br>${pop.toLocaleString('fr-FR')} hab.<br>` +
+              (vDens!=null ? `<span style="color:${vColor};font-weight:600">${vDens.toLocaleString('fr-FR')} hab./km²</span>` : `<span style="color:#999">Densité non calculable</span>`)
+            );
           }catch(e){}
-        }
-      }catch(e){}
-    }
+        }));
+      }
+    }catch(e){}
 
     // Légende
     const legend=L.control({position:'bottomright'});
