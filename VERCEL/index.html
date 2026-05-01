@@ -3495,3 +3495,288 @@ function toast(msg,type='ok'){
 </script>
 </body>
 </html>
+'rRev').value)||0;
+  const pers  = Math.min(Math.max(parseInt(document.getElementById('rPers').value)||2,1),8);
+  const idf   = document.querySelector('#tRenovZone .tog.on')?.textContent.includes('Île') || false;
+  if(!surf||!rev){toast('Renseignez la surface et les revenus.','err');return;}
+
+  const ordre = ['G','F','E','D','C','B','A'];
+  const idxAv = ordre.indexOf(dpeAv), idxAp = ordre.indexOf(dpeAp);
+  if(idxAp <= idxAv){toast('Le DPE cible doit être meilleur que le DPE actuel.','err');return;}
+  const sauts = idxAp - idxAv;
+
+  // Coût travaux estimé (€/m²) selon nombre de sauts DPE
+  const coutM2 = sauts===1?200:sauts===2?400:sauts===3?650:850;
+  const coutMin = Math.round(surf * coutM2 * 0.8);
+  const coutMax = Math.round(surf * coutM2 * 1.3);
+
+  // Barèmes revenus MaPrimeRénov' 2025
+  const seuilsIDF = {
+    tresModeste:  [23541,34551,41493,48435,55418,62401,69384,76368],
+    modeste:      [28657,42058,50513,58991,67474,75957,84440,92924],
+    intermediaire:[40018,58827,70382,82005,93637,105270,116903,128535],
+  };
+  const seuilsProv = {
+    tresModeste:  [17009,24875,29917,34948,39990,45031,50073,55114],
+    modeste:      [21805,31889,38349,44808,51271,57731,64194,70654],
+    intermediaire:[30549,44907,54071,63235,72400,81564,90729,99893],
+  };
+  const seuils = idf ? seuilsIDF : seuilsProv;
+  const idx = Math.min(pers-1,7);
+
+  let tranche, tauxAide, couleur;
+  if(rev <= seuils.tresModeste[idx]){
+    tranche='Très modeste'; tauxAide=0.70; couleur='#4caf50';
+  } else if(rev <= seuils.modeste[idx]){
+    tranche='Modeste'; tauxAide=0.50; couleur='#8bc34a';
+  } else if(rev <= seuils.intermediaire[idx]){
+    tranche='Intermédiaire'; tauxAide=0.35; couleur='#f4a261';
+  } else {
+    tranche='Supérieure'; tauxAide=0.15; couleur='#e63946';
+  }
+
+  // MaPrimeRénov plafonné à 70 000€ de travaux éligibles (rénovation d'ampleur)
+  const eligible = sauts >= 2; // Rénovation d'ampleur = ≥ 2 sauts DPE
+  const travMax = 70000;
+  const base = Math.min(coutMax, travMax);
+  const aide = eligible ? Math.round(base * tauxAide) : Math.round(Math.min(coutMax, 10000) * tauxAide);
+
+  // Économies annuelles estimées (kWh évités × prix énergie)
+  const kwh = {'G':500,'F':375,'E':290,'D':215,'C':145,'B':90,'A':50};
+  const ecoKwh = (kwh[dpeAv] - kwh[dpeAp]) * surf;
+  const ecoMin = Math.round(ecoKwh * 0.13); // gaz
+  const ecoMax = Math.round(ecoKwh * 0.25); // élec
+
+  let html = '<div class="result-dark">';
+  html += '<div style="font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:1rem">🔨 Estimation rénovation · Barèmes 2025</div>';
+
+  html += `<div class="result-row" style="margin-bottom:.2rem"><span>Votre tranche</span><span style="color:${couleur};font-weight:600">${tranche} · ${Math.round(tauxAide*100)}% pris en charge</span></div>`;
+  html += `<div style="font-size:.73rem;color:rgba(255,255,255,.55);margin-bottom:1rem;padding-left:.5rem">Revenus ${fmt(rev)}€/an · ${pers} pers. · ${idf?'Île-de-France':'Province'}</div>`;
+
+  html += `<div class="result-row" style="margin-bottom:.2rem"><span>💰 Coût travaux estimé</span><span style="font-weight:600">${fmt(coutMin)} – ${fmt(coutMax)}</span></div>`;
+  html += `<div style="font-size:.73rem;color:rgba(255,255,255,.55);margin-bottom:1rem;padding-left:.5rem">DPE ${dpeAv} → ${dpeAp} · ${sauts} saut${sauts>1?'s':''} · ${surf}m²</div>`;
+
+  html += `<div class="result-row" style="margin-bottom:.2rem"><span style="color:var(--gold2);font-weight:500">🎁 MaPrimeRénov' estimée</span><span style="color:var(--gold2);font-weight:700;font-size:1.1rem">${fmt(aide)}</span></div>`;
+  if(!eligible) html += `<div style="font-size:.73rem;color:#f4a261;margin-bottom:.5rem;padding-left:.5rem">⚠️ Moins de 2 sauts DPE : aide partielle (hors rénovation d'ampleur)</div>`;
+  html += `<div style="font-size:.73rem;color:rgba(255,255,255,.55);margin-bottom:1rem;padding-left:.5rem">Plafond travaux éligibles : ${fmt(travMax)} · <a href="https://www.maprimerenov.gouv.fr" target="_blank" style="color:var(--gold2)">Vérifier ↗</a></div>`;
+
+  html += `<div class="result-row" style="margin-bottom:.2rem"><span>⚡ Économies annuelles estimées</span><span style="color:#4caf50;font-weight:600">${fmt(ecoMin)} – ${fmt(ecoMax)}/an</span></div>`;
+  html += `<div style="font-size:.73rem;color:rgba(255,255,255,.55);margin-bottom:1rem;padding-left:.5rem">${Math.round(ecoKwh).toLocaleString('fr-FR')} kWh économisés · gaz vs électrique</div>`;
+
+  html += `<div style="margin-top:.5rem;padding:.75rem;background:rgba(255,255,255,.06);border-radius:6px;font-size:.73rem;color:rgba(255,255,255,.55)">`;
+  html += `Obtenez un devis précis via un <a href="https://france-renov.gouv.fr/trouver-un-conseiller" target="_blank" style="color:var(--gold2)">conseiller France Rénov' ↗</a> (gratuit)`;
+  html += `</div></div>`;
+
+  document.getElementById('resRenov').innerHTML = html;
+  setCard('renov', fmt(aide)+' MaPrimeRénov\'', tranche+' · DPE '+dpeAv+'→'+dpeAp, 'good');
+}
+
+function calcAides(){
+  const rev = parseFloat(document.getElementById('aRev').value)||0;
+  const pers = Math.min(Math.max(parseInt(document.getElementById('aPers').value)||2, 1), 8);
+  const prix = parseFloat(document.getElementById('aPrix').value)||0;
+  const zone = document.getElementById('aZone').value;
+  const sit = document.querySelector('#tAideSit .tog.on')?.textContent || 'Primo-accédant';
+  const type = document.querySelector('#tAideType .tog.on')?.textContent || 'Neuf';
+  if(!rev || !prix){ toast('Renseignez les revenus et le prix.','err'); return; }
+
+  // ── Barèmes PTZ 2025 (revenus fiscaux N-2) ──
+  const plafRev = {
+    Abis:[37000,52000,62500,75000,87500,100000,112500,125000],
+    A:   [37000,52000,62500,75000,87500,100000,112500,125000],
+    B1:  [30000,42000,51000,60000,69000, 78000, 87000, 96000],
+    B2:  [27000,37800,45900,54000,62100, 70200, 78300, 86400],
+    C:   [24000,33600,40800,48000,55200, 62400, 69600, 76800],
+  };
+  const plafOp = {
+    Abis:[150000,210000,255000,300000,345000,345000,345000,345000],
+    A:   [150000,210000,255000,300000,345000,345000,345000,345000],
+    B1:  [135000,189000,230000,270000,311000,311000,311000,311000],
+    B2:  [110000,154000,187000,220000,253000,253000,253000,253000],
+    C:   [100000,140000,170000,200000,230000,230000,230000,230000],
+  };
+  const tauxPTZ = { Abis:0.50, A:0.40, B1:0.40, B2:0.20, C:0.20 };
+  // PTZ ancien avec travaux >25% : B2 et C éligibles à 40% depuis 2024
+  const tauxPTZAncien = { Abis:0, A:0, B1:0, B2:0.40, C:0.40 };
+
+  const idx = Math.min(pers-1, 7);
+  const isPrimo = sit === 'Primo-accédant';
+
+  let html = '<div class="result-dark">';
+  html += '<div style="font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:1rem">🎁 Aides estimées · Barèmes officiels 2025</div>';
+
+  // ── PTZ ──
+  if(isPrimo){
+    const plafRevZone = plafRev[zone][idx];
+    const plafOpZone = plafOp[zone][idx];
+    const eligible = rev <= plafRevZone;
+    const taux = type === 'Neuf' ? tauxPTZ[zone] : tauxPTZAncien[zone];
+    if(eligible && taux > 0){
+      const base = Math.min(prix, plafOpZone);
+      const montantPTZ = Math.round(base * taux);
+      html += `<div class="result-row" style="margin-bottom:.3rem"><span style="color:var(--gold2);font-weight:500">🏦 PTZ — Prêt à Taux Zéro</span><span style="color:var(--gold2);font-weight:600">${fmt(montantPTZ)}</span></div>`;
+      html += `<div style="font-size:.73rem;color:rgba(255,255,255,.6);margin-bottom:1rem;padding-left:.5rem">Prêt sans intérêts · ${Math.round(taux*100)}% de ${fmt(base)} · Zone ${zone} · <a href="https://www.service-public.fr/particuliers/vosdroits/F10871" target="_blank" style="color:var(--gold2)">Vérifier ↗</a></div>`;
+    } else if(eligible && taux === 0){
+      html += `<div class="result-row"><span>PTZ</span><span style="color:#f4a261">Non éligible (type ${type} · Zone ${zone})</span></div>`;
+      html += `<div style="font-size:.73rem;color:rgba(255,255,255,.5);margin-bottom:1rem;padding-left:.5rem">Le PTZ ancien est limité aux zones B2 et C avec travaux ≥ 25% du prix.</div>`;
+    } else {
+      html += `<div class="result-row"><span>PTZ</span><span style="color:#e63946">Revenus trop élevés</span></div>`;
+      html += `<div style="font-size:.73rem;color:rgba(255,255,255,.5);margin-bottom:1rem;padding-left:.5rem">Plafond zone ${zone} pour ${pers} pers. : ${fmt(plafRevZone)} €/an · Vos revenus : ${fmt(rev)} €/an</div>`;
+    }
+  } else {
+    html += `<div class="result-row"><span>PTZ</span><span style="color:rgba(255,255,255,.5)">Réservé aux primo-accédants</span></div><div style="margin-bottom:1rem"></div>`;
+  }
+
+  // ── Action Logement ──
+  html += `<div class="result-row" style="margin-bottom:.3rem"><span style="color:var(--gold2);font-weight:500">🏢 Action Logement</span><span style="color:var(--gold2);font-weight:600">jusqu'à 40 000 €</span></div>`;
+  html += `<div style="font-size:.73rem;color:rgba(255,255,255,.6);margin-bottom:1rem;padding-left:.5rem">Prêt à 1% · Salariés d'entreprises ≥ 10 salariés · Conditions variables · <a href="https://www.actionlogement.fr/le-pret-accession" target="_blank" style="color:var(--gold2)">Vérifier ↗</a></div>`;
+
+  // ── Exonération taxe foncière (neuf) ──
+  if(type === 'Neuf'){
+    html += `<div class="result-row" style="margin-bottom:.3rem"><span style="color:var(--gold2);font-weight:500">🏗️ Exonération taxe foncière</span><span style="color:var(--gold2);font-weight:600">2 ans</span></div>`;
+    html += `<div style="font-size:.73rem;color:rgba(255,255,255,.6);margin-bottom:1rem;padding-left:.5rem">Exonération automatique 2 ans pour construction neuve · Selon commune</div>`;
+  }
+
+  // ── TVA réduite (neuf en zone ANRU) ──
+  if(type === 'Neuf'){
+    html += `<div class="result-row" style="margin-bottom:.3rem"><span style="color:var(--gold2);font-weight:500">📋 TVA réduite 5,5%</span><span style="color:var(--gold2);font-weight:600">si zone ANRU</span></div>`;
+    html += `<div style="font-size:.73rem;color:rgba(255,255,255,.6);margin-bottom:1rem;padding-left:.5rem">TVA 5,5% au lieu de 20% en zone de rénovation urbaine (ANRU) · <a href="https://www.anru.fr/les-programmes/le-pnru" target="_blank" style="color:var(--gold2)">En savoir plus ↗</a></div>`;
+  }
+
+  html += `<div style="margin-top:1rem;padding:.75rem;background:rgba(255,255,255,.06);border-radius:6px;font-size:.73rem;color:rgba(255,255,255,.55)">`;
+  html += `⚠️ Estimations basées sur les barèmes 2025. Simulez précisément sur <a href="https://www.anil.org/outils/outils-de-calcul/simulation-ptz/" target="_blank" style="color:var(--gold2)">anil.org ↗</a>`;
+  html += `</div></div>`;
+
+  document.getElementById('resAides').innerHTML = html;
+
+  // Mettre à jour la carte
+  const montantTotal = isPrimo && rev <= plafRev[zone][idx] && (type==='Neuf'?tauxPTZ[zone]:tauxPTZAncien[zone]) > 0
+    ? fmt(Math.round(Math.min(prix, plafOp[zone][idx]) * (type==='Neuf'?tauxPTZ[zone]:tauxPTZAncien[zone]))) + ' PTZ'
+    : 'Voir les aides';
+  setCard('aides', montantTotal, sit + ' · Zone ' + zone, 'good');
+}
+
+function calcCout(){
+  const prix=parseFloat(document.getElementById('cPrix').value)||0;
+  if(!prix){toast('Veuillez saisir le prix.','err');return;}
+  const dpe=document.getElementById('cDpe').value;
+  const charges=parseFloat(document.getElementById('cCharges').value)||250;
+  const apport=parseFloat(document.getElementById('cApport').value)||0;
+  const duree=parseFloat(document.getElementById('cDuree').value)||20;
+  const notaire=Math.round(prix*.075);
+  const travaux={'A':0,'B':0,'C':5000,'D':15000,'E':35000,'F':60000,'G':90000}[dpe]||0;
+  const taxe=Math.round(prix*.006);
+  const emprunt=prix-apport+notaire;
+  const t=0.034/12,n=duree*12;
+  const mens=emprunt>0?Math.round((emprunt*t)/(1-Math.pow(1+t,-n))):0;
+  const total=prix+notaire+travaux+(charges*120)+(taxe*10);
+  document.getElementById('resCout').innerHTML=`
+    <div class="result-dark">
+      <div style="font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem">💰 Coût réel sur 10 ans</div>
+      <div class="result-n">${fmt(Math.round(total/1000)*1000)}</div>
+      ${[['Prix affiché',fmt(prix)],['Frais notaire (7.5%)',fmt(notaire)],[`Travaux DPE ${dpe}`,fmt(travaux)],['Charges copro 10 ans',fmt(charges*120)],['Taxe foncière 10 ans',fmt(taxe*10)],['Mensualité estimée',fmt(mens)+'/mois']].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
+    </div>`;
+  setCard('cout', fmt(Math.round(total/1000)*1000), 'Coût total · '+fmt(mens)+'/mois', '');
+}
+
+function calcEmprunt(){
+  const rev=(parseFloat(document.getElementById('eRev').value)||0)+(parseFloat(document.getElementById('eRev2').value)||0);
+  if(!rev){toast('Renseignez vos revenus.','err');return;}
+  const charges=parseFloat(document.getElementById('eCharges').value)||0;
+  const apport=parseFloat(document.getElementById('eApport').value)||0;
+  const duree=parseFloat(document.getElementById('eDuree').value)||20;
+  const taux=(parseFloat(String(document.getElementById('eTaux').value).replace(',','.'))||3.4)/100;
+  const mensMax=rev*.35-charges;
+  if(mensMax<=0){
+    document.getElementById('resEmprunt').innerHTML=`<div class="result-dark"><p style="color:#e63946;font-size:.85rem">⚠️ <strong>Capacité nulle.</strong><br><br>Vos crédits en cours (${fmt(charges)} €/mois) dépassent déjà 35% de vos revenus (${fmt(Math.round(rev*.35))} €/mois max autorisé par les banques).<br><br>Si vous n'avez pas de crédits en cours, laissez ce champ à 0.</p></div>`;
+    setCard('emprunt','Capacité nulle','Charges > 35% des revenus','bad');
+    return;
+  }
+  const t=taux/12,n=duree*12;
+  const empruntMax=mensMax*(1-Math.pow(1+t,-n))/t;
+  const prixMax=empruntMax+apport;
+  document.getElementById('resEmprunt').innerHTML=`
+    <div class="result-dark">
+      <div style="font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem">🏦 Votre capacité</div>
+      <div class="result-n">${fmt(Math.round(prixMax/1000)*1000)}</div>
+      <div style="font-size:.7rem;color:rgba(255,255,255,.7);text-align:center;margin-bottom:1rem">Budget d'achat total estimé</div>
+      ${[['Mensualité max (35%)',fmt(Math.round(mensMax))+'/mois'],['Capacité d\'emprunt',fmt(Math.round(empruntMax))],['Apport',fmt(apport)]].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
+      <div class="result-insight">Budget de <strong>${fmt(Math.round(prixMax/1000)*1000)}</strong> — consultez la page <strong>Prix & marché</strong> pour voir ce que vous pouvez acheter dans votre ville cible.</div>
+    </div>`;
+  setCard('emprunt', fmt(Math.round(prixMax/1000)*1000), 'Budget max · emprunt '+fmt(Math.round(empruntMax)), 'good');
+}
+
+function calcDpe(){
+  const dpe=document.getElementById('dDpe').value;
+  const surf=parseFloat(document.getElementById('dSurf').value)||75;
+  const chauff=document.getElementById('dChauff').value;
+  const kwh={'A':50,'B':90,'C':145,'D':215,'E':290,'F':375,'G':500}[dpe];
+  const prix={'gaz':0.13,'elec':0.25,'fioul':0.15,'pompe':0.09}[chauff];
+  const facture=Math.round(kwh*surf*prix);
+  const vignette={'A':'🟢','B':'🟢','C':'🟡','D':'🟠','E':'🟠','F':'🔴','G':'🔴'}[dpe];
+  // Mettre à jour la carte DPE avec le dernier résultat
+  window._dpeResult = {dpe, facture, surf, vignette};
+  setCard('dpe', vignette+' DPE '+dpe, Math.round(facture/12).toLocaleString('fr-FR')+' €/mois · '+surf+'m²', dpe<='C'?'good':dpe<='D'?'':'bad');
+  document.getElementById('resDpe').innerHTML=`
+    <div class="result-dark">
+      <div style="text-align:center;font-size:2.5rem;margin:.5rem 0">${vignette} DPE ${dpe}</div>
+      <div class="result-n">${facture.toLocaleString('fr-FR')} €/an</div>
+      ${[['Consommation',kwh+' kWh/m²/an'],['Surface',surf+'m²'],['Facture mensuelle',Math.round(facture/12).toLocaleString('fr-FR')+' €/mois']].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
+      ${dpe>='E'?`<div class="result-insight">⚠️ <strong>Passoire énergétique.</strong> Des travaux peuvent diviser la facture par 2-3. Voir <strong>Rénovation & aides</strong>.</div>`:''}
+    </div>`;
+}
+
+// ══ CHAT ══
+function addMsg(role,text){
+  const msgs=document.getElementById('msgs');
+  const d=document.createElement('div');d.className='msg'+(role==='u'?' u':'');
+  d.innerHTML=`<div class="mav ${role}">${role==='ai'?'IA':'V'}</div><div class="bub ${role}">${role==='ai'?'<p>'+md(text)+'</p>':text}</div>`;
+  msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;
+}
+function addTyping(){
+  const msgs=document.getElementById('msgs');
+  const d=document.createElement('div');d.className='msg';d.id='typing';
+  d.innerHTML=`<div class="mav ai">IA</div><div class="bub ai"><div class="typing"><span></span><span></span><span></span></div></div>`;
+  msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;
+}
+async function sendMsg(){
+  const inp=document.getElementById('chatIn'),msg=inp.value.trim();if(!msg)return;
+  inp.value='';addMsg('u',msg);chatHistory.push({role:'user',content:msg});
+  document.getElementById('chatGo').disabled=true;
+  document.getElementById('chatSt').textContent='● En train d\'écrire…';
+  addTyping();
+  const addrCtx=currentAddress?` L'utilisateur analyse actuellement: "${currentAddress}".`:'';
+  try{
+    const SYS=`Tu es un conseiller immobilier expert France entière.${addrCtx} Connais les marchés locaux, la fiscalité française (PTZ, Pinel, LMNP), le financement, les stratégies achat/investissement. Réponds en français, direct, **gras** pour chiffres clés, 6-7 lignes max.`;
+    if(!groqKey)throw new Error('no_key');
+    const msgs=[{role:'system',content:SYS},...chatHistory.slice(-10)];
+    let candidates=GROQ_MODELS.complex.filter(m=>!exhausted.includes(m));
+    if(!candidates.length)candidates=[...GROQ_MODELS.complex];
+    let res,done=false;
+    for(const model of candidates){
+      const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+groqKey},body:JSON.stringify({model,messages:msgs,max_tokens:700,temperature:0.7})});
+      if(r.status===429){markEx(model);continue;}
+      if(!r.ok)throw new Error('Erreur Groq');
+      res=(await r.json()).choices[0].message.content;done=true;break;
+    }
+    if(!done)throw new Error('Tous les modèles épuisés.');
+    document.getElementById('typing')?.remove();addMsg('ai',res);
+    chatHistory.push({role:'assistant',content:res});
+  }catch(e){
+    document.getElementById('typing')?.remove();
+    if(e.message==='no_key'){addMsg('ai','Configurez votre clé Groq pour activer le conseiller.');openModal();}
+    else addMsg('ai','⚠️ '+e.message);
+  }
+  document.getElementById('chatGo').disabled=false;
+  document.getElementById('chatSt').textContent='● Prêt · France entière';
+}
+function ask(q){document.getElementById('chatIn').value=q;sendMsg();}
+
+// ══ TOAST ══
+function toast(msg,type='ok'){
+  const t=document.createElement('div');t.className='toast '+type;t.textContent=msg;
+  document.body.appendChild(t);setTimeout(()=>t.remove(),3500);
+}
+</script>
+</body>
+</html>

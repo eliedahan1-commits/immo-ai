@@ -21,7 +21,13 @@ export default async function handler(req, res) {
       ecoUrl = `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=latitude>${lat - deg} AND latitude<${lat + deg} AND longitude>${lon - deg} AND longitude<${lon + deg}&limit=${limit}&select=${fields}`;
     }
 
-    const r = await fetch(ecoUrl, { headers: { 'Accept': 'application/json' }, signal: AbortSignal.timeout(10000) });
+    const fetchHeaders = {
+      'Accept': 'application/json',
+      'User-Agent': 'Mozilla/5.0 (compatible; ImmoAI/1.0; +https://immo-ai-nu.vercel.app)',
+      'Referer': 'https://data.education.gouv.fr/',
+      'Origin': 'https://data.education.gouv.fr',
+    };
+    const r = await fetch(ecoUrl, { headers: fetchHeaders, signal: AbortSignal.timeout(10000) });
     if (!r.ok) { const t = await r.text(); throw new Error(`API Éducation ${r.status}: ${t.substring(0, 100)}`); }
 
     const data = await r.json();
