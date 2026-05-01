@@ -2668,16 +2668,20 @@ function showINSEEDetail(){
               const voisines = await voisinesResp.json();
               for(const v of voisines){
                 if(v.code===c.codeInsee) continue;
-                const sup = v.superficie||1;
+                const sup = v.superficie||0;
                 const pop = v.population||0;
-                const vDens = Math.round(pop/(sup/100));
-                const vColor = vDens>10000?'#c0392b':vDens>5000?'#e67e22':vDens>2000?'#f39c12':vDens>500?'#27ae60':'#2980b9';
+                // superficie en hectares, garde : min 50 ha pour éviter les valeurs aberrantes
+                const vDens = (sup >= 50) ? Math.round(pop/(sup/100)) : null;
+                const vColor = !vDens?'#999':vDens>10000?'#c0392b':vDens>5000?'#e67e22':vDens>2000?'#f39c12':vDens>500?'#27ae60':'#2980b9';
                 const vGeo = await fetch(`https://geo.api.gouv.fr/communes/${v.code}?format=geojson&geometry=contour`);
                 if(vGeo.ok){
                   const vGeoJSON = await vGeo.json();
+                  const densLine = vDens
+                    ? `<span style="color:${vColor}">${vDens.toLocaleString('fr-FR')} hab./km²</span>`
+                    : `<span style="color:#999">Densité non disponible</span>`;
                   L.geoJSON(vGeoJSON,{
                     style:{color:vColor,weight:1,fillColor:vColor,fillOpacity:0.15}
-                  }).addTo(map).bindPopup(`<strong>${v.nom}</strong><br><span style="font-size:.75rem;color:${vColor}">${vDens.toLocaleString('fr-FR')} hab./km²</span>`);
+                  }).addTo(map).bindPopup(`<strong>${v.nom}</strong><br>${pop.toLocaleString('fr-FR')} hab.<br>${densLine}`);
                 }
               }
             }
@@ -2714,11 +2718,13 @@ function showINSEEDetail(){
         if(!r2.ok) return;
         const [com]=await r2.json();
         if(!com) return;
-        const sup2=com.superficie||1;
-        const dens2=Math.round((com.population||0)/(sup2/100));
-        const col2=dens2>10000?'#c0392b':dens2>5000?'#e67e22':dens2>2000?'#f39c12':dens2>500?'#27ae60':'#2980b9';
-        const lbl2=dens2>10000?'Très dense':dens2>5000?'Dense':dens2>2000?'Urbain':dens2>500?'Péri-urbain':'Rural';
-        L.popup().setLatLng(e.latlng).setContent(`<strong>${com.nom}</strong><br><span style="color:${col2}"><strong>${lbl2}</strong> · ${dens2.toLocaleString('fr-FR')} hab./km²</span><br><span style="font-size:.72rem">${(com.population||0).toLocaleString('fr-FR')} habitants</span>`).openOn(map);
+        const sup2=com.superficie||0;
+        const pop2=com.population||0;
+        const dens2=(sup2>=50)?Math.round(pop2/(sup2/100)):null;
+        const col2=!dens2?'#999':dens2>10000?'#c0392b':dens2>5000?'#e67e22':dens2>2000?'#f39c12':dens2>500?'#27ae60':'#2980b9';
+        const lbl2=!dens2?'':dens2>10000?'Très dense · ':dens2>5000?'Dense · ':dens2>2000?'Urbain · ':dens2>500?'Péri-urbain · ':'Rural · ';
+        const densStr=dens2?`<span style="color:${col2}"><strong>${lbl2}${dens2.toLocaleString('fr-FR')} hab./km²</strong></span>`:`<span style="color:#999">Densité non disponible</span>`;
+        L.popup().setLatLng(e.latlng).setContent(`<strong>${com.nom}</strong><br>${pop2.toLocaleString('fr-FR')} habitants<br>${densStr}`).openOn(map);
       }catch(e2){}
     });
   },150);

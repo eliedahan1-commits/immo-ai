@@ -11,12 +11,14 @@ export default async function handler(req, res) {
   try {
     let ecoUrl;
     const fields = 'nom_etablissement,type_etablissement,statut_public_prive,adresse_1,code_postal,nom_commune,latitude,longitude,ecole_maternelle,ecole_elementaire';
+    // Limite dynamique selon le rayon pour ne pas manquer d'établissements proches
+    const limit = dist <= 1000 ? 100 : dist <= 2000 ? 200 : 400;
 
     if (codeInsee) {
-      ecoUrl = `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=code_commune%3D%22${codeInsee}%22&limit=50&select=${fields}`;
+      ecoUrl = `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=code_commune%3D%22${codeInsee}%22&limit=${limit}&select=${fields}`;
     } else {
       const deg = dist / 111000;
-      ecoUrl = `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=latitude>${lat - deg} AND latitude<${lat + deg} AND longitude>${lon - deg} AND longitude<${lon + deg}&limit=50&select=${fields}`;
+      ecoUrl = `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=latitude>${lat - deg} AND latitude<${lat + deg} AND longitude>${lon - deg} AND longitude<${lon + deg}&limit=${limit}&select=${fields}`;
     }
 
     const r = await fetch(ecoUrl, { headers: { 'Accept': 'application/json' }, signal: AbortSignal.timeout(10000) });
@@ -32,7 +34,7 @@ export default async function handler(req, res) {
         const dLon = (parseFloat(e.longitude) - lon) * 111000 * Math.cos(lat * Math.PI / 180);
         return { ...e, distanceM: Math.round(Math.sqrt(dLat * dLat + dLon * dLon)) };
       })
-      .filter(e => e.distanceM <= dist * 1.5)
+      .filter(e => e.distanceM <= dist)
       .sort((a, b) => a.distanceM - b.distanceM);
 
     const matchTexte = (e, ...mots) => {
