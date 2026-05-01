@@ -1609,7 +1609,8 @@ async function loadEcoles(lat, lng, codeInsee, dist=1500){
       ecoUrl = `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=code_commune%3D%22${codeInsee}%22&limit=${limit}&select=${fields}`;
     } else {
       const deg=dist/111000;
-      ecoUrl = `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=latitude>${lat-deg} AND latitude<${lat+deg} AND longitude>${lng-deg} AND longitude<${lng+deg}&limit=${limit}&select=${fields}`;
+      const where=encodeURIComponent(`latitude>${lat-deg} AND latitude<${lat+deg} AND longitude>${lng-deg} AND longitude<${lng+deg}`);
+      ecoUrl = `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=${where}&limit=${limit}&select=${fields}`;
     }
     const r = await fetch(ecoUrl, { headers:{'Accept':'application/json'}, signal:AbortSignal.timeout(10000) });
     if(!r.ok) throw new Error(`HTTP ${r.status}`);
