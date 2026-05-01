@@ -1599,9 +1599,10 @@ async function loadRisques(lat, lng){
 }
 
 // ── Écoles : données officielles Éducation nationale ──
-async function loadEcoles(lat, lng, codeInsee){
+async function loadEcoles(lat, lng, codeInsee, dist=1500){
+  window._ecolesCodeInsee = codeInsee;
   try{
-    const deg=1500/111000; const where=encodeURIComponent(`latitude>${lat-deg} AND latitude<${lat+deg} AND longitude>${lng-deg} AND longitude<${lng+deg}`); const r = await apiCall(`/api/ecoles?lat=${lat}&lon=${lng}&dist=1500&_v=5${codeInsee?'&codeInsee='+codeInsee:''}`, `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=${where}&limit=25&select=nom_etablissement,type_etablissement,statut_public_prive,adresse1,code_postal,nom_commune,latitude,longitude`);
+    const deg=dist/111000; const where=encodeURIComponent(`latitude>${lat-deg} AND latitude<${lat+deg} AND longitude>${lng-deg} AND longitude<${lng+deg}`); const r = await apiCall(`/api/ecoles?lat=${lat}&lon=${lng}&dist=${dist}&_v=5${codeInsee?'&codeInsee='+codeInsee:''}`, `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=${where}&limit=50&select=nom_etablissement,type_etablissement,statut_public_prive,adresse1,code_postal,nom_commune,latitude,longitude`);
     if(!r.ok) throw new Error();
     const d = await r.json();
     if(!d.success) throw new Error();
@@ -1619,9 +1620,9 @@ async function loadEcoles(lat, lng, codeInsee){
 }
 
 // ── Mobilité : OpenStreetMap via Overpass ──
-async function loadMobilite(lat, lng){
+async function loadMobilite(lat, lng, dist=1000){
   try{
-    const r = await apiCall(`/api/mobilite?lat=${lat}&lon=${lng}&dist=1000`, `https://overpass-api.de/api/interpreter`);
+    const r = await apiCall(`/api/mobilite?lat=${lat}&lon=${lng}&dist=${dist}`, `https://overpass-api.de/api/interpreter`);
     if(!r.ok) throw new Error();
     const d = await r.json();
     if(!d.success) throw new Error();
@@ -1891,6 +1892,7 @@ function closePanel(){
   document.getElementById('cardsGrid').style.display = 'grid';
   if(window._leafletMap){window._leafletMap.remove();window._leafletMap=null;}
   if(window._leafletMapMobilite){window._leafletMapMobilite.remove();window._leafletMapMobilite=null;}
+  if(window._leafletMapAlt){window._leafletMapAlt.remove();window._leafletMapAlt=null;}
 }
 
 function showDVFDetail(){
@@ -1927,6 +1929,16 @@ function showDVFDetail(){
       const tranche=SURF_TRANCHES.find(t=>t[0]===s);
       if(tranche) liste=liste.filter(t=>(t.surf||0)>=tranche[1]&&(t.surf||0)<tranche[2]);
     }
+    // Stats dynamiques sur la sélection filtrée (avant limite N)
+    const prix2 = liste.map(t=>t.prixM2).filter(v=>v>0).sort((a,b)=>a-b);
+    const medFilt = prix2.length ? prix2[Math.floor(prix2.length/2)] : null;
+    const el_med = document.getElementById('dvfStatMedian');
+    const el_cnt = document.getElementById('dvfStatCount');
+    const el_four = document.getElementById('dvfFourchette');
+    if(el_med) el_med.textContent = medFilt ? medFilt.toLocaleString('fr-FR')+'€' : '—';
+    if(el_cnt) el_cnt.textContent = liste.length;
+    if(el_four && prix2.length>=2) el_four.textContent = 'Fourchette : '+prix2[0].toLocaleString('fr-FR')+' – '+prix2[prix2.length-1].toLocaleString('fr-FR')+' €/m²';
+
     const n = window._dvfFilterN;
     if(n > 0) liste = liste.slice(0, n);
     document.getElementById('dvfTbody').innerHTML = liste.map(t=>`
@@ -1963,7 +1975,6 @@ function showDVFDetail(){
       options:{plugins:{legend:{display:false},datalabels:{anchor:'end',align:'top',color:'#8a7d68',font:{size:9,weight:'600'}},title:{display:true,text:'Distribution des prix (€/m²) — cliquer une barre pour filtrer',font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68'}},
         scales:{x:{ticks:{font:{size:8},color:'#8a7d68'},grid:{display:false}},y:{ticks:{font:{size:9},color:'#8a7d68'},grid:{color:'rgba(0,0,0,.05)'}}},
         animation:{duration:300},
-        onClick:(_,els)=>{if(!els.length){window._dvfFilterPrixLo=null;window._dvfFilterPrixHi=null;renderDVFRows();return;}const i=els[0].index;window._dvfFilterPrixLo=los[i];window._dvfFilterPrixHi=his[i];let l=getFilteredVals().filter((_,j)=>window._dvfRecentes[j]?.prixM2>=los[i]&&window._dvfRecentes[j]?.prixM2<=his[i]);const sl=window._dvfRecentes.filter(t=>t.prixM2>=los[i]&&t.prixM2<=his[i]);document.getElementById('dvfTbody').innerHTML=sl.map(t=>`<tr><td>${t.date||'—'}</td><td>${t.type||'—'}</td><td>${t.surf?t.surf+'m²':'—'}</td><td><strong>${t.prixM2?t.prixM2.toLocaleString('fr-FR')+' €/m²':'—'}</strong></td><td>${t.prix?t.prix.toLocaleString('fr-FR')+' €':'—'}</td></tr>`).join('')||'<tr><td colspan="5" style="color:var(--muted);text-align:center">Aucune transaction</td></tr>'; toast(sl.length+' transaction(s) dans cette fourchette','');},
       }
     });
   }
@@ -1975,11 +1986,11 @@ function showDVFDetail(){
   const btnsSurf = SURF_TRANCHES.map(([s,l])=>`<button class="dvf-surf-btn dvf-filter-btn" data-s="${s}" onclick="filterDVFSurf(${s})" style="${btnStyle}">${l}</button>`).join('');
   showPanel('💰 Transactions DVF officielles', `
     <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1rem">
-      <div class="stat-box"><span class="stat-n">${d.stats.medianM2.toLocaleString('fr-FR')}€</span><span class="stat-l">Médian /m²</span></div>
-      <div class="stat-box"><span class="stat-n">${d.count}</span><span class="stat-l">Ventes${d.dateRange?' '+d.dateRange:''}</span></div>
+      <div class="stat-box"><span class="stat-n" id="dvfStatMedian">${d.stats.medianM2.toLocaleString('fr-FR')}€</span><span class="stat-l">Médian /m²</span></div>
+      <div class="stat-box"><span class="stat-n" id="dvfStatCount">${d.count}</span><span class="stat-l" id="dvfStatCountLabel">Ventes${d.dateRange?' '+d.dateRange:''}</span></div>
       <div class="stat-box"><span class="stat-n">${d.rayon}m</span><span class="stat-l">Rayon analysé</span></div>
     </div>
-    <p style="font-size:.75rem;color:var(--muted);margin-bottom:.6rem">Fourchette : ${d.stats.minM2.toLocaleString('fr-FR')} – ${d.stats.maxM2.toLocaleString('fr-FR')} €/m²</p>
+    <p style="font-size:.75rem;color:var(--muted);margin-bottom:.6rem" id="dvfFourchette">Fourchette : ${d.stats.minM2.toLocaleString('fr-FR')} – ${d.stats.maxM2.toLocaleString('fr-FR')} €/m²</p>
     <div style="margin-bottom:.5rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Type :</span>${btnsType}
     </div>
@@ -1989,10 +2000,10 @@ function showDVFDetail(){
     <div style="margin-bottom:.7rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Afficher :</span>${btnsFiltres}
     </div>
+    <div style="margin-bottom:1.2rem"><canvas id="dvfHistChart" height="140"></canvas></div>
     <table class="tbl"><thead><tr><th>Date</th><th>Type</th><th>Surface</th><th>Prix/m²</th><th>Prix total</th></tr></thead>
     <tbody id="dvfTbody"></tbody></table>
-    <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">${periodeLabel?periodeLabel+' · ':''}Source : ${d.source}</p>
-    <div style="margin-top:1.2rem"><canvas id="dvfHistChart" height="140"></canvas></div>`);
+    <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">${periodeLabel?periodeLabel+' · ':''}Source : ${d.source}</p>`);
   renderDVFRows();
   setTimeout(()=>refreshDVFChart(), 80);
 }
@@ -2047,18 +2058,28 @@ function showEcolesDetail(){
 
   const ECO_TYPES = [['tous','Tous'],['ecole','🏫 Écoles'],['college','🎓 Collèges'],['lycee','📚 Lycées']];
   const ECO_NS    = [10, 20, 50, 0];
+  const ECO_RAYONS = [[500,'500m'],[1000,'1km'],[2000,'2km'],[5000,'5km']];
+  const currentDist = window._ecolesCurrentDist || 1500;
   const btnStyle  = 'padding:.25rem .7rem;font-size:.72rem;border:1px solid var(--border);background:var(--white);border-radius:3px;cursor:pointer;margin-right:.3rem';
+  const btnStyleRayon = 'padding:.25rem .7rem;font-size:.72rem;border:1px solid var(--border);border-radius:3px;cursor:pointer;margin-right:.3rem';
 
-  const btnsType = ECO_TYPES.map(([t,l])=>`<button class="eco-type-btn dvf-filter-btn" data-t="${t}" onclick="setEcoType('${t}')" style="${btnStyle}">${l}</button>`).join('');
-  const btnsN    = ECO_NS.map(n=>`<button class="eco-n-btn dvf-filter-btn" data-n="${n}" onclick="setEcoN(${n})" style="${btnStyle}">${n===0?'Tous':n}</button>`).join('');
+  const btnsType  = ECO_TYPES.map(([t,l])=>`<button class="eco-type-btn dvf-filter-btn" data-t="${t}" onclick="setEcoType('${t}')" style="${btnStyle}">${l}</button>`).join('');
+  const btnsN     = ECO_NS.map(n=>`<button class="eco-n-btn dvf-filter-btn" data-n="${n}" onclick="setEcoN(${n})" style="${btnStyle}">${n===0?'Tous':n}</button>`).join('');
+  const btnsRayon = ECO_RAYONS.map(([r,l])=>`<button class="eco-rayon-btn" data-r="${r}" onclick="reloadEcolesWithDist(${r})" style="${btnStyleRayon};${currentDist===r||(!window._ecolesCurrentDist&&r===1500)?'background:var(--ink);color:#fff;border-color:var(--ink)':''}">${l}</button>`).join('');
+  const ecoles=d.types?.ecoles||0, college=d.types?.college||0, lycee=d.types?.lycee||0;
+  const total=d.total||0;
 
   showPanel('🏫 Établissements scolaires à proximité', `
+    <div style="margin-bottom:.6rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
+      <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Rayon :</span>${btnsRayon}
+    </div>
     <div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;margin-bottom:.8rem">
       <div style="flex:1;min-width:200px">
-        <div style="display:flex;gap:.5rem;margin-bottom:.6rem;flex-wrap:wrap">
-          <span class="tag tag-up">🏫 ${d.types?.ecoles||0} école(s)</span>
-          <span class="tag tag-gold">🎓 ${d.types?.college||0} collège(s)</span>
-          <span class="tag tag-up">📚 ${d.types?.lycee||0} lycée(s)</span>
+        <div style="display:flex;gap:.5rem;margin-bottom:.6rem;flex-wrap:wrap;align-items:center">
+          <span class="tag tag-up">🏫 ${ecoles} école(s)</span>
+          <span class="tag tag-gold">🎓 ${college} collège(s)</span>
+          <span class="tag tag-up">📚 ${lycee} lycée(s)</span>
+          <strong style="font-size:.82rem;color:var(--accent)">Total : ${total}</strong>
         </div>
         <div style="margin-bottom:.5rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
           <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Type :</span>${btnsType}
@@ -2067,10 +2088,22 @@ function showEcolesDetail(){
           <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Afficher :</span>${btnsN}
         </div>
       </div>
-      <div style="width:180px;flex-shrink:0"><canvas id="ecolesChart" height="160"></canvas></div>
+      <div style="width:240px;flex-shrink:0"><canvas id="ecolesChart" height="220"></canvas></div>
     </div>
     <div id="ecolesListe"></div>
     <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : Annuaire Éducation Nationale · <a href="https://data.education.gouv.fr" target="_blank" style="color:var(--gold)">data.education.gouv.fr</a></p>`);
+
+  window.reloadEcolesWithDist = async function(dist){
+    window._ecolesCurrentDist = dist;
+    document.querySelectorAll('.eco-rayon-btn').forEach(b=>{
+      const active = parseInt(b.dataset.r)===dist;
+      b.style.background = active?'var(--ink)':'';
+      b.style.color = active?'#fff':'';
+      b.style.borderColor = active?'var(--ink)':'var(--border)';
+    });
+    await loadEcoles(currentCoords.lat, currentCoords.lng, window._ecolesCodeInsee, dist);
+    showEcolesDetail();
+  };
 
   window.renderEcoles();
   setTimeout(()=>{
@@ -2103,24 +2136,34 @@ function showMobiliteDetail(){
   const d = window._mobiliteData;
   if(!d){showPanel('🚇 Mobilité & transports','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
 
+  const mobDist = window._mobiliteCurrentDist || 1000;
+  const MOB_RAYONS = [[500,'500m'],[1000,'1km'],[2000,'2km'],[5000,'5km']];
+  const btnStyleMobRayon = r => `padding:.25rem .7rem;font-size:.72rem;border:1px solid ${r===mobDist?'var(--ink)':'var(--border)'};border-radius:3px;cursor:pointer;margin-right:.3rem;background:${r===mobDist?'var(--ink)':'var(--white)'};color:${r===mobDist?'#fff':'inherit'}`;
+  const btnsMobRayon = MOB_RAYONS.map(([r,l])=>`<button class="mob-rayon-btn" data-r="${r}" onclick="reloadMobiliteWithDist(${r})" style="${btnStyleMobRayon(r)}">${l}</button>`).join('');
+  const layerBtnStyle = (c) => `display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid ${c};border-radius:3px;background:${c}18;cursor:pointer;font-size:.7rem`;
   showPanel('🚇 Mobilité & transports', `
+    <div style="margin-bottom:.6rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
+      <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Rayon :</span>${btnsMobRayon}
+    </div>
     <div class="map-stats">
       <div class="map-stat"><span class="map-stat-n">${d.score}/10</span><span class="map-stat-l">Score</span></div>
       <div class="map-stat"><span class="map-stat-n">${d.stats?.metro||0}</span><span class="map-stat-l">Métro/RER</span></div>
       <div class="map-stat"><span class="map-stat-n">${d.stats?.arretsBus||0}</span><span class="map-stat-l">Arrêts bus</span></div>
       <div class="map-stat"><span class="map-stat-n">${d.stats?.velos||0}</span><span class="map-stat-l">Vélos/bornes</span></div>
     </div>
-    <div class="map-legend" style="flex-wrap:wrap;gap:.4rem">
-      <button onclick="toggleMobiliteLayer('metro',this)" class="mob-layer-btn on" data-layer="metro" style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid #1a73e8;border-radius:3px;background:rgba(26,115,232,.1);cursor:pointer;font-size:.7rem"><span style="width:10px;height:10px;border-radius:50%;background:#1a73e8;display:inline-block"></span>Métro/RER (${d.stats?.metro||0})</button>
-      <button onclick="toggleMobiliteLayer('bus',this)" class="mob-layer-btn on" data-layer="bus" style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid #e67e22;border-radius:3px;background:rgba(230,126,34,.1);cursor:pointer;font-size:.7rem"><span style="width:10px;height:10px;border-radius:50%;background:#e67e22;display:inline-block"></span>Bus/Tram (${d.stats?.arretsBus||0})</button>
-      <button onclick="toggleMobiliteLayer('velo',this)" class="mob-layer-btn on" data-layer="velo" style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid #27ae60;border-radius:3px;background:rgba(39,174,96,.1);cursor:pointer;font-size:.7rem"><span style="width:10px;height:10px;border-radius:50%;background:#27ae60;display:inline-block"></span>Vélos (${d.stats?.velos||0})</button>
-      <button onclick="toggleMobiliteLayer('gare',this)" class="mob-layer-btn on" data-layer="gare" style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid #c0392b;border-radius:3px;background:rgba(192,57,43,.1);cursor:pointer;font-size:.7rem"><span style="width:10px;height:10px;border-radius:50%;background:#c0392b;display:inline-block"></span>Gares (${d.stats?.gares||0})</button>
-      <button onclick="toggleMobiliteLayer('borne',this)" class="mob-layer-btn on" data-layer="borne" style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid #8e44ad;border-radius:3px;background:rgba(142,68,173,.1);cursor:pointer;font-size:.7rem"><span style="width:10px;height:10px;border-radius:50%;background:#8e44ad;display:inline-block"></span>Bornes (${d.stats?.bornesElec||0})</button>
+    <div class="map-legend" style="flex-wrap:wrap;gap:.4rem;align-items:center">
+      <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Filtre :</span>
+      <button onclick="toggleAllMobilite(this)" class="mob-all-btn" style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid var(--border);border-radius:3px;background:var(--white);cursor:pointer;font-size:.7rem">Tous</button>
+      <button onclick="toggleMobiliteLayer('metro',this)" class="mob-layer-btn on" data-layer="metro" style="${layerBtnStyle('#1a73e8')}"><span style="width:10px;height:10px;border-radius:50%;background:#1a73e8;display:inline-block"></span>Métro/RER (${d.stats?.metro||0})</button>
+      <button onclick="toggleMobiliteLayer('bus',this)" class="mob-layer-btn on" data-layer="bus" style="${layerBtnStyle('#e67e22')}"><span style="width:10px;height:10px;border-radius:50%;background:#e67e22;display:inline-block"></span>Bus/Tram (${d.stats?.arretsBus||0})</button>
+      <button onclick="toggleMobiliteLayer('velo',this)" class="mob-layer-btn on" data-layer="velo" style="${layerBtnStyle('#27ae60')}"><span style="width:10px;height:10px;border-radius:50%;background:#27ae60;display:inline-block"></span>Vélos (${d.stats?.velos||0})</button>
+      <button onclick="toggleMobiliteLayer('gare',this)" class="mob-layer-btn on" data-layer="gare" style="${layerBtnStyle('#c0392b')}"><span style="width:10px;height:10px;border-radius:50%;background:#c0392b;display:inline-block"></span>Gares (${d.stats?.gares||0})</button>
+      <button onclick="toggleMobiliteLayer('borne',this)" class="mob-layer-btn on" data-layer="borne" style="${layerBtnStyle('#8e44ad')}"><span style="width:10px;height:10px;border-radius:50%;background:#8e44ad;display:inline-block"></span>Bornes (${d.stats?.bornesElec||0})</button>
     </div>
     <div class="map-container" id="mapMobilite"></div>
-    <div style="margin-top:1.2rem;max-width:360px"><canvas id="mobiliteChart" height="110"></canvas></div>
+    <div style="margin-top:1.2rem"><canvas id="mobiliteChart" height="160"></canvas></div>
     ${d.arretsPrincipaux?.length?`<p style="font-size:.75rem;color:var(--muted);margin-top:.5rem">Principaux arrêts : ${d.arretsPrincipaux.join(' · ')}</p>`:''}
-    <p style="font-size:.62rem;color:var(--muted);margin-top:.4rem">Source : OpenStreetMap via Overpass API · Rayon 1000m</p>
+    <p style="font-size:.62rem;color:var(--muted);margin-top:.4rem">Source : OpenStreetMap via Overpass API · Rayon ${mobDist}m</p>
   `);
 
   window._mobiliteMarkers = {};
@@ -2130,6 +2173,26 @@ function showMobiliteDetail(){
     btn.style.opacity = isOn ? '1' : '.45';
     const markers = window._mobiliteMarkers[layer] || [];
     markers.forEach(m => isOn ? m.addTo(window._leafletMapMobilite) : window._leafletMapMobilite.removeLayer(m));
+  };
+  window.toggleAllMobilite = function(btn){
+    const allOn = document.querySelectorAll('.mob-layer-btn.on').length > 0;
+    document.querySelectorAll('.mob-layer-btn').forEach(b=>{
+      if(allOn) b.classList.remove('on'); else b.classList.add('on');
+      b.style.opacity = allOn ? '.45' : '1';
+      const markers = window._mobiliteMarkers[b.dataset.layer] || [];
+      markers.forEach(m => allOn ? window._leafletMapMobilite.removeLayer(m) : m.addTo(window._leafletMapMobilite));
+    });
+  };
+  window.reloadMobiliteWithDist = async function(dist){
+    window._mobiliteCurrentDist = dist;
+    document.querySelectorAll('.mob-rayon-btn').forEach(b=>{
+      const active = parseInt(b.dataset.r)===dist;
+      b.style.background = active?'var(--ink)':'var(--white)';
+      b.style.color = active?'#fff':'inherit';
+      b.style.borderColor = active?'var(--ink)':'var(--border)';
+    });
+    await loadMobilite(currentCoords.lat, currentCoords.lng, dist);
+    showMobiliteDetail();
   };
 
   setTimeout(() => {
@@ -2205,11 +2268,11 @@ function showMobiliteDetail(){
         plugins:{
           legend:{display:false},
           datalabels:{anchor:'end',align:'top',color:'#8a7d68',font:{size:10,weight:'600'},formatter:v=>v||''},
-          title:{display:true,text:'Équipements à proximité (1000m)',font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68'}
+          title:{display:true,text:`Équipements à proximité (${window._mobiliteCurrentDist||1000}m)`,font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68',padding:{bottom:12}}
         },
         scales:{x:{ticks:{font:{size:9},color:'#8a7d68'},grid:{display:false}},y:{ticks:{font:{size:9},color:'#8a7d68'},grid:{color:'rgba(0,0,0,.05)'}}},
         animation:{duration:500},
-        layout:{padding:{top:16}}
+        layout:{padding:{top:20}}
       }
     });
   },200);
@@ -2252,9 +2315,9 @@ function showServicesMap(){
       });
     });
   };
-  const btnStyleSvc = 'padding:.2rem .55rem;font-size:.72rem;border:1px solid var(--border);background:var(--white);border-radius:3px;cursor:pointer;margin-right:.3rem;margin-bottom:.3rem';
-  const btnsTous = `<button class="svc-filter-btn active" onclick="filterServicesMap('tous',this)" style="${btnStyleSvc}">Tous (${d.total})</button>`;
-  const btnsCateg = CAT_INFO.map(c=>`<button class="svc-filter-btn" onclick="filterServicesMap('${c.key}',this)" style="${btnStyleSvc}">${c.emoji} ${c.label} (${d.stats[c.key]||0})</button>`).join('');
+  const CAT_COLORS = {sante:'#e63946',commerce:'#f4a261',restauration:'#e9c46a',sport:'#2a9d8f',service:'#457b9d',mobilite:'#4caf50'};
+  const btnsTous = `<button class="svc-filter-btn active" onclick="filterServicesMap('tous',this)" style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid var(--border);border-radius:3px;background:var(--white);cursor:pointer;font-size:.7rem;margin-right:.3rem">Tous (${d.total})</button>`;
+  const btnsCateg = CAT_INFO.map(c=>`<button class="svc-filter-btn" onclick="filterServicesMap('${c.key}',this)" style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid ${CAT_COLORS[c.key]};border-radius:3px;background:${CAT_COLORS[c.key]}18;cursor:pointer;font-size:.7rem;margin-right:.3rem;margin-bottom:.3rem"><span style="width:10px;height:10px;border-radius:50%;background:${CAT_COLORS[c.key]};display:inline-block"></span>${c.emoji} ${c.label} (${d.stats[c.key]||0})</button>`).join('');
   showPanel('🏥 Services & commerces à proximité', `
     <div class="map-stats">
       <div class="map-stat"><span class="map-stat-n">${d.score}/10</span><span class="map-stat-l">Score</span></div>
@@ -2262,7 +2325,9 @@ function showServicesMap(){
       <div class="map-stat"><span class="map-stat-n">${d.stats.commerce}</span><span class="map-stat-l">Commerces</span></div>
       <div class="map-stat"><span class="map-stat-n">${d.total}</span><span class="map-stat-l">Total</span></div>
     </div>
-    <div style="margin-bottom:.6rem;flex-wrap:wrap">${btnsTous}${btnsCateg}</div>
+    <div style="margin-bottom:.6rem;display:flex;align-items:center;flex-wrap:wrap;gap:.2rem">
+      <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Filtre :</span>${btnsTous}${btnsCateg}
+    </div>
     <div style="max-width:400px;margin-bottom:.8rem"><canvas id="servicesChart" height="110"></canvas></div>
     <div class="map-container" id="mapServices"></div>
     <p style="font-size:.62rem;color:var(--muted)">Source : OpenStreetMap · Rayon 1km · ${d.total} établissements trouvés</p>
@@ -2389,12 +2454,18 @@ function showUrbanismeDetail(){
     'Ne':'Zone naturelle dédiée aux équipements',
   };
   const PRESC_FR = {
-    'plan de prévention':'Plan de prévention des risques (PPR) applicable',
-    'secteur sauvegardé':'Secteur sauvegardé — architecture protégée',
-    'zone inondable':'Zone inondable — contraintes constructives renforcées',
-    'emplacement réservé':'Emplacement réservé pour un projet public',
-    'mixité sociale':'Obligation de logements sociaux',
-    'hauteur':'Hauteur maximale de construction limitée',
+    'plan de prévention':'⚠️ Risque naturel ou technologique identifié — des règles spéciales de construction s\'appliquent',
+    'secteur sauvegardé':'🏛️ Patrimoine protégé — les façades et toitures doivent être validées par l\'architecte des Bâtiments de France',
+    'zone inondable':'🌊 Risque d\'inondation — des restrictions de construction et d\'aménagement s\'appliquent',
+    'emplacement réservé':'📌 Terrain réservé pour un futur équipement public (route, école, parc…) — les projets privés sont limités',
+    'mixité sociale':'🏘️ Un pourcentage de logements sociaux est obligatoire dans tout nouveau programme immobilier',
+    'hauteur':'📐 La hauteur des constructions est limitée dans ce secteur',
+    'espaces verts':'🌳 Des espaces verts doivent être maintenus ou créés dans tout projet de construction',
+    'stationnement':'🚗 Des places de stationnement sont imposées pour toute nouvelle construction',
+    'ppri':'🌊 Plan de Prévention du Risque Inondation — des restrictions de construction s\'appliquent',
+    'abf':'🏛️ Avis de l\'Architecte des Bâtiments de France requis avant travaux',
+    'inconstructible':'🚫 Ce secteur est inconstructible ou très réglementé',
+    'corridor':'🌿 Corridor écologique à préserver — les aménagements sont encadrés',
   };
   const code = z.code?.replace(/\s/g,'').toUpperCase() || '';
   const zoneLabel = ZONES_PLU[code] || ZONES_PLU[code.slice(0,2)] || ZONES_PLU[code.slice(0,1)] || z.typeZone || z.libelle || 'Voir détail sur Géoportail Urbanisme';
@@ -2416,7 +2487,7 @@ function showUrbanismeDetail(){
     </div>
     ${prescriptions.length?`
     <div style="background:rgba(184,131,42,.06);border:1px solid var(--goldborder);border-radius:var(--r);padding:.9rem;margin-bottom:.8rem">
-      <div style="font-size:.7rem;color:var(--gold);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.5rem">Prescriptions applicables</div>
+      <div style="font-size:.7rem;color:var(--gold);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.5rem">⚠️ Points d'attention sur ce secteur</div>
       ${prescriptions.map(p=>`<div style="font-size:.8rem;padding:.25rem 0;border-bottom:1px solid var(--borderl)">• ${p}</div>`).join('')}
     </div>`:''}
     <p style="font-size:.62rem;color:var(--muted)">Document ${doc?.dateApprobation?'approuvé le '+doc.dateApprobation:''} · ${d.source}</p>
@@ -2433,13 +2504,14 @@ function showMeteoDetail(){
       <div class="stat-box"><span class="stat-n">${hAn?hAn.toLocaleString('fr-FR'):'—'}</span><span class="stat-l">Heures soleil/an</span></div>
       <div class="stat-box"><span class="stat-n">${hJour||'—'} h</span><span class="stat-l">Moy. par jour</span></div>
     </div>
-    <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1rem">
+    <div class="stat-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:1rem">
+      <div class="stat-box"><span class="stat-n">${d.temperatures?.minMoyenne||'—'}°</span><span class="stat-l">Temp. min. moy.</span></div>
       <div class="stat-box"><span class="stat-n">${d.temperatures?.maxMoyenne||'—'}°</span><span class="stat-l">Temp. max. moy.</span></div>
       <div class="stat-box"><span class="stat-n">${d.precipitations?.annuellesMm||'—'} mm</span><span class="stat-l">Précip./an</span></div>
       <div class="stat-box"><span class="stat-n">${d.precipitations?.joursParAn||'—'}</span><span class="stat-l">Jours de pluie/an</span></div>
     </div>
     <p style="font-size:.8rem;color:var(--ink);font-weight:500;margin-bottom:.3rem">${d.ensoleillement?.label||''}</p>
-    <p style="font-size:.75rem;color:var(--muted);margin-bottom:.5rem">${d.periode||''} · Temp. min moy. : ${d.temperatures?.minMoyenne||'—'}°C</p>
+    <p style="font-size:.75rem;color:var(--muted);margin-bottom:.5rem">${d.periode||''}</p>
     <p style="font-size:.62rem;color:var(--muted)">Source : ${d.source}</p>`);
 }
 
@@ -2478,14 +2550,33 @@ function showFibreDetail(){
 
 function showAltitudeDetail(){
   const d = window._altitudeData;
-  showPanel('🏔️ Altitude & topographie', d ? `
+  if(!d){showPanel('🏔️ Altitude & topographie','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
+  showPanel('🏔️ Altitude & topographie', `
     <div style="background:var(--ink);border-radius:var(--r);padding:1.2rem;text-align:center;margin-bottom:1rem">
       <div style="font-family:'Cormorant Garamond',serif;font-size:2.5rem;color:var(--gold2)">${d.altitude}m</div>
       <div style="font-size:.7rem;color:rgba(255,255,255,.72);margin-top:.3rem">${d.unite||'NGF'} · Précision ${d.precision||'1m'}</div>
     </div>
-    <p style="font-size:.82rem;color:var(--muted)">${d.label||''}</p>
-    <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : ${d.source}</p>` :
-    '<p style="color:var(--muted)">Données en cours de chargement…</p>');
+    <p style="font-size:.82rem;color:var(--muted);margin-bottom:.8rem">${d.label||''}</p>
+    <div class="map-container" id="mapAltitude" style="border-radius:var(--r);overflow:hidden"></div>
+    <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Carte : OpenTopoMap · Altitude : ${d.source}</p>`);
+
+  setTimeout(()=>{
+    if(!currentCoords) return;
+    const lat=currentCoords.lat, lng=currentCoords.lng;
+    if(window._leafletMapAlt){window._leafletMapAlt.remove();window._leafletMapAlt=null;}
+    const map=L.map('mapAltitude').setView([lat,lng],13);
+    window._leafletMapAlt=map;
+    L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{
+      attribution:'© OpenTopoMap (CC-BY-SA) · © OpenStreetMap',
+      maxZoom:17
+    }).addTo(map);
+    const homeIcon=L.divIcon({
+      html:`<div style="background:#c09030;border:3px solid #fff;border-radius:50%;width:20px;height:20px;box-shadow:0 2px 8px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:11px">📍</div>`,
+      iconSize:[20,20],iconAnchor:[10,10],className:''
+    });
+    L.marker([lat,lng],{icon:homeIcon}).addTo(map)
+      .bindPopup(`<strong>📍 ${currentAddress}</strong><br>Altitude : <strong>${d.altitude}m</strong>`).openPopup();
+  },150);
 }
 
 // ══ CALL IA — Cascade Groq ══
@@ -3027,7 +3118,7 @@ function calcRenov(){
   html += `<div style="font-size:.73rem;color:rgba(255,255,255,.55);margin-bottom:1rem;padding-left:.5rem">${Math.round(ecoKwh).toLocaleString('fr-FR')} kWh économisés · gaz vs électrique</div>`;
 
   html += `<div style="margin-top:.5rem;padding:.75rem;background:rgba(255,255,255,.06);border-radius:6px;font-size:.73rem;color:rgba(255,255,255,.55)">`;
-  html += `Obtenez un devis précis via un <a href="https://france-renov.gouv.fr/espaceconseillers" target="_blank" style="color:var(--gold2)">conseiller France Rénov' ↗</a> (gratuit)`;
+  html += `Obtenez un devis précis via un <a href="https://france-renov.gouv.fr/trouver-un-conseiller" target="_blank" style="color:var(--gold2)">conseiller France Rénov' ↗</a> (gratuit)`;
   html += `</div></div>`;
 
   document.getElementById('resRenov').innerHTML = html;
