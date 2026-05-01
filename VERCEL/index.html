@@ -1598,22 +1598,51 @@ async function loadRisques(lat, lng){
   }
 }
 
-// ── Écoles : données officielles Éducation nationale ──
+// ── Écoles : OpenStreetMap Overpass (fallback fiable, pas de CORS) ──
 async function loadEcoles(lat, lng, codeInsee, dist=1500){
   window._ecolesCodeInsee = codeInsee;
   try{
-    const deg=dist/111000; const where=encodeURIComponent(`latitude>${lat-deg} AND latitude<${lat+deg} AND longitude>${lng-deg} AND longitude<${lng+deg}`); const r = await apiCall(`/api/ecoles?lat=${lat}&lon=${lng}&dist=${dist}&_v=6${codeInsee?'&codeInsee='+codeInsee:''}`, `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=${where}&limit=50&select=nom_etablissement,type_etablissement,statut_public_prive,adresse_1,code_postal,nom_commune,latitude,longitude`);
+    const deg = dist/111000;
+    const s=lat-deg, n=lat+deg, w=lng-deg, e=lng+deg;
+    const q=`[out:json][timeout:15];(node["amenity"~"^(school|college|kindergarten)$"](${s},${w},${n},${e});way["amenity"~"^(school|college|kindergarten)$"](${s},${w},${n},${e}););out center;`;
+    const r = await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:'data='+encodeURIComponent(q),signal:AbortSignal.timeout(15000)});
     if(!r.ok) throw new Error();
-    const d = await r.json();
-    if(!d.success) throw new Error();
-    const total = d.total;
-    const nbEcoles = d.types?.ecoles ?? (d.types?.elementaire||0);
-    setCard('ecoles',
-      total+' établissement'+(total>1?'s':''),
-      `${nbEcoles} école(s) · ${d.types?.college||0} collège(s) · ${d.types?.lycee||0} lycée(s)`,
-      total>0?'good':''
-    );
-    window._ecolesData = d;
+    const raw = await r.json();
+    const etablissements = (raw.elements||[]).map(el=>{
+      const elat = el.lat ?? el.center?.lat;
+      const elon = el.lon ?? el.center?.lon;
+      if(!elat||!elon) return null;
+      const dLat=(elat-lat)*111000, dLon=(elon-lng)*111000*Math.cos(lat*Math.PI/180);
+      const distanceM=Math.round(Math.sqrt(dLat*dLat+dLon*dLon));
+      if(distanceM>dist) return null;
+      const amenity=el.tags?.amenity||'';
+      const nom=el.tags?.name||'Établissement scolaire';
+      let type='École';
+      if(amenity==='kindergarten') type='École maternelle';
+      else if(amenity==='college') type='Collège / Lycée';
+      else if((nom.toLowerCase().includes('lycée')||nom.toLowerCase().includes('lycee'))) type='Lycée';
+      else if(nom.toLowerCase().includes('collège')||nom.toLowerCase().includes('college')) type='Collège';
+      else if(nom.toLowerCase().includes('maternelle')) type='École maternelle';
+      else type='École élémentaire';
+      return {nom, type, statut:el.tags?.operator_type||'', adresse:el.tags?.['addr:street']||'', commune:el.tags?.['addr:city']||'', codePostal:el.tags?.['addr:postcode']||'', distanceM, lat:elat, lon:elon};
+    }).filter(Boolean).sort((a,b)=>a.distanceM-b.distanceM);
+
+    const isEcole=e=>e.type.includes('cole');
+    const isCollege=e=>e.type.includes('ollège')||e.type.includes('ollege');
+    const isLycee=e=>e.type.includes('ycée')||e.type.includes('ycee');
+    const types={
+      ecoles:etablissements.filter(isEcole).length,
+      maternelle:etablissements.filter(e=>e.type.includes('maternelle')).length,
+      elementaire:etablissements.filter(e=>isEcole(e)&&!e.type.includes('maternelle')).length,
+      college:etablissements.filter(isCollege).length,
+      lycee:etablissements.filter(isLycee).length,
+    };
+    const total=types.ecoles+types.college+types.lycee;
+    const d={success:true, total, types, etablissements, source:'OpenStreetMap'};
+    setCard('ecoles', total+' établissement'+(total>1?'s':''),
+      `${types.ecoles} école(s) · ${types.college} collège(s) · ${types.lycee} lycée(s)`,
+      total>0?'good':'');
+    window._ecolesData=d;
   }catch(e){
     setCard('ecoles','Non disponible','Erreur API Éducation','');
   }
