@@ -523,8 +523,8 @@ select.inp{
 .stat-l{font-size:.58rem;color:rgba(255,255,255,.65);letter-spacing:.1em;text-transform:uppercase;margin-top:.15rem;}
 
 /* DVF filtres */
-.dvf-filter-btn{transition:background .15s,color .15s;}
-.dvf-filter-btn.active{background:var(--ink)!important;color:var(--gold2)!important;border-color:var(--ink)!important;}
+.dvf-filter-btn,.dvf-type-btn,.dvf-surf-btn,.dvf-n-btn{transition:background .15s,color .15s;}
+.dvf-filter-btn.active,.dvf-type-btn.active,.dvf-surf-btn.active,.dvf-n-btn.active{background:var(--ink)!important;color:var(--gold2)!important;border-color:var(--ink)!important;}
 
 /* Source badge */
 .source-badge{
@@ -1716,9 +1716,9 @@ async function loadINSEE(citycode, lat, lng){
 }
 
 // ── Services & commerces ──
-async function loadServices(lat, lng){
+async function loadServices(lat, lng, dist=1000){
   try{
-    const r = await apiCall(`/api/services?lat=${lat}&lon=${lng}&dist=1000`, `https://overpass-api.de/api/interpreter`);
+    const r = await apiCall(`/api/services?lat=${lat}&lon=${lng}&dist=${dist}`, `https://overpass-api.de/api/interpreter`);
     if(!r.ok) throw new Error();
     const d = await r.json();
     if(!d.success) throw new Error();
@@ -1810,7 +1810,7 @@ function showPanel(title, html){
       </div>
       <div class="detail-body">${html}</div>
     </div>`;
-  container.scrollIntoView({behavior:'smooth', block:'start'});
+  window.scrollTo({top:0, behavior:'smooth'});
   // Masquer les cartes
   document.getElementById('cardsGrid').style.display = 'none';
 }
@@ -1893,6 +1893,8 @@ function closePanel(){
   if(window._leafletMap){window._leafletMap.remove();window._leafletMap=null;}
   if(window._leafletMapMobilite){window._leafletMapMobilite.remove();window._leafletMapMobilite=null;}
   if(window._leafletMapAlt){window._leafletMapAlt.remove();window._leafletMapAlt=null;}
+  if(window._leafletMapEcoles){window._leafletMapEcoles.remove();window._leafletMapEcoles=null;}
+  if(window._leafletMapInsee){window._leafletMapInsee.remove();window._leafletMapInsee=null;}
 }
 
 function showDVFDetail(){
@@ -1949,7 +1951,7 @@ function showDVFDetail(){
         <td><strong>${t.prixM2?t.prixM2.toLocaleString('fr-FR')+' €/m²':'—'}</strong></td>
         <td>${t.prix?t.prix.toLocaleString('fr-FR')+' €':'—'}</td>
       </tr>`).join('') || '<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:.8rem">Aucune transaction pour ce filtre</td></tr>';
-    document.querySelectorAll('.dvf-filter-btn').forEach(b=>b.classList.toggle('active', b.dataset.n===String(n)));
+    document.querySelectorAll('.dvf-n-btn').forEach(b=>b.classList.toggle('active', b.dataset.n===String(n)));
     document.querySelectorAll('.dvf-type-btn').forEach(b=>b.classList.toggle('active', b.dataset.t===window._dvfFilterType));
     document.querySelectorAll('.dvf-surf-btn').forEach(b=>b.classList.toggle('active', b.dataset.s===String(window._dvfFilterSurf)));
   }
@@ -1980,8 +1982,8 @@ function showDVFDetail(){
   }
   const btnStyle = 'padding:.25rem .7rem;font-size:.72rem;border:1px solid var(--border);background:var(--white);border-radius:3px;cursor:pointer;margin-right:.3rem';
   const DVF_FILTRES = [10, 20, 50, 0];
-  const btnsFiltres = DVF_FILTRES.map(n=>`<button class="dvf-filter-btn" data-n="${n}" onclick="filterDVF(${n})" style="${btnStyle}">${n===0?'Toutes':n}</button>`).join('');
-  const btnsType = [['tous','Tous'],['appt','🏢 Appt.'],['maison','🏠 Maison'],['local','🏗️ Local/comm.'],['depend','📦 Dépendance']].map(([t,l])=>`<button class="dvf-type-btn dvf-filter-btn" data-t="${t}" onclick="filterDVFType('${t}')" style="${btnStyle}">${l}</button>`).join('');
+  const btnsFiltres = DVF_FILTRES.map(n=>`<button class="dvf-n-btn dvf-filter-btn" data-n="${n}" onclick="filterDVF(${n})" style="${btnStyle}">${n===0?'Toutes':n}</button>`).join('');
+  const btnsType = [['tous','Tous'],['appt','🏢 Appt.'],['maison','🏠 Maison'],['local','🏗️ Local/comm.'],['depend','📦 Dépendance']].map(([t,l])=>`<button class="dvf-type-btn" data-t="${t}" onclick="filterDVFType('${t}')" style="${btnStyle}">${l}</button>`).join('');
   const SURF_TRANCHES=[[0,'Toute'],[25,'<25m²'],[50,'25–50'],[75,'50–75'],[100,'75–100'],[125,'100–125'],[150,'125–150'],[999,'>150m²']];
   const btnsSurf = SURF_TRANCHES.map(([s,l])=>`<button class="dvf-surf-btn dvf-filter-btn" data-s="${s}" onclick="filterDVFSurf(${s})" style="${btnStyle}">${l}</button>`).join('');
   showPanel('💰 Transactions DVF officielles', `
@@ -2070,38 +2072,42 @@ function showEcolesDetail(){
   const total=d.total||0;
 
   showPanel('🏫 Établissements scolaires à proximité', `
-    <div style="margin-bottom:.6rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
+    <div style="display:flex;gap:1.2rem;align-items:flex-start;flex-wrap:wrap;margin-bottom:1rem">
+      <div style="background:var(--ink);border-radius:var(--r);padding:.9rem 1.2rem;text-align:center;min-width:70px">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--gold2)">${ecoles}</div>
+        <div style="font-size:.58rem;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.08em">Écoles</div>
+      </div>
+      <div style="background:var(--ink);border-radius:var(--r);padding:.9rem 1.2rem;text-align:center;min-width:70px">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--gold2)">${college}</div>
+        <div style="font-size:.58rem;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.08em">Collèges</div>
+      </div>
+      <div style="background:var(--ink);border-radius:var(--r);padding:.9rem 1.2rem;text-align:center;min-width:70px">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--gold2)">${lycee}</div>
+        <div style="font-size:.58rem;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.08em">Lycées</div>
+      </div>
+      <div style="background:rgba(184,131,42,.1);border:1px solid var(--goldborder);border-radius:var(--r);padding:.9rem 1.2rem;text-align:center;min-width:70px">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--accent)">${total}</div>
+        <div style="font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Total</div>
+      </div>
+      <div style="flex:1;min-width:200px;display:flex;align-items:center"><canvas id="ecolesChart" height="180"></canvas></div>
+    </div>
+    <div style="margin-bottom:.5rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
+      <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Type :</span>${btnsType}
+    </div>
+    <div style="margin-bottom:.5rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
+      <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Afficher :</span>${btnsN}
+    </div>
+    <div style="margin-bottom:.8rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Rayon :</span>${btnsRayon}
     </div>
-    <div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;margin-bottom:.8rem">
-      <div style="flex:1;min-width:200px">
-        <div style="display:flex;gap:.5rem;margin-bottom:.6rem;flex-wrap:wrap;align-items:center">
-          <span class="tag tag-up">🏫 ${ecoles} école(s)</span>
-          <span class="tag tag-gold">🎓 ${college} collège(s)</span>
-          <span class="tag tag-up">📚 ${lycee} lycée(s)</span>
-          <strong style="font-size:.82rem;color:var(--accent)">Total : ${total}</strong>
-        </div>
-        <div style="margin-bottom:.5rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
-          <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Type :</span>${btnsType}
-        </div>
-        <div style="display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
-          <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Afficher :</span>${btnsN}
-        </div>
-      </div>
-      <div style="width:240px;flex-shrink:0"><canvas id="ecolesChart" height="220"></canvas></div>
-    </div>
+    <div class="map-container" id="mapEcoles" style="margin-bottom:.8rem"></div>
     <div id="ecolesListe"></div>
     <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : Annuaire Éducation Nationale · <a href="https://data.education.gouv.fr" target="_blank" style="color:var(--gold)">data.education.gouv.fr</a></p>`);
 
   window.reloadEcolesWithDist = async function(dist){
     window._ecolesCurrentDist = dist;
-    document.querySelectorAll('.eco-rayon-btn').forEach(b=>{
-      const active = parseInt(b.dataset.r)===dist;
-      b.style.background = active?'var(--ink)':'';
-      b.style.color = active?'#fff':'';
-      b.style.borderColor = active?'var(--ink)':'var(--border)';
-    });
-    await loadEcoles(currentCoords.lat, currentCoords.lng, window._ecolesCodeInsee, dist);
+    // Ne pas passer codeInsee pour que le rayon géographique soit respecté
+    await loadEcoles(currentCoords.lat, currentCoords.lng, null, dist);
     showEcolesDetail();
   };
 
@@ -2130,6 +2136,28 @@ function showEcolesDetail(){
       }
     });
   },80);
+
+  // Carte Leaflet établissements
+  setTimeout(()=>{
+    if(!currentCoords||!window.L) return;
+    const lat=currentCoords.lat, lng=currentCoords.lng;
+    if(window._leafletMapEcoles){window._leafletMapEcoles.remove();window._leafletMapEcoles=null;}
+    const map=L.map('mapEcoles').setView([lat,lng],14);
+    window._leafletMapEcoles=map;
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'© OSM © CartoDB',maxZoom:19}).addTo(map);
+    const dist=window._ecolesCurrentDist||1500;
+    L.circle([lat,lng],{radius:dist,color:'rgba(184,131,42,.3)',fillColor:'rgba(184,131,42,.04)',fillOpacity:1,weight:1,dashArray:'4'}).addTo(map);
+    const homeIcon=L.divIcon({html:`<div style="background:#c09030;border:3px solid #fff;border-radius:50%;width:16px;height:16px;box-shadow:0 2px 6px rgba(0,0,0,.3)"></div>`,iconSize:[16,16],iconAnchor:[8,8],className:''});
+    L.marker([lat,lng],{icon:homeIcon}).addTo(map).bindPopup(`<strong>📍 ${currentAddress}</strong>`);
+    (d.etablissements||[]).forEach(e=>{
+      if(!e.latitude||!e.longitude) return;
+      const t=(e.type||'').toLowerCase();
+      const couleur=t.includes('lycée')||t.includes('lycee')?'#c0392b':t.includes('collège')||t.includes('college')?'#2d6a4f':'#b8832a';
+      const emoji=t.includes('lycée')||t.includes('lycee')?'📚':t.includes('collège')||t.includes('college')?'🎓':'🏫';
+      const icon=L.divIcon({html:`<div style="background:${couleur};border:2px solid #fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 2px 6px rgba(0,0,0,.25)">${emoji}</div>`,iconSize:[26,26],iconAnchor:[13,13],className:''});
+      L.marker([parseFloat(e.latitude),parseFloat(e.longitude)],{icon}).addTo(map).bindPopup(`<strong>${emoji} ${e.nom}</strong><br><span style="font-size:.75rem">${e.type||''} · ${e.distanceM||'?'}m</span>`);
+    });
+  },120);
 }
 
 function showMobiliteDetail(){
@@ -2138,30 +2166,30 @@ function showMobiliteDetail(){
 
   const mobDist = window._mobiliteCurrentDist || 1000;
   const MOB_RAYONS = [[500,'500m'],[1000,'1km'],[2000,'2km'],[5000,'5km']];
-  const btnStyleMobRayon = r => `padding:.25rem .7rem;font-size:.72rem;border:1px solid ${r===mobDist?'var(--ink)':'var(--border)'};border-radius:3px;cursor:pointer;margin-right:.3rem;background:${r===mobDist?'var(--ink)':'var(--white)'};color:${r===mobDist?'#fff':'inherit'}`;
-  const btnsMobRayon = MOB_RAYONS.map(([r,l])=>`<button class="mob-rayon-btn" data-r="${r}" onclick="reloadMobiliteWithDist(${r})" style="${btnStyleMobRayon(r)}">${l}</button>`).join('');
-  const layerBtnStyle = (c) => `display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid ${c};border-radius:3px;background:${c}18;cursor:pointer;font-size:.7rem`;
+  const sBtnR = r => `padding:.25rem .65rem;font-size:.72rem;border:1px solid ${r===mobDist?'var(--ink)':'var(--border)'};border-radius:3px;cursor:pointer;margin-right:.3rem;background:${r===mobDist?'var(--ink)':'var(--white)'};color:${r===mobDist?'#fff':'inherit'};font-weight:${r===mobDist?'600':'400'}`;
+  const btnsMobRayon = MOB_RAYONS.map(([r,l])=>`<button class="mob-rayon-btn" data-r="${r}" onclick="reloadMobiliteWithDist(${r})" style="${sBtnR(r)}">${l}</button>`).join('');
+  const lbs = (c) => `display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid ${c};border-radius:3px;background:${c}18;cursor:pointer;font-size:.7rem;transition:opacity .2s`;
   showPanel('🚇 Mobilité & transports', `
-    <div style="margin-bottom:.6rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
-      <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Rayon :</span>${btnsMobRayon}
-    </div>
     <div class="map-stats">
       <div class="map-stat"><span class="map-stat-n">${d.score}/10</span><span class="map-stat-l">Score</span></div>
       <div class="map-stat"><span class="map-stat-n">${d.stats?.metro||0}</span><span class="map-stat-l">Métro/RER</span></div>
       <div class="map-stat"><span class="map-stat-n">${d.stats?.arretsBus||0}</span><span class="map-stat-l">Arrêts bus</span></div>
       <div class="map-stat"><span class="map-stat-n">${d.stats?.velos||0}</span><span class="map-stat-l">Vélos/bornes</span></div>
     </div>
-    <div class="map-legend" style="flex-wrap:wrap;gap:.4rem;align-items:center">
+    <div class="map-legend" style="flex-wrap:wrap;gap:.4rem;align-items:center;margin-bottom:.3rem">
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Filtre :</span>
-      <button onclick="toggleAllMobilite(this)" class="mob-all-btn" style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid var(--border);border-radius:3px;background:var(--white);cursor:pointer;font-size:.7rem">Tous</button>
-      <button onclick="toggleMobiliteLayer('metro',this)" class="mob-layer-btn on" data-layer="metro" style="${layerBtnStyle('#1a73e8')}"><span style="width:10px;height:10px;border-radius:50%;background:#1a73e8;display:inline-block"></span>Métro/RER (${d.stats?.metro||0})</button>
-      <button onclick="toggleMobiliteLayer('bus',this)" class="mob-layer-btn on" data-layer="bus" style="${layerBtnStyle('#e67e22')}"><span style="width:10px;height:10px;border-radius:50%;background:#e67e22;display:inline-block"></span>Bus/Tram (${d.stats?.arretsBus||0})</button>
-      <button onclick="toggleMobiliteLayer('velo',this)" class="mob-layer-btn on" data-layer="velo" style="${layerBtnStyle('#27ae60')}"><span style="width:10px;height:10px;border-radius:50%;background:#27ae60;display:inline-block"></span>Vélos (${d.stats?.velos||0})</button>
-      <button onclick="toggleMobiliteLayer('gare',this)" class="mob-layer-btn on" data-layer="gare" style="${layerBtnStyle('#c0392b')}"><span style="width:10px;height:10px;border-radius:50%;background:#c0392b;display:inline-block"></span>Gares (${d.stats?.gares||0})</button>
-      <button onclick="toggleMobiliteLayer('borne',this)" class="mob-layer-btn on" data-layer="borne" style="${layerBtnStyle('#8e44ad')}"><span style="width:10px;height:10px;border-radius:50%;background:#8e44ad;display:inline-block"></span>Bornes (${d.stats?.bornesElec||0})</button>
+      <button onclick="toggleAllMobilite(this)" class="mob-all-btn active" style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid var(--ink);border-radius:3px;background:var(--ink);color:var(--gold2);cursor:pointer;font-size:.7rem;font-weight:600">✓ Tous</button>
+      <button onclick="toggleMobiliteLayer('metro',this)" class="mob-layer-btn on" data-layer="metro" style="${lbs('#1a73e8')}"><span style="width:10px;height:10px;border-radius:50%;background:#1a73e8;display:inline-block"></span>Métro/RER (${d.stats?.metro||0})</button>
+      <button onclick="toggleMobiliteLayer('bus',this)" class="mob-layer-btn on" data-layer="bus" style="${lbs('#e67e22')}"><span style="width:10px;height:10px;border-radius:50%;background:#e67e22;display:inline-block"></span>Bus/Tram (${d.stats?.arretsBus||0})</button>
+      <button onclick="toggleMobiliteLayer('velo',this)" class="mob-layer-btn on" data-layer="velo" style="${lbs('#27ae60')}"><span style="width:10px;height:10px;border-radius:50%;background:#27ae60;display:inline-block"></span>Vélos (${d.stats?.velos||0})</button>
+      <button onclick="toggleMobiliteLayer('gare',this)" class="mob-layer-btn on" data-layer="gare" style="${lbs('#c0392b')}"><span style="width:10px;height:10px;border-radius:50%;background:#c0392b;display:inline-block"></span>Gares (${d.stats?.gares||0})</button>
+      <button onclick="toggleMobiliteLayer('borne',this)" class="mob-layer-btn on" data-layer="borne" style="${lbs('#8e44ad')}"><span style="width:10px;height:10px;border-radius:50%;background:#8e44ad;display:inline-block"></span>Bornes (${d.stats?.bornesElec||0})</button>
+    </div>
+    <div style="margin-bottom:.6rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
+      <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Rayon :</span>${btnsMobRayon}
     </div>
     <div class="map-container" id="mapMobilite"></div>
-    <div style="margin-top:1.2rem"><canvas id="mobiliteChart" height="160"></canvas></div>
+    <div style="margin-top:1.2rem"><canvas id="mobiliteChart" height="180"></canvas></div>
     ${d.arretsPrincipaux?.length?`<p style="font-size:.75rem;color:var(--muted);margin-top:.5rem">Principaux arrêts : ${d.arretsPrincipaux.join(' · ')}</p>`:''}
     <p style="font-size:.62rem;color:var(--muted);margin-top:.4rem">Source : OpenStreetMap via Overpass API · Rayon ${mobDist}m</p>
   `);
@@ -2175,13 +2203,19 @@ function showMobiliteDetail(){
     markers.forEach(m => isOn ? m.addTo(window._leafletMapMobilite) : window._leafletMapMobilite.removeLayer(m));
   };
   window.toggleAllMobilite = function(btn){
-    const allOn = document.querySelectorAll('.mob-layer-btn.on').length > 0;
+    const anyOn = document.querySelectorAll('.mob-layer-btn.on').length > 0;
+    const turnOn = !anyOn;
     document.querySelectorAll('.mob-layer-btn').forEach(b=>{
-      if(allOn) b.classList.remove('on'); else b.classList.add('on');
-      b.style.opacity = allOn ? '.45' : '1';
+      if(turnOn) b.classList.add('on'); else b.classList.remove('on');
+      b.style.opacity = turnOn ? '1' : '.45';
       const markers = window._mobiliteMarkers[b.dataset.layer] || [];
-      markers.forEach(m => allOn ? window._leafletMapMobilite.removeLayer(m) : m.addTo(window._leafletMapMobilite));
+      markers.forEach(m => turnOn ? m.addTo(window._leafletMapMobilite) : window._leafletMapMobilite.removeLayer(m));
     });
+    // Visuel bouton Tous
+    btn.textContent = turnOn ? '✓ Tous' : 'Tous';
+    btn.style.background = turnOn ? 'var(--ink)' : 'var(--white)';
+    btn.style.color = turnOn ? 'var(--gold2)' : 'inherit';
+    btn.style.borderColor = turnOn ? 'var(--ink)' : 'var(--border)';
   };
   window.reloadMobiliteWithDist = async function(dist){
     window._mobiliteCurrentDist = dist;
@@ -2265,14 +2299,18 @@ function showMobiliteDetail(){
         }]
       },
       options:{
+        indexAxis:'y',
         plugins:{
           legend:{display:false},
-          datalabels:{anchor:'end',align:'top',color:'#8a7d68',font:{size:10,weight:'600'},formatter:v=>v||''},
-          title:{display:true,text:`Équipements à proximité (${window._mobiliteCurrentDist||1000}m)`,font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68',padding:{bottom:12}}
+          datalabels:{anchor:'end',align:'right',color:'#8a7d68',font:{size:10,weight:'600'},formatter:v=>v||''},
+          title:{display:true,text:`Équipements à proximité (${window._mobiliteCurrentDist||1000}m)`,font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68',padding:{bottom:8}}
         },
-        scales:{x:{ticks:{font:{size:9},color:'#8a7d68'},grid:{display:false}},y:{ticks:{font:{size:9},color:'#8a7d68'},grid:{color:'rgba(0,0,0,.05)'}}},
+        scales:{
+          x:{ticks:{font:{size:9},color:'#8a7d68'},grid:{color:'rgba(0,0,0,.05)'}},
+          y:{ticks:{font:{size:10},color:'#3d2f1e'},grid:{display:false}}
+        },
         animation:{duration:500},
-        layout:{padding:{top:20}}
+        layout:{padding:{right:24,top:4}}
       }
     });
   },200);
@@ -2302,12 +2340,30 @@ function showServicesMap(){
     {key:'service',     label:'Services',     couleur:'#457b9d', emoji:'🏦'},
     {key:'mobilite',    label:'Mobilité',     couleur:'#4caf50', emoji:'⚡'},
   ];
+  const svcDist = window._servicesCurrentDist || 1000;
+  const SVC_RAYONS = [[500,'500m'],[1000,'1km'],[2000,'2km'],[5000,'5km']];
+  const sBtnSvcR = r => `padding:.25rem .65rem;font-size:.72rem;border:1px solid ${r===svcDist?'var(--ink)':'var(--border)'};border-radius:3px;cursor:pointer;margin-right:.3rem;background:${r===svcDist?'var(--ink)':'var(--white)'};color:${r===svcDist?'#fff':'inherit'};font-weight:${r===svcDist?'600':'400'}`;
+  const btnsSvcRayon = SVC_RAYONS.map(([r,l])=>`<button class="svc-rayon-btn" data-r="${r}" onclick="reloadServicesWithDist(${r})" style="${sBtnSvcR(r)}">${l}</button>`).join('');
+
   window._servicesActiveFilter = 'tous';
   window._servicesAllMarkers = {};
   window.filterServicesMap = function(cat, btn){
-    document.querySelectorAll('.svc-filter-btn').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
     window._servicesActiveFilter = cat;
+    // Visuel bouton Tous
+    const btnTous = document.querySelector('.svc-tous-btn');
+    if(btnTous){
+      const isTous = cat==='tous';
+      btnTous.textContent = isTous ? '✓ Tous ('+d.total+')' : 'Tous ('+d.total+')';
+      btnTous.style.background = isTous ? 'var(--ink)' : 'var(--white)';
+      btnTous.style.color = isTous ? 'var(--gold2)' : 'inherit';
+      btnTous.style.borderColor = isTous ? 'var(--ink)' : 'var(--border)';
+    }
+    // Visuel boutons catégorie
+    document.querySelectorAll('.svc-cat-btn').forEach(b=>{
+      const active = b.dataset.cat===cat;
+      b.style.opacity = (cat==='tous'||active) ? '1' : '.45';
+      b.style.fontWeight = active ? '600' : '400';
+    });
     Object.keys(window._servicesAllMarkers).forEach(k=>{
       window._servicesAllMarkers[k].forEach(m=>{
         if(cat==='tous'||k===cat) m.addTo(window._leafletMap);
@@ -2315,9 +2371,21 @@ function showServicesMap(){
       });
     });
   };
+  window.reloadServicesWithDist = async function(dist){
+    window._servicesCurrentDist = dist;
+    document.querySelectorAll('.svc-rayon-btn').forEach(b=>{
+      const active = parseInt(b.dataset.r)===dist;
+      b.style.background = active?'var(--ink)':'var(--white)';
+      b.style.color = active?'#fff':'inherit';
+      b.style.borderColor = active?'var(--ink)':'var(--border)';
+      b.style.fontWeight = active?'600':'400';
+    });
+    await loadServices(currentCoords.lat, currentCoords.lng, dist);
+    showServicesMap();
+  };
   const CAT_COLORS = {sante:'#e63946',commerce:'#f4a261',restauration:'#e9c46a',sport:'#2a9d8f',service:'#457b9d',mobilite:'#4caf50'};
-  const btnsTous = `<button class="svc-filter-btn active" onclick="filterServicesMap('tous',this)" style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid var(--border);border-radius:3px;background:var(--white);cursor:pointer;font-size:.7rem;margin-right:.3rem">Tous (${d.total})</button>`;
-  const btnsCateg = CAT_INFO.map(c=>`<button class="svc-filter-btn" onclick="filterServicesMap('${c.key}',this)" style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid ${CAT_COLORS[c.key]};border-radius:3px;background:${CAT_COLORS[c.key]}18;cursor:pointer;font-size:.7rem;margin-right:.3rem;margin-bottom:.3rem"><span style="width:10px;height:10px;border-radius:50%;background:${CAT_COLORS[c.key]};display:inline-block"></span>${c.emoji} ${c.label} (${d.stats[c.key]||0})</button>`).join('');
+  const btnsTous = `<button class="svc-tous-btn" onclick="filterServicesMap('tous',this)" style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid var(--ink);border-radius:3px;background:var(--ink);color:var(--gold2);cursor:pointer;font-size:.7rem;font-weight:600;margin-right:.3rem">✓ Tous (${d.total})</button>`;
+  const btnsCateg = CAT_INFO.map(c=>`<button class="svc-cat-btn" data-cat="${c.key}" onclick="filterServicesMap('${c.key}',this)" style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid ${CAT_COLORS[c.key]};border-radius:3px;background:${CAT_COLORS[c.key]}18;cursor:pointer;font-size:.7rem;margin-right:.3rem;margin-bottom:.3rem;transition:opacity .2s"><span style="width:10px;height:10px;border-radius:50%;background:${CAT_COLORS[c.key]};display:inline-block"></span>${c.emoji} ${c.label} (${d.stats[c.key]||0})</button>`).join('');
   showPanel('🏥 Services & commerces à proximité', `
     <div class="map-stats">
       <div class="map-stat"><span class="map-stat-n">${d.score}/10</span><span class="map-stat-l">Score</span></div>
@@ -2325,8 +2393,11 @@ function showServicesMap(){
       <div class="map-stat"><span class="map-stat-n">${d.stats.commerce}</span><span class="map-stat-l">Commerces</span></div>
       <div class="map-stat"><span class="map-stat-n">${d.total}</span><span class="map-stat-l">Total</span></div>
     </div>
-    <div style="margin-bottom:.6rem;display:flex;align-items:center;flex-wrap:wrap;gap:.2rem">
+    <div style="margin-bottom:.4rem;display:flex;align-items:center;flex-wrap:wrap;gap:.2rem">
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Filtre :</span>${btnsTous}${btnsCateg}
+    </div>
+    <div style="margin-bottom:.6rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
+      <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Rayon :</span>${btnsSvcRayon}
     </div>
     <div style="max-width:400px;margin-bottom:.8rem"><canvas id="servicesChart" height="110"></canvas></div>
     <div class="map-container" id="mapServices"></div>
@@ -2471,7 +2542,10 @@ function showUrbanismeDetail(){
   const zoneLabel = ZONES_PLU[code] || ZONES_PLU[code.slice(0,2)] || ZONES_PLU[code.slice(0,1)] || z.typeZone || z.libelle || 'Voir détail sur Géoportail Urbanisme';
   const prescriptions = d.prescriptions?.map(p => {
     const key = Object.keys(PRESC_FR).find(k => p.toLowerCase().includes(k));
-    return key ? PRESC_FR[key] : p;
+    if(key) return PRESC_FR[key];
+    // Code non reconnu : on l'affiche avec une explication générique
+    const pCourt = p.length > 80 ? p.substring(0,77)+'…' : p;
+    return `📄 "${pCourt}" — règle spécifique au PLU de cette commune (<a href="https://www.geoportail-urbanisme.gouv.fr/" target="_blank" style="color:var(--gold)">consulter le document complet ↗</a>)`;
   }) || [];
   showPanel('📋 Urbanisme & PLU · ' + (doc?.nomCommune||''), `
     <div style="display:flex;gap:1rem;margin-bottom:1.2rem;flex-wrap:wrap">
@@ -2488,7 +2562,7 @@ function showUrbanismeDetail(){
     ${prescriptions.length?`
     <div style="background:rgba(184,131,42,.06);border:1px solid var(--goldborder);border-radius:var(--r);padding:.9rem;margin-bottom:.8rem">
       <div style="font-size:.7rem;color:var(--gold);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.5rem">⚠️ Points d'attention sur ce secteur</div>
-      ${prescriptions.map(p=>`<div style="font-size:.8rem;padding:.25rem 0;border-bottom:1px solid var(--borderl)">• ${p}</div>`).join('')}
+      ${prescriptions.map(p=>`<div style="font-size:.8rem;padding:.3rem 0;border-bottom:1px solid var(--borderl);line-height:1.5">${p}</div>`).join('')}
     </div>`:''}
     <p style="font-size:.62rem;color:var(--muted)">Document ${doc?.dateApprobation?'approuvé le '+doc.dateApprobation:''} · ${d.source}</p>
     <p style="font-size:.72rem;margin-top:.5rem"><a href="https://www.geoportail-urbanisme.gouv.fr/" target="_blank" style="color:var(--gold)">Consulter le PLU complet sur Géoportail Urbanisme →</a></p>`);
@@ -2502,7 +2576,7 @@ function showMeteoDetail(){
   showPanel('☀️ Météo & ensoleillement · 2019-2023', `
     <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:.5rem">
       <div class="stat-box"><span class="stat-n">${hAn?hAn.toLocaleString('fr-FR'):'—'}</span><span class="stat-l">Heures soleil/an</span></div>
-      <div class="stat-box"><span class="stat-n">${hJour||'—'} h</span><span class="stat-l">Moy. par jour</span></div>
+      <div class="stat-box"><span class="stat-n">${hJour||'—'} h ☀️</span><span class="stat-l">Soleil/jour moy.</span></div>
     </div>
     <div class="stat-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:1rem">
       <div class="stat-box"><span class="stat-n">${d.temperatures?.minMoyenne||'—'}°</span><span class="stat-l">Temp. min. moy.</span></div>
@@ -2525,8 +2599,21 @@ function showINSEEDetail(){
       <div class="stat-box"><span class="stat-n">${c?.population?.toLocaleString('fr-FR')||'—'}</span><span class="stat-l">Habitants</span></div>
       <div class="stat-box"><span class="stat-n">${c?.densite?.toLocaleString('fr-FR')||'—'}</span><span class="stat-l">Hab./km²</span></div>
     </div>
-    <p style="font-size:.75rem;color:var(--muted)">Département ${c?.departement||'—'} · Code INSEE ${c?.codeInsee||'—'}</p>
+    <p style="font-size:.75rem;color:var(--muted);margin-bottom:.8rem">Département ${c?.departement||'—'} · Code INSEE ${c?.codeInsee||'—'}</p>
+    <div class="map-container" id="mapInsee"></div>
     <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : ${d.source}</p>`);
+
+  setTimeout(()=>{
+    if(!currentCoords||!window.L) return;
+    const lat=currentCoords.lat, lng=currentCoords.lng;
+    if(window._leafletMapInsee){window._leafletMapInsee.remove();window._leafletMapInsee=null;}
+    const map=L.map('mapInsee').setView([lat,lng],13);
+    window._leafletMapInsee=map;
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CartoDB',maxZoom:19}).addTo(map);
+    const homeIcon=L.divIcon({html:`<div style="background:#c09030;border:3px solid #fff;border-radius:50%;width:16px;height:16px;box-shadow:0 2px 6px rgba(0,0,0,.3)"></div>`,iconSize:[16,16],iconAnchor:[8,8],className:''});
+    L.marker([lat,lng],{icon:homeIcon}).addTo(map)
+      .bindPopup(`<strong>📍 ${currentAddress}</strong><br><span style="font-size:.8rem">${c?.nom||''} · ${c?.population?.toLocaleString('fr-FR')||'?'} hab. · ${c?.densite?.toLocaleString('fr-FR')||'?'} hab./km²</span>`).openPopup();
+  },150);
 }
 
 function showFibreDetail(){
@@ -2558,7 +2645,16 @@ function showAltitudeDetail(){
     </div>
     <p style="font-size:.82rem;color:var(--muted);margin-bottom:.8rem">${d.label||''}</p>
     <div class="map-container" id="mapAltitude" style="border-radius:var(--r);overflow:hidden"></div>
-    <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Carte : OpenTopoMap · Altitude : ${d.source}</p>`);
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.6rem;align-items:center">
+      <span style="font-size:.72rem;color:var(--muted)">Légende OpenTopoMap :</span>
+      <span style="font-size:.7rem;background:#aad3df;padding:.1rem .4rem;border-radius:3px">🟦 Eau</span>
+      <span style="font-size:.7rem;background:#f2efe9;padding:.1rem .4rem;border-radius:3px">🟫 Plaine</span>
+      <span style="font-size:.7rem;background:#dcd0b7;padding:.1rem .4rem;border-radius:3px">🟤 Collines</span>
+      <span style="font-size:.7rem;background:#c9b99f;padding:.1rem .4rem;border-radius:3px">⛰️ Relief</span>
+      <span style="font-size:.7rem;background:#ffffff;padding:.1rem .4rem;border-radius:3px;border:1px solid #ccc">🏔️ Sommets</span>
+    </div>
+    <p style="font-size:.7rem;color:var(--muted);margin-top:.4rem" id="altClickInfo">💡 Cliquez sur la carte pour afficher l'altitude d'un point</p>
+    <p style="font-size:.62rem;color:var(--muted);margin-top:.2rem">Carte : OpenTopoMap · Altitude : ${d.source}</p>`);
 
   setTimeout(()=>{
     if(!currentCoords) return;
@@ -2574,8 +2670,27 @@ function showAltitudeDetail(){
       html:`<div style="background:#c09030;border:3px solid #fff;border-radius:50%;width:20px;height:20px;box-shadow:0 2px 8px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:11px">📍</div>`,
       iconSize:[20,20],iconAnchor:[10,10],className:''
     });
-    L.marker([lat,lng],{icon:homeIcon}).addTo(map)
+    const homeMarker = L.marker([lat,lng],{icon:homeIcon}).addTo(map)
       .bindPopup(`<strong>📍 ${currentAddress}</strong><br>Altitude : <strong>${d.altitude}m</strong>`).openPopup();
+
+    // Clic sur la carte → altitude du point
+    let clickMarker = null;
+    map.on('click', async function(e){
+      const clat=e.latlng.lat, clng=e.latlng.lng;
+      const info = document.getElementById('altClickInfo');
+      if(info) info.textContent = '⏳ Récupération de l\'altitude…';
+      try{
+        const r = await fetch(`/api/altitude?lat=${clat}&lon=${clng}`);
+        const res = await r.json();
+        const alt = res.altitude||res.z||'?';
+        if(clickMarker) map.removeLayer(clickMarker);
+        clickMarker = L.marker([clat,clng]).addTo(map)
+          .bindPopup(`<strong>🏔️ ${alt}m</strong><br><span style="font-size:.75rem">${clat.toFixed(5)}, ${clng.toFixed(5)}</span>`).openPopup();
+        if(info) info.textContent = `📍 Altitude au point cliqué : ${alt}m`;
+      }catch(err){
+        if(info) info.textContent = '⚠️ Altitude non disponible pour ce point';
+      }
+    });
   },150);
 }
 
