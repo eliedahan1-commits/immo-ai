@@ -2196,13 +2196,23 @@ function showMobiliteDetail(){
     <p style="font-size:.62rem;color:var(--muted);margin-top:.4rem">Source : OpenStreetMap via Overpass API · Rayon ${mobDist}m</p>
   `);
 
-  window._mobiliteMarkers = {};
   window.toggleMobiliteLayer = function(layer, btn){
     btn.classList.toggle('on');
     const isOn = btn.classList.contains('on');
     btn.style.opacity = isOn ? '1' : '.45';
     const markers = window._mobiliteMarkers[layer] || [];
     markers.forEach(m => isOn ? m.addTo(window._leafletMapMobilite) : window._leafletMapMobilite.removeLayer(m));
+    // Sync bouton Tous
+    const total = document.querySelectorAll('.mob-layer-btn').length;
+    const nbOn  = document.querySelectorAll('.mob-layer-btn.on').length;
+    const allOn = nbOn === total;
+    const btnTous = document.querySelector('.mob-all-btn');
+    if(btnTous){
+      btnTous.textContent  = allOn ? '✓ Tous' : 'Tous';
+      btnTous.style.background   = allOn ? 'var(--ink)'    : 'var(--white)';
+      btnTous.style.color        = allOn ? 'var(--gold2)'  : 'inherit';
+      btnTous.style.borderColor  = allOn ? 'var(--ink)'    : 'var(--border)';
+    }
   };
   window.toggleAllMobilite = function(btn){
     const anyOn = document.querySelectorAll('.mob-layer-btn.on').length > 0;
@@ -2237,6 +2247,7 @@ function showMobiliteDetail(){
 
     if(window._leafletMapMobilite){window._leafletMapMobilite.remove();window._leafletMapMobilite=null;}
     window._mobiliteMarkers = {metro:[],bus:[],velo:[],gare:[],borne:[]};
+    window._mobiliteMarkersReady = false;
 
     const map = L.map('mapMobilite').setView([lat, lng], 14);
     window._leafletMapMobilite = map;
@@ -2283,7 +2294,8 @@ function showMobiliteDetail(){
         if(window._mobiliteMarkers[layerKey]) window._mobiliteMarkers[layerKey].push(marker);
       });
     }
-  }, 150);
+    window._mobiliteMarkersReady = true;
+  }, 250);
   // Bar chart mobilité
   setTimeout(()=>{
     const ctx=document.getElementById('mobiliteChart');
@@ -2304,12 +2316,12 @@ function showMobiliteDetail(){
         indexAxis:'y',
         plugins:{
           legend:{display:false},
-          datalabels:{anchor:'end',align:'right',color:'#8a7d68',font:{size:10,weight:'600'},formatter:v=>v||''},
-          title:{display:true,text:`Équipements à proximité (${window._mobiliteCurrentDist||1000}m)`,font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68',padding:{bottom:8}}
+          datalabels:{anchor:'end',align:'right',color:'#8a7d68',font:{size:8,weight:'600'},formatter:v=>v||''},
+          title:{display:true,text:`Équipements à proximité (${window._mobiliteCurrentDist||1000}m)`,font:{size:10,family:'Outfit,sans-serif'},color:'#8a7d68',padding:{bottom:6}}
         },
         scales:{
-          x:{ticks:{font:{size:9},color:'#8a7d68'},grid:{color:'rgba(0,0,0,.05)'}},
-          y:{ticks:{font:{size:10},color:'#3d2f1e'},grid:{display:false}}
+          x:{ticks:{font:{size:8},color:'#8a7d68'},grid:{color:'rgba(0,0,0,.05)'}},
+          y:{ticks:{font:{size:8},color:'#3d2f1e'},grid:{display:false}}
         },
         animation:{duration:500},
         maintainAspectRatio:false,
@@ -2418,10 +2430,13 @@ function showServicesMap(){
     <div style="margin-bottom:.6rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Rayon :</span>${btnsSvcRayon}
     </div>
-    <div style="max-width:400px;margin-bottom:.8rem"><canvas id="servicesChart" height="110"></canvas></div>
+    <div style="height:130px;margin-bottom:.8rem"><canvas id="servicesChart"></canvas></div>
     <div class="map-container" id="mapServices"></div>
     <p style="font-size:.62rem;color:var(--muted)">Source : OpenStreetMap · Rayon 1km · ${d.total} établissements trouvés</p>
   `);
+
+  // Synchro immédiate des boutons (sans attendre la carte)
+  window._applySvcFilters();
 
   // Initialiser la carte Leaflet après rendu DOM
   setTimeout(() => {
@@ -2474,7 +2489,7 @@ function showServicesMap(){
     if(ctxSvc&&window.Chart){
       if(window._servicesChart){window._servicesChart.destroy();}
       const CAT_INFO2=[{key:'sante',label:'🏥 Santé',c:'rgba(230,57,70,.7)'},{key:'commerce',label:'🛒 Commerces',c:'rgba(244,162,97,.7)'},{key:'restauration',label:'🍽️ Restau.',c:'rgba(233,196,106,.7)'},{key:'sport',label:'🏋️ Sport',c:'rgba(42,157,143,.7)'},{key:'service',label:'🏦 Services',c:'rgba(69,123,157,.7)'},{key:'mobilite',label:'⚡ Mobilité',c:'rgba(76,175,80,.7)'}];
-      window._servicesChart=new Chart(ctxSvc,{type:'bar',plugins:[ChartDataLabels],data:{labels:CAT_INFO2.map(c=>c.label),datasets:[{data:CAT_INFO2.map(c=>d.stats[c.key]||0),backgroundColor:CAT_INFO2.map(c=>c.c),borderWidth:0,borderRadius:4}]},options:{plugins:{legend:{display:false},datalabels:{anchor:'end',align:'top',color:'#8a7d68',font:{size:10,weight:'600'},formatter:v=>v||''},title:{display:true,text:'Répartition par catégorie',font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68'}},scales:{x:{ticks:{font:{size:8},color:'#8a7d68'},grid:{display:false}},y:{ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.05)'}}},layout:{padding:{top:16}},animation:{duration:400}}});
+      window._servicesChart=new Chart(ctxSvc,{type:'bar',plugins:[ChartDataLabels],data:{labels:CAT_INFO2.map(c=>c.label),datasets:[{data:CAT_INFO2.map(c=>d.stats[c.key]||0),backgroundColor:CAT_INFO2.map(c=>c.c),borderWidth:0,borderRadius:4}]},options:{indexAxis:'y',plugins:{legend:{display:false},datalabels:{anchor:'end',align:'right',color:'#8a7d68',font:{size:8,weight:'600'},formatter:v=>v||''},title:{display:true,text:`Répartition par catégorie (${window._servicesCurrentDist||1000}m)`,font:{size:10,family:'Outfit,sans-serif'},color:'#8a7d68',padding:{bottom:6}}},scales:{x:{ticks:{font:{size:8},color:'#8a7d68'},grid:{color:'rgba(0,0,0,.05)'}},y:{ticks:{font:{size:8},color:'#3d2f1e'},grid:{display:false}}},maintainAspectRatio:false,layout:{padding:{right:28,top:4}},animation:{duration:400}}});
     }
 
     // Labels distances cercles
@@ -2624,40 +2639,88 @@ function showINSEEDetail(){
     <div class="map-container" id="mapInsee"></div>
     <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : ${d.source}</p>`);
 
-  setTimeout(()=>{
+  setTimeout(async ()=>{
     if(!currentCoords||!window.L) return;
     const lat=currentCoords.lat, lng=currentCoords.lng;
     if(window._leafletMapInsee){window._leafletMapInsee.remove();window._leafletMapInsee=null;}
-    const map=L.map('mapInsee').setView([lat,lng],13);
+    const map=L.map('mapInsee').setView([lat,lng],12);
     window._leafletMapInsee=map;
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CartoDB',maxZoom:19}).addTo(map);
-    // Couleur selon densité
+
     const dens = c?.densite||0;
     const densColor = dens>10000?'#c0392b':dens>5000?'#e67e22':dens>2000?'#f39c12':dens>500?'#27ae60':'#2980b9';
     const densLabel = dens>10000?'Très dense':dens>5000?'Dense':dens>2000?'Urbain':dens>500?'Péri-urbain':'Rural';
-    // Cercles concentriques densité
-    [2000,1000,500].forEach((r,i)=>{
-      L.circle([lat,lng],{radius:r,color:densColor,fillColor:densColor,fillOpacity:0.04+i*0.03,weight:1,dashArray:'4'}).addTo(map);
-    });
-    // Cercle central coloré
-    L.circle([lat,lng],{radius:200,color:densColor,fillColor:densColor,fillOpacity:0.18,weight:2}).addTo(map);
-    // Légende densité
+
+    // Charger le contour GeoJSON de la commune
+    if(c?.codeInsee){
+      try{
+        const geoResp = await fetch(`https://geo.api.gouv.fr/communes/${c.codeInsee}?format=geojson&geometry=contour`);
+        if(geoResp.ok){
+          const geoJSON = await geoResp.json();
+          L.geoJSON(geoJSON,{
+            style:{color:densColor,weight:2,fillColor:densColor,fillOpacity:0.25}
+          }).addTo(map);
+          // Charger communes voisines pour contexte
+          try{
+            const bbox = map.getBounds();
+            const voisinesResp = await fetch(`https://geo.api.gouv.fr/communes?lat=${lat}&lon=${lng}&fields=nom,population,superficie,codeDepartement&format=json&limit=8`);
+            if(voisinesResp.ok){
+              const voisines = await voisinesResp.json();
+              for(const v of voisines){
+                if(v.code===c.codeInsee) continue;
+                const sup = v.superficie||1;
+                const pop = v.population||0;
+                const vDens = Math.round(pop/(sup/100));
+                const vColor = vDens>10000?'#c0392b':vDens>5000?'#e67e22':vDens>2000?'#f39c12':vDens>500?'#27ae60':'#2980b9';
+                const vGeo = await fetch(`https://geo.api.gouv.fr/communes/${v.code}?format=geojson&geometry=contour`);
+                if(vGeo.ok){
+                  const vGeoJSON = await vGeo.json();
+                  L.geoJSON(vGeoJSON,{
+                    style:{color:vColor,weight:1,fillColor:vColor,fillOpacity:0.15}
+                  }).addTo(map).bindPopup(`<strong>${v.nom}</strong><br><span style="font-size:.75rem;color:${vColor}">${vDens.toLocaleString('fr-FR')} hab./km²</span>`);
+                }
+              }
+            }
+          }catch(e){}
+        }
+      }catch(e){}
+    }
+
+    // Légende
     const legend=L.control({position:'bottomright'});
     legend.onAdd=()=>{
       const div=L.DomUtil.create('div','');
-      div.style.cssText='background:#fff;padding:6px 10px;border-radius:6px;font-size:11px;font-family:Outfit,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.15);line-height:1.6';
-      div.innerHTML=`<div style="font-weight:600;margin-bottom:3px">Densité de population</div>
-        <div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#2980b9;margin-right:4px"></span>Rural &lt;500 hab/km²</div>
-        <div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#27ae60;margin-right:4px"></span>Péri-urbain 500–2000</div>
-        <div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f39c12;margin-right:4px"></span>Urbain 2000–5000</div>
-        <div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#e67e22;margin-right:4px"></span>Dense 5000–10000</div>
-        <div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#c0392b;margin-right:4px"></span>Très dense &gt;10000</div>`;
+      div.style.cssText='background:#fff;padding:6px 10px;border-radius:6px;font-size:11px;font-family:Outfit,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.15);line-height:1.7';
+      div.innerHTML=`<div style="font-weight:600;margin-bottom:3px">Densité (hab./km²)</div>
+        <div><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#2980b9;margin-right:5px"></span>Rural &lt;500</div>
+        <div><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#27ae60;margin-right:5px"></span>Péri-urbain 500–2000</div>
+        <div><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#f39c12;margin-right:5px"></span>Urbain 2000–5000</div>
+        <div><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#e67e22;margin-right:5px"></span>Dense 5000–10000</div>
+        <div><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#c0392b;margin-right:5px"></span>Très dense &gt;10000</div>`;
       return div;
     };
     legend.addTo(map);
-    const homeIcon=L.divIcon({html:`<div style="background:${densColor};border:3px solid #fff;border-radius:50%;width:18px;height:18px;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>`,iconSize:[18,18],iconAnchor:[9,9],className:''});
+
+    // Marqueur adresse
+    const homeIcon=L.divIcon({html:`<div style="background:#fff;border:3px solid ${densColor};border-radius:50%;width:16px;height:16px;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>`,iconSize:[16,16],iconAnchor:[8,8],className:''});
     L.marker([lat,lng],{icon:homeIcon}).addTo(map)
-      .bindPopup(`<strong>📍 ${currentAddress}</strong><br><span style="font-size:.8rem;color:${densColor}"><strong>${densLabel}</strong></span><br><span style="font-size:.75rem">${c?.population?.toLocaleString('fr-FR')||'?'} hab. · ${c?.densite?.toLocaleString('fr-FR')||'?'} hab./km²</span>`).openPopup();
+      .bindPopup(`<strong>📍 ${currentAddress}</strong><br><span style="font-size:.8rem;color:${densColor}"><strong>${densLabel}</strong></span><br><span style="font-size:.75rem">${(c?.population||0).toLocaleString('fr-FR')} hab. · ${(c?.densite||0).toLocaleString('fr-FR')} hab./km²</span>`).openPopup();
+
+    // Clic sur la carte → densité du point (commune la plus proche)
+    map.on('click', async e=>{
+      const {lat:clat,lng:clng}=e.latlng;
+      try{
+        const r2=await fetch(`https://geo.api.gouv.fr/communes?lat=${clat}&lon=${clng}&fields=nom,population,superficie&format=json&limit=1`);
+        if(!r2.ok) return;
+        const [com]=await r2.json();
+        if(!com) return;
+        const sup2=com.superficie||1;
+        const dens2=Math.round((com.population||0)/(sup2/100));
+        const col2=dens2>10000?'#c0392b':dens2>5000?'#e67e22':dens2>2000?'#f39c12':dens2>500?'#27ae60':'#2980b9';
+        const lbl2=dens2>10000?'Très dense':dens2>5000?'Dense':dens2>2000?'Urbain':dens2>500?'Péri-urbain':'Rural';
+        L.popup().setLatLng(e.latlng).setContent(`<strong>${com.nom}</strong><br><span style="color:${col2}"><strong>${lbl2}</strong> · ${dens2.toLocaleString('fr-FR')} hab./km²</span><br><span style="font-size:.72rem">${(com.population||0).toLocaleString('fr-FR')} habitants</span>`).openOn(map);
+      }catch(e2){}
+    });
   },150);
 }
 
