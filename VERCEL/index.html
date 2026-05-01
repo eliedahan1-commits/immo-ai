@@ -679,6 +679,7 @@ select.inp{
       <div class="topbar-addr" id="topAddr"></div>
     </div>
     <div class="topbar-right">
+      <span id="versionBadge" style="font-size:.62rem;color:var(--muted);opacity:.55;align-self:center;margin-right:.4rem" title="Version déployée"></span>
       <button class="tb-btn" onclick="go('conseil')">🤖 Conseiller IA</button>
       <button class="tb-btn primary" onclick="go('annonces')">🏠 Annonces</button>
     </div>
@@ -1172,7 +1173,15 @@ const PAGES = {
   pros:'Annuaire pros', juridique:'Guide juridique'
 };
 
+const APP_VERSION = 'v2.1';
 window.onload = () => {
+  const badge = document.getElementById('versionBadge');
+  if(badge){
+    const now = new Date();
+    const d = now.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});
+    const h = now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}).replace(':','h');
+    badge.textContent = `${APP_VERSION} · ${d} ${h}`;
+  }
   updateDot();
   if (!groqKey) setTimeout(openModal, 1800);
   setupSearch('heroSearch', 'heroSugs', true);
@@ -2085,7 +2094,7 @@ function showEcolesDetail(){
     window._leafletMapEcoles=map;
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'© OSM © CartoDB',maxZoom:19}).addTo(map);
     const dist=window._ecolesCurrentDist||1500;
-    L.circle([lat,lng],{radius:dist,color:'rgba(184,131,42,.3)',fillColor:'rgba(184,131,42,.04)',fillOpacity:1,weight:1,dashArray:'4'}).addTo(map);
+    L.circle([lat,lng],{radius:dist,color:'#b8832a',fillColor:'rgba(184,131,42,.08)',fillOpacity:1,weight:2.5,dashArray:'6 4',opacity:.85}).addTo(map);
     const homeIcon=L.divIcon({html:`<div style="background:#c09030;border:3px solid #fff;border-radius:50%;width:16px;height:16px;box-shadow:0 2px 6px rgba(0,0,0,.3)"></div>`,iconSize:[16,16],iconAnchor:[8,8],className:''});
     L.marker([lat,lng],{icon:homeIcon}).addTo(map).bindPopup(`<strong>📍 ${currentAddress}</strong>`);
     (d.etablissements||[]).forEach(e=>{
@@ -2198,8 +2207,8 @@ function showMobiliteDetail(){
     }).addTo(map);
 
     // Cercle dynamique selon le rayon sélectionné
-    L.circle([lat,lng],{radius:mobDist,color:'rgba(184,131,42,.4)',fillColor:'rgba(184,131,42,.04)',fillOpacity:1,weight:1,dashArray:'4'}).addTo(map);
-    if(mobDist>1000) L.circle([lat,lng],{radius:Math.round(mobDist/2),color:'rgba(184,131,42,.15)',fillColor:'transparent',weight:1,dashArray:'4'}).addTo(map);
+    L.circle([lat,lng],{radius:mobDist,color:'#b8832a',fillColor:'rgba(184,131,42,.08)',fillOpacity:1,weight:2.5,dashArray:'6 4',opacity:.85}).addTo(map);
+    if(mobDist>1000) L.circle([lat,lng],{radius:Math.round(mobDist/2),color:'#b8832a',fillColor:'transparent',weight:1.5,dashArray:'4 4',opacity:.4}).addTo(map);
 
     // Marqueur adresse
     const homeIcon = L.divIcon({
@@ -2398,8 +2407,8 @@ function showServicesMap(){
     }).addTo(map);
 
     // Cercle dynamique selon le rayon sélectionné
-    L.circle([lat, lng], {radius:svcDist, color:'rgba(184,131,42,.4)', fillColor:'rgba(184,131,42,.05)', fillOpacity:1, weight:1, dashArray:'4'}).addTo(map);
-    if(svcDist>500) L.circle([lat, lng], {radius:Math.round(svcDist/2), color:'rgba(184,131,42,.2)', fillColor:'transparent', weight:1, dashArray:'4'}).addTo(map);
+    L.circle([lat, lng], {radius:svcDist, color:'#b8832a', fillColor:'rgba(184,131,42,.08)', fillOpacity:1, weight:2.5, dashArray:'6 4', opacity:.85}).addTo(map);
+    if(svcDist>500) L.circle([lat, lng], {radius:Math.round(svcDist/2), color:'#b8832a', fillColor:'transparent', weight:1.5, dashArray:'4 4', opacity:.4}).addTo(map);
 
     // Marqueur adresse analysée
     const homeIcon = L.divIcon({
