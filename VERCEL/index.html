@@ -2189,16 +2189,17 @@ function showMobiliteDetail(){
     window._mobiliteMarkers = {metro:[],bus:[],velo:[],gare:[],borne:[]};
     window._mobiliteMarkersReady = false;
 
-    const map = L.map('mapMobilite').setView([lat, lng], 14);
+    const zoomMob = mobDist<=500?15:mobDist<=1000?14:mobDist<=2000?13:11;
+    const map = L.map('mapMobilite').setView([lat, lng], zoomMob);
     window._leafletMapMobilite = map;
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
       attribution:'© OpenStreetMap © CartoDB', maxZoom:19
     }).addTo(map);
 
-    // Cercles
-    L.circle([lat,lng],{radius:500,color:'rgba(184,131,42,.4)',fillColor:'rgba(184,131,42,.04)',fillOpacity:1,weight:1,dashArray:'4'}).addTo(map);
-    L.circle([lat,lng],{radius:1000,color:'rgba(184,131,42,.2)',fillColor:'transparent',weight:1,dashArray:'4'}).addTo(map);
+    // Cercle dynamique selon le rayon sélectionné
+    L.circle([lat,lng],{radius:mobDist,color:'rgba(184,131,42,.4)',fillColor:'rgba(184,131,42,.04)',fillOpacity:1,weight:1,dashArray:'4'}).addTo(map);
+    if(mobDist>1000) L.circle([lat,lng],{radius:Math.round(mobDist/2),color:'rgba(184,131,42,.15)',fillColor:'transparent',weight:1,dashArray:'4'}).addTo(map);
 
     // Marqueur adresse
     const homeIcon = L.divIcon({
@@ -2386,7 +2387,8 @@ function showServicesMap(){
     // Détruire carte existante si nécessaire
     if(window._leafletMap){window._leafletMap.remove();window._leafletMap=null;}
 
-    const map = L.map('mapServices', {zoomControl:true}).setView([lat, lng], 15);
+    const zoomSvc = svcDist<=500?15:svcDist<=1000?14:svcDist<=2000?13:11;
+    const map = L.map('mapServices', {zoomControl:true}).setView([lat, lng], zoomSvc);
     window._leafletMap = map;
 
     // Fond de carte OpenStreetMap
@@ -2395,10 +2397,9 @@ function showServicesMap(){
       maxZoom: 19
     }).addTo(map);
 
-    // Cercles de distance
-    L.circle([lat, lng], {radius:300, color:'rgba(184,131,42,.4)', fillColor:'rgba(184,131,42,.05)', fillOpacity:1, weight:1, dashArray:'4'}).addTo(map);
-    L.circle([lat, lng], {radius:500, color:'rgba(184,131,42,.25)', fillColor:'transparent', weight:1, dashArray:'4'}).addTo(map);
-    L.circle([lat, lng], {radius:1000, color:'rgba(184,131,42,.15)', fillColor:'transparent', weight:1, dashArray:'4'}).addTo(map);
+    // Cercle dynamique selon le rayon sélectionné
+    L.circle([lat, lng], {radius:svcDist, color:'rgba(184,131,42,.4)', fillColor:'rgba(184,131,42,.05)', fillOpacity:1, weight:1, dashArray:'4'}).addTo(map);
+    if(svcDist>500) L.circle([lat, lng], {radius:Math.round(svcDist/2), color:'rgba(184,131,42,.2)', fillColor:'transparent', weight:1, dashArray:'4'}).addTo(map);
 
     // Marqueur adresse analysée
     const homeIcon = L.divIcon({

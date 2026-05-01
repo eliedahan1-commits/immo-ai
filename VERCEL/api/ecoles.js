@@ -1,4 +1,4 @@
-// ══ VERCEL FUNCTION : ÉCOLES via Overpass (around, optimisé <10s) ══
+// ══ VERCEL FUNCTION : ÉCOLES via Overpass ══
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   const lat = parseFloat(req.query.lat);
@@ -8,41 +8,50 @@ export default async function handler(req, res) {
   if (!lat || !lon) return res.status(400).json({ error: 'lat et lon requis' });
 
   try {
-    // around: est plus rapide que bbox car Overpass utilise son index spatial
-    const q = `[out:json][timeout:7];(node["amenity"~"^(school|college|kindergarten)$"](around:${dist},${lat},${lon}););out;`;
+    const query = `[out:json][timeout:12];(
+      node["amenity"="school"](around:${dist},${lat},${lon});
+      node["amenity"="kindergarten"](around:${dist},${lat},${lon});
+      node["amenity"="college"](around:${dist},${lat},${lon});
+    );out body;`;
 
     const r = await fetch('https://overpass-api.de/api/interpreter', {
       method: 'POST',
-      body: 'data=' + encodeURIComponent(q),
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      signal: AbortSignal.timeout(8000)
+      body: `data=${encodeURIComponent(query)}`,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'IMMOAI/2.0 (https://immo-ai-nu.vercel.app)',
+        'Accept': 'application/json'
+      },
+      signal: AbortSignal.timeout(12000)
     });
 
     if (!r.ok) throw new Error(`Overpass ${r.status}`);
-    const raw = await r.json();
+    const data = await r.json();
+    const elements = data.elements || [];
 
-    const etablissements = (raw.elements || []).map(el => {
-      if (!el.lat || !el.lon) return null;
-      const dLat = (el.lat - lat) * 111000;
-      const dLon = (el.lon - lon) * 111000 * Math.cos(lat * Math.PI / 180);
-      const distanceM = Math.round(Math.sqrt(dLat * dLat + dLon * dLon));
-      const amenity = el.tags?.amenity || '';
-      const nom = el.tags?.name || 'Établissement scolaire';
-      let type = 'École élémentaire';
-      if (amenity === 'kindergarten') type = 'École maternelle';
-      else if (nom.toLowerCase().includes('lycée') || nom.toLowerCase().includes('lycee')) type = 'Lycée';
-      else if (nom.toLowerCase().includes('collège') || nom.toLowerCase().includes('college')) type = 'Collège';
-      else if (nom.toLowerCase().includes('maternelle')) type = 'École maternelle';
-      return {
-        nom, type,
-        statut: el.tags?.operator_type || '',
-        adresse: el.tags?.['addr:street'] || '',
-        commune: el.tags?.['addr:city'] || '',
-        codePostal: el.tags?.['addr:postcode'] || '',
-        distanceM,
-        lat: el.lat, lon: el.lon
-      };
-    }).filter(Boolean).sort((a, b) => a.distanceM - b.distanceM);
+    const etablissements = elements
+      .filter(el => el.lat && el.lon)
+      .map(el => {
+        const dLat = (el.lat - lat) * 111000;
+        const dLon = (el.lon - lon) * 111000 * Math.cos(lat * Math.PI / 180);
+        const distanceM = Math.round(Math.sqrt(dLat * dLat + dLon * dLon));
+        const amenity = el.tags?.amenity || '';
+        const nom = el.tags?.name || 'Établissement scolaire';
+        let type = 'École élémentaire';
+        if (amenity === 'kindergarten') type = 'École maternelle';
+        else if (nom.toLowerCase().includes('lycée') || nom.toLowerCase().includes('lycee')) type = 'Lycée';
+        else if (nom.toLowerCase().includes('collège') || nom.toLowerCase().includes('college')) type = 'Collège';
+        else if (nom.toLowerCase().includes('maternelle')) type = 'École maternelle';
+        return {
+          nom, type,
+          statut: el.tags?.operator_type || '',
+          adresse: el.tags?.['addr:street'] || '',
+          commune: el.tags?.['addr:city'] || '',
+          codePostal: el.tags?.['addr:postcode'] || '',
+          distanceM, lat: el.lat, lon: el.lon
+        };
+      })
+      .sort((a, b) => a.distanceM - b.distanceM);
 
     const isEcole   = e => e.type.includes('cole');
     const isCollege = e => e.type.includes('ollège') || e.type.includes('ollege');
@@ -62,7 +71,14 @@ export default async function handler(req, res) {
       source: 'OpenStreetMap · Overpass',
       dateExtraction: new Date().toISOString()
     });
+
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(200).json({
+      success: false, total: 0,
+      types: { ecoles: 0, maternelle: 0, elementaire: 0, college: 0, lycee: 0 },
+      etablissements: [],
+      error: error.message,
+      source: 'OpenStreetMap · Overpass'
+    });
   }
 }
