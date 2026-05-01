@@ -1938,6 +1938,8 @@ function showDVFDetail(){
     const el_cnt = document.getElementById('dvfStatCount');
     const el_four = document.getElementById('dvfFourchette');
     if(el_med) el_med.textContent = medFilt ? medFilt.toLocaleString('fr-FR')+'€' : '—';
+    const el_base = document.getElementById('dvfMedianBase');
+    if(el_base) el_base.textContent = 'sur '+prix2.length+' val.';
     if(el_cnt) el_cnt.textContent = liste.length;
     if(el_four && prix2.length>=2) el_four.textContent = 'Fourchette : '+prix2[0].toLocaleString('fr-FR')+' – '+prix2[prix2.length-1].toLocaleString('fr-FR')+' €/m²';
 
@@ -1988,9 +1990,9 @@ function showDVFDetail(){
   const btnsSurf = SURF_TRANCHES.map(([s,l])=>`<button class="dvf-surf-btn dvf-filter-btn" data-s="${s}" onclick="filterDVFSurf(${s})" style="${btnStyle}">${l}</button>`).join('');
   showPanel('💰 Transactions DVF officielles', `
     <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1rem">
-      <div class="stat-box"><span class="stat-n" id="dvfStatMedian">${d.stats.medianM2.toLocaleString('fr-FR')}€</span><span class="stat-l">Médian /m²</span></div>
-      <div class="stat-box"><span class="stat-n" id="dvfStatCount">${d.count}</span><span class="stat-l" id="dvfStatCountLabel">Ventes${d.dateRange?' '+d.dateRange:''}</span></div>
-      <div class="stat-box"><span class="stat-n">${d.rayon}m</span><span class="stat-l">Rayon analysé</span></div>
+      <div class="stat-box"><span class="stat-n" id="dvfStatMedian">${d.stats.medianM2.toLocaleString('fr-FR')}€</span><span class="stat-l">💰 Médian /m²</span><span class="stat-l" id="dvfMedianBase" style="font-size:.65rem;opacity:.6">sur ${d.count} val.</span></div>
+      <div class="stat-box"><span class="stat-n" id="dvfStatCount">${d.count}</span><span class="stat-l" id="dvfStatCountLabel">🏠 Ventes${d.dateRange?' '+d.dateRange:''}</span></div>
+      <div class="stat-box"><span class="stat-n">${d.rayon}m</span><span class="stat-l">📍 Rayon analysé</span></div>
     </div>
     <p style="font-size:.75rem;color:var(--muted);margin-bottom:.6rem" id="dvfFourchette">Fourchette : ${d.stats.minM2.toLocaleString('fr-FR')} – ${d.stats.maxM2.toLocaleString('fr-FR')} €/m²</p>
     <div style="margin-bottom:.5rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
@@ -2089,7 +2091,7 @@ function showEcolesDetail(){
         <div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--accent)">${total}</div>
         <div style="font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Total</div>
       </div>
-      <div style="flex:1;min-width:200px;display:flex;align-items:center"><canvas id="ecolesChart" height="180"></canvas></div>
+      <div style="width:160px;flex-shrink:0;display:flex;align-items:center"><canvas id="ecolesChart" width="160" height="160"></canvas></div>
     </div>
     <div style="margin-bottom:.5rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Type :</span>${btnsType}
@@ -2128,7 +2130,7 @@ function showEcolesDetail(){
       },
       options:{
         plugins:{
-          legend:{position:'bottom',labels:{font:{size:10,family:'Outfit,sans-serif'},color:'#8a7d68',padding:8,boxWidth:10}},
+          legend:{position:'bottom',labels:{font:{size:13,family:'Outfit,sans-serif'},color:'#8a7d68',padding:10,boxWidth:14}},
           title:{display:true,text:'Répartition',font:{size:10,family:'Outfit,sans-serif'},color:'#8a7d68'},
           datalabels:{color:'#fff',font:{size:10,weight:'600'},formatter:(v)=>v>0?v+'\n'+Math.round(v/total*100)+'%':'',textAlign:'center'}
         },
@@ -2150,12 +2152,12 @@ function showEcolesDetail(){
     const homeIcon=L.divIcon({html:`<div style="background:#c09030;border:3px solid #fff;border-radius:50%;width:16px;height:16px;box-shadow:0 2px 6px rgba(0,0,0,.3)"></div>`,iconSize:[16,16],iconAnchor:[8,8],className:''});
     L.marker([lat,lng],{icon:homeIcon}).addTo(map).bindPopup(`<strong>📍 ${currentAddress}</strong>`);
     (d.etablissements||[]).forEach(e=>{
-      if(!e.latitude||!e.longitude) return;
+      if(!e.lat||!e.lon) return;
       const t=(e.type||'').toLowerCase();
       const couleur=t.includes('lycée')||t.includes('lycee')?'#c0392b':t.includes('collège')||t.includes('college')?'#2d6a4f':'#b8832a';
       const emoji=t.includes('lycée')||t.includes('lycee')?'📚':t.includes('collège')||t.includes('college')?'🎓':'🏫';
       const icon=L.divIcon({html:`<div style="background:${couleur};border:2px solid #fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 2px 6px rgba(0,0,0,.25)">${emoji}</div>`,iconSize:[26,26],iconAnchor:[13,13],className:''});
-      L.marker([parseFloat(e.latitude),parseFloat(e.longitude)],{icon}).addTo(map).bindPopup(`<strong>${emoji} ${e.nom}</strong><br><span style="font-size:.75rem">${e.type||''} · ${e.distanceM||'?'}m</span>`);
+      L.marker([e.lat, e.lon],{icon}).addTo(map).bindPopup(`<strong>${emoji} ${e.nom}</strong><br><span style="font-size:.75rem">${e.type||''} · ${e.distanceM||'?'}m</span>`);
     });
   },120);
 }
@@ -2171,10 +2173,10 @@ function showMobiliteDetail(){
   const lbs = (c) => `display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid ${c};border-radius:3px;background:${c}18;cursor:pointer;font-size:.7rem;transition:opacity .2s`;
   showPanel('🚇 Mobilité & transports', `
     <div class="map-stats">
-      <div class="map-stat"><span class="map-stat-n">${d.score}/10</span><span class="map-stat-l">Score</span></div>
-      <div class="map-stat"><span class="map-stat-n">${d.stats?.metro||0}</span><span class="map-stat-l">Métro/RER</span></div>
-      <div class="map-stat"><span class="map-stat-n">${d.stats?.arretsBus||0}</span><span class="map-stat-l">Arrêts bus</span></div>
-      <div class="map-stat"><span class="map-stat-n">${d.stats?.velos||0}</span><span class="map-stat-l">Vélos/bornes</span></div>
+      <div class="map-stat"><span class="map-stat-n">${d.score}/10</span><span class="map-stat-l">⭐ Score</span></div>
+      <div class="map-stat"><span class="map-stat-n">${d.stats?.metro||0}</span><span class="map-stat-l">🚇 Métro/RER</span></div>
+      <div class="map-stat"><span class="map-stat-n">${d.stats?.arretsBus||0}</span><span class="map-stat-l">🚌 Arrêts bus</span></div>
+      <div class="map-stat"><span class="map-stat-n">${d.stats?.velos||0}</span><span class="map-stat-l">🚲 Vélos/bornes</span></div>
     </div>
     <div class="map-legend" style="flex-wrap:wrap;gap:.4rem;align-items:center;margin-bottom:.3rem">
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Filtre :</span>
@@ -2189,7 +2191,7 @@ function showMobiliteDetail(){
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Rayon :</span>${btnsMobRayon}
     </div>
     <div class="map-container" id="mapMobilite"></div>
-    <div style="margin-top:1.2rem"><canvas id="mobiliteChart" height="180"></canvas></div>
+    <div style="margin-top:1.2rem;height:120px"><canvas id="mobiliteChart"></canvas></div>
     ${d.arretsPrincipaux?.length?`<p style="font-size:.75rem;color:var(--muted);margin-top:.5rem">Principaux arrêts : ${d.arretsPrincipaux.join(' · ')}</p>`:''}
     <p style="font-size:.62rem;color:var(--muted);margin-top:.4rem">Source : OpenStreetMap via Overpass API · Rayon ${mobDist}m</p>
   `);
@@ -2310,6 +2312,7 @@ function showMobiliteDetail(){
           y:{ticks:{font:{size:10},color:'#3d2f1e'},grid:{display:false}}
         },
         animation:{duration:500},
+        maintainAspectRatio:false,
         layout:{padding:{right:24,top:4}}
       }
     });
@@ -2345,34 +2348,50 @@ function showServicesMap(){
   const sBtnSvcR = r => `padding:.25rem .65rem;font-size:.72rem;border:1px solid ${r===svcDist?'var(--ink)':'var(--border)'};border-radius:3px;cursor:pointer;margin-right:.3rem;background:${r===svcDist?'var(--ink)':'var(--white)'};color:${r===svcDist?'#fff':'inherit'};font-weight:${r===svcDist?'600':'400'}`;
   const btnsSvcRayon = SVC_RAYONS.map(([r,l])=>`<button class="svc-rayon-btn" data-r="${r}" onclick="reloadServicesWithDist(${r})" style="${sBtnSvcR(r)}">${l}</button>`).join('');
 
-  window._servicesActiveFilter = 'tous';
+  const SVC_CATS = CAT_INFO.map(c=>c.key);
+  window._servicesActiveFilters = new Set(SVC_CATS); // toutes actives par défaut
   window._servicesAllMarkers = {};
-  window.filterServicesMap = function(cat, btn){
-    window._servicesActiveFilter = cat;
-    // Visuel bouton Tous
+
+  window._applySvcFilters = function(){
+    const allOn = SVC_CATS.every(k=>window._servicesActiveFilters.has(k));
+    // Bouton Tous
     const btnTous = document.querySelector('.svc-tous-btn');
     if(btnTous){
-      const isTous = cat==='tous';
-      btnTous.textContent = isTous ? '✓ Tous ('+d.total+')' : 'Tous ('+d.total+')';
-      btnTous.style.background = isTous ? 'var(--ink)' : 'var(--white)';
-      btnTous.style.color = isTous ? 'var(--gold2)' : 'inherit';
-      btnTous.style.borderColor = isTous ? 'var(--ink)' : 'var(--border)';
+      btnTous.textContent = allOn ? '✓ Tous' : 'Tous';
+      btnTous.style.background = allOn ? 'var(--ink)' : 'var(--white)';
+      btnTous.style.color = allOn ? 'var(--gold2)' : 'inherit';
+      btnTous.style.borderColor = allOn ? 'var(--ink)' : 'var(--border)';
     }
-    // Visuel boutons catégorie
+    // Boutons catégorie
     document.querySelectorAll('.svc-cat-btn').forEach(b=>{
-      const active = b.dataset.cat===cat;
-      b.style.opacity = (cat==='tous'||active) ? '1' : '.45';
-      b.style.fontWeight = active ? '600' : '400';
+      const on = window._servicesActiveFilters.has(b.dataset.cat);
+      b.style.opacity = on ? '1' : '.4';
+      b.style.fontWeight = on ? '600' : '400';
     });
+    // Marqueurs
+    if(!window._leafletMap) return;
     Object.keys(window._servicesAllMarkers).forEach(k=>{
       window._servicesAllMarkers[k].forEach(m=>{
-        if(cat==='tous'||k===cat) m.addTo(window._leafletMap);
+        if(window._servicesActiveFilters.has(k)) m.addTo(window._leafletMap);
         else window._leafletMap.removeLayer(m);
       });
     });
   };
+
+  window.filterServicesMap = function(cat){
+    if(cat==='tous'){
+      const allOn = SVC_CATS.every(k=>window._servicesActiveFilters.has(k));
+      if(allOn) SVC_CATS.forEach(k=>window._servicesActiveFilters.delete(k));
+      else SVC_CATS.forEach(k=>window._servicesActiveFilters.add(k));
+    } else {
+      if(window._servicesActiveFilters.has(cat)) window._servicesActiveFilters.delete(cat);
+      else window._servicesActiveFilters.add(cat);
+    }
+    window._applySvcFilters();
+  };
   window.reloadServicesWithDist = async function(dist){
     window._servicesCurrentDist = dist;
+    window._servicesActiveFilters = new Set(SVC_CATS); // reset filtres à tous actifs
     document.querySelectorAll('.svc-rayon-btn').forEach(b=>{
       const active = parseInt(b.dataset.r)===dist;
       b.style.background = active?'var(--ink)':'var(--white)';
@@ -2388,10 +2407,10 @@ function showServicesMap(){
   const btnsCateg = CAT_INFO.map(c=>`<button class="svc-cat-btn" data-cat="${c.key}" onclick="filterServicesMap('${c.key}',this)" style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid ${CAT_COLORS[c.key]};border-radius:3px;background:${CAT_COLORS[c.key]}18;cursor:pointer;font-size:.7rem;margin-right:.3rem;margin-bottom:.3rem;transition:opacity .2s"><span style="width:10px;height:10px;border-radius:50%;background:${CAT_COLORS[c.key]};display:inline-block"></span>${c.emoji} ${c.label} (${d.stats[c.key]||0})</button>`).join('');
   showPanel('🏥 Services & commerces à proximité', `
     <div class="map-stats">
-      <div class="map-stat"><span class="map-stat-n">${d.score}/10</span><span class="map-stat-l">Score</span></div>
-      <div class="map-stat"><span class="map-stat-n">${d.stats.sante}</span><span class="map-stat-l">Santé</span></div>
-      <div class="map-stat"><span class="map-stat-n">${d.stats.commerce}</span><span class="map-stat-l">Commerces</span></div>
-      <div class="map-stat"><span class="map-stat-n">${d.total}</span><span class="map-stat-l">Total</span></div>
+      <div class="map-stat"><span class="map-stat-n">${d.score}/10</span><span class="map-stat-l">⭐ Score</span></div>
+      <div class="map-stat"><span class="map-stat-n">${d.stats.sante}</span><span class="map-stat-l">🏥 Santé</span></div>
+      <div class="map-stat"><span class="map-stat-n">${d.stats.commerce}</span><span class="map-stat-l">🛒 Commerces</span></div>
+      <div class="map-stat"><span class="map-stat-n">${d.total}</span><span class="map-stat-l">📍 Total</span></div>
     </div>
     <div style="margin-bottom:.4rem;display:flex;align-items:center;flex-wrap:wrap;gap:.2rem">
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Filtre :</span>${btnsTous}${btnsCateg}
@@ -2448,6 +2467,8 @@ function showServicesMap(){
       if(!window._servicesAllMarkers[s.categorie]) window._servicesAllMarkers[s.categorie]=[];
       window._servicesAllMarkers[s.categorie].push(marker);
     });
+    // Appliquer l'état des filtres actifs sur la nouvelle carte
+    window._applySvcFilters();
     // Chart services
     const ctxSvc=document.getElementById('servicesChart');
     if(ctxSvc&&window.Chart){
@@ -2575,14 +2596,14 @@ function showMeteoDetail(){
   const hJour = hAn ? (hAn/365).toFixed(1) : null;
   showPanel('☀️ Météo & ensoleillement · 2019-2023', `
     <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:.5rem">
-      <div class="stat-box"><span class="stat-n">${hAn?hAn.toLocaleString('fr-FR'):'—'}</span><span class="stat-l">Heures soleil/an</span></div>
-      <div class="stat-box"><span class="stat-n">${hJour||'—'} h ☀️</span><span class="stat-l">Soleil/jour moy.</span></div>
+      <div class="stat-box"><span class="stat-n">${hAn?hAn.toLocaleString('fr-FR'):'—'}</span><span class="stat-l">☀️ Heures soleil/an</span></div>
+      <div class="stat-box"><span class="stat-n">${hJour||'—'} h</span><span class="stat-l">🌤️ Soleil/jour moy.</span></div>
     </div>
     <div class="stat-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:1rem">
-      <div class="stat-box"><span class="stat-n">${d.temperatures?.minMoyenne||'—'}°</span><span class="stat-l">Temp. min. moy.</span></div>
-      <div class="stat-box"><span class="stat-n">${d.temperatures?.maxMoyenne||'—'}°</span><span class="stat-l">Temp. max. moy.</span></div>
-      <div class="stat-box"><span class="stat-n">${d.precipitations?.annuellesMm||'—'} mm</span><span class="stat-l">Précip./an</span></div>
-      <div class="stat-box"><span class="stat-n">${d.precipitations?.joursParAn||'—'}</span><span class="stat-l">Jours de pluie/an</span></div>
+      <div class="stat-box"><span class="stat-n">${d.temperatures?.minMoyenne||'—'}°</span><span class="stat-l">🥶 Temp. min. moy.</span></div>
+      <div class="stat-box"><span class="stat-n">${d.temperatures?.maxMoyenne||'—'}°</span><span class="stat-l">🌡️ Temp. max. moy.</span></div>
+      <div class="stat-box"><span class="stat-n">${d.precipitations?.annuellesMm||'—'} mm</span><span class="stat-l">🌧️ Précip./an</span></div>
+      <div class="stat-box"><span class="stat-n">${d.precipitations?.joursParAn||'—'}</span><span class="stat-l">☔ Jours de pluie/an</span></div>
     </div>
     <p style="font-size:.8rem;color:var(--ink);font-weight:500;margin-bottom:.3rem">${d.ensoleillement?.label||''}</p>
     <p style="font-size:.75rem;color:var(--muted);margin-bottom:.5rem">${d.periode||''}</p>
@@ -2596,8 +2617,8 @@ function showINSEEDetail(){
   const r = d.revenus;
   showPanel('📊 Profil démographique · ' + (c?.nom||''), `
     <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:1rem">
-      <div class="stat-box"><span class="stat-n">${c?.population?.toLocaleString('fr-FR')||'—'}</span><span class="stat-l">Habitants</span></div>
-      <div class="stat-box"><span class="stat-n">${c?.densite?.toLocaleString('fr-FR')||'—'}</span><span class="stat-l">Hab./km²</span></div>
+      <div class="stat-box"><span class="stat-n">${c?.population?.toLocaleString('fr-FR')||'—'}</span><span class="stat-l">👥 Habitants</span></div>
+      <div class="stat-box"><span class="stat-n">${c?.densite?.toLocaleString('fr-FR')||'—'}</span><span class="stat-l">🗺️ Hab./km²</span></div>
     </div>
     <p style="font-size:.75rem;color:var(--muted);margin-bottom:.8rem">Département ${c?.departement||'—'} · Code INSEE ${c?.codeInsee||'—'}</p>
     <div class="map-container" id="mapInsee"></div>
@@ -2609,10 +2630,34 @@ function showINSEEDetail(){
     if(window._leafletMapInsee){window._leafletMapInsee.remove();window._leafletMapInsee=null;}
     const map=L.map('mapInsee').setView([lat,lng],13);
     window._leafletMapInsee=map;
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CartoDB',maxZoom:19}).addTo(map);
-    const homeIcon=L.divIcon({html:`<div style="background:#c09030;border:3px solid #fff;border-radius:50%;width:16px;height:16px;box-shadow:0 2px 6px rgba(0,0,0,.3)"></div>`,iconSize:[16,16],iconAnchor:[8,8],className:''});
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CartoDB',maxZoom:19}).addTo(map);
+    // Couleur selon densité
+    const dens = c?.densite||0;
+    const densColor = dens>10000?'#c0392b':dens>5000?'#e67e22':dens>2000?'#f39c12':dens>500?'#27ae60':'#2980b9';
+    const densLabel = dens>10000?'Très dense':dens>5000?'Dense':dens>2000?'Urbain':dens>500?'Péri-urbain':'Rural';
+    // Cercles concentriques densité
+    [2000,1000,500].forEach((r,i)=>{
+      L.circle([lat,lng],{radius:r,color:densColor,fillColor:densColor,fillOpacity:0.04+i*0.03,weight:1,dashArray:'4'}).addTo(map);
+    });
+    // Cercle central coloré
+    L.circle([lat,lng],{radius:200,color:densColor,fillColor:densColor,fillOpacity:0.18,weight:2}).addTo(map);
+    // Légende densité
+    const legend=L.control({position:'bottomright'});
+    legend.onAdd=()=>{
+      const div=L.DomUtil.create('div','');
+      div.style.cssText='background:#fff;padding:6px 10px;border-radius:6px;font-size:11px;font-family:Outfit,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.15);line-height:1.6';
+      div.innerHTML=`<div style="font-weight:600;margin-bottom:3px">Densité de population</div>
+        <div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#2980b9;margin-right:4px"></span>Rural &lt;500 hab/km²</div>
+        <div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#27ae60;margin-right:4px"></span>Péri-urbain 500–2000</div>
+        <div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f39c12;margin-right:4px"></span>Urbain 2000–5000</div>
+        <div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#e67e22;margin-right:4px"></span>Dense 5000–10000</div>
+        <div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#c0392b;margin-right:4px"></span>Très dense &gt;10000</div>`;
+      return div;
+    };
+    legend.addTo(map);
+    const homeIcon=L.divIcon({html:`<div style="background:${densColor};border:3px solid #fff;border-radius:50%;width:18px;height:18px;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>`,iconSize:[18,18],iconAnchor:[9,9],className:''});
     L.marker([lat,lng],{icon:homeIcon}).addTo(map)
-      .bindPopup(`<strong>📍 ${currentAddress}</strong><br><span style="font-size:.8rem">${c?.nom||''} · ${c?.population?.toLocaleString('fr-FR')||'?'} hab. · ${c?.densite?.toLocaleString('fr-FR')||'?'} hab./km²</span>`).openPopup();
+      .bindPopup(`<strong>📍 ${currentAddress}</strong><br><span style="font-size:.8rem;color:${densColor}"><strong>${densLabel}</strong></span><br><span style="font-size:.75rem">${c?.population?.toLocaleString('fr-FR')||'?'} hab. · ${c?.densite?.toLocaleString('fr-FR')||'?'} hab./km²</span>`).openPopup();
   },150);
 }
 
@@ -2646,14 +2691,14 @@ function showAltitudeDetail(){
     <p style="font-size:.82rem;color:var(--muted);margin-bottom:.8rem">${d.label||''}</p>
     <div class="map-container" id="mapAltitude" style="border-radius:var(--r);overflow:hidden"></div>
     <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.6rem;align-items:center">
-      <span style="font-size:.72rem;color:var(--muted)">Légende OpenTopoMap :</span>
-      <span style="font-size:.7rem;background:#aad3df;padding:.1rem .4rem;border-radius:3px">🟦 Eau</span>
-      <span style="font-size:.7rem;background:#f2efe9;padding:.1rem .4rem;border-radius:3px">🟫 Plaine</span>
-      <span style="font-size:.7rem;background:#dcd0b7;padding:.1rem .4rem;border-radius:3px">🟤 Collines</span>
-      <span style="font-size:.7rem;background:#c9b99f;padding:.1rem .4rem;border-radius:3px">⛰️ Relief</span>
-      <span style="font-size:.7rem;background:#ffffff;padding:.1rem .4rem;border-radius:3px;border:1px solid #ccc">🏔️ Sommets</span>
+      <span style="font-size:.72rem;color:var(--muted)">Légende :</span>
+      <span style="font-size:.7rem;background:#aad3df;padding:.1rem .5rem;border-radius:3px;color:#1a3a4a">💧 Eau</span>
+      <span style="font-size:.7rem;background:#add19e;padding:.1rem .5rem;border-radius:3px;color:#1a3a1a">🌿 Végétation</span>
+      <span style="font-size:.7rem;background:#e0ddd8;padding:.1rem .5rem;border-radius:3px;color:#3d2f1e">🏙️ Urbain</span>
+      <span style="font-size:.7rem;background:#c2a97d;padding:.1rem .5rem;border-radius:3px;color:#3d2000">⛰️ Relief</span>
+      <span style="font-size:.7rem;background:#b8b8b8;padding:.1rem .5rem;border-radius:3px;color:#222">🏔️ Sommets</span>
     </div>
-    <p style="font-size:.7rem;color:var(--muted);margin-top:.4rem" id="altClickInfo">💡 Cliquez sur la carte pour afficher l'altitude d'un point</p>
+    <p style="font-size:.75rem;color:var(--ink);background:rgba(184,131,42,.1);border:1px solid var(--goldborder);border-radius:5px;padding:.4rem .7rem;margin-top:.6rem;display:inline-block" id="altClickInfo">👆 Cliquez n'importe où sur la carte pour connaître l'altitude du point</p>
     <p style="font-size:.62rem;color:var(--muted);margin-top:.2rem">Carte : OpenTopoMap · Altitude : ${d.source}</p>`);
 
   setTimeout(()=>{
