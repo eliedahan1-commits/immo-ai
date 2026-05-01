@@ -1976,7 +1976,7 @@ function showDVFDetail(){
     if(window._dvfChart){window._dvfChart.data.labels=labels;window._dvfChart.data.datasets[0].data=counts;window._dvfChart.update();return;}
     const ctx=document.getElementById('dvfHistChart'); if(!ctx||!window.Chart)return;
     window._dvfChart=new Chart(ctx,{type:'bar',plugins:[ChartDataLabels],data:{labels,datasets:[{label:'Transactions',data:counts,backgroundColor:'rgba(184,131,42,.6)',borderColor:'#b8832a',borderWidth:1,borderRadius:4}]},
-      options:{plugins:{legend:{display:false},datalabels:{anchor:'end',align:'top',color:'#8a7d68',font:{size:9,weight:'600'}},title:{display:true,text:'Distribution des prix (€/m²) — cliquer une barre pour filtrer',font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68'}},
+      options:{plugins:{legend:{display:false},datalabels:{anchor:'end',align:'top',color:'#8a7d68',font:{size:9,weight:'600'}},title:{display:true,text:'Distribution des prix (€/m²)',font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68'}},
         scales:{x:{ticks:{font:{size:8},color:'#8a7d68'},grid:{display:false}},y:{ticks:{font:{size:9},color:'#8a7d68'},grid:{color:'rgba(0,0,0,.05)'}}},
         animation:{duration:300},
       }
@@ -2091,7 +2091,7 @@ function showEcolesDetail(){
         <div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--accent)">${total}</div>
         <div style="font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Total</div>
       </div>
-      <div style="width:160px;flex-shrink:0;display:flex;align-items:center"><canvas id="ecolesChart" width="160" height="160"></canvas></div>
+      <div style="width:240px;flex-shrink:0;display:flex;align-items:center"><canvas id="ecolesChart" width="240" height="240"></canvas></div>
     </div>
     <div style="margin-bottom:.5rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Type :</span>${btnsType}
