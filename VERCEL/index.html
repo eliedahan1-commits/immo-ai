@@ -718,6 +718,7 @@ select.inp{
         </div>
         <div class="results-addr-badge" id="addrBadge">Analyse en cours…</div>
       </div>
+      <button class="back-btn" onclick="goHome()" style="margin-top:.6rem">← Nouvelle recherche</button>
     </div>
 
     <div class="cards-grid" id="cardsGrid">
@@ -1146,6 +1147,14 @@ let currentCoords = null;
 const IS_LOCAL = location.protocol === 'file:' || location.hostname === 'localhost';
 
 // Appel API : via Netlify Function si déployé, sinon direct
+function goHome(){
+  go('home');
+  if(currentAddress){
+    const inp = document.getElementById('sideSearch');
+    if(inp){ inp.value = currentAddress; }
+  }
+}
+
 async function apiCall(netlifyPath, directUrl, options={}) {
   const url = IS_LOCAL ? directUrl : netlifyPath;
   return fetch(url, { ...options, signal: options.signal || AbortSignal.timeout(10000) });
@@ -2032,7 +2041,7 @@ function showEcolesDetail(){
     </div>
     <div class="map-container" id="mapEcoles" style="margin-bottom:.8rem"></div>
     <div id="ecolesListe"></div>
-    <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : Annuaire Éducation Nationale · <a href="https://data.education.gouv.fr" target="_blank" style="color:var(--gold)">data.education.gouv.fr</a></p>`);
+    <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : OpenStreetMap · Rayon ${window._ecolesCurrentDist>=1000?(window._ecolesCurrentDist/1000)+'km':window._ecolesCurrentDist+'m'}</p>`);
 
   window.reloadEcolesWithDist = async function(dist){
     window._ecolesCurrentDist = dist;
@@ -2363,7 +2372,7 @@ function showServicesMap(){
     </div>
     <div style="height:130px;margin-bottom:.8rem"><canvas id="servicesChart"></canvas></div>
     <div class="map-container" id="mapServices"></div>
-    <p style="font-size:.62rem;color:var(--muted)">Source : OpenStreetMap · Rayon 1km · ${d.total} établissements trouvés</p>
+    <p style="font-size:.62rem;color:var(--muted)">Source : OpenStreetMap · Rayon ${svcDist>=1000?(svcDist/1000)+'km':svcDist+'m'} · ${d.total} établissements trouvés</p>
   `);
 
   // Synchro immédiate des boutons (sans attendre la carte)

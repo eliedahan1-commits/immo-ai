@@ -1,4 +1,4 @@
-// ══ VERCEL FUNCTION : ÉCOLES via Overpass/OpenStreetMap ══
+// ══ VERCEL FUNCTION : ÉCOLES via Overpass (around, optimisé <10s) ══
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   const lat = parseFloat(req.query.lat);
@@ -8,28 +8,24 @@ export default async function handler(req, res) {
   if (!lat || !lon) return res.status(400).json({ error: 'lat et lon requis' });
 
   try {
-    const deg = dist / 111000;
-    const s = lat - deg, n = lat + deg, w = lon - deg, e = lon + deg;
-    const q = `[out:json][timeout:25];(node["amenity"~"^(school|college|kindergarten)$"](${s},${w},${n},${e});way["amenity"~"^(school|college|kindergarten)$"](${s},${w},${n},${e}););out center;`;
+    // around: est plus rapide que bbox car Overpass utilise son index spatial
+    const q = `[out:json][timeout:7];(node["amenity"~"^(school|college|kindergarten)$"](around:${dist},${lat},${lon}););out;`;
 
     const r = await fetch('https://overpass-api.de/api/interpreter', {
       method: 'POST',
       body: 'data=' + encodeURIComponent(q),
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      signal: AbortSignal.timeout(28000)
+      signal: AbortSignal.timeout(8000)
     });
 
     if (!r.ok) throw new Error(`Overpass ${r.status}`);
     const raw = await r.json();
 
     const etablissements = (raw.elements || []).map(el => {
-      const elat = el.lat ?? el.center?.lat;
-      const elon = el.lon ?? el.center?.lon;
-      if (!elat || !elon) return null;
-      const dLat = (elat - lat) * 111000;
-      const dLon = (elon - lon) * 111000 * Math.cos(lat * Math.PI / 180);
+      if (!el.lat || !el.lon) return null;
+      const dLat = (el.lat - lat) * 111000;
+      const dLon = (el.lon - lon) * 111000 * Math.cos(lat * Math.PI / 180);
       const distanceM = Math.round(Math.sqrt(dLat * dLat + dLon * dLon));
-      if (distanceM > dist) return null;
       const amenity = el.tags?.amenity || '';
       const nom = el.tags?.name || 'Établissement scolaire';
       let type = 'École élémentaire';
@@ -44,7 +40,7 @@ export default async function handler(req, res) {
         commune: el.tags?.['addr:city'] || '',
         codePostal: el.tags?.['addr:postcode'] || '',
         distanceM,
-        lat: elat, lon: elon
+        lat: el.lat, lon: el.lon
       };
     }).filter(Boolean).sort((a, b) => a.distanceM - b.distanceM);
 
