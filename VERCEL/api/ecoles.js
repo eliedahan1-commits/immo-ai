@@ -42,11 +42,17 @@ export default async function handler(req, res) {
         const distanceM = Math.round(Math.sqrt(dLat * dLat + dLon * dLon));
         const amenity = el.tags?.amenity || '';
         const nom = el.tags?.name || 'Établissement scolaire';
+        // Tags OSM spécifiques au niveau scolaire
+        const schoolType = (el.tags?.['school:type'] || el.tags?.['education'] || el.tags?.['school:FR'] || '').toLowerCase();
+        const isced = parseInt(el.tags?.['isced:level'] || el.tags?.['isced'] || '0');
         let type = 'École élémentaire';
-        if (amenity === 'kindergarten') type = 'École maternelle';
-        else if (nom.toLowerCase().includes('lycée') || nom.toLowerCase().includes('lycee')) type = 'Lycée';
-        else if (nom.toLowerCase().includes('collège') || nom.toLowerCase().includes('college')) type = 'Collège';
-        else if (nom.toLowerCase().includes('maternelle')) type = 'École maternelle';
+        if (amenity === 'kindergarten' || schoolType.includes('maternelle') || nom.toLowerCase().includes('maternelle')) {
+          type = 'École maternelle';
+        } else if (isced === 3 || schoolType.includes('lycée') || schoolType.includes('lycee') || schoolType.includes('secondaire') || schoolType.includes('secondary') || nom.toLowerCase().includes('lycée') || nom.toLowerCase().includes('lycee')) {
+          type = 'Lycée';
+        } else if (isced === 2 || schoolType.includes('collège') || schoolType.includes('college') || nom.toLowerCase().includes('collège') || nom.toLowerCase().includes('college')) {
+          type = 'Collège';
+        }
         return {
           nom, type,
           statut: el.tags?.operator_type || '',

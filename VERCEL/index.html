@@ -1615,21 +1615,92 @@ async function loadRisques(lat, lng){
   }
 }
 
-// ── Écoles : via Vercel function (proxy → data.education.gouv.fr, pas de CORS) ──
+// ── Éducation Nationale API (client-side, évite blocage IP Vercel) ──
+async function fetchEducationGouv(lat, lng, dist=500){
+  try{
+    const distDeg = dist / 111000;
+    const cosLat = Math.cos(lat * Math.PI / 180);
+    const minLat = (lat - distDeg).toFixed(6);
+    const maxLat = (lat + distDeg).toFixed(6);
+    const minLon = (lng - distDeg / cosLat).toFixed(6);
+    const maxLon = (lng + distDeg / cosLat).toFixed(6);
+    const fields = 'nom_etablissement,type_etablissement,statut_public_prive,adresse_1,commune,code_postal,latitude,longitude';
+    const where = encodeURIComponent(`latitude>${minLat} AND latitude<${maxLat} AND longitude>${minLon} AND longitude<${maxLon}`);
+    const url = `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=${where}&limit=100&fields=${fields}`;
+    const r = await fetch(url, {signal: AbortSignal.timeout(12000)});
+    if(!r.ok) return [];
+    const data = await r.json();
+    return (data.results || []).map(rec => {
+      const elLat = parseFloat(rec.latitude);
+      const elLon = parseFloat(rec.longitude);
+      if(!elLat || !elLon) return null;
+      const dLat = (elLat - lat) * 111000;
+      const dLon = (elLon - lng) * 111000 * cosLat;
+      const distanceM = Math.round(Math.sqrt(dLat*dLat + dLon*dLon));
+      if(distanceM > dist) return null;
+      const nom = rec.nom_etablissement || 'Établissement';
+      const nomLow = nom.toLowerCase();
+      const typeEdu = (rec.type_etablissement || '').toLowerCase();
+      let type = 'École élémentaire';
+      if(typeEdu.includes('maternelle') || nomLow.includes('maternelle')) type = 'École maternelle';
+      else if(typeEdu.includes('lycée') || typeEdu.includes('lycee') || nomLow.includes('lycée') || nomLow.includes('lycee')) type = 'Lycée';
+      else if(typeEdu.includes('collège') || typeEdu.includes('college') || nomLow.includes('collège') || nomLow.includes('college')) type = 'Collège';
+      return { nom, type,
+        statut: rec.statut_public_prive || '',
+        adresse: rec.adresse_1 || '',
+        commune: rec.commune || '',
+        codePostal: rec.code_postal || '',
+        distanceM, lat: elLat, lon: elLon, source: 'education.gouv.fr' };
+    }).filter(Boolean);
+  }catch(e){ return []; }
+}
+
+// ── Fusion OSM + Éducation Nationale avec dédoublonnage (<80m = même établissement) ──
+function mergeEtablissements(osmList, eduList){
+  const DEDUP_DIST_M = 80;
+  const result = [...osmList];
+  for(const edu of eduList){
+    const isDuplicate = osmList.some(osm => {
+      const dLat = (edu.lat - osm.lat) * 111000;
+      const dLon = (edu.lon - osm.lon) * 111000 * Math.cos(osm.lat * Math.PI / 180);
+      return Math.sqrt(dLat*dLat + dLon*dLon) < DEDUP_DIST_M;
+    });
+    if(!isDuplicate) result.push(edu);
+  }
+  return result.sort((a,b) => a.distanceM - b.distanceM);
+}
+
+// ── Détection crèche (filtrées hors onglet écoles → ajoutées dans Services) ──
+const CRECHE_KEYWORDS = ['crèche','creche','halte garderie','multi-accueil','multiaccueil','micro-crèche','microcreche'];
+function isCreche(e){ const n=(e.nom||'').toLowerCase(); return CRECHE_KEYWORDS.some(k=>n.includes(k)); }
+
 async function loadEcoles(lat, lng, codeInsee, dist=500){
   window._ecolesCodeInsee = codeInsee;
   try{
     const url = `/api/ecoles?lat=${lat}&lon=${lng}&dist=${dist}${codeInsee?'&codeInsee='+codeInsee:''}`;
-    const r = await fetch(url, {signal:AbortSignal.timeout(15000)});
-    if(!r.ok) throw new Error();
-    const d = await r.json();
-    if(!d.success) throw new Error(d.error||'Erreur API');
-    const total = d.total||0;
-    const types = d.types||{};
-    setCard('ecoles', total+' établissement'+(total>1?'s':''),
+    const [osmResult, eduResult] = await Promise.allSettled([
+      fetch(url, {signal:AbortSignal.timeout(15000)}).then(r=>r.ok?r.json():Promise.reject('API écoles KO')),
+      fetchEducationGouv(lat, lng, dist)
+    ]);
+    const osmData = osmResult.status==='fulfilled' ? osmResult.value : {success:false, etablissements:[]};
+    const eduList = eduResult.status==='fulfilled' ? eduResult.value : [];
+    if(!osmData.success && eduList.length===0) throw new Error('Aucune donnée');
+    const merged = mergeEtablissements(osmData.etablissements||[], eduList);
+    // Exclure les crèches (elles apparaissent dans Services > Petite enfance)
+    const etablissements = merged.filter(e => !isCreche(e));
+    const types = {
+      ecoles:      etablissements.filter(e => e.type.includes('cole')).length,
+      maternelle:  etablissements.filter(e => e.type.includes('maternelle')).length,
+      elementaire: etablissements.filter(e => e.type.includes('cole') && !e.type.includes('maternelle')).length,
+      college:     etablissements.filter(e => e.type.includes('ollège') || e.type.includes('ollege')).length,
+      lycee:       etablissements.filter(e => e.type.includes('ycée') || e.type.includes('ycee')).length,
+    };
+    const total = etablissements.length;
+    const srcNote = eduList.length > 0 ? ` (OSM+EN)` : '';
+    setCard('ecoles', total+' établissement'+(total>1?'s':'')+srcNote,
       `${types.ecoles||0} école(s) · ${types.college||0} collège(s) · ${types.lycee||0} lycée(s)`,
       total>0?'good':'');
-    window._ecolesData=d;
+    window._ecolesData = {...osmData, success:true, total, types, etablissements};
   }catch(e){
     setCard('ecoles','Non disponible','Erreur API Éducation','');
   }
@@ -2316,15 +2387,17 @@ function showServicesMap(){
     {couleur:'#e9c46a', label:'Restaurants'},
     {couleur:'#4caf50', label:'Mobilité'},
     {couleur:'#457b9d', label:'Services'},
+    {couleur:'#ff6b9d', label:'Petite enfance'},
   ];
 
   const CAT_INFO = [
-    {key:'sante',       label:'Santé',        couleur:'#e63946', emoji:'🏥'},
-    {key:'commerce',    label:'Commerces',    couleur:'#f4a261', emoji:'🛒'},
-    {key:'restauration',label:'Restaurants',  couleur:'#e9c46a', emoji:'🍽️'},
-    {key:'sport',       label:'Sport',        couleur:'#2a9d8f', emoji:'🏋️'},
-    {key:'service',     label:'Services',     couleur:'#457b9d', emoji:'🏦'},
-    {key:'mobilite',    label:'Mobilité',     couleur:'#4caf50', emoji:'⚡'},
+    {key:'sante',       label:'Santé',          couleur:'#e63946', emoji:'🏥'},
+    {key:'commerce',    label:'Commerces',      couleur:'#f4a261', emoji:'🛒'},
+    {key:'restauration',label:'Restaurants',    couleur:'#e9c46a', emoji:'🍽️'},
+    {key:'sport',       label:'Sport',          couleur:'#2a9d8f', emoji:'🏋️'},
+    {key:'service',     label:'Services',       couleur:'#457b9d', emoji:'🏦'},
+    {key:'mobilite',    label:'Mobilité',       couleur:'#4caf50', emoji:'⚡'},
+    {key:'creche',      label:'Petite enfance', couleur:'#ff6b9d', emoji:'🍼'},
   ];
   const svcDist = window._servicesCurrentDist || 1000;
   const SVC_RAYONS = [[500,'500m'],[1000,'1km'],[2000,'2km'],[5000,'5km']];
@@ -2386,7 +2459,7 @@ function showServicesMap(){
     await loadServices(currentCoords.lat, currentCoords.lng, dist);
     showServicesMap();
   };
-  const CAT_COLORS = {sante:'#e63946',commerce:'#f4a261',restauration:'#e9c46a',sport:'#2a9d8f',service:'#457b9d',mobilite:'#4caf50'};
+  const CAT_COLORS = {sante:'#e63946',commerce:'#f4a261',restauration:'#e9c46a',sport:'#2a9d8f',service:'#457b9d',mobilite:'#4caf50',creche:'#ff6b9d'};
   const btnsTous = `<button class="svc-tous-btn" onclick="filterServicesMap('tous',this)" style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid var(--ink);border-radius:3px;background:var(--ink);color:var(--gold2);cursor:pointer;font-size:.7rem;font-weight:600;margin-right:.3rem">✓ Tous (${d.total})</button>`;
   const btnsCateg = CAT_INFO.map(c=>`<button class="svc-cat-btn" data-cat="${c.key}" onclick="filterServicesMap('${c.key}',this)" style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid ${CAT_COLORS[c.key]};border-radius:3px;background:${CAT_COLORS[c.key]}18;cursor:pointer;font-size:.7rem;margin-right:.3rem;margin-bottom:.3rem;transition:opacity .2s"><span style="width:10px;height:10px;border-radius:50%;background:${CAT_COLORS[c.key]};display:inline-block"></span>${c.emoji} ${c.label} (${d.stats[c.key]||0})</button>`).join('');
   showPanel('🏥 Services & commerces à proximité', `
@@ -2445,7 +2518,7 @@ function showServicesMap(){
     // Points de services par catégorie avec clustering
     window._servicesAllMarkers = {};
     window._servicesClusters = {};
-    const SVC_CATS_LIST = ['sante','commerce','restauration','sport','service','mobilite'];
+    const SVC_CATS_LIST = ['sante','commerce','restauration','sport','service','mobilite','creche'];
     SVC_CATS_LIST.forEach(cat => {
       window._servicesClusters[cat] = L.markerClusterGroup({maxClusterRadius:50});
       window._servicesAllMarkers[cat] = [];
@@ -2469,7 +2542,7 @@ function showServicesMap(){
     const ctxSvc=document.getElementById('servicesChart');
     if(ctxSvc&&window.Chart){
       if(window._servicesChart){window._servicesChart.destroy();}
-      const CAT_INFO2=[{key:'sante',label:'🏥 Santé',c:'rgba(230,57,70,.7)'},{key:'commerce',label:'🛒 Commerces',c:'rgba(244,162,97,.7)'},{key:'restauration',label:'🍽️ Restau.',c:'rgba(233,196,106,.7)'},{key:'sport',label:'🏋️ Sport',c:'rgba(42,157,143,.7)'},{key:'service',label:'🏦 Services',c:'rgba(69,123,157,.7)'},{key:'mobilite',label:'⚡ Mobilité',c:'rgba(76,175,80,.7)'}];
+      const CAT_INFO2=[{key:'sante',label:'🏥 Santé',c:'rgba(230,57,70,.7)'},{key:'commerce',label:'🛒 Commerces',c:'rgba(244,162,97,.7)'},{key:'restauration',label:'🍽️ Restau.',c:'rgba(233,196,106,.7)'},{key:'sport',label:'🏋️ Sport',c:'rgba(42,157,143,.7)'},{key:'service',label:'🏦 Services',c:'rgba(69,123,157,.7)'},{key:'mobilite',label:'⚡ Mobilité',c:'rgba(76,175,80,.7)'},{key:'creche',label:'🍼 Petite enf.',c:'rgba(255,107,157,.7)'}];
       window._servicesChart=new Chart(ctxSvc,{type:'bar',plugins:[ChartDataLabels],data:{labels:CAT_INFO2.map(c=>c.label),datasets:[{data:CAT_INFO2.map(c=>d.stats[c.key]||0),backgroundColor:CAT_INFO2.map(c=>c.c),borderWidth:0,borderRadius:4}]},options:{indexAxis:'y',plugins:{legend:{display:false},datalabels:{anchor:'end',align:'right',color:'#8a7d68',font:{size:8,weight:'600'},formatter:v=>v||''},title:{display:true,text:`Répartition par catégorie (${window._servicesCurrentDist||1000}m)`,font:{size:10,family:'Outfit,sans-serif'},color:'#8a7d68',padding:{bottom:6}}},scales:{x:{ticks:{font:{size:8},color:'#8a7d68'},grid:{color:'rgba(0,0,0,.05)'}},y:{ticks:{font:{size:8},color:'#3d2f1e'},grid:{display:false}}},maintainAspectRatio:false,layout:{padding:{right:28,top:4}},animation:{duration:400}}});
     }
 
@@ -2628,7 +2701,7 @@ function showINSEEDetail(){
     </div>
     <p style="font-size:.75rem;color:var(--muted);margin-bottom:.8rem">Département ${c?.departement||'—'} · Code INSEE ${c?.codeInsee||'—'}</p>
     <div class="map-container" id="mapInsee"></div>
-    <p style="font-size:.7rem;color:var(--muted);margin-top:.5rem">🖱️ Cliquez sur n'importe quelle commune pour voir sa densité de population.</p>
+    <p style="font-size:.8rem;color:var(--accent);font-weight:500;margin-top:.6rem;padding:.4rem .6rem;background:rgba(184,131,42,.08);border-radius:4px;border-left:3px solid var(--gold)">🖱️ Cliquez sur une commune pour voir sa densité exacte.</p>
     <p style="font-size:.62rem;color:var(--muted);margin-top:.3rem">Source : ${d.source}</p>`);
 
   setTimeout(async ()=>{
@@ -2646,17 +2719,35 @@ function showINSEEDetail(){
     // Fonction helper : couleur selon densité
     const getDensColor = d => d>10000?'#c0392b':d>5000?'#e67e22':d>2000?'#f39c12':d>500?'#27ae60':'#2980b9';
 
-    // Charger les communes visibles : liste JSON puis contours en lots de 5
+    // Colorier les communes : commune principale d'abord, puis voisines
     setTimeout(async ()=>{ try{
-      const b = map.getBounds();
-      const bbox = `${b.getWest().toFixed(4)},${b.getSouth().toFixed(4)},${b.getEast().toFixed(4)},${b.getNorth().toFixed(4)}`;
-      const listResp = await fetch(`https://geo.api.gouv.fr/communes?bbox=${bbox}&fields=nom,population,surface&format=json&limit=20`);
+      // Étape 1 : commune principale (codeInsee + densite déjà connus, 1 requête fiable)
+      if(c?.codeInsee){
+        try{
+          const mainGeo = await fetch(`https://geo.api.gouv.fr/communes/${c.codeInsee}?format=geojson&geometry=contour`);
+          if(mainGeo.ok){
+            const mainGeoJSON = await mainGeo.json();
+            const mainColor = getDensColor(c.densite||0);
+            L.geoJSON(mainGeoJSON,{
+              style:{color:mainColor,weight:2.5,fillColor:mainColor,fillOpacity:0.3}
+            }).addTo(map).bindPopup(
+              `<strong>${c.nom||'—'}</strong><br>${(c.population||0).toLocaleString('fr-FR')} hab.<br>`+
+              `<span style="color:${mainColor};font-weight:600">${(c.densite||0).toLocaleString('fr-FR')} hab./km²</span>`
+            );
+          }
+        }catch(e1){}
+      }
+      // Étape 2 : communes voisines (bbox manuelle, indépendant du rendu de la carte)
+      const DEG = 0.12; // ≈ 12km autour du point
+      const bbox = `${(lng-DEG).toFixed(4)},${(lat-DEG).toFixed(4)},${(lng+DEG).toFixed(4)},${(lat+DEG).toFixed(4)}`;
+      const listResp = await fetch(`https://geo.api.gouv.fr/communes?bbox=${bbox}&fields=nom,population,surface&format=json&limit=15`);
       if(!listResp.ok) return;
       const communes = await listResp.json();
-      const BATCH = 5;
-      for(let i=0; i<Math.min(communes.length,20); i+=BATCH){
+      const BATCH = 4;
+      for(let i=0; i<communes.length; i+=BATCH){
         const lot = communes.slice(i, i+BATCH);
         await Promise.all(lot.map(async v=>{
+          if(v.code===c?.codeInsee) return; // déjà rendu
           try{
             const sup = v.surface||0;
             const pop = v.population||0;
@@ -2665,18 +2756,17 @@ function showINSEEDetail(){
             const geoResp = await fetch(`https://geo.api.gouv.fr/communes/${v.code}?format=geojson&geometry=contour`);
             if(!geoResp.ok) return;
             const geoJSON = await geoResp.json();
-            const isMain = v.code===c?.codeInsee;
             L.geoJSON(geoJSON,{
-              style:{color:vColor,weight:isMain?2.5:1,fillColor:vColor,fillOpacity:isMain?0.3:0.18}
+              style:{color:vColor,weight:1,fillColor:vColor,fillOpacity:0.18}
             }).addTo(map).bindPopup(
               `<strong>${v.nom}</strong><br>${pop.toLocaleString('fr-FR')} hab.<br>`+
               (vDens!=null?`<span style="color:${vColor};font-weight:600">${vDens.toLocaleString('fr-FR')} hab./km²</span>`:`<span style="color:#999">Densité non calculable</span>`)
             );
           }catch(e2){}
         }));
-        if(i+BATCH < communes.length) await new Promise(r=>setTimeout(r,120));
+        if(i+BATCH < communes.length) await new Promise(r=>setTimeout(r,100));
       }
-    }catch(e){} }, 300); // délai pour s'assurer que la carte est rendue
+    }catch(e){} }, 300);
 
     // Légende
     const legend=L.control({position:'bottomright'});

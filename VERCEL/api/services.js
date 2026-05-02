@@ -23,7 +23,8 @@ export default async function handler(req, res) {
       node["amenity"="cafe"](around:${dist},${lat},${lon});
       node["amenity"="charging_station"](around:${dist},${lat},${lon});
       node["amenity"="bicycle_rental"](around:${dist},${lat},${lon});
-    );out body;`;
+      nwr["amenity"="childcare"](around:${dist},${lat},${lon});
+    );out center;`;
 
     const r = await fetch('https://overpass-api.de/api/interpreter', {
       method: 'POST',
@@ -42,8 +43,10 @@ export default async function handler(req, res) {
     const elements = data.elements || [];
 
     const services = elements
-      .filter(e => e.lat && e.lon)
+      .filter(e => (e.lat && e.lon) || (e.center?.lat && e.center?.lon))
       .map(e => {
+        const eLat = e.lat ?? e.center?.lat;
+        const eLon = e.lon ?? e.center?.lon;
         const tags = e.tags || {};
         let categorie = 'autre', icone = '📍', couleur = '#888', priorite = 10;
         if (tags.amenity === 'pharmacy') { categorie = 'sante'; icone = '💊'; couleur = '#e63946'; priorite = 1; }
@@ -58,14 +61,15 @@ export default async function handler(req, res) {
         else if (tags.amenity === 'cafe') { categorie = 'restauration'; icone = '☕'; couleur = '#e9c46a'; priorite = 7; }
         else if (tags.amenity === 'charging_station') { categorie = 'mobilite'; icone = '⚡'; couleur = '#4caf50'; priorite = 5; }
         else if (tags.amenity === 'bicycle_rental') { categorie = 'mobilite'; icone = '🚲'; couleur = '#4caf50'; priorite = 5; }
+        else if (tags.amenity === 'childcare') { categorie = 'creche'; icone = '🍼'; couleur = '#ff6b9d'; priorite = 3; }
 
-        const dLat = (e.lat - lat) * 111000;
-        const dLon = (e.lon - lon) * 111000 * Math.cos(lat * Math.PI / 180);
+        const dLat = (eLat - lat) * 111000;
+        const dLon = (eLon - lon) * 111000 * Math.cos(lat * Math.PI / 180);
         const distanceM = Math.round(Math.sqrt(dLat * dLat + dLon * dLon));
 
         return {
           id: e.id, nom: tags.name || tags.amenity || tags.shop || 'Service',
-          categorie, icone, couleur, priorite, lat: e.lat, lon: e.lon, distanceM,
+          categorie, icone, couleur, priorite, lat: eLat, lon: eLon, distanceM,
           tags: { amenity: tags.amenity, shop: tags.shop, opening_hours: tags.opening_hours, phone: tags.phone }
         };
       })
@@ -79,6 +83,7 @@ export default async function handler(req, res) {
       restauration: services.filter(s => s.categorie === 'restauration').length,
       mobilite: services.filter(s => s.categorie === 'mobilite').length,
       service: services.filter(s => s.categorie === 'service').length,
+      creche: services.filter(s => s.categorie === 'creche').length,
     };
 
     let score = 0;
