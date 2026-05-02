@@ -10,7 +10,6 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <style>
@@ -1178,10 +1177,16 @@ const PAGES = {
 };
 
 const APP_VERSION = 'v2.1';
-const BUILD_DATE  = '01/05/2026 22h41';
 window.onload = () => {
   const badge = document.getElementById('versionBadge');
-  if(badge) badge.textContent = `${APP_VERSION} · ${BUILD_DATE}`;
+  // Date auto : lire le header Last-Modified de index.html (mis à jour par Vercel à chaque déploiement)
+  fetch('/index.html', {method:'HEAD'}).then(r=>{
+    const lm = r.headers.get('Last-Modified');
+    const label = lm
+      ? new Date(lm).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})
+      : '';
+    if(badge) badge.textContent = label ? `${APP_VERSION} · ${label}` : APP_VERSION;
+  }).catch(()=>{ if(badge) badge.textContent = APP_VERSION; });
   updateDot();
   if (!groqKey) setTimeout(openModal, 1800);
   setupSearch('heroSearch', 'heroSugs', true);
@@ -1623,16 +1628,26 @@ async function fetchEducationGouv(lat, lng, dist=500){
     const fields = 'nom_etablissement,type_etablissement,statut_public_prive,adresse_1,commune,code_postal,coordonnees,latitude,longitude';
     const url = `https://data.education.gouv.fr/api/records/1.0/search/?dataset=fr-en-annuaire-education&geofilter.distance=${lat},${lng},${dist}&rows=100&fields=${fields}`;
     const r = await fetch(url, {signal: AbortSignal.timeout(12000)});
-    if(!r.ok) return [];
+    if(!r.ok){ console.warn('[EN API] HTTP', r.status, url); return []; }
     const data = await r.json();
+    console.log('[EN API] nhits:', data.nhits, '| records:', data.records?.length, '| 1er champs:', JSON.stringify(data.records?.[0]?.fields||{}));
     const cosLat = Math.cos(lat * Math.PI / 180);
     return (data.records || []).map(rec => {
       const f = rec.fields || {};
-      // coordonnees = [lat, lon] dans le format geo_point_2d Opendatasoft
       let elLat, elLon;
-      if(Array.isArray(f.coordonnees)){ elLat = f.coordonnees[0]; elLon = f.coordonnees[1]; }
-      else if(f.latitude && f.longitude){ elLat = parseFloat(f.latitude); elLon = parseFloat(f.longitude); }
-      else if(rec.geometry?.coordinates){ elLon = rec.geometry.coordinates[0]; elLat = rec.geometry.coordinates[1]; }
+      // geo_point_2d Opendatasoft v1 : objet {lat,lon}, tableau [lat,lon], ou chaîne "lat,lon"
+      if(f.coordonnees && typeof f.coordonnees === 'object' && !Array.isArray(f.coordonnees)){
+        elLat = f.coordonnees.lat; elLon = f.coordonnees.lon;
+      } else if(Array.isArray(f.coordonnees)){
+        elLat = f.coordonnees[0]; elLon = f.coordonnees[1];
+      } else if(typeof f.coordonnees === 'string' && f.coordonnees.includes(',')){
+        const p = f.coordonnees.split(',').map(Number);
+        elLat = p[0]; elLon = p[1];
+      } else if(f.latitude && f.longitude){
+        elLat = parseFloat(f.latitude); elLon = parseFloat(f.longitude);
+      } else if(rec.geometry?.coordinates){
+        elLon = rec.geometry.coordinates[0]; elLat = rec.geometry.coordinates[1];
+      }
       if(!elLat || !elLon) return null;
       const dLat = (elLat - lat) * 111000;
       const dLon = (elLon - lng) * 111000 * cosLat;
@@ -2716,39 +2731,72 @@ function showINSEEDetail(){
     const densLabel = dens>10000?'Très dense':dens>5000?'Dense':dens>2000?'Urbain':dens>500?'Péri-urbain':'Rural';
     const densColor = dens>10000?'#c0392b':dens>5000?'#e67e22':dens>2000?'#f39c12':dens>500?'#27ae60':'#2980b9';
 
-    // Heatmap densité : communes voisines via bbox
+    // Choroplèthe densité : interpolation log continue (style Observatoire des Territoires)
+    const densToColor = d => {
+      if(!d || d <= 0) return null;
+      // Échelle log : 10 → blanc cassé, 25000 → rouge foncé
+      const t = Math.min(Math.max(Math.log(d) / Math.log(25000), 0), 1);
+      // Interpolation : #fff5f0 → #fc8a6a → #cb181d → #67000d
+      const stops = [[255,245,240],[252,138,106],[203,24,29],[103,0,13]];
+      const idx = t * (stops.length - 1);
+      const lo = Math.floor(idx), hi = Math.min(lo + 1, stops.length - 1);
+      const f = idx - lo;
+      const [r,g,b] = stops[lo].map((v,i) => Math.round(v + f * (stops[hi][i] - v)));
+      return `rgb(${r},${g},${b})`;
+    };
     setTimeout(async ()=>{ try{
       const DEG = 0.15;
       const bbox = `${(lng-DEG).toFixed(4)},${(lat-DEG).toFixed(4)},${(lng+DEG).toFixed(4)},${(lat+DEG).toFixed(4)}`;
-      const listResp = await fetch(`https://geo.api.gouv.fr/communes?bbox=${bbox}&fields=nom,population,surface,centre&format=json&limit=30`);
+      const listResp = await fetch(`https://geo.api.gouv.fr/communes?bbox=${bbox}&fields=nom,population,surface&format=json&limit=30`);
       if(!listResp.ok) return;
       const communes = await listResp.json();
-      // Heatmap data : [lat, lon, intensity normalisée 0-1]
-      const MAX_DENS = 25000;
-      const heatData = communes.map(v=>{
-        const sup = v.surface||0;
-        const pop = v.population||0;
-        const vDens = sup>=50 ? Math.round(pop/(sup/100)) : 0;
-        const centre = v.centre?.coordinates; // [lon, lat]
-        if(!centre) return null;
-        const intensity = Math.min(vDens / MAX_DENS, 1);
-        return [centre[1], centre[0], intensity];
-      }).filter(Boolean);
-      // Ajouter commune principale si absente
-      if(c?.densite != null){
-        const mainIntensity = Math.min((c.densite) / MAX_DENS, 1);
-        heatData.push([lat, lng, mainIntensity]);
+      // Commune principale en premier (données déjà connues)
+      if(c?.codeInsee && c?.densite){
+        const mainColor = densToColor(c.densite);
+        const geoR = await fetch(`https://geo.api.gouv.fr/communes/${c.codeInsee}?format=geojson&geometry=contour`);
+        if(geoR.ok){
+          L.geoJSON(await geoR.json(),{
+            style:{color:'#aaa',weight:0.5,fillColor:mainColor,fillOpacity:0.75}
+          }).addTo(map).bindPopup(
+            `<strong>${c.nom}</strong><br>${(c.population||0).toLocaleString('fr-FR')} hab.<br>`+
+            `<span style="font-weight:600">${(c.densite||0).toLocaleString('fr-FR')} hab./km²</span>`
+          );
+        }
       }
-      if(heatData.length > 0 && window.L.heatLayer){
-        L.heatLayer(heatData, {
-          radius: 55,
-          blur: 40,
-          maxZoom: 14,
-          max: 1.0,
-          gradient: {0:'#ffffb2', 0.2:'#fecc5c', 0.4:'#fd8d3c', 0.65:'#e31a1c', 1:'#800026'}
-        }).addTo(map);
+      // Communes voisines par lots
+      const BATCH = 5;
+      for(let i=0; i<communes.length; i+=BATCH){
+        await Promise.all(communes.slice(i,i+BATCH).map(async v=>{
+          if(v.code===c?.codeInsee) return;
+          const sup=v.surface||0, pop=v.population||0;
+          const vDens = sup>=50 ? Math.round(pop/(sup/100)) : 0;
+          const vColor = densToColor(vDens);
+          if(!vColor) return;
+          try{
+            const gR = await fetch(`https://geo.api.gouv.fr/communes/${v.code}?format=geojson&geometry=contour`);
+            if(!gR.ok) return;
+            L.geoJSON(await gR.json(),{
+              style:{color:'#aaa',weight:0.5,fillColor:vColor,fillOpacity:0.7}
+            }).addTo(map).bindPopup(
+              `<strong>${v.nom}</strong><br>${pop.toLocaleString('fr-FR')} hab.<br>`+
+              `<span style="font-weight:600">${vDens.toLocaleString('fr-FR')} hab./km²</span>`
+            );
+          }catch{}
+        }));
+        if(i+BATCH < communes.length) await new Promise(r=>setTimeout(r,80));
       }
-      // Popup sur clic (commune la plus proche) — garder le handler existant
+      // Légende gradient
+      const legend = L.control({position:'bottomright'});
+      legend.onAdd = () => {
+        const div = L.DomUtil.create('div','');
+        div.style.cssText = 'background:#fff;padding:6px 10px;border-radius:6px;font-size:10px;font-family:Outfit,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.15);line-height:1.8';
+        div.innerHTML = `<div style="font-weight:600;margin-bottom:4px">Densité (hab./km²)</div>`+
+          `<div style="width:110px;height:10px;border-radius:3px;background:linear-gradient(to right,#fff5f0,#fc8a6a,#cb181d,#67000d);margin-bottom:3px"></div>`+
+          `<div style="display:flex;justify-content:space-between;width:110px;font-size:9px;color:#666"><span>Faible</span><span>Dense</span><span>Très dense</span></div>`+
+          `<div style="font-size:9px;color:#999;margin-top:2px">Cliquez sur la carte pour le détail</div>`;
+        return div;
+      };
+      legend.addTo(map);
     }catch(e){} }, 300);
 
     // Marqueur adresse
