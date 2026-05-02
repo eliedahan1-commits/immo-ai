@@ -24,6 +24,7 @@ export default async function handler(req, res) {
       node["amenity"="charging_station"](around:${dist},${lat},${lon});
       node["amenity"="bicycle_rental"](around:${dist},${lat},${lon});
       nwr["amenity"="childcare"](around:${dist},${lat},${lon});
+      nwr["amenity"="kindergarten"]["name"~"cr.che|halte|accueil|multi.accueil|microcrech",i](around:${dist},${lat},${lon});
     );out center;`;
 
     const r = await fetch('https://overpass-api.de/api/interpreter', {
@@ -62,6 +63,12 @@ export default async function handler(req, res) {
         else if (tags.amenity === 'charging_station') { categorie = 'mobilite'; icone = '⚡'; couleur = '#4caf50'; priorite = 5; }
         else if (tags.amenity === 'bicycle_rental') { categorie = 'mobilite'; icone = '🚲'; couleur = '#4caf50'; priorite = 5; }
         else if (tags.amenity === 'childcare') { categorie = 'creche'; icone = '🍼'; couleur = '#ff6b9d'; priorite = 3; }
+        else if (tags.amenity === 'kindergarten') {
+          const n = (tags.name || '').toLowerCase();
+          if (/cr.che|halte|accueil|multi.accueil|microcrech/.test(n)) {
+            categorie = 'creche'; icone = '🍼'; couleur = '#ff6b9d'; priorite = 3;
+          }
+        }
 
         const dLat = (eLat - lat) * 111000;
         const dLon = (eLon - lon) * 111000 * Math.cos(lat * Math.PI / 180);

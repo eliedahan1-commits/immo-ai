@@ -1624,9 +1624,9 @@ async function fetchEducationGouv(lat, lng, dist=500){
     const maxLat = (lat + distDeg).toFixed(6);
     const minLon = (lng - distDeg / cosLat).toFixed(6);
     const maxLon = (lng + distDeg / cosLat).toFixed(6);
-    const fields = 'nom_etablissement,type_etablissement,statut_public_prive,adresse_1,commune,code_postal,latitude,longitude';
-    const where = encodeURIComponent(`latitude>${minLat} AND latitude<${maxLat} AND longitude>${minLon} AND longitude<${maxLon}`);
-    const url = `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=${where}&limit=100&fields=${fields}`;
+    const select = 'nom_etablissement,type_etablissement,statut_public_prive,adresse_1,commune,code_postal,latitude,longitude';
+    const where = encodeURIComponent(`latitude > ${minLat} AND latitude < ${maxLat} AND longitude > ${minLon} AND longitude < ${maxLon}`);
+    const url = `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=${where}&limit=100&select=${select}`;
     const r = await fetch(url, {signal: AbortSignal.timeout(12000)});
     if(!r.ok) return [];
     const data = await r.json();
