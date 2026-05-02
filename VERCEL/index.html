@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <style>
@@ -1618,38 +1619,37 @@ async function loadRisques(lat, lng){
 // ── Éducation Nationale API (client-side, évite blocage IP Vercel) ──
 async function fetchEducationGouv(lat, lng, dist=500){
   try{
-    const distDeg = dist / 111000;
-    const cosLat = Math.cos(lat * Math.PI / 180);
-    const minLat = (lat - distDeg).toFixed(6);
-    const maxLat = (lat + distDeg).toFixed(6);
-    const minLon = (lng - distDeg / cosLat).toFixed(6);
-    const maxLon = (lng + distDeg / cosLat).toFixed(6);
-    const select = 'nom_etablissement,type_etablissement,statut_public_prive,adresse_1,commune,code_postal,latitude,longitude';
-    const where = encodeURIComponent(`latitude > ${minLat} AND latitude < ${maxLat} AND longitude > ${minLon} AND longitude < ${maxLon}`);
-    const url = `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=${where}&limit=100&select=${select}`;
+    // API v1 : geofilter.distance est la méthode fiable quelle que soit la structure interne du dataset
+    const fields = 'nom_etablissement,type_etablissement,statut_public_prive,adresse_1,commune,code_postal,coordonnees,latitude,longitude';
+    const url = `https://data.education.gouv.fr/api/records/1.0/search/?dataset=fr-en-annuaire-education&geofilter.distance=${lat},${lng},${dist}&rows=100&fields=${fields}`;
     const r = await fetch(url, {signal: AbortSignal.timeout(12000)});
     if(!r.ok) return [];
     const data = await r.json();
-    return (data.results || []).map(rec => {
-      const elLat = parseFloat(rec.latitude);
-      const elLon = parseFloat(rec.longitude);
+    const cosLat = Math.cos(lat * Math.PI / 180);
+    return (data.records || []).map(rec => {
+      const f = rec.fields || {};
+      // coordonnees = [lat, lon] dans le format geo_point_2d Opendatasoft
+      let elLat, elLon;
+      if(Array.isArray(f.coordonnees)){ elLat = f.coordonnees[0]; elLon = f.coordonnees[1]; }
+      else if(f.latitude && f.longitude){ elLat = parseFloat(f.latitude); elLon = parseFloat(f.longitude); }
+      else if(rec.geometry?.coordinates){ elLon = rec.geometry.coordinates[0]; elLat = rec.geometry.coordinates[1]; }
       if(!elLat || !elLon) return null;
       const dLat = (elLat - lat) * 111000;
       const dLon = (elLon - lng) * 111000 * cosLat;
       const distanceM = Math.round(Math.sqrt(dLat*dLat + dLon*dLon));
       if(distanceM > dist) return null;
-      const nom = rec.nom_etablissement || 'Établissement';
+      const nom = f.nom_etablissement || 'Établissement';
       const nomLow = nom.toLowerCase();
-      const typeEdu = (rec.type_etablissement || '').toLowerCase();
+      const typeEdu = (f.type_etablissement || '').toLowerCase();
       let type = 'École élémentaire';
       if(typeEdu.includes('maternelle') || nomLow.includes('maternelle')) type = 'École maternelle';
       else if(typeEdu.includes('lycée') || typeEdu.includes('lycee') || nomLow.includes('lycée') || nomLow.includes('lycee')) type = 'Lycée';
       else if(typeEdu.includes('collège') || typeEdu.includes('college') || nomLow.includes('collège') || nomLow.includes('college')) type = 'Collège';
       return { nom, type,
-        statut: rec.statut_public_prive || '',
-        adresse: rec.adresse_1 || '',
-        commune: rec.commune || '',
-        codePostal: rec.code_postal || '',
+        statut: f.statut_public_prive || '',
+        adresse: f.adresse_1 || '',
+        commune: f.commune || '',
+        codePostal: f.code_postal || '',
         distanceM, lat: elLat, lon: elLon, source: 'education.gouv.fr' };
     }).filter(Boolean);
   }catch(e){ return []; }
@@ -1805,7 +1805,7 @@ async function loadINSEE(citycode, lat, lng){
 // ── Services & commerces ──
 async function loadServices(lat, lng, dist=1000){
   try{
-    const r = await apiCall(`/api/services?lat=${lat}&lon=${lng}&dist=${dist}`, `https://overpass-api.de/api/interpreter`, {signal:AbortSignal.timeout(28000)});
+    const r = await apiCall(`/api/services?lat=${lat}&lon=${lng}&dist=${dist}&_v=3`, `https://overpass-api.de/api/interpreter`, {signal:AbortSignal.timeout(28000)});
     if(!r.ok) throw new Error();
     const d = await r.json();
     if(!d.success) throw new Error();
@@ -2713,75 +2713,43 @@ function showINSEEDetail(){
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CartoDB',maxZoom:19}).addTo(map);
 
     const dens = c?.densite||0;
-    const densColor = dens>10000?'#c0392b':dens>5000?'#e67e22':dens>2000?'#f39c12':dens>500?'#27ae60':'#2980b9';
     const densLabel = dens>10000?'Très dense':dens>5000?'Dense':dens>2000?'Urbain':dens>500?'Péri-urbain':'Rural';
+    const densColor = dens>10000?'#c0392b':dens>5000?'#e67e22':dens>2000?'#f39c12':dens>500?'#27ae60':'#2980b9';
 
-    // Fonction helper : couleur selon densité
-    const getDensColor = d => d>10000?'#c0392b':d>5000?'#e67e22':d>2000?'#f39c12':d>500?'#27ae60':'#2980b9';
-
-    // Colorier les communes : commune principale d'abord, puis voisines
+    // Heatmap densité : communes voisines via bbox
     setTimeout(async ()=>{ try{
-      // Étape 1 : commune principale (codeInsee + densite déjà connus, 1 requête fiable)
-      if(c?.codeInsee){
-        try{
-          const mainGeo = await fetch(`https://geo.api.gouv.fr/communes/${c.codeInsee}?format=geojson&geometry=contour`);
-          if(mainGeo.ok){
-            const mainGeoJSON = await mainGeo.json();
-            const mainColor = getDensColor(c.densite||0);
-            L.geoJSON(mainGeoJSON,{
-              style:{color:mainColor,weight:2.5,fillColor:mainColor,fillOpacity:0.3}
-            }).addTo(map).bindPopup(
-              `<strong>${c.nom||'—'}</strong><br>${(c.population||0).toLocaleString('fr-FR')} hab.<br>`+
-              `<span style="color:${mainColor};font-weight:600">${(c.densite||0).toLocaleString('fr-FR')} hab./km²</span>`
-            );
-          }
-        }catch(e1){}
-      }
-      // Étape 2 : communes voisines (bbox manuelle, indépendant du rendu de la carte)
-      const DEG = 0.12; // ≈ 12km autour du point
+      const DEG = 0.15;
       const bbox = `${(lng-DEG).toFixed(4)},${(lat-DEG).toFixed(4)},${(lng+DEG).toFixed(4)},${(lat+DEG).toFixed(4)}`;
-      const listResp = await fetch(`https://geo.api.gouv.fr/communes?bbox=${bbox}&fields=nom,population,surface&format=json&limit=15`);
+      const listResp = await fetch(`https://geo.api.gouv.fr/communes?bbox=${bbox}&fields=nom,population,surface,centre&format=json&limit=30`);
       if(!listResp.ok) return;
       const communes = await listResp.json();
-      const BATCH = 4;
-      for(let i=0; i<communes.length; i+=BATCH){
-        const lot = communes.slice(i, i+BATCH);
-        await Promise.all(lot.map(async v=>{
-          if(v.code===c?.codeInsee) return; // déjà rendu
-          try{
-            const sup = v.surface||0;
-            const pop = v.population||0;
-            const vDens = sup>=50 ? Math.round(pop/(sup/100)) : null;
-            const vColor = vDens!=null ? getDensColor(vDens) : '#aaa';
-            const geoResp = await fetch(`https://geo.api.gouv.fr/communes/${v.code}?format=geojson&geometry=contour`);
-            if(!geoResp.ok) return;
-            const geoJSON = await geoResp.json();
-            L.geoJSON(geoJSON,{
-              style:{color:vColor,weight:1,fillColor:vColor,fillOpacity:0.18}
-            }).addTo(map).bindPopup(
-              `<strong>${v.nom}</strong><br>${pop.toLocaleString('fr-FR')} hab.<br>`+
-              (vDens!=null?`<span style="color:${vColor};font-weight:600">${vDens.toLocaleString('fr-FR')} hab./km²</span>`:`<span style="color:#999">Densité non calculable</span>`)
-            );
-          }catch(e2){}
-        }));
-        if(i+BATCH < communes.length) await new Promise(r=>setTimeout(r,100));
+      // Heatmap data : [lat, lon, intensity normalisée 0-1]
+      const MAX_DENS = 25000;
+      const heatData = communes.map(v=>{
+        const sup = v.surface||0;
+        const pop = v.population||0;
+        const vDens = sup>=50 ? Math.round(pop/(sup/100)) : 0;
+        const centre = v.centre?.coordinates; // [lon, lat]
+        if(!centre) return null;
+        const intensity = Math.min(vDens / MAX_DENS, 1);
+        return [centre[1], centre[0], intensity];
+      }).filter(Boolean);
+      // Ajouter commune principale si absente
+      if(c?.densite != null){
+        const mainIntensity = Math.min((c.densite) / MAX_DENS, 1);
+        heatData.push([lat, lng, mainIntensity]);
       }
+      if(heatData.length > 0 && window.L.heatLayer){
+        L.heatLayer(heatData, {
+          radius: 55,
+          blur: 40,
+          maxZoom: 14,
+          max: 1.0,
+          gradient: {0:'#ffffb2', 0.2:'#fecc5c', 0.4:'#fd8d3c', 0.65:'#e31a1c', 1:'#800026'}
+        }).addTo(map);
+      }
+      // Popup sur clic (commune la plus proche) — garder le handler existant
     }catch(e){} }, 300);
-
-    // Légende
-    const legend=L.control({position:'bottomright'});
-    legend.onAdd=()=>{
-      const div=L.DomUtil.create('div','');
-      div.style.cssText='background:#fff;padding:6px 10px;border-radius:6px;font-size:11px;font-family:Outfit,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.15);line-height:1.7';
-      div.innerHTML=`<div style="font-weight:600;margin-bottom:3px">Densité (hab./km²)</div>
-        <div><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#2980b9;margin-right:5px"></span>Rural &lt;500</div>
-        <div><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#27ae60;margin-right:5px"></span>Péri-urbain 500–2000</div>
-        <div><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#f39c12;margin-right:5px"></span>Urbain 2000–5000</div>
-        <div><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#e67e22;margin-right:5px"></span>Dense 5000–10000</div>
-        <div><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#c0392b;margin-right:5px"></span>Très dense &gt;10000</div>`;
-      return div;
-    };
-    legend.addTo(map);
 
     // Marqueur adresse
     const homeIcon=L.divIcon({html:`<div style="background:#fff;border:3px solid ${densColor};border-radius:50%;width:16px;height:16px;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>`,iconSize:[16,16],iconAnchor:[8,8],className:''});
