@@ -3,16 +3,18 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   const lat = parseFloat(req.query.lat);
   const lon = parseFloat(req.query.lon);
-  const dist = parseInt(req.query.dist || '1500');
+  const dist = parseInt(req.query.dist || '500');
 
   if (!lat || !lon) return res.status(400).json({ error: 'lat et lon requis' });
 
   try {
-    const query = `[out:json][timeout:12];(
-      node["amenity"="school"](around:${dist},${lat},${lon});
-      node["amenity"="kindergarten"](around:${dist},${lat},${lon});
-      node["amenity"="college"](around:${dist},${lat},${lon});
-    );out body;`;
+    // nwr = node + way + relation (capture les écoles mappées comme bâtiment ou relation)
+    // out center = retourne les coordonnées du centre pour les ways/relations
+    const query = `[out:json][timeout:25];(
+      nwr["amenity"="school"](around:${dist},${lat},${lon});
+      nwr["amenity"="kindergarten"](around:${dist},${lat},${lon});
+      nwr["amenity"="college"](around:${dist},${lat},${lon});
+    );out center;`;
 
     const r = await fetch('https://overpass-api.de/api/interpreter', {
       method: 'POST',
@@ -22,7 +24,7 @@ export default async function handler(req, res) {
         'User-Agent': 'IMMOAI/2.0 (https://immo-ai-nu.vercel.app)',
         'Accept': 'application/json'
       },
-      signal: AbortSignal.timeout(12000)
+      signal: AbortSignal.timeout(25000)
     });
 
     if (!r.ok) throw new Error(`Overpass ${r.status}`);
@@ -30,10 +32,13 @@ export default async function handler(req, res) {
     const elements = data.elements || [];
 
     const etablissements = elements
-      .filter(el => el.lat && el.lon)
+      .filter(el => (el.lat && el.lon) || (el.center?.lat && el.center?.lon))
       .map(el => {
-        const dLat = (el.lat - lat) * 111000;
-        const dLon = (el.lon - lon) * 111000 * Math.cos(lat * Math.PI / 180);
+        // Les nodes ont lat/lon directement, les ways/relations ont center.lat/center.lon
+        const elLat = el.lat ?? el.center?.lat;
+        const elLon = el.lon ?? el.center?.lon;
+        const dLat = (elLat - lat) * 111000;
+        const dLon = (elLon - lon) * 111000 * Math.cos(lat * Math.PI / 180);
         const distanceM = Math.round(Math.sqrt(dLat * dLat + dLon * dLon));
         const amenity = el.tags?.amenity || '';
         const nom = el.tags?.name || 'Établissement scolaire';
@@ -48,7 +53,7 @@ export default async function handler(req, res) {
           adresse: el.tags?.['addr:street'] || '',
           commune: el.tags?.['addr:city'] || '',
           codePostal: el.tags?.['addr:postcode'] || '',
-          distanceM, lat: el.lat, lon: el.lon
+          distanceM, lat: elLat, lon: elLon
         };
       })
       .sort((a, b) => a.distanceM - b.distanceM);

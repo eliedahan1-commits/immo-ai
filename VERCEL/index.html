@@ -2628,7 +2628,8 @@ function showINSEEDetail(){
     </div>
     <p style="font-size:.75rem;color:var(--muted);margin-bottom:.8rem">Département ${c?.departement||'—'} · Code INSEE ${c?.codeInsee||'—'}</p>
     <div class="map-container" id="mapInsee"></div>
-    <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : ${d.source}</p>`);
+    <p style="font-size:.7rem;color:var(--muted);margin-top:.5rem">🖱️ Cliquez sur n'importe quelle commune pour voir sa densité de population.</p>
+    <p style="font-size:.62rem;color:var(--muted);margin-top:.3rem">Source : ${d.source}</p>`);
 
   setTimeout(async ()=>{
     if(!currentCoords||!window.L) return;
@@ -2645,33 +2646,36 @@ function showINSEEDetail(){
     // Fonction helper : couleur selon densité
     const getDensColor = d => d>10000?'#c0392b':d>5000?'#e67e22':d>2000?'#f39c12':d>500?'#27ae60':'#2980b9';
 
-    // Charger toutes les communes visibles en UNE SEULE requête GeoJSON (bbox + contour)
+    // Charger les communes visibles : liste JSON puis contours en lots de 5
     setTimeout(async ()=>{ try{
       const b = map.getBounds();
       const bbox = `${b.getWest().toFixed(4)},${b.getSouth().toFixed(4)},${b.getEast().toFixed(4)},${b.getNorth().toFixed(4)}`;
-      const resp = await fetch(`https://geo.api.gouv.fr/communes?bbox=${bbox}&fields=nom,population,surface,codeDepartement&format=geojson&geometry=contour&limit=60`);
-      if(!resp.ok) return;
-      const geoData = await resp.json();
-      L.geoJSON(geoData, {
-        style: feature => {
-          const pop = feature.properties?.population || 0;
-          const sup = feature.properties?.surface || 0;
-          const vDens = sup>=50 ? Math.round(pop/(sup/100)) : null;
-          const vColor = vDens!=null ? getDensColor(vDens) : '#aaa';
-          const isMain = feature.properties?.code === c?.codeInsee;
-          return {color:vColor, weight:isMain?2.5:1, fillColor:vColor, fillOpacity:isMain?0.3:0.18};
-        },
-        onEachFeature: (feature, layer) => {
-          const pop = feature.properties?.population || 0;
-          const sup = feature.properties?.surface || 0;
-          const vDens = sup>=50 ? Math.round(pop/(sup/100)) : null;
-          const vColor = vDens!=null ? getDensColor(vDens) : '#aaa';
-          layer.bindPopup(
-            `<strong>${feature.properties?.nom||'—'}</strong><br>${pop.toLocaleString('fr-FR')} hab.<br>` +
-            (vDens!=null ? `<span style="color:${vColor};font-weight:600">${vDens.toLocaleString('fr-FR')} hab./km²</span>` : `<span style="color:#999">Densité non calculable</span>`)
-          );
-        }
-      }).addTo(map);
+      const listResp = await fetch(`https://geo.api.gouv.fr/communes?bbox=${bbox}&fields=nom,population,surface&format=json&limit=20`);
+      if(!listResp.ok) return;
+      const communes = await listResp.json();
+      const BATCH = 5;
+      for(let i=0; i<Math.min(communes.length,20); i+=BATCH){
+        const lot = communes.slice(i, i+BATCH);
+        await Promise.all(lot.map(async v=>{
+          try{
+            const sup = v.surface||0;
+            const pop = v.population||0;
+            const vDens = sup>=50 ? Math.round(pop/(sup/100)) : null;
+            const vColor = vDens!=null ? getDensColor(vDens) : '#aaa';
+            const geoResp = await fetch(`https://geo.api.gouv.fr/communes/${v.code}?format=geojson&geometry=contour`);
+            if(!geoResp.ok) return;
+            const geoJSON = await geoResp.json();
+            const isMain = v.code===c?.codeInsee;
+            L.geoJSON(geoJSON,{
+              style:{color:vColor,weight:isMain?2.5:1,fillColor:vColor,fillOpacity:isMain?0.3:0.18}
+            }).addTo(map).bindPopup(
+              `<strong>${v.nom}</strong><br>${pop.toLocaleString('fr-FR')} hab.<br>`+
+              (vDens!=null?`<span style="color:${vColor};font-weight:600">${vDens.toLocaleString('fr-FR')} hab./km²</span>`:`<span style="color:#999">Densité non calculable</span>`)
+            );
+          }catch(e2){}
+        }));
+        if(i+BATCH < communes.length) await new Promise(r=>setTimeout(r,120));
+      }
     }catch(e){} }, 300); // délai pour s'assurer que la carte est rendue
 
     // Légende
