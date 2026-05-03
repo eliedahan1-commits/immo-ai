@@ -1670,26 +1670,43 @@ async function fetchEducationGouv(lat, lng, dist=500){
   }catch(e){ return []; }
 }
 
-// ── Fusion OSM + Éducation Nationale avec dédoublonnage (<80m = même établissement) ──
-// Quand doublon trouvé : on garde l'entrée OSM MAIS on écrase son type/nom avec EN (source officielle)
+// ── Fusion OSM + Éducation Nationale ──
+// Règle : ne fusionner (et écraser le type) que si les noms sont similaires ET proches (<250m)
+// Si noms différents : deux établissements distincts → les deux sont conservés
 function mergeEtablissements(osmList, eduList){
-  const DEDUP_DIST_M = 80;
-  const result = osmList.map(e => ({...e})); // copie pour éviter mutation
+  const DEDUP_SAME_NAME_M = 250; // même école = noms similaires + < 250m
+
+  // Normalisation : sans accents, sans mots génériques école/lycée/de/la...
+  const norm = s => (s||'').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/\b(ecole|lycee|college|de|la|le|les|du|des|et|saint|sainte|general|technologique|professionnel|elementaire|maternelle|application|prive|public)\b/g,' ')
+    .replace(/[^a-z0-9]/g,' ').replace(/\s+/g,' ').trim();
+
+  const namesSimilar = (a, b) => {
+    const na = norm(a), nb = norm(b);
+    if(!na || !nb) return false;
+    const words = s => s.split(' ').filter(w => w.length > 2);
+    return words(na).some(w => nb.includes(w)) || words(nb).some(w => na.includes(w));
+  };
+
+  const result = osmList.map(e => ({...e}));
   for(const edu of eduList){
-    let closestIdx = -1, closestDist = DEDUP_DIST_M;
+    // Chercher l'entrée OSM la plus proche avec un nom similaire
+    let matchIdx = -1, matchDist = DEDUP_SAME_NAME_M;
     result.forEach((osm, idx) => {
       const dLat = (edu.lat - osm.lat) * 111000;
       const dLon = (edu.lon - osm.lon) * 111000 * Math.cos(osm.lat * Math.PI / 180);
       const d = Math.sqrt(dLat*dLat + dLon*dLon);
-      if(d < closestDist){ closestDist = d; closestIdx = idx; }
+      if(d < matchDist && namesSimilar(edu.nom, osm.nom)){ matchDist = d; matchIdx = idx; }
     });
-    if(closestIdx >= 0){
-      // Doublon : enrichir l'entrée OSM avec le type et nom officiels de l'EN
-      result[closestIdx].type   = edu.type;
-      result[closestIdx].nom    = edu.nom || result[closestIdx].nom;
-      result[closestIdx].statut = edu.statut || result[closestIdx].statut;
+    if(matchIdx >= 0){
+      // Même école identifiée dans les deux sources → enrichir OSM avec type EN officiel
+      result[matchIdx].type   = edu.type;
+      result[matchIdx].nom    = edu.nom || result[matchIdx].nom;
+      result[matchIdx].statut = edu.statut || result[matchIdx].statut;
     } else {
-      result.push(edu); // école absente d'OSM : ajout
+      // Pas de correspondance nom+distance → établissement distinct, on l'ajoute
+      result.push(edu);
     }
   }
   return result.sort((a,b) => a.distanceM - b.distanceM);
