@@ -900,6 +900,19 @@ select.inp{
   <div class="page" id="p-profil"><div class="inner">
     <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
     <div class="ph"><div class="ptag">✦ Stratégie</div><h2 class="ptitle">Compatibilité <em>de vie</em></h2><p class="psub">L'IA identifie les secteurs vraiment compatibles avec votre style de vie, en s'appuyant sur les données réelles DVF, OpenStreetMap et l'annuaire scolaire.</p></div>
+
+    <!-- Adresse en haut -->
+    <div class="card" style="margin-bottom:1rem">
+      <div class="ctitle">📍 Adresse analysée</div>
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:1rem" id="pAdresseLabel">Analysez d'abord une adresse depuis la page principale.</p>
+      <button class="btn btn-dark btn-full" onclick="runProfil()" id="btnProfil">✦ Analyser la compatibilité</button>
+    </div>
+
+    <!-- Layout 2 colonnes -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:start">
+
+    <!-- Colonne gauche : questions -->
+    <div>
     <div class="card"><div class="ctitle">🎯 Votre profil de vie</div>
 
       <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Enfants ?</p>
@@ -989,30 +1002,38 @@ select.inp{
       </div>
 
       <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Budget total ?</p>
-      <div class="toggles" style="margin-bottom:1.2rem" id="tPB">
+      <div class="toggles" style="margin-bottom:1rem" id="tPB">
         <button class="tog" onclick="tog('tPB',this)">&lt; 300k€</button>
         <button class="tog" onclick="tog('tPB',this)">300–600k€</button>
         <button class="tog" onclick="tog('tPB',this)">600k–1M€</button>
         <button class="tog" onclick="tog('tPB',this)">&gt; 1M€</button>
       </div>
 
-    </div>
-
-    <div class="card" style="margin-top:1rem">
-      <div class="ctitle">📍 Adresse analysée</div>
-      <p style="font-size:.82rem;color:var(--muted);margin-bottom:1rem" id="pAdresseLabel">Analysez d'abord une adresse depuis la page principale.</p>
-      <button class="btn btn-dark btn-full" onclick="runProfil()" id="btnProfil">✦ Analyser la compatibilité</button>
-    </div>
-    <div class="card" id="radarCard" style="margin-top:1rem;display:none">
-      <div class="ctitle">📊 Score de compatibilité</div>
-      <div style="text-align:center;margin-bottom:.5rem">
-        <span id="radarGlobalScore" style="font-size:2.2rem;font-weight:700;color:var(--accent)"></span>
-        <span style="font-size:.9rem;color:var(--muted)">/10</span>
-        <div id="radarGlobalLabel" style="font-size:.82rem;color:var(--muted);margin-top:.2rem"></div>
+      <!-- Poids calculés -->
+      <div style="border-top:1px solid var(--border);padding-top:.8rem;margin-top:.2rem">
+        <p class="lbl" style="font-size:.7rem;font-weight:600;margin-bottom:.5rem;letter-spacing:.06em;text-transform:uppercase">Poids du score</p>
+        <div id="poidsGrid" style="display:flex;flex-wrap:wrap;gap:.3rem"></div>
+        <p style="font-size:.62rem;color:var(--muted);margin-top:.4rem">Mis à jour selon vos réponses · ×1 = neutre</p>
       </div>
-      <div style="max-width:460px;margin:0 auto"><canvas id="radarCanvas" height="380"></canvas></div>
-    </div>
-    <div class="aibox" id="boxProfil" style="display:none"><div class="ailabel">✦ Compatibilité · <span class="source-badge">📊 DVF + OSM + Écoles + Risques</span></div><div id="txtProfil" class="aitext"></div></div>
+
+    </div><!-- fin card questions -->
+    </div><!-- fin colonne gauche -->
+
+    <!-- Colonne droite : radar -->
+    <div>
+      <div class="card" id="radarCard" style="display:none">
+        <div class="ctitle">📊 Score de compatibilité</div>
+        <div style="max-width:460px;margin:0 auto"><canvas id="radarCanvas" height="380"></canvas></div>
+      </div>
+      <div id="radarPlaceholder" class="card" style="text-align:center;padding:2rem 1rem;color:var(--muted);font-size:.85rem">
+        <div style="font-size:2rem;margin-bottom:.5rem">📊</div>
+        Remplissez votre profil et cliquez sur<br><strong>Analyser la compatibilité</strong>
+      </div>
+    </div><!-- fin colonne droite -->
+
+    </div><!-- fin grid 2 colonnes -->
+
+    <div class="aibox" id="boxProfil" style="display:none;margin-top:1rem"><div class="ailabel">✦ Compatibilité · <span class="source-badge">📊 DVF + OSM + Écoles + Risques</span></div><div id="txtProfil" class="aitext"></div></div>
   </div></div>
 
   <!-- ══ CONSEILLER IA ══ -->
@@ -1239,7 +1260,7 @@ function go(id){
     const extractVille = addr => { const m=addr.match(/\d{5}\s+(.+)$/); return m?m[1]:addr; };
     if(id === 'prix')     set('dvfAddr', currentAddress);
     if(id === 'offre')    set('oRue',    currentAddress);
-    if(id === 'profil')   { const pLbl=document.getElementById('pAdresseLabel'); if(pLbl&&currentAddress) pLbl.innerHTML='📍 <strong>'+currentAddress+'</strong>'; }
+    if(id === 'profil')   { const pLbl=document.getElementById('pAdresseLabel'); if(pLbl&&currentAddress) pLbl.innerHTML='📍 <strong>'+currentAddress+'</strong>'; updatePoidsDisplay(); }
   }
 }
 
@@ -1265,7 +1286,7 @@ function ouvrirBruit(){
 }
 
 // ══ TOGGLES ══
-function tog(g,btn){document.querySelectorAll('#'+g+' .tog').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
+function tog(g,btn){document.querySelectorAll('#'+g+' .tog').forEach(b=>b.classList.remove('on'));btn.classList.add('on');if(g.startsWith('tP'))updatePoidsDisplay();}
 function togVal(id){return document.querySelector('#'+id+' .tog.on')?.textContent.trim()||'—';}
 
 // ══ PROFIL : afficher/masquer le champ lieu de travail ══
@@ -1886,7 +1907,7 @@ async function loadINSEE(citycode, lat, lng){
 // ── Services & commerces ──
 async function loadServices(lat, lng, dist=1000){
   try{
-    const r = await apiCall(`/api/services?lat=${lat}&lon=${lng}&dist=${dist}&_v=4`, `https://overpass-api.de/api/interpreter`, {signal:AbortSignal.timeout(29000)});
+    const r = await apiCall(`/api/services?lat=${lat}&lon=${lng}&dist=${dist}&_v=5`, `https://overpass-api.de/api/interpreter`, {signal:AbortSignal.timeout(29000)});
     if(!r.ok) throw new Error();
     const d = await r.json();
     if(!d.success) throw new Error();
@@ -3123,17 +3144,39 @@ function getProfilWeights(){
   const enfants=togVal('tPE'),trans=togVal('tPTrans'),nature=togVal('tPNature'),style=togVal('tPS');
   const bruit=togVal('tPBruit'),soleil=togVal('tPSoleil');
   return{
-    mob:   trans==='Métro / RER'?3:1.5,
-    eco:   (enfants==='Non'||enfants==='—')?0.5:2.5,
+    mob:   trans==='Métro / RER'?3:trans==='—'?1:1.5,
+    eco:   enfants==='Non'?0.5:enfants==='—'?1:2.5,
     parc:  (nature==='Parc à proximité'||nature==='Nature & forêt'||style==='Sport & plein air')?2.5:1,
     rest:  style==='Gastronomie & sorties'?2.5:1,
     cult:  style==='Culture & musées'?2.5:1,
-    sprt:  style==='Sport & plein air'?2:0.5,
+    sprt:  style==='Sport & plein air'?2:style==='—'?1:0.5,
     bruit: bruit==='Très sensible'?3:1,
     svc:   1.5,
-    meteo: soleil==="Oui, j'aime le soleil"?2:0.5,
+    meteo: soleil==="Oui, j'aime le soleil"?2:soleil==='—'?1:0.5,
     risq:  2,
   };
+}
+
+function updatePoidsDisplay(){
+  const w=getProfilWeights();
+  const dims=[
+    {key:'mob',  label:'Mobilité',  emoji:'🚇'},
+    {key:'eco',  label:'Écoles',    emoji:'🏫'},
+    {key:'parc', label:'Parcs',     emoji:'🌳'},
+    {key:'rest', label:'Restau.',   emoji:'🍽️'},
+    {key:'cult', label:'Culture',   emoji:'🎭'},
+    {key:'sprt', label:'Sport',     emoji:'🏋️'},
+    {key:'bruit',label:'Calme',     emoji:'🔇'},
+    {key:'svc',  label:'Services',  emoji:'🏥'},
+    {key:'meteo',label:'Soleil',    emoji:'☀️'},
+    {key:'risq', label:'Risques',   emoji:'⚠️'},
+  ];
+  const color=v=>v>=2.5?'#2d6a4f':v>=1.5?'#b8832a':v<=0.5?'#8a7d68':'#3d2f1e';
+  const grid=document.getElementById('poidsGrid');
+  if(!grid)return;
+  grid.innerHTML=dims.map(d=>`<span style="display:inline-flex;align-items:center;gap:.2rem;background:var(--cardbg);border:1px solid var(--border);border-radius:4px;padding:.2rem .4rem;font-size:.7rem">
+    <span>${d.emoji}</span><span style="color:var(--muted)">${d.label}</span><strong style="color:${color(w[d.key])}">×${w[d.key]}</strong>
+  </span>`).join('');
 }
 
 // Poids du profil (Comparer des biens)
@@ -3287,6 +3330,8 @@ async function runProfil(){
   const btn=document.getElementById('btnProfil'),box=document.getElementById('boxProfil'),txt=document.getElementById('txtProfil');
   box.style.display='block';btn.disabled=true;btn.innerHTML='<span class="spin w"></span> Analyse…';
   txt.innerHTML='<span class="spin"></span> Récupération des données réelles…';
+  const placeholder=document.getElementById('radarPlaceholder');
+  if(placeholder) placeholder.style.display='none';
   try{
     const lat=currentCoords.lat, lon=currentCoords.lng;
     // Si amenitesData absent (timeout au chargement), tenter de le récupérer maintenant
