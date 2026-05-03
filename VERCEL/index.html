@@ -1671,16 +1671,26 @@ async function fetchEducationGouv(lat, lng, dist=500){
 }
 
 // ── Fusion OSM + Éducation Nationale avec dédoublonnage (<80m = même établissement) ──
+// Quand doublon trouvé : on garde l'entrée OSM MAIS on écrase son type/nom avec EN (source officielle)
 function mergeEtablissements(osmList, eduList){
   const DEDUP_DIST_M = 80;
-  const result = [...osmList];
+  const result = osmList.map(e => ({...e})); // copie pour éviter mutation
   for(const edu of eduList){
-    const isDuplicate = osmList.some(osm => {
+    let closestIdx = -1, closestDist = DEDUP_DIST_M;
+    result.forEach((osm, idx) => {
       const dLat = (edu.lat - osm.lat) * 111000;
       const dLon = (edu.lon - osm.lon) * 111000 * Math.cos(osm.lat * Math.PI / 180);
-      return Math.sqrt(dLat*dLat + dLon*dLon) < DEDUP_DIST_M;
+      const d = Math.sqrt(dLat*dLat + dLon*dLon);
+      if(d < closestDist){ closestDist = d; closestIdx = idx; }
     });
-    if(!isDuplicate) result.push(edu);
+    if(closestIdx >= 0){
+      // Doublon : enrichir l'entrée OSM avec le type et nom officiels de l'EN
+      result[closestIdx].type   = edu.type;
+      result[closestIdx].nom    = edu.nom || result[closestIdx].nom;
+      result[closestIdx].statut = edu.statut || result[closestIdx].statut;
+    } else {
+      result.push(edu); // école absente d'OSM : ajout
+    }
   }
   return result.sort((a,b) => a.distanceM - b.distanceM);
 }
@@ -1820,7 +1830,7 @@ async function loadINSEE(citycode, lat, lng){
 // ── Services & commerces ──
 async function loadServices(lat, lng, dist=1000){
   try{
-    const r = await apiCall(`/api/services?lat=${lat}&lon=${lng}&dist=${dist}&_v=3`, `https://overpass-api.de/api/interpreter`, {signal:AbortSignal.timeout(28000)});
+    const r = await apiCall(`/api/services?lat=${lat}&lon=${lng}&dist=${dist}&_v=4`, `https://overpass-api.de/api/interpreter`, {signal:AbortSignal.timeout(29000)});
     if(!r.ok) throw new Error();
     const d = await r.json();
     if(!d.success) throw new Error();

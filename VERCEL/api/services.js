@@ -8,22 +8,11 @@ export default async function handler(req, res) {
   if (!lat || !lon) return res.status(400).json({ error: 'lat et lon requis' });
 
   try {
-    const query = `[out:json][timeout:25];(
-      node["amenity"="pharmacy"](around:${dist},${lat},${lon});
-      node["amenity"="doctors"](around:${dist},${lat},${lon});
-      node["amenity"="hospital"](around:${dist},${lat},${lon});
-      node["amenity"="clinic"](around:${dist},${lat},${lon});
-      node["amenity"="dentist"](around:${dist},${lat},${lon});
-      node["shop"="supermarket"](around:${dist},${lat},${lon});
-      node["shop"="convenience"](around:${dist},${lat},${lon});
-      node["amenity"="bank"](around:${dist},${lat},${lon});
-      node["amenity"="post_office"](around:${dist},${lat},${lon});
+    // Requête fusionnée avec regex : 4 sous-requêtes au lieu de 16 → beaucoup plus rapide
+    const query = `[out:json][timeout:28];(
+      node["amenity"~"^(pharmacy|doctors|hospital|clinic|dentist|bank|post_office|restaurant|cafe|charging_station|bicycle_rental|childcare)$"](around:${dist},${lat},${lon});
+      node["shop"~"^(supermarket|convenience)$"](around:${dist},${lat},${lon});
       node["leisure"="fitness_centre"](around:${dist},${lat},${lon});
-      node["amenity"="restaurant"](around:${dist},${lat},${lon});
-      node["amenity"="cafe"](around:${dist},${lat},${lon});
-      node["amenity"="charging_station"](around:${dist},${lat},${lon});
-      node["amenity"="bicycle_rental"](around:${dist},${lat},${lon});
-      nwr["amenity"="childcare"](around:${dist},${lat},${lon});
       nwr["amenity"="kindergarten"]["name"~"cr.che|halte|accueil|multi.accueil|microcrech",i](around:${dist},${lat},${lon});
     );out center;`;
 
@@ -35,7 +24,7 @@ export default async function handler(req, res) {
         'User-Agent': 'IMMOAI/2.0 (https://immo-ai.vercel.app)',
         'Accept': 'application/json'
       },
-      signal: AbortSignal.timeout(25000)
+      signal: AbortSignal.timeout(28000)
     });
 
     if (!r.ok) throw new Error(`Overpass ${r.status}`);
