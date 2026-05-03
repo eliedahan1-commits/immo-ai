@@ -913,7 +913,7 @@ select.inp{
 
     <!-- Colonne gauche : questions -->
     <div>
-    <div class="card"><div class="ctitle">🎯 Votre profil de vie</div>
+    <div class="card"><div class="ctitle" style="display:flex;justify-content:space-between;align-items:center">🎯 Votre profil de vie<button onclick="resetProfil()" style="font-size:.68rem;padding:.2rem .5rem;border:1px solid var(--border);border-radius:4px;background:transparent;color:var(--muted);cursor:pointer">↺ Réinitialiser</button></div>
 
       <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Enfants ?</p>
       <div class="toggles" style="margin-bottom:.9rem" id="tPE">
@@ -3136,6 +3136,7 @@ function calcScores(d){
     meteo: meteoScore,
     risq: SC_RISQUES_TABLE[nbRisq],
     risqDisplay: 10 - SC_RISQUES_TABLE[nbRisq],
+    trav: d.travailKm!=null ? Math.max(0,Math.round(10-d.travailKm*0.3)) : null,
   };
 }
 
@@ -3154,7 +3155,17 @@ function getProfilWeights(){
     svc:   1.5,
     meteo: soleil==="Oui, j'aime le soleil"?2:soleil==='—'?1:0.5,
     risq:  2,
+    trav:  0, // sera défini dynamiquement selon le mode de travail
   };
+}
+
+function resetProfil(){
+  document.querySelectorAll('#p-profil .tog').forEach(b=>b.classList.remove('on'));
+  const travInput=document.getElementById('pTravailLieu');
+  if(travInput) travInput.value='';
+  document.getElementById('pTravailDiv').style.display='none';
+  window._travailCoords=null;
+  updatePoidsDisplay();
 }
 
 function updatePoidsDisplay(){
@@ -3353,12 +3364,20 @@ async function runProfil(){
       bruit: window._bruitData,
       meteo: window._meteoData,
     };
-    const scores=calcScores(d);
-    const weights=getProfilWeights();
-    const gScore=globalScore(scores,weights);
     const travail=window._travailCoords||null;
     const travailKm=travail?distKm(lat,lon,travail.lat,travail.lon):null;
     const travailLabel=document.getElementById('pTravailLieu')?.value.trim()||null;
+    d.travailKm=travailKm;
+    const scores=calcScores(d);
+    const weights=getProfilWeights();
+    // Poids travail selon mode : Présentiel=3, Hybride=2, Télétravail=0.5, non renseigné=0
+    const modeTravail=togVal('tPT');
+    if(travailKm!=null && scores.trav!=null){
+      weights.trav = modeTravail==='Présentiel'?3:modeTravail==='Hybride'?2:modeTravail==='Télétravail'?0.5:1;
+    } else {
+      weights.trav=0;
+    }
+    const gScore=globalScore(scores,weights);
     const dims=[
       {key:'mob',  label:'Mobilité',      emoji:'🚇'},
       {key:'eco',  label:'Écoles',        emoji:'🏫'},
@@ -3370,17 +3389,23 @@ async function runProfil(){
       {key:'svc',  label:'Services',      emoji:'🏥'},
       {key:'meteo',label:'Soleil',        emoji:'☀️'},
       {key:'risq', label:'Risques',       emoji:'⚠️'},
+      ...(travailKm!=null&&scores.trav!=null?[{key:'trav',label:'Trajet',emoji:'🏢'}]:[]),
     ];
     const sc=gScore>=7?'#2d6a4f':gScore>=4?'#b8832a':'#7a2d2d';
-    txt.innerHTML=`
-      <div style="text-align:center;margin-bottom:1.4rem">
-        <div style="font-family:'Cormorant Garamond',serif;font-size:3rem;color:${sc};line-height:1">${gScore}<span style="font-size:1.4rem">/10</span></div>
-        <div style="font-size:.65rem;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;margin-top:.3rem">Score de compatibilité</div>
-        <div style="font-size:.75rem;color:var(--muted);margin-top:.3rem">📍 ${currentAddress}</div>
-      </div>
-      <div style="position:relative;max-width:460px;margin:0 auto 1.2rem"><canvas id="radarProfil" height="380"></canvas></div>
-      ${travailKm!=null?`<p style="font-size:.82rem;color:var(--muted);margin-bottom:.6rem;text-align:center">🏢 ${travailLabel||'Travail'} : <strong>${travailKm} km</strong> à vol d'oiseau</p>`:''}
-      <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem;text-align:center">Source : DVF · OSM Overpass · Éducation nationale · Géorisques</p>`;
+    // Afficher le radar dans la colonne droite
+    const radarCard=document.getElementById('radarCard');
+    if(radarCard){
+      radarCard.style.display='block';
+      radarCard.innerHTML=`
+        <div style="text-align:center;margin-bottom:.8rem">
+          <div style="font-family:'Cormorant Garamond',serif;font-size:2.6rem;color:${sc};line-height:1">${gScore}<span style="font-size:1.2rem">/10</span></div>
+          <div style="font-size:.62rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-top:.2rem">Score de compatibilité</div>
+          ${travailKm!=null?`<p style="font-size:.75rem;color:var(--muted);margin-top:.3rem">🏢 ${travailLabel||'Travail'} : <strong>${travailKm} km</strong></p>`:''}
+        </div>
+        <div style="position:relative"><canvas id="radarProfil" height="340"></canvas></div>
+        <p style="font-size:.58rem;color:var(--muted);margin-top:.4rem;text-align:center">DVF · OSM · Éducation nationale · Géorisques</p>`;
+    }
+    box.style.display='none'; // l'aibox n'est plus utilisée pour le radar
     setTimeout(()=>{
       const ctx=document.getElementById('radarProfil');
       if(!ctx||!window.Chart) return;
