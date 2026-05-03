@@ -2717,7 +2717,7 @@ function showINSEEDetail(){
     <p style="font-size:.75rem;color:var(--muted);margin-bottom:.8rem">Département ${c?.departement||'—'} · Code INSEE ${c?.codeInsee||'—'}</p>
     <div class="map-container" id="mapInsee"></div>
     <p style="font-size:.8rem;color:var(--accent);font-weight:500;margin-top:.6rem;padding:.4rem .6rem;background:rgba(184,131,42,.08);border-radius:4px;border-left:3px solid var(--gold)">🖱️ Cliquez sur une commune pour voir sa densité exacte.</p>
-    <p style="font-size:.62rem;color:var(--muted);margin-top:.3rem">Source : ${d.source}</p>`);
+    <p style="font-size:.62rem;color:var(--muted);margin-top:.3rem">Source : ${d.source} · <a href="https://www.observatoire-des-territoires.gouv.fr/densite-de-population" target="_blank" style="color:var(--gold)">Carte nationale densité →</a></p>`);
 
   setTimeout(async ()=>{
     if(!currentCoords||!window.L) return;
