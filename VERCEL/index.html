@@ -2299,7 +2299,7 @@ function showMobiliteDetail(){
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Rayon :</span>${btnsMobRayon}
     </div>
     <div class="map-container" id="mapMobilite"></div>
-    <div style="margin-top:1.2rem;height:120px"><canvas id="mobiliteChart"></canvas></div>
+    <div style="margin-top:1.2rem;height:160px;width:70%"><canvas id="mobiliteChart"></canvas></div>
     ${d.arretsPrincipaux?.length?`<p style="font-size:.75rem;color:var(--muted);margin-top:.5rem">Principaux arrêts : ${d.arretsPrincipaux.join(' · ')}</p>`:''}
     <p style="font-size:.62rem;color:var(--muted);margin-top:.4rem">Source : OpenStreetMap via Overpass API · Rayon ${mobDist}m</p>
   `);
@@ -2420,19 +2420,19 @@ function showMobiliteDetail(){
         datasets:[{
           data:[d.stats?.metro||0, d.stats?.arretsBus||0, d.stats?.velos||0, d.stats?.gares||0, d.stats?.bornesElec||0],
           backgroundColor:['rgba(26,115,232,.7)','rgba(230,126,34,.7)','rgba(39,174,96,.7)','rgba(192,57,43,.7)','rgba(142,68,173,.7)'],
-          borderWidth:0,borderRadius:4
+          borderWidth:0,borderRadius:4,barThickness:20
         }]
       },
       options:{
         indexAxis:'y',
         plugins:{
           legend:{display:false},
-          datalabels:{anchor:'end',align:'right',color:'#8a7d68',font:{size:8,weight:'600'},formatter:v=>v||''},
+          datalabels:{anchor:'end',align:'right',color:'#8a7d68',font:{size:10,weight:'600'},formatter:v=>v||''},
           title:{display:true,text:`Équipements à proximité (${window._mobiliteCurrentDist||1000}m)`,font:{size:10,family:'Outfit,sans-serif'},color:'#8a7d68',padding:{bottom:6}}
         },
         scales:{
-          x:{ticks:{font:{size:8},color:'#8a7d68'},grid:{color:'rgba(0,0,0,.05)'}},
-          y:{ticks:{font:{size:8},color:'#3d2f1e'},grid:{display:false}}
+          x:{ticks:{font:{size:9},color:'#8a7d68'},grid:{color:'rgba(0,0,0,.05)'}},
+          y:{ticks:{font:{size:11},color:'#3d2f1e'},grid:{display:false}}
         },
         animation:{duration:500},
         maintainAspectRatio:false,
@@ -2742,7 +2742,7 @@ function showMeteoDetail(){
   if(!d){showPanel('☀️ Météo & ensoleillement','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
   const hAn = d.ensoleillement?.heuresAnnuelles || 0;
   const hJour = hAn ? (hAn/365).toFixed(1) : null;
-  showPanel('☀️ Météo & ensoleillement · 2019-2023', `
+  showPanel(`☀️ Météo & ensoleillement · ${d.periode||'2019-2023'}`, `
     <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:.5rem">
       <div class="stat-box"><span class="stat-n">${hAn?hAn.toLocaleString('fr-FR'):'—'}</span><span class="stat-l">☀️ Heures soleil/an</span></div>
       <div class="stat-box"><span class="stat-n">${hJour||'—'} h</span><span class="stat-l">🌤️ Soleil/jour moy.</span></div>
@@ -3075,6 +3075,7 @@ async function fetchAdresseData(lat,lon){
     eco:eco.status==='fulfilled'?eco.value:null,
     mob:mob.status==='fulfilled'?mob.value:null,
     am: am.status==='fulfilled'?am.value:null,
+    svc:null,
     ris:ris.status==='fulfilled'?ris.value:null,
   };
 }
@@ -3087,9 +3088,9 @@ function calcScores(d){
     mob:  Math.min(10,Math.round(d.mob?.score||0)),
     eco:  Math.min(10,Math.round(ecoTotal*SC_ECOLES_COEFF)),
     parc: Math.min(10,d.am?.counts?.parcs||0),
-    rest: Math.min(10,Math.round((d.am?.counts?.restaurants||0)/SC_RESTAU_DIV)),
+    rest: Math.min(10,Math.round((d.am?.counts?.restaurants || d.svc?.stats?.restauration||0)/SC_RESTAU_DIV)),
     cult: Math.min(10,Math.min((d.am?.counts?.culture||0)*SC_CULTURE_COEFF,10)),
-    sprt: Math.min(10,Math.min((d.am?.counts?.sport||0)*SC_SPORT_COEFF,10)),
+    sprt: Math.min(10,Math.min((d.am?.counts?.sport || d.svc?.stats?.sport||0)*SC_SPORT_COEFF,10)),
     risq: SC_RISQUES_TABLE[nbRisq],
   };
 }
@@ -3246,12 +3247,21 @@ async function runProfil(){
   txt.innerHTML='<span class="spin"></span> Récupération des données réelles…';
   try{
     const lat=currentCoords.lat, lon=currentCoords.lng;
-    // Utiliser les données déjà chargées plutôt que de refaire les appels API
+    // Si amenitesData absent (timeout au chargement), tenter de le récupérer maintenant
+    if(!window._amenitesData){
+      try{
+        txt.innerHTML='<span class="spin"></span> Récupération des aménités…';
+        const r=await fetch(`/api/amenites?lat=${lat}&lon=${lon}&_v=1`,{signal:AbortSignal.timeout(15000)});
+        const j=await r.json();
+        if(j.success) window._amenitesData=j;
+      }catch{}
+    }
     const d = {
       dvf: window._dvfData,
       eco: window._ecolesData,
       mob: window._mobiliteData,
       am:  window._amenitesData,
+      svc: window._servicesData,
       ris: window._risquesData,
     };
     const scores=calcScores(d);

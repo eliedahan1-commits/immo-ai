@@ -49,7 +49,10 @@ export default async function handler(req, res) {
     }
 
     // ── 2. open-meteo : température + précipitations ──
-    const mr = await fetch(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=2019-01-01&end_date=2023-12-31&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Europe%2FParis`,{signal:AbortSignal.timeout(12000)});
+    const START_DATE = '2019-01-01';
+    const END_DATE   = '2023-12-31';
+    const periode    = `${START_DATE.slice(0,4)}-${END_DATE.slice(0,4)}`;
+    const mr = await fetch(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${START_DATE}&end_date=${END_DATE}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Europe%2FParis`,{signal:AbortSignal.timeout(12000)});
     if(!mr.ok) throw new Error('open-meteo '+mr.status);
     const daily = (await mr.json()).daily;
 
@@ -70,7 +73,7 @@ export default async function handler(req, res) {
       ensoleillement:{heuresAnnuelles:sunshineHours,label},
       temperatures:{maxMoyenne:avgMax,minMoyenne:avgMin},
       precipitations:{annuellesMm:annualPrecip,joursParAn:joursPluis},
-      periode:'2019-2023',
+      periode,
       source:`Ensoleillement : ${sunshineSource} · Températures & pluie : open-meteo ERA5`,
       dateExtraction:new Date().toISOString()
     });
