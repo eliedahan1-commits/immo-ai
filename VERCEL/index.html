@@ -1709,7 +1709,31 @@ function mergeEtablissements(osmList, eduList){
       result.push(edu);
     }
   }
-  return result.sort((a,b) => a.distanceM - b.distanceM);
+
+  // Dédup finale : OSM peut retourner plusieurs éléments (node+way+relation) pour le même
+  // établissement. On fusionne les entrées du même type, à moins de 100m, avec nom similaire.
+  const FINAL_DEDUP_M = 100;
+  const deduped = [];
+  for(const entry of result){
+    const existIdx = deduped.findIndex(e => {
+      if(e.type !== entry.type) return false; // types différents = établissements distincts
+      const dLat = (entry.lat - e.lat) * 111000;
+      const dLon = (entry.lon - e.lon) * 111000 * Math.cos(e.lat * Math.PI / 180);
+      return Math.sqrt(dLat*dLat + dLon*dLon) < FINAL_DEDUP_M && namesSimilar(entry.nom, e.nom);
+    });
+    if(existIdx >= 0){
+      const e = deduped[existIdx];
+      // Préférer les données EN (ont un statut) pour le nom et le statut
+      if(entry.statut && !e.statut){
+        e.nom = entry.nom; e.statut = entry.statut;
+      } else if(!entry.statut && !e.statut && entry.nom.length < e.nom.length){
+        e.nom = entry.nom; // nom plus court = plus représentatif (ex: "Lycée Marey" > "Section pro...")
+      }
+    } else {
+      deduped.push({...entry});
+    }
+  }
+  return deduped.sort((a,b) => a.distanceM - b.distanceM);
 }
 
 // ── Détection crèche (filtrées hors onglet écoles → ajoutées dans Services) ──
@@ -2178,7 +2202,7 @@ function showEcolesDetail(){
     </div>
     <div class="map-container" id="mapEcoles" style="margin-bottom:.8rem"></div>
     <div id="ecolesListe"></div>
-    <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : OpenStreetMap · Rayon ${window._ecolesCurrentDist>=1000?(window._ecolesCurrentDist/1000)+'km':window._ecolesCurrentDist+'m'}</p>`);
+    <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : OpenStreetMap · Rayon ${(window._ecolesCurrentDist||500)>=1000?((window._ecolesCurrentDist||500)/1000)+'km':(window._ecolesCurrentDist||500)+'m'}</p>`);
 
   window.reloadEcolesWithDist = async function(dist){
     window._ecolesCurrentDist = dist;
