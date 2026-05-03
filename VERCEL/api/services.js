@@ -15,6 +15,7 @@ export default async function handler(req, res) {
       node["leisure"~"^(fitness_centre|sports_centre|swimming_pool|pitch|track)$"](around:${dist},${lat},${lon});
       nwr["leisure"~"^(park|garden|nature_reserve|playground)$"](around:${dist},${lat},${lon});
       nwr["amenity"~"^(theatre|cinema|museum|library|arts_centre)$"](around:${dist},${lat},${lon});
+      nwr["tourism"~"^(museum|gallery|artwork)$"](around:${dist},${lat},${lon});
       nwr["amenity"="kindergarten"]["name"~"cr.che|halte|accueil|multi.accueil|microcrech",i](around:${dist},${lat},${lon});
     );out center;`;
 
@@ -51,6 +52,7 @@ export default async function handler(req, res) {
         else if (['fitness_centre','sports_centre','swimming_pool','pitch','track'].includes(tags.leisure)) { categorie = 'sport'; icone = '🏋️'; couleur = '#2a9d8f'; priorite = 5; }
         else if (['park','garden','nature_reserve','playground'].includes(tags.leisure)) { categorie = 'parc'; icone = '🌳'; couleur = '#52b788'; priorite = 6; }
         else if (['theatre','cinema','museum','library','arts_centre'].includes(tags.amenity)) { categorie = 'culture'; icone = '🎭'; couleur = '#9b72cf'; priorite = 7; }
+        else if (['museum','gallery','artwork'].includes(tags.tourism)) { categorie = 'culture'; icone = '🏛️'; couleur = '#9b72cf'; priorite = 7; }
         else if (tags.amenity === 'restaurant') { categorie = 'restauration'; icone = '🍽️'; couleur = '#e9c46a'; priorite = 6; }
         else if (tags.amenity === 'cafe') { categorie = 'restauration'; icone = '☕'; couleur = '#e9c46a'; priorite = 7; }
         else if (tags.amenity === 'charging_station') { categorie = 'mobilite'; icone = '⚡'; couleur = '#4caf50'; priorite = 5; }

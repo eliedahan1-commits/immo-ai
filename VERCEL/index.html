@@ -1907,7 +1907,7 @@ async function loadINSEE(citycode, lat, lng){
 // ── Services & commerces ──
 async function loadServices(lat, lng, dist=1000){
   try{
-    const r = await apiCall(`/api/services?lat=${lat}&lon=${lng}&dist=${dist}&_v=5`, `https://overpass-api.de/api/interpreter`, {signal:AbortSignal.timeout(29000)});
+    const r = await apiCall(`/api/services?lat=${lat}&lon=${lng}&dist=${dist}&_v=6`, `https://overpass-api.de/api/interpreter`, {signal:AbortSignal.timeout(29000)});
     if(!r.ok) throw new Error();
     const d = await r.json();
     if(!d.success) throw new Error();
@@ -2475,11 +2475,16 @@ function showMobiliteDetail(){
   },200);
 }
 
-function showServicesMap(){
+function showServicesMap(filterCat){
   const d = window._servicesData;
   if(!d){
     showPanel('🏥 Services & commerces','<p style="color:var(--muted)">Données en cours de chargement… Réessayez dans quelques secondes.</p>');
     return;
+  }
+  // Pré-sélectionner un filtre si passé en paramètre
+  if(filterCat){
+    const SVC_CATS_ALL = ['sante','commerce','restauration','sport','service','mobilite','creche','parc','culture'];
+    window._servicesActiveFilters = new Set([filterCat]);
   }
 
   const CAT_INFO = [
@@ -3152,6 +3157,25 @@ function getProfilWeights(){
   };
 }
 
+function navigateFromRadarDim(dim){
+  if(!dim) return;
+  const nav = {
+    mob:   ()=>{ _goPage('analyse'); setTimeout(()=>showMobiliteDetail(),100); },
+    eco:   ()=>{ _goPage('analyse'); setTimeout(()=>showEcolesDetail(),100); },
+    parc:  ()=>{ _goPage('analyse'); setTimeout(()=>showServicesMap('parc'),100); },
+    rest:  ()=>{ _goPage('analyse'); setTimeout(()=>showServicesMap('restauration'),100); },
+    cult:  ()=>{ _goPage('analyse'); setTimeout(()=>showServicesMap('culture'),100); },
+    sprt:  ()=>{ _goPage('analyse'); setTimeout(()=>showServicesMap('sport'),100); },
+    bruit: ()=>{ _goPage('analyse'); setTimeout(()=>showBruitDetail(),100); },
+    svc:   ()=>{ _goPage('analyse'); setTimeout(()=>showServicesMap(),100); },
+    meteo: ()=>{ _goPage('analyse'); setTimeout(()=>showMeteoDetail(),100); },
+    risq:  ()=>{ _goPage('analyse'); setTimeout(()=>showRisquesDetail(),100); },
+    trav:  ()=>{ _goPage('analyse'); setTimeout(()=>showMobiliteDetail(),100); },
+  };
+  const fn = nav[dim.key];
+  if(fn) fn();
+}
+
 function resetProfil(){
   document.querySelectorAll('#p-profil .tog').forEach(b=>b.classList.remove('on'));
   const travInput=document.getElementById('pTravailLieu');
@@ -3442,8 +3466,27 @@ async function runProfil(){
           },
           animation:{duration:700},
           layout:{padding:20},
+          onClick(evt, elements, chart){
+            // Clic sur un point du dataset
+            if(elements.length>0){
+              navigateFromRadarDim(dims[elements[0].index]);
+              return;
+            }
+            // Clic sur un label de branche (zone élargie autour du label)
+            const scale=chart.scales.r;
+            const cx=scale.xCenter, cy=scale.yCenter, r=scale.drawingArea+32;
+            for(let i=0;i<dims.length;i++){
+              const angle=scale.getIndexAngle(i)-Math.PI/2;
+              const px=cx+Math.cos(angle)*r, py=cy+Math.sin(angle)*r;
+              if(Math.abs(evt.x-px)<55&&Math.abs(evt.y-py)<18){
+                navigateFromRadarDim(dims[i]);
+                return;
+              }
+            }
+          },
         }
       });
+      ctx.style.cursor='pointer';
     },80);
   }catch(e){txt.innerHTML='⚠️ '+e.message;}
   btn.disabled=false;btn.innerHTML='✦ Analyser la compatibilité';
