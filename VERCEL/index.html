@@ -976,6 +976,18 @@ select.inp{
         <button class="tog" onclick="tog('tPS',this)">Tranquillité</button>
       </div>
 
+      <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Sensibilité au bruit ?</p>
+      <div class="toggles" style="margin-bottom:.9rem" id="tPBruit">
+        <button class="tog" onclick="tog('tPBruit',this)">Très sensible</button>
+        <button class="tog" onclick="tog('tPBruit',this)">Neutre</button>
+      </div>
+
+      <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Ensoleillement important ?</p>
+      <div class="toggles" style="margin-bottom:.9rem" id="tPSoleil">
+        <button class="tog" onclick="tog('tPSoleil',this)">Oui, j'aime le soleil</button>
+        <button class="tog" onclick="tog('tPSoleil',this)">Neutre</button>
+      </div>
+
       <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Budget total ?</p>
       <div class="toggles" style="margin-bottom:1.2rem" id="tPB">
         <button class="tog" onclick="tog('tPB',this)">&lt; 300k€</button>
@@ -3071,12 +3083,14 @@ async function fetchAdresseData(lat,lon){
     fetch(`/api/risques?lat=${lat}&lon=${lon}&_v=2`).then(r=>r.json()),
   ]);
   return{
-    dvf:dvf.status==='fulfilled'?dvf.value:null,
-    eco:eco.status==='fulfilled'?eco.value:null,
-    mob:mob.status==='fulfilled'?mob.value:null,
-    am: am.status==='fulfilled'?am.value:null,
-    svc:null,
-    ris:ris.status==='fulfilled'?ris.value:null,
+    dvf:  dvf.status==='fulfilled'?dvf.value:null,
+    eco:  eco.status==='fulfilled'?eco.value:null,
+    mob:  mob.status==='fulfilled'?mob.value:null,
+    am:   am.status==='fulfilled'?am.value:null,
+    svc:  null,
+    ris:  ris.status==='fulfilled'?ris.value:null,
+    bruit:null,
+    meteo:null,
   };
 }
 
@@ -3084,28 +3098,41 @@ async function fetchAdresseData(lat,lon){
 function calcScores(d){
   const ecoTotal=(d.eco?.types?.ecoles||0)+(d.eco?.types?.college||0)+(d.eco?.types?.lycee||0);
   const nbRisq=Math.min(d.ris?.total||0, SC_RISQUES_TABLE.length-1);
+  const bruitN=d.bruit?.niveauCode||'';
+  const bruitScore=bruitN==='faible'?9:bruitN==='modere'?5:bruitN==='eleve'?2:5;
+  const svcScore=Math.min(10,d.svc?.score||0);
+  const h=d.meteo?.ensoleillement?.heuresAnnuelles||0;
+  const meteoScore=h>2500?10:h>2000?9:h>1700?7:h>1400?5:h>0?2:5;
   return{
     mob:  Math.min(10,Math.round(d.mob?.score||0)),
     eco:  Math.min(10,Math.round(ecoTotal*SC_ECOLES_COEFF)),
-    parc: Math.min(10,d.am?.counts?.parcs||0),
+    parc: Math.min(10,d.am?.counts?.parcs || d.svc?.stats?.parc||0),
     rest: Math.min(10,Math.round((d.am?.counts?.restaurants || d.svc?.stats?.restauration||0)/SC_RESTAU_DIV)),
-    cult: Math.min(10,Math.min((d.am?.counts?.culture||0)*SC_CULTURE_COEFF,10)),
+    cult: Math.min(10,Math.min((d.am?.counts?.culture || d.svc?.stats?.culture||0)*SC_CULTURE_COEFF,10)),
     sprt: Math.min(10,Math.min((d.am?.counts?.sport || d.svc?.stats?.sport||0)*SC_SPORT_COEFF,10)),
+    bruit: bruitScore,
+    svc:   svcScore,
+    meteo: meteoScore,
     risq: SC_RISQUES_TABLE[nbRisq],
+    risqDisplay: 10 - SC_RISQUES_TABLE[nbRisq],
   };
 }
 
 // Poids du profil (Compatibilité de vie)
 function getProfilWeights(){
   const enfants=togVal('tPE'),trans=togVal('tPTrans'),nature=togVal('tPNature'),style=togVal('tPS');
+  const bruit=togVal('tPBruit'),soleil=togVal('tPSoleil');
   return{
-    mob:  trans==='Métro / RER'?3:1.5,
-    eco:  (enfants==='Non'||enfants==='—')?0.5:2.5,
-    parc: (nature==='Parc à proximité'||nature==='Nature & forêt'||style==='Sport & plein air')?2.5:1,
-    rest: style==='Gastronomie & sorties'?2.5:1,
-    cult: style==='Culture & musées'?2.5:1,
-    sprt: style==='Sport & plein air'?2:0.5,
-    risq: 2,
+    mob:   trans==='Métro / RER'?3:1.5,
+    eco:   (enfants==='Non'||enfants==='—')?0.5:2.5,
+    parc:  (nature==='Parc à proximité'||nature==='Nature & forêt'||style==='Sport & plein air')?2.5:1,
+    rest:  style==='Gastronomie & sorties'?2.5:1,
+    cult:  style==='Culture & musées'?2.5:1,
+    sprt:  style==='Sport & plein air'?2:0.5,
+    bruit: bruit==='Très sensible'?3:1,
+    svc:   1.5,
+    meteo: soleil==="Oui, j'aime le soleil"?2:0.5,
+    risq:  2,
   };
 }
 
@@ -3156,6 +3183,21 @@ function renderCompTable(items,weights,showBien,travailLabel){
   rows.push(`<tr>${lcell('🏋️','Sport')}${items.map(it=>{
     const v=it.data.am?.counts?.sport!=null?`${it.data.am.counts.sport} équipements`:'—';
     return dcell(v,it.scores.sprt);}).join('')}</tr>`);
+
+  rows.push(`<tr>${lcell('🔇','Calme')}${items.map(it=>{
+    const b=it.data.bruit;
+    const v=b?.niveauCode?`${b.niveau||b.niveauCode}`:'—';
+    return dcell(v,it.scores.bruit||5);}).join('')}</tr>`);
+
+  rows.push(`<tr>${lcell('🏥','Services')}${items.map(it=>{
+    const s=it.data.svc;
+    const v=s?.score!=null?`${s.score}/10 · ${s.scoreLabel||''}`:'—';
+    return dcell(v,it.scores.svc||0);}).join('')}</tr>`);
+
+  rows.push(`<tr>${lcell('☀️','Soleil')}${items.map(it=>{
+    const h=it.data.meteo?.ensoleillement?.heuresAnnuelles;
+    const v=h?`${h.toLocaleString('fr-FR')} h/an`:'—';
+    return dcell(v,it.scores.meteo||0);}).join('')}</tr>`);
 
   rows.push(`<tr>${lcell('⚠️','Risques')}${items.map(it=>{
     const r=it.data.ris;
@@ -3257,12 +3299,14 @@ async function runProfil(){
       }catch{}
     }
     const d = {
-      dvf: window._dvfData,
-      eco: window._ecolesData,
-      mob: window._mobiliteData,
-      am:  window._amenitesData,
-      svc: window._servicesData,
-      ris: window._risquesData,
+      dvf:   window._dvfData,
+      eco:   window._ecolesData,
+      mob:   window._mobiliteData,
+      am:    window._amenitesData,
+      svc:   window._servicesData,
+      ris:   window._risquesData,
+      bruit: window._bruitData,
+      meteo: window._meteoData,
     };
     const scores=calcScores(d);
     const weights=getProfilWeights();
@@ -3271,13 +3315,16 @@ async function runProfil(){
     const travailKm=travail?distKm(lat,lon,travail.lat,travail.lon):null;
     const travailLabel=document.getElementById('pTravailLieu')?.value.trim()||null;
     const dims=[
-      {key:'mob', label:'Mobilité',      emoji:'🚇'},
-      {key:'eco', label:'Écoles',        emoji:'🏫'},
-      {key:'parc',label:'Espaces verts', emoji:'🌳'},
-      {key:'rest',label:'Restaurants',   emoji:'🍽️'},
-      {key:'cult',label:'Culture',       emoji:'🎭'},
-      {key:'sprt',label:'Sport',         emoji:'🏋️'},
-      {key:'risq',label:'Risques',       emoji:'⚠️'},
+      {key:'mob',  label:'Mobilité',      emoji:'🚇'},
+      {key:'eco',  label:'Écoles',        emoji:'🏫'},
+      {key:'parc', label:'Espaces verts', emoji:'🌳'},
+      {key:'rest', label:'Restaurants',   emoji:'🍽️'},
+      {key:'cult', label:'Culture',       emoji:'🎭'},
+      {key:'sprt', label:'Sport',         emoji:'🏋️'},
+      {key:'bruit',label:'Calme',         emoji:'🔇'},
+      {key:'svc',  label:'Services',      emoji:'🏥'},
+      {key:'meteo',label:'Soleil',        emoji:'☀️'},
+      {key:'risq', label:'Risques',       emoji:'⚠️'},
     ];
     const sc=gScore>=7?'#2d6a4f':gScore>=4?'#b8832a':'#7a2d2d';
     txt.innerHTML=`
@@ -3300,7 +3347,7 @@ async function runProfil(){
           labels:dims.map(d=>d.emoji+' '+d.label),
           datasets:[{
             label:'Score',
-            data:dims.map(d=>scores[d.key]||0),
+            data:dims.map(d=>d.key==='risq'?(scores.risqDisplay||0):(scores[d.key]||0)),
             backgroundColor:'rgba(184,131,42,.15)',
             borderColor:'#b8832a',
             borderWidth:2,
@@ -3313,7 +3360,7 @@ async function runProfil(){
           scales:{r:{min:0,max:10,ticks:{stepSize:2,display:false},grid:{color:'rgba(0,0,0,.08)'},angleLines:{color:'rgba(0,0,0,.08)'},pointLabels:{font:{size:12,family:'Outfit,sans-serif'},color:'#8a7d68'}}},
           plugins:{
             legend:{display:false},
-            tooltip:{callbacks:{label:c=>`${c.raw}/10`}},
+            tooltip:{callbacks:{label:ctx=>{const dim=dims[ctx.dataIndex];return dim?.key==='risq'?`${d.ris?.total||0} risque(s)`:`${ctx.raw}/10`;}}},
             datalabels:{
               color:'#b8832a',
               font:{size:13,weight:'600',family:'Outfit,sans-serif'},
