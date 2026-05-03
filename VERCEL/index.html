@@ -2482,16 +2482,6 @@ function showServicesMap(){
     return;
   }
 
-  const legendItems = [
-    {couleur:'#e63946', label:'Santé'},
-    {couleur:'#f4a261', label:'Commerces'},
-    {couleur:'#2a9d8f', label:'Éducation'},
-    {couleur:'#e9c46a', label:'Restaurants'},
-    {couleur:'#4caf50', label:'Mobilité'},
-    {couleur:'#457b9d', label:'Services'},
-    {couleur:'#ff6b9d', label:'Petite enfance'},
-  ];
-
   const CAT_INFO = [
     {key:'sante',       label:'Santé',          couleur:'#e63946', emoji:'🏥'},
     {key:'commerce',    label:'Commerces',      couleur:'#f4a261', emoji:'🛒'},
@@ -2500,7 +2490,10 @@ function showServicesMap(){
     {key:'service',     label:'Services',       couleur:'#457b9d', emoji:'🏦'},
     {key:'mobilite',    label:'Mobilité',       couleur:'#4caf50', emoji:'⚡'},
     {key:'creche',      label:'Petite enfance', couleur:'#ff6b9d', emoji:'🍼'},
+    {key:'parc',        label:'Parcs & jardins',couleur:'#52b788', emoji:'🌳'},
+    {key:'culture',     label:'Culture',        couleur:'#9b72cf', emoji:'🎭'},
   ];
+  const legendItems = CAT_INFO.map(c=>({couleur:c.couleur, label:c.label}));
   const svcDist = window._servicesCurrentDist || 1000;
   const SVC_RAYONS = [[500,'500m'],[1000,'1km'],[2000,'2km'],[5000,'5km']];
   const sBtnSvcR = r => `padding:.25rem .65rem;font-size:.72rem;border:1px solid ${r===svcDist?'var(--ink)':'var(--border)'};border-radius:3px;cursor:pointer;margin-right:.3rem;background:${r===svcDist?'var(--ink)':'var(--white)'};color:${r===svcDist?'#fff':'inherit'};font-weight:${r===svcDist?'600':'400'}`;
@@ -2561,7 +2554,7 @@ function showServicesMap(){
     await loadServices(currentCoords.lat, currentCoords.lng, dist);
     showServicesMap();
   };
-  const CAT_COLORS = {sante:'#e63946',commerce:'#f4a261',restauration:'#e9c46a',sport:'#2a9d8f',service:'#457b9d',mobilite:'#4caf50',creche:'#ff6b9d'};
+  const CAT_COLORS = Object.fromEntries(CAT_INFO.map(c=>[c.key,c.couleur]));
   const btnsTous = `<button class="svc-tous-btn" onclick="filterServicesMap('tous',this)" style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid var(--ink);border-radius:3px;background:var(--ink);color:var(--gold2);cursor:pointer;font-size:.7rem;font-weight:600;margin-right:.3rem">✓ Tous (${d.total})</button>`;
   const btnsCateg = CAT_INFO.map(c=>`<button class="svc-cat-btn" data-cat="${c.key}" onclick="filterServicesMap('${c.key}',this)" style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid ${CAT_COLORS[c.key]};border-radius:3px;background:${CAT_COLORS[c.key]}18;cursor:pointer;font-size:.7rem;margin-right:.3rem;margin-bottom:.3rem;transition:opacity .2s"><span style="width:10px;height:10px;border-radius:50%;background:${CAT_COLORS[c.key]};display:inline-block"></span>${c.emoji} ${c.label} (${d.stats[c.key]||0})</button>`).join('');
   showPanel('🏥 Services & commerces à proximité', `
@@ -2620,7 +2613,7 @@ function showServicesMap(){
     // Points de services par catégorie avec clustering
     window._servicesAllMarkers = {};
     window._servicesClusters = {};
-    const SVC_CATS_LIST = ['sante','commerce','restauration','sport','service','mobilite','creche'];
+    const SVC_CATS_LIST = CAT_INFO.map(c=>c.key);
     SVC_CATS_LIST.forEach(cat => {
       window._servicesClusters[cat] = L.markerClusterGroup({maxClusterRadius:50});
       window._servicesAllMarkers[cat] = [];
@@ -2644,7 +2637,7 @@ function showServicesMap(){
     const ctxSvc=document.getElementById('servicesChart');
     if(ctxSvc&&window.Chart){
       if(window._servicesChart){window._servicesChart.destroy();}
-      const CAT_INFO2=[{key:'sante',label:'🏥 Santé',c:'rgba(230,57,70,.7)'},{key:'commerce',label:'🛒 Commerces',c:'rgba(244,162,97,.7)'},{key:'restauration',label:'🍽️ Restau.',c:'rgba(233,196,106,.7)'},{key:'sport',label:'🏋️ Sport',c:'rgba(42,157,143,.7)'},{key:'service',label:'🏦 Services',c:'rgba(69,123,157,.7)'},{key:'mobilite',label:'⚡ Mobilité',c:'rgba(76,175,80,.7)'},{key:'creche',label:'🍼 Petite enf.',c:'rgba(255,107,157,.7)'}];
+      const CAT_INFO2=CAT_INFO.map(c=>({key:c.key,label:c.emoji+' '+c.label,c:c.couleur+'b3'}));
       window._servicesChart=new Chart(ctxSvc,{type:'bar',plugins:[ChartDataLabels],data:{labels:CAT_INFO2.map(c=>c.label),datasets:[{data:CAT_INFO2.map(c=>d.stats[c.key]||0),backgroundColor:CAT_INFO2.map(c=>c.c),borderWidth:0,borderRadius:4}]},options:{indexAxis:'y',plugins:{legend:{display:false},datalabels:{anchor:'end',align:'right',color:'#8a7d68',font:{size:8,weight:'600'},formatter:v=>v||''},title:{display:true,text:`Répartition par catégorie (${window._servicesCurrentDist||1000}m)`,font:{size:10,family:'Outfit,sans-serif'},color:'#8a7d68',padding:{bottom:6}}},scales:{x:{ticks:{font:{size:8},color:'#8a7d68'},grid:{color:'rgba(0,0,0,.05)'}},y:{ticks:{font:{size:8},color:'#3d2f1e'},grid:{display:false}}},maintainAspectRatio:false,layout:{padding:{right:28,top:4}},animation:{duration:400}}});
     }
 
@@ -3170,6 +3163,12 @@ function resetProfil(){
 
 function updatePoidsDisplay(){
   const w=getProfilWeights();
+  // Poids trajet calculé dynamiquement selon mode de travail
+  const modeTravail=togVal('tPT');
+  const hasTravail=!!window._travailCoords;
+  if(hasTravail){
+    w.trav = modeTravail==='Présentiel'?3:modeTravail==='Hybride'?2:modeTravail==='Télétravail'?0.5:1;
+  }
   const dims=[
     {key:'mob',  label:'Mobilité',  emoji:'🚇'},
     {key:'eco',  label:'Écoles',    emoji:'🏫'},
@@ -3181,6 +3180,7 @@ function updatePoidsDisplay(){
     {key:'svc',  label:'Services',  emoji:'🏥'},
     {key:'meteo',label:'Soleil',    emoji:'☀️'},
     {key:'risq', label:'Risques',   emoji:'⚠️'},
+    ...(hasTravail?[{key:'trav',label:'Trajet',emoji:'🏢'}]:[]),
   ];
   const color=v=>v>=2.5?'#2d6a4f':v>=1.5?'#b8832a':v<=0.5?'#8a7d68':'#3d2f1e';
   const grid=document.getElementById('poidsGrid');
