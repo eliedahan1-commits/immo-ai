@@ -12,7 +12,7 @@ export default async function handler(req, res) {
     const query = `[out:json][timeout:28];(
       node["amenity"~"^(pharmacy|doctors|hospital|clinic|dentist|bank|post_office|restaurant|cafe|charging_station|bicycle_rental|childcare)$"](around:${dist},${lat},${lon});
       node["shop"~"^(supermarket|convenience)$"](around:${dist},${lat},${lon});
-      node["leisure"~"^(fitness_centre|sports_centre|swimming_pool|pitch|track)$"](around:${dist},${lat},${lon});
+      nwr["leisure"~"^(fitness_centre|sports_centre|swimming_pool|pitch|track|tennis|stadium|sports_hall|golf_course|ice_rink|skatepark)$"](around:${dist},${lat},${lon});
       nwr["leisure"~"^(park|garden|nature_reserve|playground)$"](around:${dist},${lat},${lon});
       nwr["amenity"~"^(theatre|cinema|museum|library|arts_centre)$"](around:${dist},${lat},${lon});
       nwr["tourism"~"^(museum|gallery|artwork)$"](around:${dist},${lat},${lon});
@@ -49,7 +49,7 @@ export default async function handler(req, res) {
         else if (tags.shop === 'convenience') { categorie = 'commerce'; icone = '🏪'; couleur = '#f4a261'; priorite = 3; }
         else if (tags.amenity === 'bank') { categorie = 'service'; icone = '🏦'; couleur = '#457b9d'; priorite = 4; }
         else if (tags.amenity === 'post_office') { categorie = 'service'; icone = '📮'; couleur = '#457b9d'; priorite = 4; }
-        else if (['fitness_centre','sports_centre','swimming_pool','pitch','track'].includes(tags.leisure)) { categorie = 'sport'; icone = '🏋️'; couleur = '#2a9d8f'; priorite = 5; }
+        else if (['fitness_centre','sports_centre','swimming_pool','pitch','track','tennis','stadium','sports_hall','golf_course','ice_rink','skatepark'].includes(tags.leisure)) { categorie = 'sport'; icone = '🏋️'; couleur = '#2a9d8f'; priorite = 5; }
         else if (['park','garden','nature_reserve','playground'].includes(tags.leisure)) { categorie = 'parc'; icone = '🌳'; couleur = '#52b788'; priorite = 6; }
         else if (['theatre','cinema','museum','library','arts_centre'].includes(tags.amenity)) { categorie = 'culture'; icone = '🎭'; couleur = '#9b72cf'; priorite = 7; }
         else if (['museum','gallery','artwork'].includes(tags.tourism)) { categorie = 'culture'; icone = '🏛️'; couleur = '#9b72cf'; priorite = 7; }

@@ -904,7 +904,13 @@ select.inp{
     <!-- Adresse en haut -->
     <div class="card" style="margin-bottom:1rem">
       <div class="ctitle">📍 Adresse analysée</div>
-      <p style="font-size:.82rem;color:var(--muted);margin-bottom:1rem" id="pAdresseLabel">Analysez d'abord une adresse depuis la page principale.</p>
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:.7rem" id="pAdresseLabel">Analysez d'abord une adresse depuis la page principale.</p>
+      <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.9rem;flex-wrap:wrap">
+        <span style="font-size:.75rem;color:var(--muted);margin-right:.2rem">Rayon d'analyse :</span>
+        <button class="profil-rayon-btn" data-r="500"  onclick="setProfilRayon(500)"  style="padding:.2rem .6rem;font-size:.72rem;border:1px solid var(--border);border-radius:3px;cursor:pointer;background:var(--white)">500m</button>
+        <button class="profil-rayon-btn" data-r="1000" onclick="setProfilRayon(1000)" style="padding:.2rem .6rem;font-size:.72rem;border:1px solid var(--ink);border-radius:3px;cursor:pointer;background:var(--ink);color:#fff;font-weight:600">1 km</button>
+        <button class="profil-rayon-btn" data-r="2000" onclick="setProfilRayon(2000)" style="padding:.2rem .6rem;font-size:.72rem;border:1px solid var(--border);border-radius:3px;cursor:pointer;background:var(--white)">2 km</button>
+      </div>
       <button class="btn btn-dark btn-full" onclick="runProfil()" id="btnProfil">✦ Analyser la compatibilité</button>
     </div>
 
@@ -1907,7 +1913,7 @@ async function loadINSEE(citycode, lat, lng){
 // ── Services & commerces ──
 async function loadServices(lat, lng, dist=1000){
   try{
-    const r = await apiCall(`/api/services?lat=${lat}&lon=${lng}&dist=${dist}&_v=6`, `https://overpass-api.de/api/interpreter`, {signal:AbortSignal.timeout(29000)});
+    const r = await apiCall(`/api/services?lat=${lat}&lon=${lng}&dist=${dist}&_v=7`, `https://overpass-api.de/api/interpreter`, {signal:AbortSignal.timeout(29000)});
     if(!r.ok) throw new Error();
     const d = await r.json();
     if(!d.success) throw new Error();
@@ -2190,7 +2196,7 @@ function showEcolesDetail(){
 
   const ECO_TYPES = [['tous','Tous'],['ecole','🏫 Écoles'],['college','🎓 Collèges'],['lycee','📚 Lycées']];
   const ECO_NS    = [10, 20, 50, 0];
-  const ECO_RAYONS = [[500,'500m'],[1000,'1km'],[2000,'2km'],[5000,'5km']];
+  const ECO_RAYONS = [[500,'500m'],[1000,'1km'],[2000,'2km']];
   const currentDist = window._ecolesCurrentDist || 500;
   const btnStyle  = 'padding:.25rem .7rem;font-size:.72rem;border:1px solid var(--border);background:var(--white);border-radius:3px;cursor:pointer;margin-right:.3rem';
   const btnStyleRayon = 'padding:.25rem .7rem;font-size:.72rem;border:1px solid var(--border);border-radius:3px;cursor:pointer;margin-right:.3rem';
@@ -2308,7 +2314,7 @@ function showMobiliteDetail(){
   if(!d){showPanel('🚇 Mobilité & transports','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
 
   const mobDist = window._mobiliteCurrentDist || 1000;
-  const MOB_RAYONS = [[500,'500m'],[1000,'1km'],[2000,'2km'],[5000,'5km']];
+  const MOB_RAYONS = [[500,'500m'],[1000,'1km'],[2000,'2km']];
   const sBtnR = r => `padding:.25rem .65rem;font-size:.72rem;border:1px solid ${r===mobDist?'var(--ink)':'var(--border)'};border-radius:3px;cursor:pointer;margin-right:.3rem;background:${r===mobDist?'var(--ink)':'var(--white)'};color:${r===mobDist?'#fff':'inherit'};font-weight:${r===mobDist?'600':'400'}`;
   const btnsMobRayon = MOB_RAYONS.map(([r,l])=>`<button class="mob-rayon-btn" data-r="${r}" onclick="reloadMobiliteWithDist(${r})" style="${sBtnR(r)}">${l}</button>`).join('');
   const lbs = (c) => `display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid ${c};border-radius:3px;background:${c}18;cursor:pointer;font-size:.7rem;transition:opacity .2s`;
@@ -2500,7 +2506,7 @@ function showServicesMap(filterCat){
   ];
   const legendItems = CAT_INFO.map(c=>({couleur:c.couleur, label:c.label}));
   const svcDist = window._servicesCurrentDist || 1000;
-  const SVC_RAYONS = [[500,'500m'],[1000,'1km'],[2000,'2km'],[5000,'5km']];
+  const SVC_RAYONS = [[500,'500m'],[1000,'1km'],[2000,'2km']];
   const sBtnSvcR = r => `padding:.25rem .65rem;font-size:.72rem;border:1px solid ${r===svcDist?'var(--ink)':'var(--border)'};border-radius:3px;cursor:pointer;margin-right:.3rem;background:${r===svcDist?'var(--ink)':'var(--white)'};color:${r===svcDist?'#fff':'inherit'};font-weight:${r===svcDist?'600':'400'}`;
   const btnsSvcRayon = SVC_RAYONS.map(([r,l])=>`<button class="svc-rayon-btn" data-r="${r}" onclick="reloadServicesWithDist(${r})" style="${sBtnSvcR(r)}">${l}</button>`).join('');
 
@@ -3157,6 +3163,18 @@ function getProfilWeights(){
   };
 }
 
+window._profilRayon = 1000; // rayon par défaut pour Compatibilité de vie
+function setProfilRayon(r){
+  window._profilRayon = r;
+  document.querySelectorAll('.profil-rayon-btn').forEach(b=>{
+    const active = parseInt(b.dataset.r) === r;
+    b.style.background = active ? 'var(--ink)' : 'var(--white)';
+    b.style.color = active ? '#fff' : 'inherit';
+    b.style.borderColor = active ? 'var(--ink)' : 'var(--border)';
+    b.style.fontWeight = active ? '600' : '400';
+  });
+}
+
 function navigateFromRadarDim(dim){
   if(!dim) return;
   const nav = {
@@ -3369,6 +3387,12 @@ async function runProfil(){
   if(placeholder) placeholder.style.display='none';
   try{
     const lat=currentCoords.lat, lon=currentCoords.lng;
+    // Recharger les services avec le rayon choisi dans Compatibilité de vie
+    const profilRayon = window._profilRayon || 1000;
+    txt.innerHTML=`<span class="spin"></span> Chargement des services (rayon ${profilRayon>=1000?(profilRayon/1000)+'km':profilRayon+'m'})…`;
+    try{
+      await loadServices(lat, lon, profilRayon);
+    }catch{}
     // Si amenitesData absent (timeout au chargement), tenter de le récupérer maintenant
     if(!window._amenitesData){
       try{
