@@ -1700,8 +1700,11 @@ function mergeEtablissements(osmList, eduList){
       if(d < matchDist && namesSimilar(edu.nom, osm.nom)){ matchDist = d; matchIdx = idx; }
     });
     if(matchIdx >= 0){
-      // Même école identifiée dans les deux sources → enrichir OSM avec type EN officiel
-      result[matchIdx].type   = edu.type;
+      // Même école identifiée dans les deux sources → enrichir OSM avec données EN
+      // Ne jamais rétrograder le type (Lycée→École) : OSM utilise des tags précis (isced, school:type)
+      // On n'upgrade que si EN est plus précis (ex: OSM=École par défaut, EN=Lycée)
+      const typeLevel = t => { const tl=(t||'').toLowerCase(); return tl.includes('lycée')||tl.includes('lycee')?3:tl.includes('collège')||tl.includes('college')?2:tl.includes('élémentaire')||tl.includes('elementaire')?1:0; };
+      if(typeLevel(edu.type) > typeLevel(result[matchIdx].type)) result[matchIdx].type = edu.type;
       result[matchIdx].nom    = edu.nom || result[matchIdx].nom;
       result[matchIdx].statut = edu.statut || result[matchIdx].statut;
     } else {
