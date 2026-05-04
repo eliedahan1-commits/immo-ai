@@ -191,6 +191,7 @@ aside{
   gap:.75rem;
   transition:all .3s;
   position:relative;
+  z-index:2000;
 }
 .hero-search:focus-within{
   border-color:var(--gold2);
@@ -215,7 +216,7 @@ aside{
 .hero-suggestions{
   position:absolute;top:calc(100% + 8px);left:0;right:0;
   background:var(--ink2);border:1px solid rgba(255,255,255,.12);
-  border-radius:16px;z-index:300;
+  border-radius:16px;z-index:2000;
   max-height:240px;overflow-y:auto;display:none;
 }
 .hero-suggestions.open{display:block;}
