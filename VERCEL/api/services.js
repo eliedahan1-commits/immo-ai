@@ -115,4 +115,6 @@ export default async function handler(req, res) {
       dateExtraction: new Date().toISOString()
     });
   } catch (error) {
-    return res.status(500).json({ success: false, error:
+    return res.status(500).json({ success: false, error: error.message });
+  }
+}
