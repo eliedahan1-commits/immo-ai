@@ -2690,9 +2690,9 @@ function showServicesMap(filterCat){
     <div style="margin-bottom:.6rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Rayon :</span>${btnsSvcRayon}
     </div>
-    <div style="height:260px;margin-bottom:.8rem"><canvas id="servicesChart"></canvas></div>
     <div class="map-container" id="mapServices"></div>
-    <p style="font-size:.62rem;color:var(--muted)">Source : OpenStreetMap · Rayon ${svcDist>=1000?(svcDist/1000)+'km':svcDist+'m'} · ${d.total} établissements trouvés</p>
+    <div style="margin-top:1.2rem;height:220px"><canvas id="servicesChart"></canvas></div>
+    <p style="font-size:.62rem;color:var(--muted);margin-top:.4rem">Source : OpenStreetMap · Rayon ${svcDist>=1000?(svcDist/1000)+'km':svcDist+'m'} · ${d.total} établissements trouvés</p>
   `);
 
   // Synchro immédiate des boutons (sans attendre la carte)
