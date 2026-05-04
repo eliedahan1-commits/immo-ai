@@ -702,6 +702,9 @@ select.inp{
         <div class="hero-suggestions" id="heroSugs"></div>
       </div>
 
+      <p style="font-size:.72rem;color:rgba(255,255,255,.4);margin:.8rem 0 .5rem;letter-spacing:.04em">— ou cliquez directement sur la carte —</p>
+      <div id="mapFrance" style="height:320px;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.12);margin-bottom:1.2rem"></div>
+
       <div class="hero-stats">
         <div class="hero-stat"><div class="hero-stat-n">100%</div><div class="hero-stat-l">Données officielles</div></div>
         <div class="hero-stat"><div class="hero-stat-n">15+</div><div class="hero-stat-l">Sources publiques</div></div>
@@ -1232,7 +1235,7 @@ window.onload = () => {
   setupSearch('sideSearch', 'sideSugs', false);
   setupVilleSearch();
   setupTravailSearch();
-  // BAN autocomplete pour Compatibilité de vie
+  setTimeout(initFranceMap, 400);
 };
 
 // ══ MODAL ══
@@ -1301,6 +1304,66 @@ function updateTravailDiv(){
   const show = v === 'Hybride' || v === 'Présentiel';
   const div = document.getElementById('pTravailDiv');
   if(div) div.style.display = show ? 'block' : 'none';
+}
+
+// ══ CARTE FRANCE — CHOIX DE L'EMPLACEMENT ══
+function initFranceMap(){
+  const el = document.getElementById('mapFrance');
+  if(!el || !window.L || window._franceMap) return;
+
+  const map = L.map('mapFrance', { zoomControl:true, attributionControl:true, scrollWheelZoom:true });
+  window._franceMap = map;
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution:'© OpenStreetMap © CartoDB',
+    subdomains:'abcd', maxZoom:18
+  }).addTo(map);
+
+  // Vue initiale France
+  map.setView([46.5, 2.3], 5);
+
+  let _franceMarker = null;
+
+  map.on('click', async function(e){
+    const { lat, lng } = e.latlng;
+
+    // Marqueur provisoire
+    if(_franceMarker) _franceMarker.remove();
+    const icon = L.divIcon({ html:'<div style="width:14px;height:14px;background:#b8832a;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.5)"></div>', iconSize:[14,14], iconAnchor:[7,7], className:'' });
+    _franceMarker = L.marker([lat, lng], { icon }).addTo(map);
+    _franceMarker.bindTooltip('⏳ Localisation en cours…', { permanent:false }).openTooltip();
+
+    // Reverse geocoding Nominatim (OSM, gratuit, sans clé)
+    try {
+      const r = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
+        { headers:{ 'Accept-Language':'fr' }, signal: AbortSignal.timeout(8000) }
+      );
+      const data = await r.json();
+      const a = data.address || {};
+      const num   = a.house_number || '';
+      const voie  = a.road || a.pedestrian || a.footway || '';
+      const ville = a.city || a.town || a.village || a.hamlet || '';
+      const cp    = a.postcode || '';
+      const parts = [num && voie ? `${num} ${voie}` : voie, ville && cp ? `${ville} ${cp}` : ville || cp].filter(Boolean);
+      const adresse = parts.join(', ') || data.display_name || '';
+
+      // Remplir le champ de recherche
+      const inp = document.getElementById('heroSearch');
+      if(inp) inp.value = adresse;
+
+      // Mettre à jour le tooltip du marqueur
+      _franceMarker.setTooltipContent(`📍 ${adresse}`).openTooltip();
+
+      // Zoomer légèrement sur la zone cliquée
+      map.setView([lat, lng], Math.max(map.getZoom(), 12), { animate:true });
+
+    } catch {
+      const inp = document.getElementById('heroSearch');
+      if(inp) inp.value = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+      if(_franceMarker) _franceMarker.setTooltipContent('📍 Position sélectionnée').openTooltip();
+    }
+  });
 }
 
 // ══ AUTOCOMPLÉTION LIEU DE TRAVAIL (adresse complète) ══
@@ -1469,7 +1532,8 @@ function renderCards(props, coords){
     {
       title: '🏠 Analyser un bien',
       cards: [
-        {id:'dvf',       icon:'💰', label:'Prix des dernières transactions',      value:'<span class="spin"></span>', sub:'Transactions réelles',      source:'DVF DGFiP'},
+        {id:'dvf',           icon:'💰', label:'Prix des dernières transactions', value:'<span class="spin"></span>', sub:'Transactions réelles',      source:'DVF DGFiP'},
+        {id:'prixCommunes',  icon:'🗺️', label:'Prix au m² par commune',          value:'<span class="spin"></span>', sub:'Carte choroplèthe commune',  source:'DVF + geo.api.gouv.fr'},
         {id:'risques',   icon:'⚠️', label:'Risques naturels',       value:'<span class="spin"></span>', sub:'Géorisques officiel',       source:'Géorisques'},
         {id:'dpe',       icon:'⚡', label:'Énergie & DPE',          value:'Simuler →',                  sub:'Cliquez pour simuler',      source:'ADEME'},
         {id:'bruit',     icon:'🔇', label:'Bruit & nuisances',      value:'<span class="spin"></span>', sub:'Routes, voies ferrées, aéroports', source:'OSM'},
@@ -1547,6 +1611,7 @@ async function loadAllData(props, coords){
     loadServices(lat, lng),
     loadAmenites(lat, lng),
     loadBruit(lat, lng),
+    loadPrixCommunes(lat, lng),
   ]).then(() => {
     document.getElementById('addrBadge').textContent = '✓ Analyse complète';
   });
@@ -1957,6 +2022,27 @@ async function loadAmenites(lat, lng){
   }
 }
 
+async function loadPrixCommunes(lat, lng){
+  setCard('prixCommunes','<span class="spin"></span>','Chargement carte des prix…','');
+  try {
+    const r = await fetch(`/api/prix-communes?lat=${lat}&lon=${lng}&rayon=18`, { signal: AbortSignal.timeout(29000) });
+    if(!r.ok) throw new Error();
+    const d = await r.json();
+    if(!d.success) throw new Error();
+    window._prixCommunesData = d;
+    const avecPrix = d.communes.filter(c => c.medianM2);
+    const med = avecPrix.length ? Math.round(avecPrix.reduce((s,c)=>s+c.medianM2,0)/avecPrix.length) : null;
+    setCard('prixCommunes',
+      med ? med.toLocaleString('fr-FR')+' €/m²' : 'Voir carte',
+      `${d.communes.length} communes · rayon 18km`,
+      ''
+    );
+  } catch {
+    setCard('prixCommunes','Carte disponible','Cliquez pour afficher','');
+    window._prixCommunesData = null;
+  }
+}
+
 async function loadBruit(lat, lng){
   try {
     const r = await fetch(`/api/bruit?lat=${lat}&lon=${lng}`, { signal: AbortSignal.timeout(15000) });
@@ -1986,9 +2072,10 @@ function showDetail(cardId){
     insee:      () => showINSEEDetail(),
     altitude:   () => showAltitudeDetail(),
     fibre:      () => showFibreDetail(),
-    services:   () => showServicesMap(),
-    dpe:        () => go('energie'),
-    bruit:      () => showBruitDetail(),
+    services:      () => showServicesMap(),
+    dpe:           () => go('energie'),
+    bruit:         () => showBruitDetail(),
+    prixCommunes:  () => showPrixCommunesDetail(),
   };
   if(data[cardId]) data[cardId]();
 }
@@ -2702,6 +2789,115 @@ function showServicesMap(filterCat){
     }
 
   }, 150);
+}
+
+function prixColor(p){
+  if(!p) return '#cccccc';
+  if(p < 1500) return '#1b7837';
+  if(p < 2500) return '#52b788';
+  if(p < 3500) return '#95d5b2';
+  if(p < 5000) return '#e9c46a';
+  if(p < 7000) return '#f4a261';
+  if(p < 10000) return '#e63946';
+  return '#7a2d2d';
+}
+
+async function showPrixCommunesDetail(){
+  const lat = currentCoords?.lat, lon = currentCoords?.lng;
+  if(!lat) { showPanel('🗺️ Prix au m² par commune','<p style="color:var(--muted)">Analysez d\'abord une adresse.</p>'); return; }
+
+  showPanel('🗺️ Prix au m² par commune', '<div style="text-align:center;padding:2rem"><span class="spin"></span><p style="margin-top:1rem;color:var(--muted);font-size:.85rem">Chargement des communes et des prix DVF…</p></div>');
+
+  // Charger si pas encore en cache
+  if(!window._prixCommunesData) {
+    try {
+      const r = await fetch(`/api/prix-communes?lat=${lat}&lon=${lon}&rayon=18`, { signal: AbortSignal.timeout(29000) });
+      const d = await r.json();
+      if(d.success) window._prixCommunesData = d;
+    } catch {}
+  }
+
+  const d = window._prixCommunesData;
+  if(!d || !d.communes?.length) {
+    showPanel('🗺️ Prix au m² par commune','<p style="color:var(--muted)">Données indisponibles pour ce secteur.</p>');
+    return;
+  }
+
+  const communes = d.communes;
+  const avecPrix = communes.filter(c => c.medianM2);
+  const tous = avecPrix.map(c => c.medianM2).sort((a,b)=>a-b);
+  const medGlobal = tous.length ? tous[Math.floor(tous.length/2)] : null;
+
+  // Légende palette
+  const palette = [
+    {label:'< 1 500 €',   color:'#1b7837'},
+    {label:'1 500–2 500', color:'#52b788'},
+    {label:'2 500–3 500', color:'#95d5b2'},
+    {label:'3 500–5 000', color:'#e9c46a'},
+    {label:'5 000–7 000', color:'#f4a261'},
+    {label:'7 000–10 000',color:'#e63946'},
+    {label:'> 10 000 €',  color:'#7a2d2d'},
+    {label:'Données insuff.',color:'#cccccc'},
+  ];
+  const legendHtml = palette.map(p=>`<span style="display:inline-flex;align-items:center;gap:.3rem;margin-right:.6rem;font-size:.7rem"><span style="width:12px;height:12px;border-radius:2px;background:${p.color};display:inline-block"></span>${p.label}</span>`).join('');
+
+  showPanel('🗺️ Prix au m² par commune', `
+    <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1rem">
+      <div class="stat-box"><span class="stat-n">${medGlobal?medGlobal.toLocaleString('fr-FR')+' €':'—'}</span><span class="stat-l">💰 Médian zone /m²</span></div>
+      <div class="stat-box"><span class="stat-n">${communes.length}</span><span class="stat-l">🏘️ Communes</span></div>
+      <div class="stat-box"><span class="stat-n">${avecPrix.length}</span><span class="stat-l">📊 Avec données DVF</span></div>
+    </div>
+    <div style="margin-bottom:.7rem;line-height:2;flex-wrap:wrap;display:flex">${legendHtml}</div>
+    <div class="map-container" id="mapPrixCommunes"></div>
+    <p style="font-size:.62rem;color:var(--muted);margin-top:.4rem">Prix médian des ventes (appartements + maisons) · Source : ${d.source}</p>
+  `);
+
+  setTimeout(() => {
+    const el = document.getElementById('mapPrixCommunes');
+    if(!el || !window.L) return;
+    if(window._prixCommunesMap) { window._prixCommunesMap.remove(); window._prixCommunesMap = null; }
+
+    const map = L.map('mapPrixCommunes', { zoomControl:true, attributionControl:true });
+    window._prixCommunesMap = map;
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution:'© OpenStreetMap © CartoDB',
+      subdomains:'abcd', maxZoom:18
+    }).addTo(map);
+
+    const bounds = [];
+
+    communes.forEach(c => {
+      if(!c.contour) return;
+      const color = prixColor(c.medianM2);
+      const layer = L.geoJSON({ type:'Feature', geometry:c.contour, properties:{} }, {
+        style: { color:'#fff', weight:1, fillColor:color, fillOpacity:0.72 }
+      }).addTo(map);
+
+      const tooltip = `<strong>${c.nom}</strong><br>${
+        c.medianM2
+          ? `💰 ${c.medianM2.toLocaleString('fr-FR')} €/m² <span style="color:#888;font-size:.75em">(${c.count} ventes)</span>`
+          : '<span style="color:#888">Données insuffisantes</span>'
+      }`;
+      layer.bindTooltip(tooltip, { sticky:true, className:'leaflet-tooltip' });
+
+      try {
+        const b = layer.getBounds();
+        if(b.isValid()) bounds.push(b);
+      } catch {}
+    });
+
+    // Marqueur adresse analysée
+    const goldIcon = L.divIcon({ html:'<div style="width:14px;height:14px;background:#b8832a;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>', iconSize:[14,14], iconAnchor:[7,7], className:'' });
+    L.marker([lat, lon], { icon:goldIcon }).addTo(map).bindTooltip(`📍 ${currentAddress||'Adresse analysée'}`, { permanent:false });
+
+    if(bounds.length) {
+      const allBounds = bounds.reduce((acc, b) => acc.extend(b), bounds[0]);
+      map.fitBounds(allBounds, { padding:[16,16] });
+    } else {
+      map.setView([lat, lon], 11);
+    }
+  }, 80);
 }
 
 function showBruitDetail(){
