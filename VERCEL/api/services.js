@@ -9,9 +9,11 @@ export default async function handler(req, res) {
 
   try {
     // Requête fusionnée avec regex : 4 sous-requêtes au lieu de 16 → beaucoup plus rapide
+    // node pour amenity/shop (presque toujours des points) → léger et rapide
+    // nwr pour les éléments cartographiés comme polygones (parcs, culture, sport, crèches)
     const query = `[out:json][timeout:28];(
-      nwr["amenity"~"^(pharmacy|doctors|hospital|clinic|dentist|bank|post_office|restaurant|cafe|charging_station|bicycle_rental|childcare)$"](around:${dist},${lat},${lon});
-      nwr["shop"~"^(supermarket|convenience|bakery|butcher|greengrocer)$"](around:${dist},${lat},${lon});
+      node["amenity"~"^(pharmacy|doctors|hospital|clinic|dentist|bank|post_office|restaurant|cafe|charging_station|bicycle_rental|childcare)$"](around:${dist},${lat},${lon});
+      node["shop"~"^(supermarket|convenience|bakery|butcher|greengrocer)$"](around:${dist},${lat},${lon});
       nwr["leisure"~"^(fitness_centre|sports_centre|swimming_pool|pitch|track|tennis|stadium|sports_hall|golf_course|ice_rink|skatepark)$"](around:${dist},${lat},${lon});
       nwr["leisure"~"^(park|garden|nature_reserve|playground)$"](around:${dist},${lat},${lon});
       nwr["amenity"~"^(theatre|cinema|museum|library|arts_centre)$"](around:${dist},${lat},${lon});
