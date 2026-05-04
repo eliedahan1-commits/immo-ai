@@ -554,6 +554,11 @@ select.inp{
   border:1px solid var(--border);margin-bottom:1rem;
   position:relative;
 }
+.leaflet-prix-tooltip{
+  background:#fff;border:none;border-radius:8px;
+  box-shadow:0 4px 16px rgba(0,0,0,.18);
+  padding:.5rem .75rem;font-family:'Outfit',sans-serif;
+}
 .map-legend{
   display:flex;flex-wrap:wrap;gap:.5rem;
   margin-bottom:.75rem;
@@ -2782,14 +2787,15 @@ function showServicesMap(filterCat){
 }
 
 function prixColor(p){
-  if(!p) return '#cccccc';
-  if(p < 1500) return '#1b7837';
+  if(!p) return '#d0d0d0';
+  if(p < 1500) return '#1a9641';
   if(p < 2500) return '#52b788';
-  if(p < 3500) return '#95d5b2';
-  if(p < 5000) return '#e9c46a';
-  if(p < 7000) return '#f4a261';
-  if(p < 10000) return '#e63946';
-  return '#7a2d2d';
+  if(p < 3500) return '#a6d96a';
+  if(p < 5000) return '#ffffbf';
+  if(p < 7000) return '#fdae61';
+  if(p < 10000) return '#f46d43';
+  if(p < 15000) return '#d73027';
+  return '#a50026';
 }
 
 async function showPrixCommunesDetail(){
@@ -2830,32 +2836,37 @@ async function showPrixCommunesDetail(){
 
       if(!nearby.length) throw new Error('Aucune commune avec contour dans ce secteur');
 
-      // 4. DVF en parallèle pour chaque commune (contours déjà disponibles)
+      // 4. DVF via api.cquest.org (filtre nature_mutation=Vente dans l'URL, CORS OK)
       const results = await Promise.all(nearby.map(async c => {
         const [cLon, cLat] = c.centre.coordinates;
-        let medianM2=null, count=0;
+        let medianM2=null, count=0, min=null, max=null;
         try {
           const dvfRes = await fetch(
-            `https://api.dvf.etalab.gouv.fr/dvf/around/?lat=${cLat}&lon=${cLon}&dist=${RAYON_DVF_M}`,
+            `https://api.cquest.org/dvf?lat=${cLat}&lon=${cLon}&dist=${RAYON_DVF_M}&nature_mutation=Vente`,
             { signal: AbortSignal.timeout(12000) }
           );
           if(dvfRes.ok){
             const dvfData = await dvfRes.json();
             const vals = (dvfData.features||[])
-              .filter(f=>{ const p=f.properties||{}; return p.nature_mutation==='Vente'&&(p.surface_reelle_bati||0)>9&&(p.valeur_fonciere||0)>5000; })
-              .map(f=>Math.round(f.properties.valeur_fonciere/f.properties.surface_reelle_bati))
-              .filter(p=>p>300&&p<30000).sort((a,b)=>a-b);
+              .map(f=>{ const p=f.properties||{};
+                const surf=parseFloat(p.surface_reelle_bati||p.surface_carrez||p.surface_habitable||p.surface||0);
+                const prix=parseFloat(p.valeur_fonciere||p.prix||0);
+                return surf>5&&prix>1000 ? Math.round(prix/surf) : null; })
+              .filter(v=>v&&v>300&&v<35000).sort((a,b)=>a-b);
             count=vals.length;
-            medianM2=count>0?vals[Math.floor(count/2)]:null;
+            if(count>0){
+              medianM2=vals[Math.floor(count/2)];
+              min=vals[0]; max=vals[vals.length-1];
+            }
           }
         } catch {}
-        return { code:c.code, nom:c.nom, lat:cLat, lon:cLon, contour:c.contour, medianM2, count };
+        return { code:c.code, nom:c.nom, lat:cLat, lon:cLon, contour:c.contour, medianM2, count, min, max };
       }));
 
       window._prixCommunesData = {
         communes: results,
         communePrincipale: c0.nom,
-        source: 'geo.api.gouv.fr · DVF Etalab DGFiP'
+        source: 'DVF DGFiP via api.cquest.org'
       };
     } catch(e) {
       showPanel('🗺️ Prix au m² par commune',`<p style="color:var(--muted)">Erreur : ${e.message}</p>`);
@@ -2876,13 +2887,14 @@ async function showPrixCommunesDetail(){
 
   // Légende palette
   const palette = [
-    {label:'< 1 500 €',   color:'#1b7837'},
-    {label:'1 500–2 500', color:'#52b788'},
-    {label:'2 500–3 500', color:'#95d5b2'},
-    {label:'3 500–5 000', color:'#e9c46a'},
-    {label:'5 000–7 000', color:'#f4a261'},
-    {label:'7 000–10 000',color:'#e63946'},
-    {label:'> 10 000 €',  color:'#7a2d2d'},
+    {label:'< 1 500 €',    color:'#1a9641'},
+    {label:'1 500–2 500',  color:'#52b788'},
+    {label:'2 500–3 500',  color:'#a6d96a'},
+    {label:'3 500–5 000',  color:'#ffffbf'},
+    {label:'5 000–7 000',  color:'#fdae61'},
+    {label:'7 000–10 000', color:'#f46d43'},
+    {label:'10 000–15 000',color:'#d73027'},
+    {label:'> 15 000 €',   color:'#a50026'},
     {label:'Données insuff.',color:'#cccccc'},
   ];
   const legendHtml = palette.map(p=>`<span style="display:inline-flex;align-items:center;gap:.3rem;margin-right:.6rem;font-size:.7rem"><span style="width:12px;height:12px;border-radius:2px;background:${p.color};display:inline-block"></span>${p.label}</span>`).join('');
@@ -2917,15 +2929,21 @@ async function showPrixCommunesDetail(){
       if(!c.contour) return;
       const color = prixColor(c.medianM2);
       const layer = L.geoJSON({ type:'Feature', geometry:c.contour, properties:{} }, {
-        style: { color:'#fff', weight:1, fillColor:color, fillOpacity:0.72 }
+        style: { color:'#ffffff', weight:2, fillColor:color, fillOpacity:0.78 }
       }).addTo(map);
 
-      const tooltip = `<strong>${c.nom}</strong><br>${
-        c.medianM2
-          ? `💰 ${c.medianM2.toLocaleString('fr-FR')} €/m² <span style="color:#888;font-size:.75em">(${c.count} ventes)</span>`
-          : '<span style="color:#888">Données insuffisantes</span>'
-      }`;
-      layer.bindTooltip(tooltip, { sticky:true, className:'leaflet-tooltip' });
+      // Hover : agrandir la bordure
+      layer.on('mouseover', function(){ this.setStyle({ weight:3, color:'#333', fillOpacity:0.92 }); });
+      layer.on('mouseout',  function(){ this.setStyle({ weight:2, color:'#ffffff', fillOpacity:0.78 }); });
+
+      const tooltip = c.medianM2
+        ? `<div style="font-size:.85rem;line-height:1.5">
+            <strong>${c.nom}</strong><br>
+            <span style="font-size:1.1rem;font-weight:700;color:${color==='#ffffbf'?'#b8832a':color}">${c.medianM2.toLocaleString('fr-FR')} €/m²</span><br>
+            <span style="color:#555;font-size:.75rem">${c.count} ventes · fourchette ${(c.min||0).toLocaleString('fr-FR')}–${(c.max||0).toLocaleString('fr-FR')} €/m²</span>
+           </div>`
+        : `<div style="font-size:.85rem"><strong>${c.nom}</strong><br><span style="color:#888">Données insuffisantes</span></div>`;
+      layer.bindTooltip(tooltip, { sticky:true, className:'leaflet-prix-tooltip', opacity:1 });
 
       try {
         const b = layer.getBounds();
