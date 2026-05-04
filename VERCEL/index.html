@@ -2022,25 +2022,9 @@ async function loadAmenites(lat, lng){
   }
 }
 
-async function loadPrixCommunes(lat, lng){
-  setCard('prixCommunes','<span class="spin"></span>','Chargement carte des prix…','');
-  try {
-    const r = await fetch(`/api/prix-communes?lat=${lat}&lon=${lng}&rayon=18`, { signal: AbortSignal.timeout(29000) });
-    if(!r.ok) throw new Error();
-    const d = await r.json();
-    if(!d.success) throw new Error();
-    window._prixCommunesData = d;
-    const avecPrix = d.communes.filter(c => c.medianM2);
-    const med = avecPrix.length ? Math.round(avecPrix.reduce((s,c)=>s+c.medianM2,0)/avecPrix.length) : null;
-    setCard('prixCommunes',
-      med ? med.toLocaleString('fr-FR')+' €/m²' : 'Voir carte',
-      `${d.communes.length} communes · rayon 18km`,
-      ''
-    );
-  } catch {
-    setCard('prixCommunes','Carte disponible','Cliquez pour afficher','');
-    window._prixCommunesData = null;
-  }
+function loadPrixCommunes(lat, lng){
+  // Chargement différé : la carte se charge au clic sur la carte (appels directs navigateur)
+  setCard('prixCommunes','🗺️ Voir la carte','Prix médian par commune · rayon 18km','');
 }
 
 async function loadBruit(lat, lng){
@@ -2806,19 +2790,71 @@ async function showPrixCommunesDetail(){
   const lat = currentCoords?.lat, lon = currentCoords?.lng;
   if(!lat) { showPanel('🗺️ Prix au m² par commune','<p style="color:var(--muted)">Analysez d\'abord une adresse.</p>'); return; }
 
-  showPanel('🗺️ Prix au m² par commune', '<div style="text-align:center;padding:2rem"><span class="spin"></span><p style="margin-top:1rem;color:var(--muted);font-size:.85rem">Chargement des communes et des prix DVF…</p></div>');
+  showPanel('🗺️ Prix au m² par commune', '<div style="text-align:center;padding:2rem"><span class="spin"></span><p style="margin-top:1rem;color:var(--muted);font-size:.85rem">Chargement des communes et des prix DVF…<br><span style="font-size:.75rem;opacity:.6">Peut prendre 15–25 secondes</span></p></div>');
 
-  // Charger si pas encore en cache
+  // Chargement côté navigateur (APIs CORS-friendly, pas de fonction Vercel)
   if(!window._prixCommunesData) {
     try {
-      const r = await fetch(`/api/prix-communes?lat=${lat}&lon=${lon}&rayon=18`, { signal: AbortSignal.timeout(29000) });
-      const d = await r.json();
-      if(d.success) window._prixCommunesData = d;
-    } catch {}
+      const RAYON_KM = 18, MAX_COMMUNES = 20, RAYON_DVF_M = 4000;
+
+      function distKm(la1,lo1,la2,lo2){
+        const dLat=(la2-la1)*111, dLon=(lo2-lo1)*111*Math.cos(la1*Math.PI/180);
+        return Math.sqrt(dLat*dLat+dLon*dLon);
+      }
+
+      // 1. Département de la commune
+      const r0 = await fetch(`https://geo.api.gouv.fr/communes?lat=${lat}&lon=${lon}&fields=nom,code,codeDepartement`, { signal: AbortSignal.timeout(8000) });
+      const arr0 = await r0.json();
+      const c0 = arr0?.[0];
+      if(!c0) throw new Error('Commune introuvable');
+
+      // 2. Communes du département (centres uniquement)
+      const rDept = await fetch(`https://geo.api.gouv.fr/departements/${c0.codeDepartement}/communes?fields=nom,code,centre`, { signal: AbortSignal.timeout(10000) });
+      const allCommunes = await rDept.json();
+
+      // 3. Filtrer + trier par distance
+      const nearby = allCommunes
+        .filter(c => { const cd = c.centre?.coordinates; return cd && distKm(lat,lon,cd[1],cd[0]) <= RAYON_KM; })
+        .sort((a,b) => { const ca=a.centre.coordinates, cb=b.centre.coordinates; return distKm(lat,lon,ca[1],ca[0])-distKm(lat,lon,cb[1],cb[0]); })
+        .slice(0, MAX_COMMUNES);
+
+      // 4. Contour + DVF en parallèle pour chaque commune
+      const results = await Promise.all(nearby.map(async c => {
+        const [cLon, cLat] = c.centre.coordinates;
+        const [contourRes, dvfRes] = await Promise.all([
+          fetch(`https://geo.api.gouv.fr/communes/${c.code}?fields=contour`, { signal: AbortSignal.timeout(7000) }).catch(()=>null),
+          fetch(`https://api.dvf.etalab.gouv.fr/dvf/around/?lat=${cLat}&lon=${cLon}&dist=${RAYON_DVF_M}`, { signal: AbortSignal.timeout(9000) }).catch(()=>null),
+        ]);
+        let contour = null;
+        try { if(contourRes?.ok){ const gj=await contourRes.json(); contour=gj.contour||null; } } catch {}
+        let medianM2=null, count=0;
+        try {
+          if(dvfRes?.ok){
+            const dvfData = await dvfRes.json();
+            const vals = (dvfData.features||[])
+              .filter(f=>{ const p=f.properties||{}; return p.nature_mutation==='Vente'&&(p.surface_reelle_bati||0)>9&&(p.valeur_fonciere||0)>5000; })
+              .map(f=>Math.round(f.properties.valeur_fonciere/f.properties.surface_reelle_bati))
+              .filter(p=>p>300&&p<30000).sort((a,b)=>a-b);
+            count=vals.length;
+            medianM2=count>0?vals[Math.floor(count/2)]:null;
+          }
+        } catch {}
+        return { code:c.code, nom:c.nom, lat:cLat, lon:cLon, contour, medianM2, count };
+      }));
+
+      window._prixCommunesData = {
+        communes: results.filter(r=>r.contour),
+        communePrincipale: c0.nom,
+        source: 'geo.api.gouv.fr · DVF Etalab DGFiP'
+      };
+    } catch(e) {
+      showPanel('🗺️ Prix au m² par commune',`<p style="color:var(--muted)">Erreur lors du chargement : ${e.message}</p>`);
+      return;
+    }
   }
 
   const d = window._prixCommunesData;
-  if(!d || !d.communes?.length) {
+  if(!d?.communes?.length) {
     showPanel('🗺️ Prix au m² par commune','<p style="color:var(--muted)">Données indisponibles pour ce secteur.</p>');
     return;
   }

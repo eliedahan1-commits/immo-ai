@@ -3,8 +3,7 @@
     "api/amenites.js": { "maxDuration": 30 },
     "api/services.js": { "maxDuration": 30 },
     "api/mobilite.js": { "maxDuration": 30 },
-    "api/ecoles.js":          { "maxDuration": 30 },
-    "api/prix-communes.js":   { "maxDuration": 30 }
+    "api/ecoles.js":   { "maxDuration": 30 }
   },
   "headers": [
     {
