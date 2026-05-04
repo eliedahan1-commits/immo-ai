@@ -634,7 +634,7 @@ select.inp{
   <div class="nav-section">Analyser un bien</div>
   <div class="nav-item" onclick="go('analyse')"><span class="nav-icon">🏠</span>Analyse complète</div>
   <div class="nav-sub">
-    <div class="nav-item" onclick="go('prix')"><span class="nav-icon">💰</span>Prix & marché DVF</div>
+    <div class="nav-item" onclick="go('prix')"><span class="nav-icon">💰</span>Prix des dernières transactions</div>
     <div class="nav-item" onclick="go('risques')"><span class="nav-icon">⚠️</span>Risques naturels</div>
     <div class="nav-item" onclick="go('energie')"><span class="nav-icon">⚡</span>Énergie & DPE</div>
     <div class="nav-item" onclick="go('bruit')"><span class="nav-icon">🔇</span>Bruit & nuisances</div>
@@ -1204,7 +1204,7 @@ async function apiCall(netlifyPath, directUrl, options={}) {
 }
 
 const PAGES = {
-  home:'Accueil', analyse:'Analyse complète', prix:'Prix & marché DVF',
+  home:'Accueil', analyse:'Analyse complète', prix:'Prix des dernières transactions',
   risques:'Risques naturels', energie:'Énergie & DPE', bruit:'Bruit & nuisances',
   urbanisme:'Urbanisme & PLU', ecoles:'Écoles & IPS', mobilite:'Mobilité & transports',
   fibre:'Internet & fibre', services:'Services & santé', soleil:'Météo & ensoleillement',
@@ -1469,7 +1469,7 @@ function renderCards(props, coords){
     {
       title: '🏠 Analyser un bien',
       cards: [
-        {id:'dvf',       icon:'💰', label:'Prix & marché DVF',      value:'<span class="spin"></span>', sub:'Transactions réelles',      source:'DVF DGFiP'},
+        {id:'dvf',       icon:'💰', label:'Prix des dernières transactions',      value:'<span class="spin"></span>', sub:'Transactions réelles',      source:'DVF DGFiP'},
         {id:'risques',   icon:'⚠️', label:'Risques naturels',       value:'<span class="spin"></span>', sub:'Géorisques officiel',       source:'Géorisques'},
         {id:'dpe',       icon:'⚡', label:'Énergie & DPE',          value:'Simuler →',                  sub:'Cliquez pour simuler',      source:'ADEME'},
         {id:'bruit',     icon:'🔇', label:'Bruit & nuisances',      value:'<span class="spin"></span>', sub:'Routes, voies ferrées, aéroports', source:'OSM'},
@@ -1913,7 +1913,7 @@ async function loadINSEE(citycode, lat, lng){
 // ── Services & commerces ──
 async function loadServices(lat, lng, dist=1000){
   try{
-    const r = await apiCall(`/api/services?lat=${lat}&lon=${lng}&dist=${dist}&_v=7`, `https://overpass-api.de/api/interpreter`, {signal:AbortSignal.timeout(29000)});
+    const r = await apiCall(`/api/services?lat=${lat}&lon=${lng}&dist=${dist}&_v=8`, `https://overpass-api.de/api/interpreter`, {signal:AbortSignal.timeout(29000)});
     if(!r.ok) throw new Error();
     const d = await r.json();
     if(!d.success) throw new Error();
@@ -2023,9 +2023,9 @@ function closePanel(){
 
 function showDVFDetail(){
   const d = window._dvfData;
-  if(!d){showPanel('💰 Prix & marché DVF','<p style="color:var(--muted)">Données en cours de chargement… Analysez d\'abord une adresse.</p>');return;}
+  if(!d){showPanel('💰 Prix des dernières transactions','<p style="color:var(--muted)">Données en cours de chargement… Analysez d\'abord une adresse.</p>');return;}
   if(d.failed){
-    showPanel('💰 Prix & marché DVF',`
+    showPanel('💰 Prix des dernières transactions',`
       <p style="color:var(--muted);margin-bottom:1rem">⚠️ ${d.message}</p>
       <p style="font-size:.78rem;color:var(--muted);margin-bottom:1rem">Les données DVF officielles (DGFiP) sont parfois temporairement indisponibles. Vous pouvez consulter directement :</p>
       <a href="https://explore.data.gouv.fr/fr/immobilier?onglet=carte&filtre=tous" target="_blank" class="btn btn-dark" style="display:inline-block;margin-bottom:.5rem">📊 Carte DVF officielle ↗</a><br>
@@ -2033,14 +2033,28 @@ function showDVFDetail(){
     `);
     return;
   }
-  if(!d.stats){showPanel('💰 Prix & marché DVF','<p style="color:var(--muted)">Aucune transaction trouvée dans ce secteur.</p>');return;}
+  if(!d.stats){showPanel('💰 Prix des dernières transactions','<p style="color:var(--muted)">Aucune transaction trouvée dans ce secteur.</p>');return;}
   const periodeLabel = d.dateRange ? `Période ${d.dateRange}` : '';
   window._dvfRecentes = d.recentes || [];
   window._dvfFilterType = 'tous';
   window._dvfFilterSurf = 0;
   window._dvfFilterN    = 0;
+  window._dvfSortCol    = 'date';
+  window._dvfSortDir    = 'desc'; // date la plus récente par défaut
+  window.sortDVF = function(col){
+    if(window._dvfSortCol===col){ window._dvfSortDir = window._dvfSortDir==='asc'?'desc':'asc'; }
+    else { window._dvfSortCol=col; window._dvfSortDir=col==='date'?'desc':'asc'; }
+    renderDVFRows();
+    // Mettre à jour les indicateurs dans les <th>
+    document.querySelectorAll('.dvf-th').forEach(th=>{
+      const ind = th.querySelector('.sort-ind');
+      if(!ind) return;
+      if(th.dataset.col===window._dvfSortCol) ind.textContent = window._dvfSortDir==='asc'?' ▲':' ▼';
+      else ind.textContent=' ⇅';
+    });
+  };
   function renderDVFRows(){
-    let liste = window._dvfRecentes;
+    let liste = [...(window._dvfRecentes||[])];
     if(window._dvfFilterType !== 'tous') liste = liste.filter(t => {
       const tp = (t.type||'').toLowerCase();
       if(window._dvfFilterType==='appt')   return tp.includes('appartement');
@@ -2055,6 +2069,19 @@ function showDVFDetail(){
       const tranche=SURF_TRANCHES.find(t=>t[0]===s);
       if(tranche) liste=liste.filter(t=>(t.surf||0)>=tranche[1]&&(t.surf||0)<tranche[2]);
     }
+    // Tri
+    const col=window._dvfSortCol, dir=window._dvfSortDir;
+    liste.sort((a,b)=>{
+      let va, vb;
+      if(col==='date')   { va=a.date||''; vb=b.date||''; }
+      else if(col==='type')  { va=a.type||''; vb=b.type||''; return dir==='asc'?va.localeCompare(vb):vb.localeCompare(va); }
+      else if(col==='surf')  { va=a.surf||0; vb=b.surf||0; }
+      else if(col==='prixM2'){ va=a.prixM2||0; vb=b.prixM2||0; }
+      else if(col==='prix')  { va=a.prix||0; vb=b.prix||0; }
+      else { va=a.date||''; vb=b.date||''; }
+      if(typeof va==='string') return dir==='asc'?va.localeCompare(vb):vb.localeCompare(va);
+      return dir==='asc'?va-vb:vb-va;
+    });
     // Stats dynamiques sur la sélection filtrée (avant limite N)
     const prix2 = liste.map(t=>t.prixM2).filter(v=>v>0).sort((a,b)=>a-b);
     const medFilt = prix2.length ? prix2[Math.floor(prix2.length/2)] : null;
@@ -2129,7 +2156,13 @@ function showDVFDetail(){
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Afficher :</span>${btnsFiltres}
     </div>
     <div style="margin-bottom:1.2rem"><canvas id="dvfHistChart" height="140"></canvas></div>
-    <table class="tbl"><thead><tr><th>Date</th><th>Type</th><th>Surface</th><th>Prix/m²</th><th>Prix total</th></tr></thead>
+    <table class="tbl"><thead><tr>
+      <th class="dvf-th" data-col="date"  onclick="sortDVF('date')"  style="cursor:pointer;user-select:none">Date<span class="sort-ind"> ▼</span></th>
+      <th class="dvf-th" data-col="type"  onclick="sortDVF('type')"  style="cursor:pointer;user-select:none">Type<span class="sort-ind"> ⇅</span></th>
+      <th class="dvf-th" data-col="surf"  onclick="sortDVF('surf')"  style="cursor:pointer;user-select:none">Surface<span class="sort-ind"> ⇅</span></th>
+      <th class="dvf-th" data-col="prixM2" onclick="sortDVF('prixM2')" style="cursor:pointer;user-select:none">Prix/m²<span class="sort-ind"> ⇅</span></th>
+      <th class="dvf-th" data-col="prix"  onclick="sortDVF('prix')"  style="cursor:pointer;user-select:none">Prix total<span class="sort-ind"> ⇅</span></th>
+    </tr></thead>
     <tbody id="dvfTbody"></tbody></table>
     <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">${periodeLabel?periodeLabel+' · ':''}Source : ${d.source}</p>`);
   renderDVFRows();
@@ -2581,7 +2614,7 @@ function showServicesMap(filterCat){
     <div style="margin-bottom:.6rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Rayon :</span>${btnsSvcRayon}
     </div>
-    <div style="height:130px;margin-bottom:.8rem"><canvas id="servicesChart"></canvas></div>
+    <div style="height:260px;margin-bottom:.8rem"><canvas id="servicesChart"></canvas></div>
     <div class="map-container" id="mapServices"></div>
     <p style="font-size:.62rem;color:var(--muted)">Source : OpenStreetMap · Rayon ${svcDist>=1000?(svcDist/1000)+'km':svcDist+'m'} · ${d.total} établissements trouvés</p>
   `);
@@ -2649,7 +2682,7 @@ function showServicesMap(filterCat){
     if(ctxSvc&&window.Chart){
       if(window._servicesChart){window._servicesChart.destroy();}
       const CAT_INFO2=CAT_INFO.map(c=>({key:c.key,label:c.emoji+' '+c.label,c:c.couleur+'b3'}));
-      window._servicesChart=new Chart(ctxSvc,{type:'bar',plugins:[ChartDataLabels],data:{labels:CAT_INFO2.map(c=>c.label),datasets:[{data:CAT_INFO2.map(c=>d.stats[c.key]||0),backgroundColor:CAT_INFO2.map(c=>c.c),borderWidth:0,borderRadius:4}]},options:{indexAxis:'y',plugins:{legend:{display:false},datalabels:{anchor:'end',align:'right',color:'#8a7d68',font:{size:8,weight:'600'},formatter:v=>v||''},title:{display:true,text:`Répartition par catégorie (${window._servicesCurrentDist||1000}m)`,font:{size:10,family:'Outfit,sans-serif'},color:'#8a7d68',padding:{bottom:6}}},scales:{x:{ticks:{font:{size:8},color:'#8a7d68'},grid:{color:'rgba(0,0,0,.05)'}},y:{ticks:{font:{size:8},color:'#3d2f1e'},grid:{display:false}}},maintainAspectRatio:false,layout:{padding:{right:28,top:4}},animation:{duration:400}}});
+      window._servicesChart=new Chart(ctxSvc,{type:'bar',plugins:[ChartDataLabels],data:{labels:CAT_INFO2.map(c=>c.label),datasets:[{data:CAT_INFO2.map(c=>d.stats[c.key]||0),backgroundColor:CAT_INFO2.map(c=>c.c),borderWidth:0,borderRadius:4,barThickness:22}]},options:{indexAxis:'y',plugins:{legend:{display:false},datalabels:{anchor:'end',align:'right',color:'#8a7d68',font:{size:9,weight:'600'},formatter:v=>v||''},title:{display:true,text:`Répartition par catégorie (${window._servicesCurrentDist||1000}m)`,font:{size:10,family:'Outfit,sans-serif'},color:'#8a7d68',padding:{bottom:6}}},scales:{x:{ticks:{font:{size:9},color:'#8a7d68'},grid:{color:'rgba(0,0,0,.05)'}},y:{ticks:{font:{size:9},color:'#3d2f1e'},grid:{display:false}}},maintainAspectRatio:false,layout:{padding:{right:32,top:4}},animation:{duration:400}}});
     }
 
     // Labels distances cercles (dynamiques)
@@ -3759,7 +3792,7 @@ function calcEmprunt(){
       <div class="result-n">${fmt(Math.round(prixMax/1000)*1000)}</div>
       <div style="font-size:.7rem;color:rgba(255,255,255,.7);text-align:center;margin-bottom:1rem">Budget d'achat total estimé</div>
       ${[['Mensualité max (35%)',fmt(Math.round(mensMax))+'/mois'],['Capacité d\'emprunt',fmt(Math.round(empruntMax))],['Apport',fmt(apport)]].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
-      <div class="result-insight">Budget de <strong>${fmt(Math.round(prixMax/1000)*1000)}</strong> — consultez la page <strong>Prix & marché</strong> pour voir ce que vous pouvez acheter dans votre ville cible.</div>
+      <div class="result-insight">Budget de <strong>${fmt(Math.round(prixMax/1000)*1000)}</strong> — consultez la page <strong>Prix des dernières transactions</strong> pour voir ce que vous pouvez acheter dans votre ville cible.</div>
     </div>`;
   setCard('emprunt', fmt(Math.round(prixMax/1000)*1000), 'Budget max · emprunt '+fmt(Math.round(empruntMax)), 'good');
 }

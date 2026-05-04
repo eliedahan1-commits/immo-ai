@@ -10,8 +10,8 @@ export default async function handler(req, res) {
   try {
     // Requête fusionnée avec regex : 4 sous-requêtes au lieu de 16 → beaucoup plus rapide
     const query = `[out:json][timeout:28];(
-      node["amenity"~"^(pharmacy|doctors|hospital|clinic|dentist|bank|post_office|restaurant|cafe|charging_station|bicycle_rental|childcare)$"](around:${dist},${lat},${lon});
-      node["shop"~"^(supermarket|convenience)$"](around:${dist},${lat},${lon});
+      nwr["amenity"~"^(pharmacy|doctors|hospital|clinic|dentist|bank|post_office|restaurant|cafe|charging_station|bicycle_rental|childcare)$"](around:${dist},${lat},${lon});
+      nwr["shop"~"^(supermarket|convenience|bakery|butcher|greengrocer)$"](around:${dist},${lat},${lon});
       nwr["leisure"~"^(fitness_centre|sports_centre|swimming_pool|pitch|track|tennis|stadium|sports_hall|golf_course|ice_rink|skatepark)$"](around:${dist},${lat},${lon});
       nwr["leisure"~"^(park|garden|nature_reserve|playground)$"](around:${dist},${lat},${lon});
       nwr["amenity"~"^(theatre|cinema|museum|library|arts_centre)$"](around:${dist},${lat},${lon});
@@ -47,6 +47,9 @@ export default async function handler(req, res) {
         else if (tags.amenity === 'dentist') { categorie = 'sante'; icone = '🦷'; couleur = '#e63946'; priorite = 2; }
         else if (tags.shop === 'supermarket') { categorie = 'commerce'; icone = '🛒'; couleur = '#f4a261'; priorite = 2; }
         else if (tags.shop === 'convenience') { categorie = 'commerce'; icone = '🏪'; couleur = '#f4a261'; priorite = 3; }
+        else if (tags.shop === 'bakery') { categorie = 'commerce'; icone = '🥖'; couleur = '#f4a261'; priorite = 3; }
+        else if (tags.shop === 'butcher') { categorie = 'commerce'; icone = '🥩'; couleur = '#f4a261'; priorite = 4; }
+        else if (tags.shop === 'greengrocer') { categorie = 'commerce'; icone = '🥦'; couleur = '#f4a261'; priorite = 4; }
         else if (tags.amenity === 'bank') { categorie = 'service'; icone = '🏦'; couleur = '#457b9d'; priorite = 4; }
         else if (tags.amenity === 'post_office') { categorie = 'service'; icone = '📮'; couleur = '#457b9d'; priorite = 4; }
         else if (['fitness_centre','sports_centre','swimming_pool','pitch','track','tennis','stadium','sports_hall','golf_course','ice_rink','skatepark'].includes(tags.leisure)) { categorie = 'sport'; icone = '🏋️'; couleur = '#2a9d8f'; priorite = 5; }
@@ -110,6 +113,4 @@ export default async function handler(req, res) {
       dateExtraction: new Date().toISOString()
     });
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
-  }
-}
+    return res.status(500).json({ success: false, error:
