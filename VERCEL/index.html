@@ -2803,84 +2803,62 @@ async function showPrixCommunesDetail(){
   const lat = currentCoords?.lat, lon = currentCoords?.lng;
   if(!lat) { showPanel('🗺️ Prix au m² par commune','<p style="color:var(--muted)">Analysez d\'abord une adresse.</p>'); return; }
 
-  showPanel('🗺️ Prix au m² par commune', '<div style="text-align:center;padding:2rem"><span class="spin"></span><p style="margin-top:1rem;color:var(--muted);font-size:.85rem">Chargement des communes et des prix DVF…<br><span style="font-size:.75rem;opacity:.6">Peut prendre 15–25 secondes</span></p></div>');
+  showPanel('🗺️ Prix au m² par commune', '<div style="text-align:center;padding:2rem"><span class="spin"></span><p style="margin-top:1rem;color:var(--muted);font-size:.85rem">Chargement…</p></div>');
 
-  // Chargement côté navigateur (APIs CORS-friendly, pas de fonction Vercel)
   if(!window._prixCommunesData) {
     try {
-      const RAYON_KM = 18, MAX_COMMUNES = 15, RAYON_DVF_M = 4000;
-
       function distKm(la1,lo1,la2,lo2){
         const dLat=(la2-la1)*111, dLon=(lo2-lo1)*111*Math.cos(la1*Math.PI/180);
         return Math.sqrt(dLat*dLat+dLon*dLon);
       }
+      const RAYON_KM = 18, MAX_COMMUNES = 15;
 
-      // 1. Commune + département du point
+      // 1. Charger le fichier DVF pré-calculé (servi par Vercel, quasi-instantané)
+      if(!window._dvfCommunesDB){
+        const rDB = await fetch('/data/dvf-communes.json', { signal: AbortSignal.timeout(10000) });
+        if(!rDB.ok) throw new Error('Fichier DVF introuvable — lancer le script de génération');
+        window._dvfCommunesDB = await rDB.json();
+      }
+      const db = window._dvfCommunesDB.communes || {};
+
+      // 2. Commune + département
       const r0 = await fetch(`https://geo.api.gouv.fr/communes?lat=${lat}&lon=${lon}&fields=nom,code,codeDepartement`, { signal: AbortSignal.timeout(8000) });
-      const arr0 = await r0.json();
-      const c0 = arr0?.[0];
+      const c0 = (await r0.json())?.[0];
       if(!c0) throw new Error('Commune introuvable');
 
-      // 2. UNE SEULE requête : toutes les communes du département AVEC contours
+      // 3. Communes du département avec contours (1 seule requête)
       const rDept = await fetch(
         `https://geo.api.gouv.fr/departements/${c0.codeDepartement}/communes?fields=nom,code,centre,contour`,
         { signal: AbortSignal.timeout(20000) }
       );
-      if(!rDept.ok) throw new Error(`geo.api.gouv.fr : ${rDept.status}`);
+      if(!rDept.ok) throw new Error(`geo.api.gouv.fr ${rDept.status}`);
       const allCommunes = await rDept.json();
 
-      // 3. Filtrer par rayon + trier + limiter
+      // 4. Filtrer, trier, joindre avec la DB locale
       const nearby = allCommunes
-        .filter(c => { const cd = c.centre?.coordinates; return cd && c.contour && distKm(lat,lon,cd[1],cd[0]) <= RAYON_KM; })
-        .sort((a,b) => { const ca=a.centre.coordinates, cb=b.centre.coordinates; return distKm(lat,lon,ca[1],ca[0])-distKm(lat,lon,cb[1],cb[0]); })
-        .slice(0, MAX_COMMUNES);
+        .filter(c => { const cd=c.centre?.coordinates; return cd && c.contour && distKm(lat,lon,cd[1],cd[0])<=RAYON_KM; })
+        .sort((a,b) => { const ca=a.centre.coordinates,cb=b.centre.coordinates; return distKm(lat,lon,ca[1],ca[0])-distKm(lat,lon,cb[1],cb[0]); })
+        .slice(0, MAX_COMMUNES)
+        .map(c => {
+          const [cLon,cLat]=c.centre.coordinates;
+          const dvf = db[c.code];
+          return {
+            code:c.code, nom:c.nom, lat:cLat, lon:cLon, contour:c.contour,
+            medianM2: dvf?.median||null,
+            count:    dvf?.count||0,
+            min:      dvf?.min||null,
+            max:      dvf?.max||null,
+            q1:       dvf?.q1||null,
+            q3:       dvf?.q3||null,
+          };
+        });
 
-      if(!nearby.length) throw new Error('Aucune commune avec contour dans ce secteur');
-
-      // 4. DVF par lots de 3 (évite le rate-limiting), double source
-      async function fetchDVF(cLat, cLon){
-        const parse = data => {
-          const vals = (data.features||[])
-            .map(f=>{ const p=f.properties||{};
-              const surf=parseFloat(p.surface_reelle_bati||p.surface_carrez||p.surface_habitable||p.surface||0);
-              const prix=parseFloat(p.valeur_fonciere||p.prix||0);
-              const mut = (p.nature_mutation||'').toLowerCase();
-              if(mut && !mut.includes('vente')) return null;
-              return surf>5&&prix>1000 ? Math.round(prix/surf) : null; })
-            .filter(v=>v&&v>300&&v<35000).sort((a,b)=>a-b);
-          return vals;
-        };
-        // Source 1 : etalab
-        try {
-          const r = await fetch(`https://api.dvf.etalab.gouv.fr/dvf/around/?lat=${cLat}&lon=${cLon}&dist=${RAYON_DVF_M}`, { signal:AbortSignal.timeout(10000) });
-          if(r.ok){ const d=await r.json(); const v=parse(d); if(v.length>0) return v; }
-        } catch {}
-        // Source 2 : cquest (fallback)
-        try {
-          const r = await fetch(`https://api.cquest.org/dvf?lat=${cLat}&lon=${cLon}&dist=${RAYON_DVF_M}&nature_mutation=Vente`, { signal:AbortSignal.timeout(10000) });
-          if(r.ok){ const d=await r.json(); return parse(d); }
-        } catch {}
-        return [];
-      }
-
-      // Traitement par lots de 3
-      const results = [];
-      for(let i=0; i<nearby.length; i+=3){
-        const batch = nearby.slice(i, i+3);
-        const batchResults = await Promise.all(batch.map(async c => {
-          const [cLon, cLat] = c.centre.coordinates;
-          const vals = await fetchDVF(cLat, cLon);
-          const count=vals.length, medianM2=count>0?vals[Math.floor(count/2)]:null;
-          const min=count>0?vals[0]:null, max=count>0?vals[vals.length-1]:null;
-          return { code:c.code, nom:c.nom, lat:cLat, lon:cLon, contour:c.contour, medianM2, count, min, max };
-        }));
-        results.push(...batchResults);
-      }
+      if(!nearby.length) throw new Error('Aucune commune dans ce secteur');
 
       window._prixCommunesData = {
-        communes: results,
+        communes: nearby,
         communePrincipale: c0.nom,
-        source: 'DVF DGFiP via api.cquest.org'
+        source: window._dvfCommunesDB.meta?.source || 'DVF DGFiP'
       };
     } catch(e) {
       showPanel('🗺️ Prix au m² par commune',`<p style="color:var(--muted)">Erreur : ${e.message}</p>`);
@@ -2950,13 +2928,17 @@ async function showPrixCommunesDetail(){
       layer.on('mouseover', function(){ this.setStyle({ weight:3, color:'#333', fillOpacity:0.92 }); });
       layer.on('mouseout',  function(){ this.setStyle({ weight:2, color:'#ffffff', fillOpacity:0.78 }); });
 
+      const safeColor = color==='#ffffbf'?'#b8832a':color;
       const tooltip = c.medianM2
-        ? `<div style="font-size:.85rem;line-height:1.5">
-            <strong>${c.nom}</strong><br>
-            <span style="font-size:1.1rem;font-weight:700;color:${color==='#ffffbf'?'#b8832a':color}">${c.medianM2.toLocaleString('fr-FR')} €/m²</span><br>
-            <span style="color:#555;font-size:.75rem">${c.count} ventes · fourchette ${(c.min||0).toLocaleString('fr-FR')}–${(c.max||0).toLocaleString('fr-FR')} €/m²</span>
+        ? `<div style="font-size:.85rem;line-height:1.6;min-width:180px">
+            <strong style="font-size:.95rem">${c.nom}</strong><br>
+            <span style="font-size:1.2rem;font-weight:700;color:${safeColor}">${c.medianM2.toLocaleString('fr-FR')} €/m²</span><br>
+            <span style="color:#555;font-size:.75rem">
+              ${c.count} ventes DVF · ${(c.meta?.annees||[]).join('–') || '2022–2024'}<br>
+              ${c.q1&&c.q3?`Q1 ${c.q1.toLocaleString('fr-FR')} € · Q3 ${c.q3.toLocaleString('fr-FR')} €`:`Min ${(c.min||0).toLocaleString('fr-FR')} · Max ${(c.max||0).toLocaleString('fr-FR')} €/m²`}
+            </span>
            </div>`
-        : `<div style="font-size:.85rem"><strong>${c.nom}</strong><br><span style="color:#888">Données insuffisantes</span></div>`;
+        : `<div style="font-size:.85rem"><strong>${c.nom}</strong><br><span style="color:#aaa;font-size:.8rem">Aucune vente enregistrée</span></div>`;
       layer.bindTooltip(tooltip, { sticky:true, className:'leaflet-prix-tooltip', opacity:1 });
 
       try {
