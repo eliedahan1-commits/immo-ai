@@ -5,7 +5,7 @@ const OVERPASS_URLS = [
   'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
 ];
-const TIMEOUT_MS = 8000;
+const TIMEOUT_MS = 25000;
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -14,13 +14,13 @@ export default async function handler(req, res) {
   if (!lat || !lon) return res.status(400).json({ error: 'lat et lon requis' });
 
   try {
-    const query = `[out:json][timeout:7];(
-      way["highway"~"motorway|trunk"](around:500,${lat},${lon});
-      way["highway"="primary"](around:300,${lat},${lon});
-      way["highway"="secondary"](around:200,${lat},${lon});
-      way["railway"~"rail|subway|tram"](around:400,${lat},${lon});
-      node["aeroway"="aerodrome"](around:8000,${lat},${lon});
-      way["aeroway"="aerodrome"](around:8000,${lat},${lon});
+    const query = `[out:json][timeout:24];(
+      way["highway"~"motorway|trunk"]["tunnel"!="yes"](around:500,${lat},${lon});
+      way["highway"="primary"]["tunnel"!="yes"](around:300,${lat},${lon});
+      way["highway"="secondary"]["tunnel"!="yes"](around:200,${lat},${lon});
+      way["railway"~"rail|subway|tram"]["tunnel"!="yes"](around:400,${lat},${lon});
+      node["aeroway"="aerodrome"]["aerodrome:type"!~"military|heliport"](around:6000,${lat},${lon});
+      way["aeroway"="aerodrome"]["aerodrome:type"!~"military|heliport"](around:6000,${lat},${lon});
     );out tags;`;
 
     let elements = [];

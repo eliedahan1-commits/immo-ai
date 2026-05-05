@@ -2864,6 +2864,7 @@ async function showPrixCommunesDetail(){
       window._prixCommunesData = {
         communes: nearby,
         communePrincipale: c0.nom,
+        communePrincipaleCode: c0.code,
         source: window._dvfCommunesDB.meta?.source || 'DVF DGFiP'
       };
     } catch(e) {
@@ -2880,8 +2881,9 @@ async function showPrixCommunesDetail(){
 
   const communes = d.communes;
   const avecPrix = communes.filter(c => c.medianM2);
-  const tous = avecPrix.map(c => c.medianM2).sort((a,b)=>a-b);
-  const medGlobal = tous.length ? tous[Math.floor(tous.length/2)] : null;
+  const communePrinc = communes.find(c => c.code === d.communePrincipaleCode) || communes[0];
+  const medGlobal = communePrinc?.medianM2 || null;
+  const nomCommune = d.communePrincipale || communePrinc?.nom || 'Commune';
 
   // Légende palette
   const palette = [
@@ -2899,7 +2901,7 @@ async function showPrixCommunesDetail(){
 
   showPanel('🗺️ Prix au m² par commune', `
     <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1rem">
-      <div class="stat-box"><span class="stat-n">${medGlobal?medGlobal.toLocaleString('fr-FR')+' €':'—'}</span><span class="stat-l">💰 Médian zone /m²</span></div>
+      <div class="stat-box"><span class="stat-n">${medGlobal?medGlobal.toLocaleString('fr-FR')+' €':'—'}</span><span class="stat-l">💰 Médian ${nomCommune} /m²</span></div>
       <div class="stat-box"><span class="stat-n">${communes.length}</span><span class="stat-l">🏘️ Communes</span></div>
       <div class="stat-box"><span class="stat-n">${avecPrix.length}</span><span class="stat-l">📊 Avec données DVF</span></div>
     </div>
@@ -2996,8 +2998,12 @@ function showBruitDetail(){
           </div>
         </div>`).join('')}
     </div>` : `<p style="color:var(--green);margin-bottom:1rem">✓ Aucune source de bruit majeure identifiée à proximité</p>`}
-    <div style="background:rgba(184,131,42,.06);border:1px solid var(--goldborder);border-radius:var(--r);padding:.7rem;font-size:.72rem;color:var(--muted);line-height:1.5">
-      ⚠️ ${d.avertissement}. Pour une mesure officielle, consultez <a href="https://www.bruit.fr/" target="_blank" style="color:var(--gold)">bruit.fr</a>.
+    <div style="background:rgba(184,131,42,.06);border:1px solid var(--goldborder);border-radius:var(--r);padding:.7rem;font-size:.72rem;color:var(--muted);line-height:1.8">
+      ⚠️ ${d.avertissement}.<br>
+      Pour une mesure officielle :
+      <a href="https://www.bruit.fr/" target="_blank" style="color:var(--gold)">bruit.fr</a> ·
+      <a href="https://www.bruitparif.fr/" target="_blank" style="color:var(--gold)">bruitparif.fr (Île-de-France)</a> ·
+      <a href="https://www.georisques.gouv.fr/" target="_blank" style="color:var(--gold)">georisques.gouv.fr</a>
     </div>
     <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : ${d.source}</p>`);
 }
@@ -3811,7 +3817,7 @@ async function runProfil(){
       ctx.style.cursor='pointer';
     },80);
   }catch(e){txt.innerHTML='⚠️ '+e.message;}
-  btn.disabled=false;btn.innerHTML='✦ Analyser la compatibilité';
+  btn.disabled=false;btn.innerHTML='✦ Analyser la compatibilité avec votre profil de vie';
 }
 
 // ── Runner : Comparer des biens ──
