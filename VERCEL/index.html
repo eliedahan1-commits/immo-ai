@@ -923,7 +923,7 @@ path.leaflet-interactive:focus{outline:none;}
         <button class="profil-rayon-btn" data-r="1000" onclick="setProfilRayon(1000)" style="padding:.2rem .6rem;font-size:.72rem;border:1px solid var(--ink);border-radius:3px;cursor:pointer;background:var(--ink);color:#fff;font-weight:600">1 km</button>
         <button class="profil-rayon-btn" data-r="2000" onclick="setProfilRayon(2000)" style="padding:.2rem .6rem;font-size:.72rem;border:1px solid var(--border);border-radius:3px;cursor:pointer;background:var(--white)">2 km</button>
       </div>
-      <button class="btn btn-dark btn-full" onclick="runProfil()" id="btnProfil">✦ Analyser la compatibilité</button>
+      <button class="btn btn-dark btn-full" onclick="runProfil()" id="btnProfil">✦ Analyser la compatibilité avec votre profil de vie</button>
     </div>
 
     <!-- Layout 2 colonnes -->
@@ -1281,7 +1281,13 @@ function go(id){
     const extractVille = addr => { const m=addr.match(/\d{5}\s+(.+)$/); return m?m[1]:addr; };
     if(id === 'prix')     set('dvfAddr', currentAddress);
     if(id === 'offre')    set('oRue',    currentAddress);
-    if(id === 'profil')   { const pLbl=document.getElementById('pAdresseLabel'); if(pLbl&&currentAddress) pLbl.innerHTML='📍 <strong>'+currentAddress+'</strong>'; updatePoidsDisplay(); }
+    if(id === 'profil')   {
+      const pLbl=document.getElementById('pAdresseLabel');
+      if(pLbl&&currentAddress) pLbl.innerHTML='📍 <strong>'+currentAddress+'</strong>';
+      updatePoidsDisplay();
+      // Afficher le radar immédiatement avec les données déjà chargées
+      if(currentCoords) setTimeout(()=>runProfil(), 150);
+    }
   }
 }
 
