@@ -1,6 +1,7 @@
 // ══ VERCEL FUNCTION : DVF (nouvelle API dvf-api.data.gouv.fr) ══
 
 // ── Configuration ──
+const ANNEE_MIN            = 2023;   // filtre : ignorer les ventes avant cette année
 const DIST_DEFAUT_M        = 3000;   // rayon de recherche par défaut (mètres)
 const DIST_MIN_TRANSACTIONS = 5;     // nb minimum de ventes avant d'élargir aux sections voisines
 const PRIX_M2_MIN          = 500;    // filtre : prix/m² minimum valide (€)
@@ -72,6 +73,8 @@ export default async function handler(req, res) {
         if (!m.latitude || !m.longitude) return false;
         if (distM(lat, lon, m.latitude, m.longitude) > rayon) return false;
         if (m.nature_mutation !== 'Vente') return false;
+        const annee = parseInt((m.date_mutation || '').substring(0, 4));
+        if (annee < ANNEE_MIN) return false;
         const surf = parseFloat(m.surface_reelle_bati || m.lot1_surface_carrez || 0);
         const prix = parseFloat(m.valeur_fonciere || 0);
         return surf > SURFACE_MIN_M2 && prix > PRIX_MIN_TOTAL;

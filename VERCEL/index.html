@@ -2940,8 +2940,8 @@ async function showPrixCommunesDetail(){
             <strong style="font-size:.95rem">${c.nom}</strong><br>
             <span style="font-size:1.2rem;font-weight:700;color:${safeColor}">${c.medianM2.toLocaleString('fr-FR')} €/m²</span><br>
             <span style="color:#555;font-size:.75rem">
-              ${c.count} ventes DVF · ${(c.meta?.annees||[]).join('–') || '2022–2024'}<br>
-              ${c.q1&&c.q3?`Q1 ${c.q1.toLocaleString('fr-FR')} € · Q3 ${c.q3.toLocaleString('fr-FR')} €`:`Min ${(c.min||0).toLocaleString('fr-FR')} · Max ${(c.max||0).toLocaleString('fr-FR')} €/m²`}
+              ${c.count} ventes DVF · ${(c.meta?.annees||[]).join('–') || '2023–2025'}<br>
+              ${c.q1&&c.q3?`La moitié des ventes entre ${c.q1.toLocaleString('fr-FR')} € et ${c.q3.toLocaleString('fr-FR')} €/m²`:`Fourchette : ${(c.min||0).toLocaleString('fr-FR')} – ${(c.max||0).toLocaleString('fr-FR')} €/m²`}
             </span>
            </div>`
         : `<div style="font-size:.85rem"><strong>${c.nom}</strong><br><span style="color:#aaa;font-size:.8rem">Aucune vente enregistrée</span></div>`;

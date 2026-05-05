@@ -40,7 +40,7 @@ const DEPTS = DEPTS_ENV
     ];
 
 // Années DVF à agréger (les 3 dernières = médiane plus robuste)
-const ANNEES = [2022, 2023, 2024];
+const ANNEES = [2023, 2024, 2025];
 
 // URL du fichier DVF par département (géolocalisé, CSV gzippé)
 // Source officielle : https://files.data.gouv.fr/geo-dvf/
