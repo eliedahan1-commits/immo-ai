@@ -559,6 +559,7 @@ select.inp{
   box-shadow:0 4px 16px rgba(0,0,0,.18);
   padding:.5rem .75rem;font-family:'Outfit',sans-serif;
 }
+path.leaflet-interactive:focus{outline:none;}
 .map-legend{
   display:flex;flex-wrap:wrap;gap:.5rem;
   margin-bottom:.75rem;
@@ -2836,32 +2837,45 @@ async function showPrixCommunesDetail(){
 
       if(!nearby.length) throw new Error('Aucune commune avec contour dans ce secteur');
 
-      // 4. DVF via api.cquest.org (filtre nature_mutation=Vente dans l'URL, CORS OK)
-      const results = await Promise.all(nearby.map(async c => {
-        const [cLon, cLat] = c.centre.coordinates;
-        let medianM2=null, count=0, min=null, max=null;
+      // 4. DVF par lots de 3 (évite le rate-limiting), double source
+      async function fetchDVF(cLat, cLon){
+        const parse = data => {
+          const vals = (data.features||[])
+            .map(f=>{ const p=f.properties||{};
+              const surf=parseFloat(p.surface_reelle_bati||p.surface_carrez||p.surface_habitable||p.surface||0);
+              const prix=parseFloat(p.valeur_fonciere||p.prix||0);
+              const mut = (p.nature_mutation||'').toLowerCase();
+              if(mut && !mut.includes('vente')) return null;
+              return surf>5&&prix>1000 ? Math.round(prix/surf) : null; })
+            .filter(v=>v&&v>300&&v<35000).sort((a,b)=>a-b);
+          return vals;
+        };
+        // Source 1 : etalab
         try {
-          const dvfRes = await fetch(
-            `https://api.cquest.org/dvf?lat=${cLat}&lon=${cLon}&dist=${RAYON_DVF_M}&nature_mutation=Vente`,
-            { signal: AbortSignal.timeout(12000) }
-          );
-          if(dvfRes.ok){
-            const dvfData = await dvfRes.json();
-            const vals = (dvfData.features||[])
-              .map(f=>{ const p=f.properties||{};
-                const surf=parseFloat(p.surface_reelle_bati||p.surface_carrez||p.surface_habitable||p.surface||0);
-                const prix=parseFloat(p.valeur_fonciere||p.prix||0);
-                return surf>5&&prix>1000 ? Math.round(prix/surf) : null; })
-              .filter(v=>v&&v>300&&v<35000).sort((a,b)=>a-b);
-            count=vals.length;
-            if(count>0){
-              medianM2=vals[Math.floor(count/2)];
-              min=vals[0]; max=vals[vals.length-1];
-            }
-          }
+          const r = await fetch(`https://api.dvf.etalab.gouv.fr/dvf/around/?lat=${cLat}&lon=${cLon}&dist=${RAYON_DVF_M}`, { signal:AbortSignal.timeout(10000) });
+          if(r.ok){ const d=await r.json(); const v=parse(d); if(v.length>0) return v; }
         } catch {}
-        return { code:c.code, nom:c.nom, lat:cLat, lon:cLon, contour:c.contour, medianM2, count, min, max };
-      }));
+        // Source 2 : cquest (fallback)
+        try {
+          const r = await fetch(`https://api.cquest.org/dvf?lat=${cLat}&lon=${cLon}&dist=${RAYON_DVF_M}&nature_mutation=Vente`, { signal:AbortSignal.timeout(10000) });
+          if(r.ok){ const d=await r.json(); return parse(d); }
+        } catch {}
+        return [];
+      }
+
+      // Traitement par lots de 3
+      const results = [];
+      for(let i=0; i<nearby.length; i+=3){
+        const batch = nearby.slice(i, i+3);
+        const batchResults = await Promise.all(batch.map(async c => {
+          const [cLon, cLat] = c.centre.coordinates;
+          const vals = await fetchDVF(cLat, cLon);
+          const count=vals.length, medianM2=count>0?vals[Math.floor(count/2)]:null;
+          const min=count>0?vals[0]:null, max=count>0?vals[vals.length-1]:null;
+          return { code:c.code, nom:c.nom, lat:cLat, lon:cLon, contour:c.contour, medianM2, count, min, max };
+        }));
+        results.push(...batchResults);
+      }
 
       window._prixCommunesData = {
         communes: results,
@@ -3773,12 +3787,15 @@ async function runProfil(){
             legend:{display:false},
             tooltip:{callbacks:{label:ctx=>{const dim=dims[ctx.dataIndex];return dim?.key==='risq'?`${d.ris?.total||0} risque(s)`:`${ctx.raw}/10`;}}},
             datalabels:{
-              color:'#b8832a',
-              font:{size:13,weight:'600',family:'Outfit,sans-serif'},
+              color:'#7a5a1e',
+              font:{size:11,weight:'700',family:'Outfit,sans-serif'},
               formatter:v=>v+'/10',
               anchor:'end',
-              align:'end',
-              offset:4,
+              align:'start',
+              offset:6,
+              backgroundColor:'rgba(255,255,255,.75)',
+              borderRadius:3,
+              padding:{top:1,bottom:1,left:3,right:3},
             }
           },
           animation:{duration:700},
