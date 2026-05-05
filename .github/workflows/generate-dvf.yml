@@ -1,0 +1,33 @@
+name: Génération DVF communes
+
+on:
+  schedule:
+    - cron: '0 3 1 * *'   # 1er de chaque mois à 3h du matin
+  workflow_dispatch:        # ou manuellement depuis GitHub → Actions
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Générer dvf-communes.json
+        run: node VERCEL/scripts/generate-dvf-communes.js
+        env:
+          DEPTS_FILTER: "75,77,78,91,92,93,94,95,13,69,31,33,06,59,44,67,76,38,34,35"
+
+      - name: Commit et push
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add VERCEL/data/dvf-communes.json
+          git diff --staged --quiet || git commit -m "chore: mise à jour DVF communes $(date +%Y-%m)"
+          git push
