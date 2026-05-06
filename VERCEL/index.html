@@ -1524,6 +1524,7 @@ async function analyzeAddressWithFeature(feature){
   const coords=feature.geometry.coordinates;
   currentAddress=props.label;
   currentCoords={lng:coords[0],lat:coords[1]};
+  window._prixCommunesData = null; // invalider le cache prix communes
 
   // Mettre à jour topbar
   document.getElementById('topAddr').textContent=props.label;
