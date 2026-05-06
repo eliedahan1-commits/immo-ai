@@ -1367,7 +1367,7 @@ function addFsBtn(map, el) {
     }, 100);
   }
 
-  btn.addEventListener('click', () => toggleFs(!el.classList.contains('fullscreen')));
+  btn.addEventListener('click', (e) => { e.stopPropagation(); toggleFs(!el.classList.contains('fullscreen')); });
   document.addEventListener('keydown', function onEsc(e) {
     if (e.key === 'Escape' && el.classList.contains('fullscreen')) toggleFs(false);
   });
