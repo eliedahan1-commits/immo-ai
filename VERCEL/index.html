@@ -2825,6 +2825,22 @@ async function showPrixCommunesDetail(){
     }
   }
   const db = window._dvfCommunesDB.communes || {};
+  // Paris : DVF stocke par arrondissement (75101-75120), la carte utilise 75056 → agréger
+  if(!db['75056']) {
+    const arrs = ['75101','75102','75103','75104','75105','75106','75107',
+                  '75108','75109','75110','75111','75112','75113','75114',
+                  '75115','75116','75117','75118','75119','75120'].map(c => db[c]).filter(Boolean);
+    if(arrs.length) {
+      const total = arrs.reduce((s,a) => s+a.count, 0);
+      db['75056'] = {
+        nom:'Paris',
+        median: Math.round(arrs.reduce((s,a) => s+a.median*a.count, 0) / total),
+        q1:     Math.round(arrs.reduce((s,a) => s+a.q1*a.count,     0) / total),
+        q3:     Math.round(arrs.reduce((s,a) => s+a.q3*a.count,     0) / total),
+        count:  total
+      };
+    }
+  }
 
   // 2. Commune + département principaux
   if(!window._prixCommunesData) {
@@ -2929,7 +2945,7 @@ async function showPrixCommunesDetail(){
       const b = map.getBounds();
       const bbox = `${b.getWest().toFixed(3)},${b.getSouth().toFixed(3)},${b.getEast().toFixed(3)},${b.getNorth().toFixed(3)}`;
       try {
-        const r = await fetch(`https://geo.api.gouv.fr/communes?bbox=${bbox}&fields=codeDepartement`, { signal });
+        const r = await fetch(`https://geo.api.gouv.fr/communes?bbox=${bbox}&fields=codeDepartement&limit=5000`, { signal });
         if(!r.ok) return;
         const communes = await r.json();
         const depts = [...new Set(communes.map(c => c.codeDepartement).filter(Boolean))]
