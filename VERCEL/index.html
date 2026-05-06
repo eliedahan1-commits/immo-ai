@@ -2918,23 +2918,40 @@ async function showPrixCommunesDetail(){
       } catch(e) {}
     }
 
+    let _bboxAbort = null;
+
     async function checkVisibleDepts() {
+      // Annuler la requête bbox précédente si encore en cours
+      if(_bboxAbort) _bboxAbort.abort();
+      _bboxAbort = new AbortController();
+      const signal = _bboxAbort.signal;
+
       const b = map.getBounds();
       const bbox = `${b.getWest().toFixed(3)},${b.getSouth().toFixed(3)},${b.getEast().toFixed(3)},${b.getNorth().toFixed(3)}`;
       try {
-        const r = await fetch(`https://geo.api.gouv.fr/communes?bbox=${bbox}&fields=codeDepartement`, { signal: AbortSignal.timeout(8000) });
+        const r = await fetch(`https://geo.api.gouv.fr/communes?bbox=${bbox}&fields=codeDepartement`, { signal });
         if(!r.ok) return;
         const communes = await r.json();
-        const depts = [...new Set(communes.map(c => c.codeDepartement).filter(Boolean))];
-        // Chargement en parallèle (pas séquentiel)
-        await Promise.all(depts.map(dept => loadDept(dept)));
-      } catch(e) {}
+        const depts = [...new Set(communes.map(c => c.codeDepartement).filter(Boolean))]
+          .filter(dept => !window._deptContoursCache[dept]); // ignorer les déjà chargés
+
+        if(!depts.length) return; // tout est déjà en cache, rien à faire
+
+        // Charger par lots de 5 max pour éviter trop de requêtes simultanées
+        for(let i = 0; i < depts.length; i += 5) {
+          if(signal.aborted) return;
+          await Promise.all(depts.slice(i, i + 5).map(dept => loadDept(dept)));
+        }
+      } catch(e) { /* annulé ou erreur réseau */ }
     }
 
     let moveTimer;
-    map.on('moveend zoomend', () => { clearTimeout(moveTimer); moveTimer = setTimeout(checkVisibleDepts, 400); });
+    map.on('moveend zoomend', () => {
+      clearTimeout(moveTimer);
+      moveTimer = setTimeout(checkVisibleDepts, 700);
+    });
 
-    // Chargement initial : département principal immédiat, puis voisins en parallèle
+    // Chargement initial : département principal immédiat, puis voisins
     loadDept(d.codeDept).then(() => checkVisibleDepts());
   }, 80);
 }
