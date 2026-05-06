@@ -2881,8 +2881,8 @@ async function showPrixCommunesDetail(){
     const map = L.map('mapPrixCommunes', { zoomControl:true, attributionControl:true, renderer: L.canvas({ padding:0.5 }) });
     window._prixCommunesMap = map;
 
-    // Fond sans labels
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+    // Fond complet (avec tous les labels de base : routes, communes, etc.)
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       attribution:'© OpenStreetMap © CartoDB', subdomains:'abcd', maxZoom:19
     }).addTo(map);
 
