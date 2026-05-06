@@ -2826,22 +2826,7 @@ async function showPrixCommunesDetail(){
     }
   }
   const db = window._dvfCommunesDB.communes || {};
-  // Paris : DVF stocke par arrondissement (75101-75120), la carte utilise 75056 → agréger
-  if(!db['75056']) {
-    const arrs = ['75101','75102','75103','75104','75105','75106','75107',
-                  '75108','75109','75110','75111','75112','75113','75114',
-                  '75115','75116','75117','75118','75119','75120'].map(c => db[c]).filter(Boolean);
-    if(arrs.length) {
-      const total = arrs.reduce((s,a) => s+a.count, 0);
-      db['75056'] = {
-        nom:'Paris',
-        median: Math.round(arrs.reduce((s,a) => s+a.median*a.count, 0) / total),
-        q1:     Math.round(arrs.reduce((s,a) => s+a.q1*a.count,     0) / total),
-        q3:     Math.round(arrs.reduce((s,a) => s+a.q3*a.count,     0) / total),
-        count:  total
-      };
-    }
-  }
+  // Paris : sera chargé en arrondissements via loadDept (voir cas spécial ci-dessous)
 
   // 2. Commune + département principaux
   if(!window._prixCommunesData) {
@@ -2903,10 +2888,10 @@ async function showPrixCommunesDetail(){
       const medianM2 = dvf?.median || null;
       const color = prixColor(medianM2);
       const layer = L.geoJSON({ type:'Feature', geometry:c.contour, properties:{} }, {
-        style: { color:'#ffffff', weight:1, fillColor:color, fillOpacity:0.55 }
+        style: { color:'#ffffff', weight:1, fillColor:color, fillOpacity:0.42 }
       }).addTo(map);
-      layer.on('mouseover', function(){ this.setStyle({ weight:2, color:'#555', fillOpacity:0.75 }); });
-      layer.on('mouseout',  function(){ this.setStyle({ weight:1, color:'#ffffff', fillOpacity:0.55 }); });
+      layer.on('mouseover', function(){ this.setStyle({ weight:2, color:'#555', fillOpacity:0.68 }); });
+      layer.on('mouseout',  function(){ this.setStyle({ weight:1, color:'#ffffff', fillOpacity:0.42 }); });
       const safeColor = color==='#ffffbf'?'#b8832a':color;
       const tooltip = medianM2
         ? `<div style="font-size:.72rem;line-height:1.5;min-width:130px">
@@ -2930,9 +2915,39 @@ async function showPrixCommunesDetail(){
       if(_loadingDepts.has(dept)) return;
       _loadingDepts.add(dept);
       try {
-        const r = await fetch(`https://geo.api.gouv.fr/departements/${dept}/communes?fields=nom,code,contour`, { signal: AbortSignal.timeout(20000) });
-        if(!r.ok) return;
-        const communes = await r.json();
+        let communes;
+        // Villes à arrondissements : DVF stocke par arrondissement, pas par commune mère
+        const ARRONDISSEMENTS = {
+          '75': { mere:null,    codes:['75101','75102','75103','75104','75105','75106','75107','75108','75109','75110','75111','75112','75113','75114','75115','75116','75117','75118','75119','75120'] },
+          '69': { mere:'69123', codes:['69381','69382','69383','69384','69385','69386','69387','69388','69389'] },
+          '13': { mere:'13055', codes:['13201','13202','13203','13204','13205','13206','13207','13208','13209','13210','13211','13212','13213','13214','13215','13216'] },
+        };
+        const arrInfo = ARRONDISSEMENTS[dept];
+        if(arrInfo && !arrInfo.mere) {
+          // Paris : uniquement des arrondissements
+          const results = await Promise.all(arrInfo.codes.map(async code => {
+            try {
+              const r = await fetch(`https://geo.api.gouv.fr/communes/${code}?fields=nom,code,contour`, { signal: AbortSignal.timeout(10000) });
+              return r.ok ? await r.json() : null;
+            } catch(e) { return null; }
+          }));
+          communes = results.filter(Boolean);
+        } else {
+          const r = await fetch(`https://geo.api.gouv.fr/departements/${dept}/communes?fields=nom,code,contour`, { signal: AbortSignal.timeout(20000) });
+          if(!r.ok) return;
+          communes = await r.json();
+          if(arrInfo?.mere) {
+            // Lyon / Marseille : remplacer la commune mère par ses arrondissements
+            communes = communes.filter(c => c.code !== arrInfo.mere);
+            const results = await Promise.all(arrInfo.codes.map(async code => {
+              try {
+                const r2 = await fetch(`https://geo.api.gouv.fr/communes/${code}?fields=nom,code,contour`, { signal: AbortSignal.timeout(10000) });
+                return r2.ok ? await r2.json() : null;
+              } catch(e) { return null; }
+            }));
+            communes = communes.concat(results.filter(Boolean));
+          }
+        }
         window._deptContoursCache[dept] = communes;
         communes.forEach(c => drawCommune(c));
       } catch(e) {}
