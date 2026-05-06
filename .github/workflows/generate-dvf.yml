@@ -8,7 +8,7 @@ on:
 jobs:
   generate:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 90
 
     steps:
       - name: Checkout
@@ -21,8 +21,6 @@ jobs:
 
       - name: Générer dvf-communes.json
         run: node VERCEL/scripts/generate-dvf-communes.js
-        env:
-          DEPTS_FILTER: "75,77,78,91,92,93,94,95,13,69,31,33,06,59,44,67,76,38,34,35"
 
       - name: Commit et push
         run: |
