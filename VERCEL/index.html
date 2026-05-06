@@ -1345,19 +1345,31 @@ function addFsBtn(map, el) {
   btn.title = 'Plein écran';
   btn.innerHTML = '⛶';
   el.appendChild(btn);
-  btn.addEventListener('click', () => {
-    const isFs = el.classList.toggle('fullscreen');
-    btn.innerHTML = isFs ? '✕' : '⛶';
-    btn.title = isFs ? 'Quitter le plein écran' : 'Plein écran';
-    setTimeout(() => map.invalidateSize(), 50);
-  });
-  document.addEventListener('keydown', function onEsc(e) {
-    if (e.key === 'Escape' && el.classList.contains('fullscreen')) {
+
+  function toggleFs(enter) {
+    const center = map.getCenter();
+    const zoom = map.getZoom();
+    if (enter) {
+      btn._origHeight = el.style.height;  // sauvegarde height inline (ex: clamp(...))
+      el.style.height = '';               // laisse la CSS .fullscreen prendre le contrôle
+      el.classList.add('fullscreen');
+      btn.innerHTML = '✕';
+      btn.title = 'Quitter le plein écran';
+    } else {
       el.classList.remove('fullscreen');
+      el.style.height = btn._origHeight || '';  // restaure la height inline d'origine
       btn.innerHTML = '⛶';
       btn.title = 'Plein écran';
-      setTimeout(() => map.invalidateSize(), 50);
     }
+    setTimeout(() => {
+      map.invalidateSize();
+      map.setView(center, zoom, { animate: false });
+    }, 100);
+  }
+
+  btn.addEventListener('click', () => toggleFs(!el.classList.contains('fullscreen')));
+  document.addEventListener('keydown', function onEsc(e) {
+    if (e.key === 'Escape' && el.classList.contains('fullscreen')) toggleFs(false);
   });
 }
 
@@ -2925,25 +2937,7 @@ async function showPrixCommunesDetail(){
 
     map.setView([lat, lon], 11);
 
-    // Bouton plein écran
-    const fsBtn = document.createElement('button');
-    fsBtn.className = 'map-fs-btn';
-    fsBtn.title = 'Plein écran';
-    fsBtn.innerHTML = '⛶';
-    el.appendChild(fsBtn);
-    fsBtn.addEventListener('click', () => {
-      const isFs = el.classList.toggle('fullscreen');
-      fsBtn.innerHTML = isFs ? '✕' : '⛶';
-      fsBtn.title = isFs ? 'Quitter le plein écran' : 'Plein écran';
-      setTimeout(() => map.invalidateSize(), 50);
-    });
-    document.addEventListener('keydown', function onEsc(e){
-      if(e.key === 'Escape' && el.classList.contains('fullscreen')){
-        el.classList.remove('fullscreen');
-        fsBtn.innerHTML = '⛶';
-        setTimeout(() => map.invalidateSize(), 50);
-      }
-    });
+    addFsBtn(map, el);
 
     const goldIcon = L.divIcon({ html:'<div style="width:14px;height:14px;background:#b8832a;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>', iconSize:[14,14], iconAnchor:[7,7], className:'' });
     L.marker([lat, lon], { icon:goldIcon }).addTo(map).bindTooltip(`📍 ${currentAddress||'Adresse analysée'}`, { permanent:false });
