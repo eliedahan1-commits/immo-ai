@@ -722,7 +722,7 @@ path.leaflet-interactive:focus{outline:none;}
 
       <p style="font-size:.72rem;color:rgba(255,255,255,.4);margin:.8rem 0 .5rem;letter-spacing:.04em">— ou cliquez directement sur la carte —</p>
       <div style="max-width:680px;margin:0 auto 1.2rem;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.1)">
-        <div id="mapFrance" style="height:clamp(280px,40vw,420px);width:100%"></div>
+        <div id="mapFrance" class="map-container" style="height:clamp(280px,40vw,420px);width:100%;margin-bottom:0"></div>
       </div>
 
       <div class="hero-stats">
@@ -1336,6 +1336,31 @@ function updateTravailDiv(){
   if(div) div.style.display = show ? 'block' : 'none';
 }
 
+// ══ PLEIN ÉCRAN — helper partagé entre toutes les cartes ══
+function addFsBtn(map, el) {
+  const existing = el.querySelector('.map-fs-btn');
+  if (existing) existing.remove();
+  const btn = document.createElement('button');
+  btn.className = 'map-fs-btn';
+  btn.title = 'Plein écran';
+  btn.innerHTML = '⛶';
+  el.appendChild(btn);
+  btn.addEventListener('click', () => {
+    const isFs = el.classList.toggle('fullscreen');
+    btn.innerHTML = isFs ? '✕' : '⛶';
+    btn.title = isFs ? 'Quitter le plein écran' : 'Plein écran';
+    setTimeout(() => map.invalidateSize(), 50);
+  });
+  document.addEventListener('keydown', function onEsc(e) {
+    if (e.key === 'Escape' && el.classList.contains('fullscreen')) {
+      el.classList.remove('fullscreen');
+      btn.innerHTML = '⛶';
+      btn.title = 'Plein écran';
+      setTimeout(() => map.invalidateSize(), 50);
+    }
+  });
+}
+
 // ══ CARTE FRANCE — CHOIX DE L'EMPLACEMENT ══
 function initFranceMap(){
   const el = document.getElementById('mapFrance');
@@ -1351,6 +1376,7 @@ function initFranceMap(){
 
   // Vue initiale France
   map.setView([46.5, 2.3], 5);
+  addFsBtn(map, el);
 
   let _franceMarker = null;
 
@@ -2424,6 +2450,7 @@ function showEcolesDetail(){
     const map=L.map('mapEcoles').setView([lat,lng],14);
     window._leafletMapEcoles=map;
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'© OSM © CartoDB',maxZoom:19}).addTo(map);
+    addFsBtn(map, document.getElementById('mapEcoles'));
     const dist=window._ecolesCurrentDist||500;
     L.circle([lat,lng],{radius:dist,color:'#b8832a',fillColor:'rgba(184,131,42,.08)',fillOpacity:1,weight:2.5,dashArray:'6 4',opacity:.85}).addTo(map);
     const homeIcon=L.divIcon({html:`<div style="background:#c09030;border:3px solid #fff;border-radius:50%;width:16px;height:16px;box-shadow:0 2px 6px rgba(0,0,0,.3)"></div>`,iconSize:[16,16],iconAnchor:[8,8],className:''});
@@ -2548,6 +2575,7 @@ function showMobiliteDetail(){
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
       attribution:'© OpenStreetMap © CartoDB', maxZoom:19
     }).addTo(map);
+    addFsBtn(map, document.getElementById('mapMobilite'));
 
     // Cercle dynamique selon le rayon sélectionné
     L.circle([lat,lng],{radius:mobDist,color:'#b8832a',fillColor:'rgba(184,131,42,.08)',fillOpacity:1,weight:2.5,dashArray:'6 4',opacity:.85}).addTo(map);
@@ -2742,6 +2770,7 @@ function showServicesMap(filterCat){
       attribution: '© OpenStreetMap © CartoDB',
       maxZoom: 19
     }).addTo(map);
+    addFsBtn(map, document.getElementById('mapServices'));
 
     // Cercle dynamique selon le rayon sélectionné
     L.circle([lat, lng], {radius:svcDist, color:'#b8832a', fillColor:'rgba(184,131,42,.08)', fillOpacity:1, weight:2.5, dashArray:'6 4', opacity:.85}).addTo(map);
@@ -3179,6 +3208,7 @@ function showINSEEDetail(){
     const map=L.map('mapInsee').setView([lat,lng],12);
     window._leafletMapInsee=map;
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CartoDB',maxZoom:19}).addTo(map);
+    addFsBtn(map, document.getElementById('mapInsee'));
 
     const dens = c?.densite||0;
     const densLabel = dens>10000?'Très dense':dens>5000?'Dense':dens>2000?'Urbain':dens>500?'Péri-urbain':'Rural';
@@ -3256,6 +3286,7 @@ function showAltitudeDetail(){
     if(window._leafletMapAlt){window._leafletMapAlt.remove();window._leafletMapAlt=null;}
     const map=L.map('mapAltitude').setView([lat,lng],13);
     window._leafletMapAlt=map;
+    addFsBtn(map, document.getElementById('mapAltitude'));
     L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{
       attribution:'© OpenTopoMap (CC-BY-SA) · © OpenStreetMap',
       maxZoom:17
