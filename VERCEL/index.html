@@ -2977,11 +2977,11 @@ async function showPrixCommunesDetail(){
         const r = await fetch(`https://geo.api.gouv.fr/communes?bbox=${bbox}&fields=codeDepartement`, { signal });
         if(!r.ok) return;
         const data = await r.json();
-        const newDepts = [...new Set(data.map(c => c.codeDepartement).filter(Boolean))]
-          .filter(dept => !(dept in window._deptContoursCache) && !_loadingDepts.has(dept));
-        for(let i = 0; i < newDepts.length; i += 5) {
+        const depts = [...new Set(data.map(c => c.codeDepartement).filter(Boolean))]
+          .filter(dept => !_loadingDepts.has(dept));
+        for(let i = 0; i < depts.length; i += 5) {
           if(signal.aborted) return;
-          await Promise.all(newDepts.slice(i, i + 5).map(dept => loadDept(dept)));
+          await Promise.all(depts.slice(i, i + 5).map(dept => loadDept(dept)));
         }
       } catch(e) {}
     }
