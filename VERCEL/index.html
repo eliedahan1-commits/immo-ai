@@ -554,6 +554,17 @@ select.inp{
   border:1px solid var(--border);margin-bottom:1rem;
   position:relative;
 }
+.map-container.fullscreen{
+  position:fixed;top:0;left:0;width:100vw;height:100vh;
+  z-index:9999;border-radius:0;border:none;margin:0;
+}
+.map-fs-btn{
+  position:absolute;top:10px;right:10px;z-index:1000;
+  background:#fff;border:2px solid rgba(0,0,0,.2);border-radius:4px;
+  width:30px;height:30px;cursor:pointer;font-size:14px;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 1px 5px rgba(0,0,0,.25);
+}
 .leaflet-prix-tooltip{
   background:#fff;border:none;border-radius:8px;
   box-shadow:0 4px 16px rgba(0,0,0,.18);
@@ -2885,6 +2896,26 @@ async function showPrixCommunesDetail(){
 
     map.setView([lat, lon], 11);
 
+    // Bouton plein écran
+    const fsBtn = document.createElement('button');
+    fsBtn.className = 'map-fs-btn';
+    fsBtn.title = 'Plein écran';
+    fsBtn.innerHTML = '⛶';
+    el.appendChild(fsBtn);
+    fsBtn.addEventListener('click', () => {
+      const isFs = el.classList.toggle('fullscreen');
+      fsBtn.innerHTML = isFs ? '✕' : '⛶';
+      fsBtn.title = isFs ? 'Quitter le plein écran' : 'Plein écran';
+      setTimeout(() => map.invalidateSize(), 50);
+    });
+    document.addEventListener('keydown', function onEsc(e){
+      if(e.key === 'Escape' && el.classList.contains('fullscreen')){
+        el.classList.remove('fullscreen');
+        fsBtn.innerHTML = '⛶';
+        setTimeout(() => map.invalidateSize(), 50);
+      }
+    });
+
     const goldIcon = L.divIcon({ html:'<div style="width:14px;height:14px;background:#b8832a;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>', iconSize:[14,14], iconAnchor:[7,7], className:'' });
     L.marker([lat, lon], { icon:goldIcon }).addTo(map).bindTooltip(`📍 ${currentAddress||'Adresse analysée'}`, { permanent:false });
 
@@ -2910,7 +2941,7 @@ async function showPrixCommunesDetail(){
             <span style="font-size:.95rem;font-weight:700;color:${safeColor}">${medianM2.toLocaleString('fr-FR')} €/m²</span><br>
             <span style="color:#555;font-size:.68rem">
               ${dvf.count} ventes · 2023–2025<br>
-              ${dvf.q1&&dvf.q3?`Q1–Q3 : ${dvf.q1.toLocaleString('fr-FR')}–${dvf.q3.toLocaleString('fr-FR')} €`:''}
+              ${dvf.q1&&dvf.q3?`La moitié des ventes : ${dvf.q1.toLocaleString('fr-FR')}–${dvf.q3.toLocaleString('fr-FR')} €/m²`:''}
             </span></div>`
         : `<div style="font-size:.72rem"><strong>${c.nom}</strong><br><span style="color:#aaa;font-size:.68rem">Données insuffisantes</span></div>`;
       layer.bindTooltip(tooltip, { sticky:true, className:'leaflet-prix-tooltip', opacity:1 });
