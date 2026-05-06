@@ -2948,15 +2948,17 @@ async function showPrixCommunesDetail(){
         const r = await fetch(`https://geo.api.gouv.fr/communes?bbox=${bbox}&fields=codeDepartement&limit=5000`, { signal });
         if(!r.ok) return;
         const communes = await r.json();
-        const depts = [...new Set(communes.map(c => c.codeDepartement).filter(Boolean))]
-          .filter(dept => !window._deptContoursCache[dept]); // ignorer les déjà chargés
+        const allDepts = [...new Set(communes.map(c => c.codeDepartement).filter(Boolean))];
+        const newDepts  = allDepts.filter(dept => !(dept in window._deptContoursCache));
 
-        if(!depts.length) return; // tout est déjà en cache, rien à faire
+        // Depts déjà en cache → redessiner immédiatement (drawnCodes peut avoir été réinitialisé)
+        allDepts.filter(dept => dept in window._deptContoursCache)
+          .forEach(dept => (window._deptContoursCache[dept] || []).forEach(c => drawCommune(c)));
 
-        // Charger par lots de 5 max pour éviter trop de requêtes simultanées
-        for(let i = 0; i < depts.length; i += 5) {
+        // Charger les nouveaux depts par lots de 5
+        for(let i = 0; i < newDepts.length; i += 5) {
           if(signal.aborted) return;
-          await Promise.all(depts.slice(i, i + 5).map(dept => loadDept(dept)));
+          await Promise.all(newDepts.slice(i, i + 5).map(dept => loadDept(dept)));
         }
       } catch(e) { /* annulé ou erreur réseau */ }
     }
