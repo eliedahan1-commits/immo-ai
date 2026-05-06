@@ -2930,10 +2930,10 @@ async function showPrixCommunesDetail(){
       const medianM2 = dvf?.median || null;
       const color = prixColor(medianM2);
       const layer = L.geoJSON({ type:'Feature', geometry:c.contour, properties:{} }, {
-        style: { color:'#ffffff', weight:1, fillColor:color, fillOpacity:0.42 }
+        style: { color:'#ffffff', weight:1, fillColor:color, fillOpacity:0.22 }
       }).addTo(map);
-      layer.on('mouseover', function(){ this.setStyle({ weight:2, color:'#555', fillOpacity:0.68 }); });
-      layer.on('mouseout',  function(){ this.setStyle({ weight:1, color:'#ffffff', fillOpacity:0.42 }); });
+      layer.on('mouseover', function(){ this.setStyle({ weight:2, color:'#555', fillOpacity:0.60 }); });
+      layer.on('mouseout',  function(){ this.setStyle({ weight:1, color:'#ffffff', fillOpacity:0.22 }); });
       const safeColor = color==='#ffffbf'?'#b8832a':color;
       const tooltip = medianM2
         ? `<div style="font-size:.72rem;line-height:1.5;min-width:130px">
