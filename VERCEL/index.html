@@ -2948,7 +2948,7 @@ async function showPrixCommunesDetail(){
       const b = map.getBounds();
       const bbox = `${b.getWest().toFixed(3)},${b.getSouth().toFixed(3)},${b.getEast().toFixed(3)},${b.getNorth().toFixed(3)}`;
       try {
-        const r = await fetch(`https://geo.api.gouv.fr/communes?bbox=${bbox}&fields=codeDepartement&limit=5000`, { signal });
+        const r = await fetch(`https://geo.api.gouv.fr/communes?bbox=${bbox}&fields=codeDepartement`, { signal });
         if(!r.ok) return;
         const data = await r.json();
         const newDepts = [...new Set(data.map(c => c.codeDepartement).filter(Boolean))]
