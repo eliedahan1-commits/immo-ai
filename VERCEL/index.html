@@ -1525,7 +1525,8 @@ async function analyzeAddressWithFeature(feature){
   const coords=feature.geometry.coordinates;
   currentAddress=props.label;
   currentCoords={lng:coords[0],lat:coords[1]};
-  window._prixCommunesData = null; // invalider le cache prix communes
+  window._prixCommunesData = null;    // invalider le cache prix communes
+  window._deptContoursCache = {};     // invalider le cache des contours (nouvelle adresse)
 
   // Mettre à jour topbar
   document.getElementById('topAddr').textContent=props.label;
@@ -2883,8 +2884,8 @@ async function showPrixCommunesDetail(){
 
     const map = L.map('mapPrixCommunes', { zoomControl:true, attributionControl:true, renderer: L.canvas({ padding:0.5 }) });
     window._prixCommunesMap = map;
-    L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
-      attribution:'© OpenStreetMap France · Contributeurs OpenStreetMap', subdomains:'abc', maxZoom:19
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution:'© OpenStreetMap © CartoDB', subdomains:'abcd', maxZoom:19
     }).addTo(map);
     map.setView([lat, lon], 11);
 
