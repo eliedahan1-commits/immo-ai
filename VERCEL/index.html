@@ -2883,8 +2883,8 @@ async function showPrixCommunesDetail(){
 
     const map = L.map('mapPrixCommunes', { zoomControl:true, attributionControl:true, renderer: L.canvas({ padding:0.5 }) });
     window._prixCommunesMap = map;
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution:'© OpenStreetMap © CartoDB', subdomains:'abcd', maxZoom:18
+    L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
+      attribution:'© OpenStreetMap France · Contributeurs OpenStreetMap', subdomains:'abc', maxZoom:19
     }).addTo(map);
     map.setView([lat, lon], 11);
 
@@ -2955,10 +2955,10 @@ async function showPrixCommunesDetail(){
         allDepts.filter(dept => dept in window._deptContoursCache)
           .forEach(dept => (window._deptContoursCache[dept] || []).forEach(c => drawCommune(c)));
 
-        // Charger les nouveaux depts par lots de 5
-        for(let i = 0; i < newDepts.length; i += 5) {
+        // Charger les nouveaux depts par lots de 10
+        for(let i = 0; i < newDepts.length; i += 10) {
           if(signal.aborted) return;
-          await Promise.all(newDepts.slice(i, i + 5).map(dept => loadDept(dept)));
+          await Promise.all(newDepts.slice(i, i + 10).map(dept => loadDept(dept)));
         }
       } catch(e) { /* annulé ou erreur réseau */ }
     }
