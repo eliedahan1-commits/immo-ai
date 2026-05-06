@@ -2869,9 +2869,20 @@ async function showPrixCommunesDetail(){
 
     const map = L.map('mapPrixCommunes', { zoomControl:true, attributionControl:true, renderer: L.canvas({ padding:0.5 }) });
     window._prixCommunesMap = map;
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+
+    // Fond sans labels
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
       attribution:'© OpenStreetMap © CartoDB', subdomains:'abcd', maxZoom:19
     }).addTo(map);
+
+    // Labels CartoDB au-dessus des polygones (pane z-index > overlayPane 400)
+    map.createPane('labels');
+    map.getPane('labels').style.zIndex = 450;
+    map.getPane('labels').style.pointerEvents = 'none';
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
+      subdomains:'abcd', maxZoom:19, pane:'labels'
+    }).addTo(map);
+
     map.setView([lat, lon], 11);
 
     const goldIcon = L.divIcon({ html:'<div style="width:14px;height:14px;background:#b8832a;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>', iconSize:[14,14], iconAnchor:[7,7], className:'' });
