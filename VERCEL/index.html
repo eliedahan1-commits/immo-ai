@@ -2939,16 +2939,24 @@ async function showPrixCommunesDetail(){
       finally { _loadingDepts.delete(dept); }
     }
 
+    let _bboxAbort = null;
+
     async function checkVisibleDepts() {
+      if(_bboxAbort) _bboxAbort.abort();
+      _bboxAbort = new AbortController();
+      const signal = _bboxAbort.signal;
+      const b = map.getBounds();
+      const bbox = `${b.getWest().toFixed(3)},${b.getSouth().toFixed(3)},${b.getEast().toFixed(3)},${b.getNorth().toFixed(3)}`;
       try {
-        const b = map.getBounds();
-        const bbox = `${b.getWest().toFixed(3)},${b.getSouth().toFixed(3)},${b.getEast().toFixed(3)},${b.getNorth().toFixed(3)}`;
-        const r = await fetch(`https://geo.api.gouv.fr/communes?bbox=${bbox}&fields=codeDepartement&limit=5000`, { signal: AbortSignal.timeout(15000) });
+        const r = await fetch(`https://geo.api.gouv.fr/communes?bbox=${bbox}&fields=codeDepartement&limit=5000`, { signal });
         if(!r.ok) return;
         const data = await r.json();
-        const depts = [...new Set(data.map(c => c.codeDepartement).filter(Boolean))];
-        // Charger tous les depts visibles en parallèle (loadDept gère la déduplication)
-        await Promise.all(depts.map(dept => loadDept(dept)));
+        const newDepts = [...new Set(data.map(c => c.codeDepartement).filter(Boolean))]
+          .filter(dept => !(dept in window._deptContoursCache) && !_loadingDepts.has(dept));
+        for(let i = 0; i < newDepts.length; i += 5) {
+          if(signal.aborted) return;
+          await Promise.all(newDepts.slice(i, i + 5).map(dept => loadDept(dept)));
+        }
       } catch(e) {}
     }
 
