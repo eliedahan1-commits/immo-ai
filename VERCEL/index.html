@@ -392,13 +392,13 @@ select.inp{
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.85rem;}
 .toggles{display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.6rem;}
 .tog{
-  padding:.35rem .9rem;border:1.5px dashed var(--border);
-  background:transparent;font-family:'Outfit',sans-serif;
-  font-size:.73rem;cursor:pointer;border-radius:20px;
-  color:#bbb;transition:all .18s;
+  padding:.38rem 1rem;border:1.5px solid #555;
+  background:rgba(255,255,255,.04);font-family:'Outfit',sans-serif;
+  font-size:.75rem;cursor:pointer;border-radius:20px;
+  color:#999;transition:all .18s;
 }
-.tog:hover{border-color:#aaa;color:var(--ink);}
-.tog.on{border:1.5px solid var(--gold);background:var(--goldpale);color:var(--ink);font-weight:500;}
+.tog:hover{border-color:#aaa;color:var(--ink);background:rgba(255,255,255,.08);}
+.tog.on{border:1.5px solid var(--gold);background:var(--goldpale);color:var(--ink);font-weight:600;}
 .btn{
   padding:.72rem 1.3rem;border:none;font-family:'Outfit',sans-serif;
   font-size:.82rem;cursor:pointer;border-radius:4px;transition:all .2s;
@@ -1824,7 +1824,7 @@ async function loadRisques(lat, lng, citycode){
     if(citycode){
       try{
         const rc = await fetch(`https://georisques.gouv.fr/api/v1/gaspar/catnat?code_insee=${citycode}&page=1&page_size=15`, {signal:AbortSignal.timeout(8000)});
-        if(rc.ok){ const dc=await rc.json(); catnat=(dc.data||[]).map(c=>({libelle:c.lib_risque_jo||c.cod_nat_catnat||'Événement', debut:(c.dat_deb||'').slice(0,7), fin:(c.dat_fin||'').slice(0,7)})); }
+        if(rc.ok){ const dc=await rc.json(); catnat=(dc.data||[]).map(c=>({libelle:c.lib_risque_jo||c.libelle_risque_jo||c.libelle||c.lib_risque||c.cod_nat_catnat||'Catastrophe naturelle', debut:(c.dat_deb_evt||c.dat_deb||c.dat_debut||'').slice(0,7), fin:(c.dat_fin_evt||c.dat_fin||c.dat_fin_evt||'').slice(0,7)})); }
       }catch(e){}
     }
     const css = nb===0?'good':nb>=3?'bad':'warn';
@@ -2114,6 +2114,16 @@ async function loadINSEE(citycode, lat, lng){
     if(!r.ok) throw new Error();
     const d = await r.json();
     if(!d.success) throw new Error();
+    // Enrichir superficie + codesPostaux si le proxy ne les retourne pas
+    if(d.commune && (!d.commune.superficie || !d.commune.codesPostaux)){
+      const code = d.commune.codeInsee || citycode;
+      if(code){
+        try{
+          const re = await fetch(`https://geo.api.gouv.fr/communes/${code}?fields=superficie,codesPostaux`);
+          if(re.ok){ const ce=await re.json(); if(ce.superficie) d.commune.superficie=ce.superficie; if(ce.codesPostaux) d.commune.codesPostaux=ce.codesPostaux; }
+        }catch(e){}
+      }
+    }
     const pop = d.commune?.population;
     setCard('insee',
       pop ? pop.toLocaleString('fr-FR')+' hab.' : '—',
@@ -2261,7 +2271,7 @@ function showPanel(title, html){
 }
 
 function closePanel(){
-  ['_dvfChart','_risquesChart','_ecolesChart','_mobiliteChart','_radarChart','_radarProfilChart','_servicesChart','_inseeNeighborChart'].forEach(k=>{if(window[k]){window[k].destroy();window[k]=null;}});
+  ['_dvfChart','_risquesChart','_ecolesChart','_mobiliteChart','_radarChart','_radarProfilChart','_servicesChart','_inseeNeighborChart','_meteoMensuelChart'].forEach(k=>{if(window[k]){window[k].destroy();window[k]=null;}});
   document.getElementById('detailContainer').innerHTML = '';
   document.getElementById('cardsGrid').style.display = 'grid';
   if(window._leafletMap){window._leafletMap.remove();window._leafletMap=null;}
@@ -2433,11 +2443,22 @@ function showRisquesDetail(){
     technologique: {icon:'🏭', label:'Risque technologique',    color:'#7F8C8D', desc:'Établissement industriel à risque à proximité. Plan de Prévention des Risques Technologiques (PPRT) applicable.'},
   };
 
+  // Mots-clés par catégorie pour détecter les risques dans le détail
+  const CAT_KEYS = {inondation:['inondation'],seisme:['sisme','seisme','séisme'],argile:['argile','retrait'],mouvement:['mouvement','glissement','effondrement'],submersion:['submersion'],technologique:['technologique','industriel','pprt']};
   const catBadges = Object.entries(CAT_INFO).filter(([k])=>d.categories?.[k]).map(([k,info])=>`
     <div style="display:flex;gap:.75rem;align-items:flex-start;border-left:3px solid ${info.color};padding:.55rem .85rem;background:${info.color}18;border-radius:0 6px 6px 0;margin-bottom:.5rem">
       <span style="font-size:1.25rem;flex-shrink:0">${info.icon}</span>
       <div><div style="font-weight:600;font-size:.84rem;color:var(--text)">${info.label}</div>
       <div style="font-size:.72rem;color:var(--muted);margin-top:.1rem">${info.desc}</div></div>
+    </div>`).join('');
+  // Risques retournés par l'API mais non couverts par nos 6 catégories
+  const coveredLibs = d.detail.filter(r=>{const l=(r.libelle||'').toLowerCase();return Object.values(CAT_KEYS).some(ks=>ks.some(k=>l.includes(k)));});
+  const uncoveredRisks = d.detail.filter(r=>{const l=(r.libelle||'').toLowerCase();return !Object.values(CAT_KEYS).some(ks=>ks.some(k=>l.includes(k)));});
+  const extraBadges = uncoveredRisks.map(r=>`
+    <div style="display:flex;gap:.75rem;align-items:flex-start;border-left:3px solid #555;padding:.55rem .85rem;background:#55555518;border-radius:0 6px 6px 0;margin-bottom:.5rem">
+      <span style="font-size:1.25rem;flex-shrink:0">⚡</span>
+      <div><div style="font-weight:600;font-size:.84rem;color:var(--text)">${r.libelle||'Risque identifié'}</div>
+      <div style="font-size:.72rem;color:var(--muted);margin-top:.1rem">Risque recensé par Géorisques. Consultez le rapport complet pour plus de détails.</div></div>
     </div>`).join('');
 
   const noRisque = d.total===0?`<div style="display:flex;gap:.75rem;align-items:center;border-left:3px solid var(--green);padding:.6rem .85rem;background:#27ae6018;border-radius:0 6px 6px 0;margin-bottom:.75rem">
@@ -2449,7 +2470,7 @@ function showRisquesDetail(){
 
   const scoreColor = d.total===0?'var(--green)':d.total>=3?'#C0392B':'#E67E22';
   const scoreLbl   = d.total===0?'Faible':d.total>=3?'Élevé':'Modéré';
-  const georisquesUrl = `https://www.georisques.gouv.fr/mes-risques/connaitre-les-risques-pres-de-chez-moi/rapport?form-adresse=${encodeURIComponent(currentAddress||'')}&latlon=${d.lng},${d.lat}&ig=1`;
+  const georisquesUrl = `https://www.georisques.gouv.fr/mes-risques/connaitre-les-risques-pres-de-chez-moi?form-adresse=${encodeURIComponent(currentAddress||'')}&lon=${d.lng}&lat=${d.lat}&ig=1`;
 
   showPanel('⚠️ Risques naturels officiels', `
     <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;padding:.7rem 1rem;background:var(--bg2);border-radius:8px">
@@ -2459,7 +2480,7 @@ function showRisquesDetail(){
         <div style="font-size:.71rem;color:var(--muted)">Géorisques · BRGM / Ministère de la Transition Écologique</div>
       </div>
     </div>
-    ${noRisque}${catBadges}
+    ${noRisque}${catBadges}${extraBadges}
     <div id="mapRisques" class="map-container" style="height:250px;margin:1rem 0"></div>
     <div style="margin-bottom:.75rem">
       <div style="font-weight:600;font-size:.83rem;color:var(--text);margin-bottom:.35rem">📋 Catastrophes naturelles reconnues (arrêtés)</div>
@@ -2467,7 +2488,7 @@ function showRisquesDetail(){
     </div>
     <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.75rem">
       <a href="${georisquesUrl}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:.4rem;background:var(--gold);color:#1a1a2e;padding:.42rem .85rem;border-radius:20px;font-size:.77rem;font-weight:600;text-decoration:none">🌐 Rapport Géorisques complet ↗</a>
-      ${d.citycode?`<a href="https://www.georisques.gouv.fr/mes-risques/connaitre-les-risques-pres-de-chez-moi/rapport?code_insee=${d.citycode}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:.4rem;border:1px solid var(--border);color:var(--text);padding:.42rem .85rem;border-radius:20px;font-size:.77rem;font-weight:600;text-decoration:none">📄 DICRIM de la commune ↗</a>`:''}
+      <a href="https://www.georisques.gouv.fr/me-preparer-me-proteger/le-dicrim" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:.4rem;border:1px solid var(--border);color:var(--text);padding:.42rem .85rem;border-radius:20px;font-size:.77rem;font-weight:600;text-decoration:none">📄 DICRIM ↗</a>
     </div>
     <p style="font-size:.61rem;color:var(--muted);margin-top:.6rem">Données officielles Géorisques (BRGM) · Service public · Mise à jour continue</p>`);
 
@@ -3343,31 +3364,89 @@ function showMeteoDetail(){
   if(!d){showPanel('☀️ Météo & ensoleillement','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
   const hAn = d.ensoleillement?.heuresAnnuelles || 0;
   const hJour = hAn ? (hAn/365).toFixed(1) : null;
+  const tMax = d.temperatures?.maxMoyenne; const tMin = d.temperatures?.minMoyenne;
+  const pluieMm = d.precipitations?.annuellesMm; const pluieJ = d.precipitations?.joursParAn;
+  const tempLbl = tMax>22?'Été chaud':tMax>17?'Températures douces':tMax>12?'Climat tempéré':tMax?'Climat frais':'';
+  const pluieLbl = pluieMm>1200?'Très pluvieux':pluieMm>800?'Pluvieux':pluieMm>500?'Modérément pluvieux':pluieMm?'Peu pluvieux':'';
+  const climDesc = [tempLbl,pluieLbl].filter(Boolean).join(' · ');
+
   showPanel(`☀️ Météo & ensoleillement · ${d.periode||'2019-2023'}`, `
     <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:.5rem">
-      <div class="stat-box"><span class="stat-n">${hAn?hAn.toLocaleString('fr-FR'):'—'}</span><span class="stat-l">☀️ Heures soleil/an</span></div>
+      <div class="stat-box"><span class="stat-n">${hAn?hAn.toLocaleString('fr-FR')+' h':'—'}</span><span class="stat-l">☀️ Heures soleil/an</span></div>
       <div class="stat-box"><span class="stat-n">${hJour||'—'} h</span><span class="stat-l">🌤️ Soleil/jour moy.</span></div>
     </div>
     <div class="stat-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:1rem">
-      <div class="stat-box"><span class="stat-n">${d.temperatures?.minMoyenne||'—'}°</span><span class="stat-l">🥶 Temp. min. moy.</span></div>
-      <div class="stat-box"><span class="stat-n">${d.temperatures?.maxMoyenne||'—'}°</span><span class="stat-l">🌡️ Temp. max. moy.</span></div>
-      <div class="stat-box"><span class="stat-n">${d.precipitations?.annuellesMm||'—'} mm</span><span class="stat-l">🌧️ Précip./an</span></div>
-      <div class="stat-box"><span class="stat-n">${d.precipitations?.joursParAn||'—'}</span><span class="stat-l">☔ Jours de pluie/an</span></div>
+      <div class="stat-box"><span class="stat-n">${tMin||'—'}°</span><span class="stat-l">🥶 Temp. min. moy.</span></div>
+      <div class="stat-box"><span class="stat-n">${tMax||'—'}°</span><span class="stat-l">🌡️ Temp. max. moy.</span></div>
+      <div class="stat-box"><span class="stat-n">${pluieMm||'—'} mm</span><span class="stat-l">🌧️ Précip./an</span></div>
+      <div class="stat-box"><span class="stat-n">${pluieJ||'—'}</span><span class="stat-l">☔ Jours pluie/an</span></div>
     </div>
-    <p style="font-size:.8rem;color:var(--ink);font-weight:500;margin-bottom:.3rem">${d.ensoleillement?.label||''}</p>
+    <p style="font-size:.8rem;color:var(--ink);font-weight:500;margin-bottom:.2rem">${d.ensoleillement?.label||''}${climDesc?' · '+climDesc:''}</p>
     <p style="font-size:.75rem;color:var(--muted);margin-bottom:.5rem">${d.periode||''}</p>
+    <div style="margin-top:.6rem;margin-bottom:.8rem">
+      <div style="font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.4rem">🌡️ Températures moyennes par mois</div>
+      <div id="meteoMensuelLoading" style="font-size:.75rem;color:var(--muted);padding:.3rem">Chargement…</div>
+      <div style="position:relative;height:140px;display:none" id="meteoChartWrap"><canvas id="meteoMensuelChart"></canvas></div>
+    </div>
     ${(()=>{
       const aq = window._qualiteAirData;
-      if(!aq||aq.error) return `<p style="font-size:.75rem;color:var(--muted);margin-bottom:.4rem">Qualité de l\'air : données non disponibles</p>`;
-      const pm10Str = aq.pm10!=null?`PM10 : ${Math.round(aq.pm10)} µg/m³`:''
+      if(!aq||aq.error) return `<p style="font-size:.75rem;color:var(--muted);margin-bottom:.4rem">🌬️ Qualité de l\'air : données non disponibles</p>`;
+      const pm10Str = aq.pm10!=null?`PM10 : ${Math.round(aq.pm10)} µg/m³`:'';
       const pm25Str = aq.pm25!=null?`PM2.5 : ${Math.round(aq.pm25)} µg/m³`:'';
       const subs = [pm10Str,pm25Str].filter(Boolean).join(' · ');
       return `<div style="margin-bottom:.6rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
-        <span style="background:${aq.color};color:#fff;font-size:.78rem;font-weight:700;padding:.25rem .7rem;border-radius:20px">🌬️ ${aq.label}</span>
+        <span style="font-size:.78rem;color:var(--muted);font-weight:500">🌬️ Qualité de l\'air :</span>
+        <span style="background:${aq.color};color:#fff;font-size:.78rem;font-weight:700;padding:.25rem .7rem;border-radius:20px">${aq.label}</span>
         <span style="font-size:.72rem;color:var(--muted)">IQA européen : ${aq.aqi}/100${subs?' · '+subs:''}</span>
       </div>`;
     })()}
     <p style="font-size:.62rem;color:var(--muted)">Source : ${d.source} · Qualité air : Open-Meteo Air Quality</p>`);
+
+  // Graphique températures mensuelles
+  setTimeout(async ()=>{
+    if(!currentCoords) return;
+    const {lat,lng}=currentCoords;
+    try{
+      const rv=await fetch(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=2021-01-01&end_date=2023-12-31&monthly=temperature_2m_max,temperature_2m_min&timezone=Europe%2FParis`);
+      if(!rv.ok) throw new Error();
+      const md=await rv.json();
+      const times=md.monthly?.time||[];
+      const tMaxArr=md.monthly?.temperature_2m_max||[];
+      const tMinArr=md.monthly?.temperature_2m_min||[];
+      if(!times.length) throw new Error();
+      // Moyenner par mois (0=Jan…11=Dec) sur les 3 ans
+      const MOIS=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+      const sumMax=Array(12).fill(0), sumMin=Array(12).fill(0), cnt=Array(12).fill(0);
+      times.forEach((t,i)=>{const m=parseInt(t.slice(5,7))-1;sumMax[m]+=tMaxArr[i]||0;sumMin[m]+=tMinArr[i]||0;cnt[m]++;});
+      const avgMax=sumMax.map((s,i)=>cnt[i]?+(s/cnt[i]).toFixed(1):null);
+      const avgMin=sumMin.map((s,i)=>cnt[i]?+(s/cnt[i]).toFixed(1):null);
+      const loading=document.getElementById('meteoMensuelLoading');
+      const wrap=document.getElementById('meteoChartWrap');
+      if(loading) loading.style.display='none';
+      if(wrap) wrap.style.display='block';
+      const ctx=document.getElementById('meteoMensuelChart');
+      if(ctx&&window.Chart){
+        if(window._meteoMensuelChart){window._meteoMensuelChart.destroy();window._meteoMensuelChart=null;}
+        window._meteoMensuelChart=new Chart(ctx,{
+          type:'line',
+          data:{labels:MOIS,datasets:[
+            {label:'Max',data:avgMax,borderColor:'#e67e22',backgroundColor:'rgba(230,126,34,.15)',fill:'+1',tension:.4,pointRadius:3,borderWidth:2},
+            {label:'Min',data:avgMin,borderColor:'#3498db',backgroundColor:'rgba(52,152,219,.1)',fill:false,tension:.4,pointRadius:3,borderWidth:2}
+          ]},
+          options:{responsive:true,maintainAspectRatio:false,
+            plugins:{legend:{display:true,labels:{color:'#ccc',font:{size:10},boxWidth:12}},tooltip:{callbacks:{label:c2=>`${c2.dataset.label} : ${c2.raw}°C`}},datalabels:{display:false}},
+            scales:{
+              x:{ticks:{color:'#999',font:{size:10}},grid:{color:'rgba(255,255,255,.05)'}},
+              y:{ticks:{color:'#999',font:{size:10},callback:v=>v+'°'},grid:{color:'rgba(255,255,255,.05)'}}
+            }
+          }
+        });
+      }
+    }catch(e){
+      const loading=document.getElementById('meteoMensuelLoading');
+      if(loading) loading.textContent='Graphique non disponible.';
+    }
+  },150);
 }
 
 function showINSEEDetail(){
@@ -3383,8 +3462,8 @@ function showINSEEDetail(){
     <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:1rem">
       <div class="stat-box"><span class="stat-n">${c?.population?.toLocaleString('fr-FR')||'—'}</span><span class="stat-l">👥 Habitants</span></div>
       <div class="stat-box">
-        <span class="stat-n" style="font-size:1rem">${c?.densite?.toLocaleString('fr-FR')||'—'} <small style="font-size:.6em">hab/km²</small></span>
-        <span class="stat-l">🗺️ <span style="color:${densColor};font-weight:600">${densLabel}</span></span>
+        <span class="stat-n">${c?.densite?.toLocaleString('fr-FR')||'—'}</span>
+        <span class="stat-l">🗺️ hab/km² · <span style="color:${densColor};font-weight:600">${densLabel}</span></span>
       </div>
       <div class="stat-box"><span class="stat-n">${supKm2?supKm2.toLocaleString('fr-FR')+' km²':'—'}</span><span class="stat-l">📐 Superficie</span></div>
       <div class="stat-box"><span class="stat-n">${c?.codesPostaux?.[0]||'—'}</span><span class="stat-l">📮 Code postal</span></div>
@@ -3459,7 +3538,7 @@ function showINSEEDetail(){
 
     // Graphique comparaison communes voisines
     try{
-      const rv=await fetch(`https://geo.api.gouv.fr/communes?lat=${lat}&lon=${lng}&fields=nom,population&format=json&limit=9`);
+      const rv=await fetch(`https://geo.api.gouv.fr/communes?lat=${lat}&lon=${lng}&fields=nom,population&format=json&limit=9&rayon=30000`);
       if(rv.ok){
         const communes=await rv.json();
         const loading=document.getElementById('inseeNeighborLoading');
