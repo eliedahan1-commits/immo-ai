@@ -2056,9 +2056,9 @@ async function loadDPESecteur(citycode){
     const d = await r.json();
     const aggs = d.aggs || d.results || [];
     if(!aggs.length) throw new Error('vide');
-    const total = aggs.reduce((s,a)=>s+(a.count||0), 0);
+    const total = aggs.reduce((s,a)=>s+(a.total||a.count||0), 0);
     const dist = {};
-    aggs.forEach(a=>{ if(a.value) dist[a.value.trim().toUpperCase()] = a.count||0; });
+    aggs.forEach(a=>{ if(a.value) dist[a.value.trim().toUpperCase()] = a.total||a.count||0; });
     const passoires = (dist['F']||0)+(dist['G']||0);
     const efficaces = (dist['A']||0)+(dist['B']||0);
     window._dpeSecteurData = {total, dist, passoires, efficaces,
