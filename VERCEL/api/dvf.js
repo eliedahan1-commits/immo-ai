@@ -61,7 +61,7 @@ export default async function handler(req, res) {
     const tries = [...valides].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     return {
       success: true, count: valides.length, rayon, source, dateRange,
-      stats: { medianM2: prix[Math.floor(prix.length / 2)], minM2: prix[0], maxM2: prix[prix.length - 1] },
+      stats: { medianM2: Math.round(prix.reduce((a,b)=>a+b,0)/prix.length), minM2: prix[0], maxM2: prix[prix.length - 1] },
       recentes: tries,
       dateExtraction: new Date().toISOString()
     };

@@ -2232,7 +2232,7 @@ async function loadAmenites(lat, lng){
 
 function loadPrixCommunes(lat, lng){
   // Chargement différé : la carte se charge au clic sur la carte (appels directs navigateur)
-  setCard('prixCommunes','🗺️ Voir la carte','Prix médian par commune · rayon 18km','');
+  setCard('prixCommunes','🗺️ Voir la carte','Prix moyen par commune · rayon 18km','');
 }
 
 async function loadBruit(lat, lng){
@@ -2444,7 +2444,6 @@ function showDVFDetail(){
       animation:{duration:300},
     }});
   }
-  buildDvfEvolutionChart();
   const btnStyle = 'padding:.25rem .7rem;font-size:.72rem;border:1px solid var(--border);background:var(--white);border-radius:3px;cursor:pointer;margin-right:.3rem';
   const DVF_FILTRES = [10, 20, 50, 0];
   const btnsFiltres = DVF_FILTRES.map(n=>`<button class="dvf-n-btn dvf-filter-btn" data-n="${n}" onclick="filterDVF(${n})" style="${btnStyle}">${n===0?'Toutes':n}</button>`).join('');
@@ -2480,6 +2479,7 @@ function showDVFDetail(){
     <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">${periodeLabel?periodeLabel+' · ':''}Source : ${d.source}</p>`);
   renderDVFRows();
   setTimeout(()=>refreshDVFChart(), 80);
+  setTimeout(()=>buildDvfEvolutionChart(), 120);
 }
 
 function showRisquesDetail(){
@@ -2738,7 +2738,7 @@ function showMobiliteDetail(){
       <button onclick="toggleMobiliteLayer('bus',this)" class="mob-layer-btn on" data-layer="bus" style="${lbs('#e67e22')}"><span style="width:10px;height:10px;border-radius:50%;background:#e67e22;display:inline-block"></span>Bus/Tram (${d.stats?.arretsBus||0})</button>
       <button onclick="toggleMobiliteLayer('velo',this)" class="mob-layer-btn on" data-layer="velo" style="${lbs('#27ae60')}"><span style="width:10px;height:10px;border-radius:50%;background:#27ae60;display:inline-block"></span>Vélos (${d.stats?.velos||0})</button>
       <button onclick="toggleMobiliteLayer('gare',this)" class="mob-layer-btn on" data-layer="gare" style="${lbs('#c0392b')}"><span style="width:10px;height:10px;border-radius:50%;background:#c0392b;display:inline-block"></span>Gares (${d.stats?.gares||0})</button>
-      <button onclick="toggleMobiliteLayer('borne',this)" class="mob-layer-btn on" data-layer="borne" style="${lbs('#8e44ad')}"><span style="width:10px;height:10px;border-radius:50%;background:#8e44ad;display:inline-block"></span>Bornes (${d.stats?.bornesElec||0})</button>
+      <button onclick="toggleMobiliteLayer('borne',this)" class="mob-layer-btn on" data-layer="borne" style="${lbs('#8e44ad')}"><span style="width:10px;height:10px;border-radius:50%;background:#8e44ad;display:inline-block"></span>Bornes/⛽ (${(d.stats?.bornesElec||0)+(d.stats?.pompes||0)})</button>
     </div>
     <div style="margin-bottom:.6rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Rayon :</span>${btnsMobRayon}
@@ -2807,12 +2807,15 @@ function showMobiliteDetail(){
     const lat = currentCoords.lat;
     const lng = currentCoords.lng;
 
-    if(window._leafletMapMobilite){window._leafletMapMobilite.remove();window._leafletMapMobilite=null;}
+    try{if(window._leafletMapMobilite){window._leafletMapMobilite.remove();}}catch(e){}
+    window._leafletMapMobilite = null;
     window._mobiliteMarkers = {metro:[],bus:[],velo:[],gare:[],borne:[]};
     window._mobiliteMarkersReady = false;
 
+    const mapCtr = document.getElementById('mapMobilite');
+    if(!mapCtr) return; // panel fermé entre-temps
     const zoomMob = mobDist<=500?15:mobDist<=1000?14:mobDist<=2000?13:11;
-    const map = L.map('mapMobilite').setView([lat, lng], zoomMob);
+    const map = L.map(mapCtr).setView([lat, lng], zoomMob);
     window._leafletMapMobilite = map;
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
@@ -2843,6 +2846,9 @@ function showMobiliteDetail(){
         else if(tags.railway==='tram_stop'){icone='🚊';couleur='#e67e22';layerKey='bus';}
         else if(tags.amenity==='bicycle_rental'){icone='🚲';couleur='#27ae60';layerKey='velo';}
         else if(tags.amenity==='charging_station'){icone='⚡';couleur='#8e44ad';layerKey='borne';}
+        else if(tags.amenity==='fuel'){icone='⛽';couleur='#e74c3c';layerKey='borne';}
+        else if(tags.highway==='bus_stop'||tags.public_transport==='stop_position'){icone='🚏';couleur='#e67e22';layerKey='bus';}
+        else return; // ignorer les éléments non reconnus
         const icon=L.divIcon({html:`<div style="background:${couleur};border:2px solid #fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;box-shadow:0 2px 5px rgba(0,0,0,.25)">${icone}</div>`,iconSize:[22,22],iconAnchor:[11,11],className:''});
         const marker=L.marker([e.lat,e.lon],{icon}).bindPopup(`<strong>${icone} ${tags.name||tags.railway||tags.amenity||'Arrêt'}</strong>`);
         clusters[layerKey].addLayer(marker);
@@ -3120,7 +3126,7 @@ async function showPrixCommunesDetail(){
     } catch(e) {}
   }
   const d = window._prixCommunesData || { communePrincipale:'', communePrincipaleCode:'', codeDept:'', source:'DVF DGFiP' };
-  const medGlobal = d.communePrincipaleCode ? db[d.communePrincipaleCode]?.median || null : null;
+  const medGlobal = d.communePrincipaleCode ? (db[d.communePrincipaleCode]?.mean ?? db[d.communePrincipaleCode]?.median ?? null) : null;
   const nomCommune = d.communePrincipale || 'Commune';
 
   const palette = [
@@ -3138,11 +3144,11 @@ async function showPrixCommunesDetail(){
 
   showPanel('🗺️ Prix au m² par commune', `
     <div class="stat-grid" style="grid-template-columns:1fr;margin-bottom:1rem">
-      <div class="stat-box"><span class="stat-n">${medGlobal?medGlobal.toLocaleString('fr-FR')+' €':'—'}</span><span class="stat-l">💰 Médian ${nomCommune} /m²</span></div>
+      <div class="stat-box"><span class="stat-n">${medGlobal?medGlobal.toLocaleString('fr-FR')+' €':'—'}</span><span class="stat-l">💰 Moyenne ${nomCommune} /m²</span></div>
     </div>
     <div style="margin-bottom:.7rem;line-height:2;flex-wrap:wrap;display:flex">${legendHtml}</div>
     <div class="map-container" id="mapPrixCommunes"></div>
-    <p style="font-size:.62rem;color:var(--muted);margin-top:.4rem">Prix médian des ventes · Source : ${d.source} · Déplacez la carte pour charger d'autres communes</p>
+    <p style="font-size:.62rem;color:var(--muted);margin-top:.4rem">Prix moyen des ventes · Source : ${d.source} · Déplacez la carte pour charger d'autres communes</p>
   `);
 
   setTimeout(() => {
@@ -3181,7 +3187,7 @@ async function showPrixCommunesDetail(){
       if(drawnCodes.has(c.code) || !c.contour) return;
       drawnCodes.add(c.code);
       const dvf = db[c.code];
-      const medianM2 = dvf?.median || null;
+      const medianM2 = dvf ? (dvf.mean ?? dvf.median ?? null) : null;
       const color = prixColor(medianM2);
       const layer = L.geoJSON({ type:'Feature', geometry:c.contour, properties:{} }, {
         style: { color:'#ffffff', weight:1, fillColor:color, fillOpacity:0.22 }
@@ -3194,8 +3200,8 @@ async function showPrixCommunesDetail(){
             <strong style="font-size:.8rem">${c.nom}</strong><br>
             <span style="font-size:.95rem;font-weight:700;color:${safeColor}">${medianM2.toLocaleString('fr-FR')} €/m²</span><br>
             <span style="color:#555;font-size:.68rem">
-              ${dvf.count} ventes · 2023–2025<br>
-              ${dvf.q1&&dvf.q3?`La moitié des ventes : ${dvf.q1.toLocaleString('fr-FR')}–${dvf.q3.toLocaleString('fr-FR')} €/m²`:''}
+              Moyenne · ${dvf.count} ventes · 2023–2025<br>
+              ${dvf.q1&&dvf.q3?`Médiane : ${(dvf.median||dvf.mean||0).toLocaleString('fr-FR')} €/m²`:''}
             </span></div>`
         : `<div style="font-size:.72rem"><strong>${c.nom}</strong><br><span style="color:#aaa;font-size:.68rem">Données insuffisantes</span></div>`;
       layer.bindTooltip(tooltip, { sticky:true, className:'leaflet-prix-tooltip', opacity:1 });

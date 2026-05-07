@@ -16,6 +16,7 @@ export default async function handler(req, res) {
       node["railway"="tram_stop"](around:${dist},${lat},${lon});
       node["amenity"="bicycle_rental"](around:${dist},${lat},${lon});
       node["amenity"="charging_station"](around:${dist},${lat},${lon});
+      node["amenity"="fuel"](around:${dist},${lat},${lon});
     );out body;`;
 
     const r = await fetch('https://overpass-api.de/api/interpreter', {
@@ -35,6 +36,7 @@ export default async function handler(req, res) {
     const bus = elements.filter(e => e.tags?.highway === 'bus_stop' || e.tags?.public_transport === 'stop_position');
     const velos = elements.filter(e => e.tags?.amenity === 'bicycle_rental');
     const bornes = elements.filter(e => e.tags?.amenity === 'charging_station');
+    const pompes = elements.filter(e => e.tags?.amenity === 'fuel');
 
     let score = 0;
     if (metro.length > 0) score += 4;
@@ -50,7 +52,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true, score,
       scoreLabel: score >= 8 ? 'Excellent' : score >= 6 ? 'Très bon' : score >= 4 ? 'Bon' : score >= 2 ? 'Moyen' : 'Faible',
-      stats: { metro: metro.length, gares: gares.length, trams: trams.length, arretsBus: bus.length, velos: velos.length, bornesElec: bornes.length },
+      stats: { metro: metro.length, gares: gares.length, trams: trams.length, arretsBus: bus.length, velos: velos.length, bornesElec: bornes.length, pompes: pompes.length },
       arretsPrincipaux: noms,
       elements: elements.filter(e => e.lat && e.lon),
       source: 'OpenStreetMap via Overpass API',

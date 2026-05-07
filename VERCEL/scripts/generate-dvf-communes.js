@@ -61,6 +61,11 @@ function median(arr) {
   return s.length % 2 ? s[m] : Math.round((s[m - 1] + s[m]) / 2);
 }
 
+function mean(arr) {
+  if (!arr.length) return null;
+  return Math.round(arr.reduce((a, b) => a + b, 0) / arr.length);
+}
+
 function percentile(arr, p) {
   const s = [...arr].sort((a, b) => a - b);
   const i = Math.floor(s.length * p / 100);
@@ -149,6 +154,7 @@ async function main() {
     if (vals.length < 3) continue; // trop peu de ventes → pas fiable
     communes[code] = {
       nom,
+      mean:   mean(vals),
       median: median(vals),
       q1:     percentile(vals, 25),
       q3:     percentile(vals, 75),

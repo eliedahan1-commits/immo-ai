@@ -26,11 +26,12 @@ export default async function handler(req, res) {
     const prescData = prescRes.ok ? await prescRes.json() : { features: [] };
     const prescriptions = prescData.features?.map(f => f.properties?.libelle).filter(Boolean) || [];
 
-    const zoneCode = zone?.typezone || zone?.libelle || 'NC';
-    let zoneLabel = 'Non défini';
+    const zoneCode = zone?.typezone || zone?.libelle || null;
+    let zoneLabel = 'À vérifier';
     let constructible = null;
-    if (zoneCode.startsWith('U')) { zoneLabel = 'Zone urbaine'; constructible = true; }
+    if (!zoneCode) { zoneLabel = 'À vérifier'; }
     else if (zoneCode.startsWith('AU')) { zoneLabel = 'Zone à urbaniser'; constructible = true; }
+    else if (zoneCode.startsWith('U')) { zoneLabel = 'Zone urbaine'; constructible = true; }
     else if (zoneCode.startsWith('A')) { zoneLabel = 'Zone agricole'; constructible = false; }
     else if (zoneCode.startsWith('N')) { zoneLabel = 'Zone naturelle'; constructible = false; }
 
@@ -38,7 +39,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       zone: {
-        code: zoneCode,
+        code: zoneCode || 'NC',
         libelle: zone?.libelle || zoneLabel,
         typeZone: zoneLabel,
         constructible,

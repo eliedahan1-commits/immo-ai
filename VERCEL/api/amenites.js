@@ -44,7 +44,7 @@ export default async function handler(req, res) {
     countOverpass('["amenity"~"restaurant|cafe|bar|fast_food|brasserie"]',          RAYON_RESTAU_M),
     countOverpass('["amenity"~"theatre|cinema|museum|arts_centre|library|art_gallery"]', RAYON_CULTURE_M),
     countOverpass('["leisure"~"park|garden|nature_reserve|playground"]',            RAYON_PARCS_M),
-    countOverpass('["leisure"~"sports_centre|fitness_centre|swimming_pool|pitch|track"]', RAYON_SPORT_M),
+    countOverpass('["leisure"~"sports_centre|fitness_centre|swimming_pool|stadium|golf_course|ice_rink|bowling_alley"]', RAYON_SPORT_M),
     countOverpass('["shop"~"supermarket|convenience|mall"]',                        RAYON_COMMERCE_M),
   ]);
 
