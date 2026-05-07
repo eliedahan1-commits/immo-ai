@@ -1841,7 +1841,7 @@ async function loadRisques(lat, lng, citycode){
             libelle: c.libelle_risque_jo || c.lib_risque_jo || c.cod_nat_catnat || 'Catastrophe naturelle',
             debut: parseCatnatDate(c.date_debut_evt || c.dat_deb_evt || ''),
             fin: parseCatnatDate(c.date_fin_evt || c.dat_fin_evt || '')
-          }));
+          })).sort((a,b)=>(b.debut||'').localeCompare(a.debut||''));
         }
       }catch(e){}
     }
