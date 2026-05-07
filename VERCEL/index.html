@@ -656,7 +656,7 @@ path.leaflet-interactive:focus{outline:none;}
     <div class="nav-item" onclick="go('risques')"><span class="nav-icon">⚠️</span>Risques naturels</div>
     <div class="nav-item" onclick="go('energie')"><span class="nav-icon">⚡</span>Énergie & DPE</div>
     <div class="nav-item" onclick="go('bruit')"><span class="nav-icon">🔇</span>Bruit & nuisances</div>
-    <div class="nav-item" onclick="go('urbanisme')"><span class="nav-icon">📋</span>Urbanisme & PLU</div>
+    <div class="nav-item" onclick="go('urbanisme')"><span class="nav-icon">📋</span>Urbanisme, PLU & Énergie</div>
   </div>
 
   <div class="nav-section">Mon quartier</div>
@@ -798,18 +798,48 @@ path.leaflet-interactive:focus{outline:none;}
   <div class="page" id="p-cout"><div class="inner">
     <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
     <div class="ph"><div class="ptag">✦ Financement</div><h2 class="ptitle">Le <em>vrai coût</em> du bien</h2></div>
-    <div class="g2" style="align-items:start">
-      <div class="card"><div class="ctitle">🏠 Caractéristiques du bien</div>
-        <label class="lbl">Prix affiché (€)</label><input class="inp" id="cPrix" type="number" placeholder="650000" />
-        <label class="lbl">Surface (m²)</label><input class="inp" id="cSurf" type="number" placeholder="80" />
-        <label class="lbl">DPE</label>
-        <select class="inp" id="cDpe"><option value="A">A</option><option value="B">B</option><option value="C" selected>C</option><option value="D">D</option><option value="E">E</option><option value="F">F</option><option value="G">G</option></select>
-        <label class="lbl">Charges copro /mois (€)</label><input class="inp" id="cCharges" type="number" placeholder="250" />
-        <label class="lbl">Votre apport (€)</label><input class="inp" id="cApport" type="number" placeholder="150000" />
-        <label class="lbl">Durée prêt (ans)</label><input class="inp" id="cDuree" type="number" value="20" />
-        <button class="btn btn-dark btn-full" onclick="calcCout()">✦ Calculer le vrai coût</button>
+    <div class="toggles" id="tCoutMode" style="margin-bottom:1.5rem">
+      <button class="tog on" onclick="tog('tCoutMode',this);switchCoutMode('achat')">🏠 Achat</button>
+      <button class="tog" onclick="tog('tCoutMode',this);switchCoutMode('location')">🔑 Investissement locatif</button>
+    </div>
+    <!-- Onglet Achat -->
+    <div id="coutAchat">
+      <div class="g2" style="align-items:start">
+        <div class="card"><div class="ctitle">🏠 Caractéristiques du bien</div>
+          <label class="lbl">Prix affiché (€)</label><input class="inp" id="cPrix" type="number" placeholder="650000" />
+          <label class="lbl">Surface (m²)</label><input class="inp" id="cSurf" type="number" placeholder="80" />
+          <label class="lbl">DPE</label>
+          <select class="inp" id="cDpe"><option value="A">A</option><option value="B">B</option><option value="C" selected>C</option><option value="D">D</option><option value="E">E</option><option value="F">F</option><option value="G">G</option></select>
+          <label class="lbl">Charges copro /mois (€)</label><input class="inp" id="cCharges" type="number" placeholder="250" />
+          <label class="lbl">Votre apport (€)</label><input class="inp" id="cApport" type="number" placeholder="150000" />
+          <label class="lbl">Durée prêt (ans)</label><input class="inp" id="cDuree" type="number" value="20" />
+          <button class="btn btn-dark btn-full" onclick="calcCout()">✦ Calculer le vrai coût</button>
+        </div>
+        <div id="resCout"><div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez le bien pour voir le coût total réel.</p></div></div>
       </div>
-      <div id="resCout"><div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez le bien pour voir le coût total réel.</p></div></div>
+    </div>
+    <!-- Onglet Investissement locatif -->
+    <div id="coutLocation" style="display:none">
+      <div class="g2" style="align-items:start">
+        <div class="card"><div class="ctitle">🔑 Votre investissement</div>
+          <label class="lbl">Prix d'achat (€)</label><input class="inp" id="lPrix" type="number" placeholder="250000" />
+          <label class="lbl">Frais de notaire (€) <span style="font-weight:400;font-size:.8em;color:var(--muted)">ou laisser vide → 7,5%</span></label><input class="inp" id="lNotaire" type="number" placeholder="" />
+          <label class="lbl">Travaux initiaux (€)</label><input class="inp" id="lTravaux" type="number" placeholder="0" />
+          <label class="lbl">Loyer mensuel charges comprises (€)</label><input class="inp" id="lLoyer" type="number" placeholder="1200" />
+          <label class="lbl">Charges non récupérables /mois (€) <span style="font-weight:400;font-size:.8em;color:var(--muted)">copro, entretien</span></label><input class="inp" id="lCharges" type="number" placeholder="150" />
+          <label class="lbl">Taxe foncière /an (€)</label><input class="inp" id="lTaxe" type="number" placeholder="1200" />
+          <label class="lbl">Frais de gestion (%)</label><input class="inp" id="lGestion" type="number" value="0" placeholder="8" />
+          <label class="lbl">Taux de vacance locative (%)</label><input class="inp" id="lVacance" type="number" value="5" />
+          <label class="lbl">Apport (€)</label><input class="inp" id="lApport" type="number" placeholder="50000" />
+          <label class="lbl">Durée prêt (ans)</label><input class="inp" id="lDuree" type="number" value="20" />
+          <button class="btn btn-dark btn-full" onclick="calcLocation()">✦ Calculer le rendement</button>
+        </div>
+        <div id="resLocation"><div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez votre investissement pour calculer le rendement net.</p></div></div>
+      </div>
+      <div style="margin-top:1rem;padding:.9rem 1rem;background:var(--warm);border-radius:var(--r);font-size:.77rem;color:var(--muted)">
+        ⚠️ Simulation indicative. Le rendement réel dépend de la fiscalité (régime réel ou micro-foncier, IFI, PFU…), des travaux imprévus et de l'évolution du marché locatif.
+        <a href="https://www.service-public.fr/particuliers/vosdroits/F14868" target="_blank" style="color:var(--gold2);margin-left:.5rem">Fiscalité location →</a>
+      </div>
     </div>
   </div></div>
 
@@ -1230,7 +1260,7 @@ async function apiCall(netlifyPath, directUrl, options={}) {
 const PAGES = {
   home:'Accueil', analyse:'Analyse complète', prix:'Prix des dernières transactions',
   risques:'Risques naturels', energie:'Énergie & DPE', bruit:'Bruit & nuisances',
-  urbanisme:'Urbanisme & PLU', ecoles:'Écoles & IPS', mobilite:'Mobilité & transports',
+  urbanisme:'Urbanisme, PLU & Énergie', ecoles:'Écoles & IPS', mobilite:'Mobilité & transports',
   fibre:'Internet & fibre', services:'Services & santé', soleil:'Météo & ensoleillement',
   emprunt:'Capacité d\'emprunt', cout:'Vrai coût du bien', aides:'Aides de l\'État',
   renov:'Rénovation & MaPrimeRénov\'', offre:'Coaching de l\'offre',
@@ -1607,7 +1637,7 @@ function renderCards(props, coords){
         {id:'risques',   icon:'⚠️', label:'Risques naturels',       value:'<span class="spin"></span>', sub:'Géorisques officiel',       source:'Géorisques'},
         {id:'dpe',       icon:'⚡', label:'Énergie & DPE',          value:'Simuler →',                  sub:'Cliquez pour simuler',      source:'ADEME'},
         {id:'bruit',     icon:'🔇', label:'Bruit & nuisances',      value:'<span class="spin"></span>', sub:'Routes, voies ferrées, aéroports', source:'OSM'},
-        {id:'urbanisme', icon:'📋', label:'Urbanisme & PLU',        value:'<span class="spin"></span>', sub:'Zonage officiel IGN',       source:'IGN GPU'},
+        {id:'urbanisme', icon:'📋', label:'Urbanisme, PLU & Énergie',        value:'<span class="spin"></span>', sub:'Zonage officiel IGN',       source:'IGN GPU'},
       ]
     },
     {
@@ -1670,13 +1700,16 @@ async function loadAllData(props, coords){
   // Lancer toutes les vraies APIs en parallèle
   Promise.all([
     loadDVF(lat, lng),
-    loadRisques(lat, lng),
+    loadRisques(lat, lng, props.citycode),
     loadEcoles(lat, lng, props.citycode),
     loadMobilite(lat, lng),
     loadFibre(props.citycode, lat, lng),
     loadUrbanisme(lat, lng),
+    loadDPESecteur(props.citycode),
     loadMeteo(lat, lng),
+    loadQualiteAir(lat, lng),
     loadINSEE(props.citycode, lat, lng),
+    loadCriminalite(props.citycode),
     loadAltitude(lat, lng),
     loadServices(lat, lng),
     loadAmenites(lat, lng),
@@ -1760,17 +1793,15 @@ function afficherDVF(d){
 }
 
 // ── Géorisques : risques naturels officiels ──
-async function loadRisques(lat, lng){
+async function loadRisques(lat, lng, citycode){
   try{
     const r = await apiCall(`/api/risques?lat=${lat}&lon=${lng}&_v=2`, `https://georisques.gouv.fr/api/v1/gaspar/risques?latlon=${lng},${lat}&rayon=500`);
     if(!r.ok) throw new Error();
     const d = await r.json();
     let nb, score, detail=[];
     if(d.success !== undefined){
-      // Format Netlify Function
       nb=d.total; score=d.score; detail=d.detail||[];
     } else {
-      // Format direct API Géorisques : { data: [{ risques_detail: [{libelle_risque_long, num_risque}] }] }
       const communeData = (d.data || [])[0] || {};
       const risquesDetail = communeData.risques_detail || [];
       nb = risquesDetail.length;
@@ -1780,16 +1811,25 @@ async function loadRisques(lat, lng){
         code: item.num_risque || ''
       }));
     }
-    // Calculer les catégories depuis le detail (utilisé dans showRisquesDetail)
     const categories = {
       inondation: detail.some(r=>(r.libelle||'').toLowerCase().includes('inondation')),
-      seisme:     detail.some(r=>(r.libelle||'').toLowerCase().includes('sisme') || (r.libelle||'').toLowerCase().includes('seisme') || (r.libelle||'').toLowerCase().includes('séisme')),
+      seisme:     detail.some(r=>(r.libelle||'').toLowerCase().includes('sisme')||(r.libelle||'').toLowerCase().includes('seisme')||(r.libelle||'').toLowerCase().includes('séisme')),
       argile:     detail.some(r=>(r.libelle||'').toLowerCase().includes('argile')),
       mouvement:  detail.some(r=>(r.libelle||'').toLowerCase().includes('mouvement')),
+      submersion: detail.some(r=>(r.libelle||'').toLowerCase().includes('submersion')),
+      technologique: detail.some(r=>(r.libelle||'').toLowerCase().includes('technologique')||(r.libelle||'').toLowerCase().includes('industriel')),
     };
+    // Historique catastrophes naturelles
+    let catnat = [];
+    if(citycode){
+      try{
+        const rc = await fetch(`https://georisques.gouv.fr/api/v1/gaspar/catnat?code_insee=${citycode}&page=1&page_size=15`, {signal:AbortSignal.timeout(8000)});
+        if(rc.ok){ const dc=await rc.json(); catnat=(dc.data||[]).map(c=>({libelle:c.lib_risque_jo||c.cod_nat_catnat||'Événement', debut:(c.dat_deb||'').slice(0,7), fin:(c.dat_fin||'').slice(0,7)})); }
+      }catch(e){}
+    }
     const css = nb===0?'good':nb>=3?'bad':'warn';
     setCard('risques', nb===0?'Aucun risque':nb+' risque'+(nb>1?'s':''), nb===0?'Zone non exposée':'Score : '+score, css);
-    window._risquesData = {success:true, total:nb, score, detail, categories};
+    window._risquesData = {success:true, total:nb, score, detail, categories, catnat, citycode, lat, lng};
   }catch(e){
     setCard('risques','Non disponible','Erreur API Géorisques','');
   }
@@ -1987,7 +2027,29 @@ async function loadFibre(citycode, lat, lng){
   }
 }
 
-// ── Urbanisme & PLU ──
+// ── DPE du secteur (ADEME) ──
+async function loadDPESecteur(citycode){
+  window._dpeSecteurData = null;
+  if(!citycode) return;
+  try{
+    const url = `https://data.ademe.fr/data-fair/api/v1/datasets/dpe-v2-logements-existants/values_agg?field=etiquette_dpe&size=7&qs=code_insee_ban:${citycode}`;
+    const r = await fetch(url, {signal:AbortSignal.timeout(10000)});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const d = await r.json();
+    const aggs = d.aggs || d.results || [];
+    if(!aggs.length) throw new Error('vide');
+    const total = aggs.reduce((s,a)=>s+(a.count||0), 0);
+    const dist = {};
+    aggs.forEach(a=>{ if(a.value) dist[a.value.trim().toUpperCase()] = a.count||0; });
+    const passoires = (dist['F']||0)+(dist['G']||0);
+    const efficaces = (dist['A']||0)+(dist['B']||0);
+    window._dpeSecteurData = {total, dist, passoires, efficaces,
+      pctPassoires: total?Math.round(passoires/total*100):0,
+      pctEfficaces:  total?Math.round(efficaces/total*100):0};
+  }catch(e){ window._dpeSecteurData = {error:true}; }
+}
+
+// ── Urbanisme, PLU & Énergie ──
 async function loadUrbanisme(lat, lng){
   try{
     const geom=encodeURIComponent(JSON.stringify({type:'Point',coordinates:[lng,lat]})); const r = await apiCall(`/api/urbanisme?lat=${lat}&lon=${lng}`, `https://apicarto.ign.fr/api/gpu/zone-urba?geom=${geom}`);
@@ -2026,6 +2088,25 @@ async function loadMeteo(lat, lng){
   }
 }
 
+// ── Qualité de l'air (Open-Meteo Air Quality) ──
+async function loadQualiteAir(lat, lng){
+  window._qualiteAirData = null;
+  try{
+    const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lng}&current=european_aqi,pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,ozone`;
+    const r = await fetch(url, {signal:AbortSignal.timeout(8000)});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const d = await r.json();
+    const cur = d.current||{};
+    const aqi = cur.european_aqi;
+    if(aqi == null) throw new Error('no aqi');
+    const label = aqi<=20?'Bon':aqi<=40?'Assez bon':aqi<=60?'Modéré':aqi<=80?'Mauvais':aqi<=100?'Très mauvais':'Extrêmement mauvais';
+    const color = aqi<=20?'#27ae60':aqi<=40?'#a3c03a':aqi<=60?'#f39c12':aqi<=80?'#e67e22':aqi<=100?'#e74c3c':'#8e44ad';
+    window._qualiteAirData = {aqi, label, color, pm10:cur.pm10, pm25:cur.pm2_5, no2:cur.nitrogen_dioxide, o3:cur.ozone};
+  }catch(e){
+    window._qualiteAirData = {error:true};
+  }
+}
+
 // ── INSEE ──
 async function loadINSEE(citycode, lat, lng){
   try{
@@ -2042,6 +2123,34 @@ async function loadINSEE(citycode, lat, lng){
     window._inseeData = d;
   }catch{
     setCard('insee','Non disponible','Erreur INSEE','');
+  }
+}
+
+// ── Criminalité par commune (stats.interieur.gouv.fr) ──
+async function loadCriminalite(citycode){
+  window._criminaliteData = null;
+  if(!citycode) return;
+  try{
+    // API SSMSI via data.gouv.fr — statistiques de délinquance par commune
+    const url = `https://statcrimes.interieur.gouv.fr/api/explore/v2.1/catalog/datasets/indicateurs-de-criminalite-par-commune/records?where=code_commune_insee%3D%22${citycode}%22&limit=20&order_by=annee+desc`;
+    const r = await fetch(url, {signal:AbortSignal.timeout(10000)});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const d = await r.json();
+    const records = d.results || d.records || [];
+    if(!records.length) throw new Error('vide');
+    // Regrouper par indicateur (prendre l'année la plus récente)
+    const byIndicateur = {};
+    records.forEach(rec=>{
+      const fields = rec.fields || rec;
+      const ind = fields.indicateur || fields.libelle_indicateur || '';
+      const annee = parseInt(fields.annee||0);
+      if(!byIndicateur[ind]||annee>byIndicateur[ind].annee){
+        byIndicateur[ind]={annee, taux:parseFloat(fields.taux_pour_mille||fields.taux||0)||null, nb:parseInt(fields.faits||fields.nombre||0)||null};
+      }
+    });
+    window._criminaliteData = {success:true, indicateurs:byIndicateur, annee:Math.max(...records.map(r=>(r.fields||r).annee||0))};
+  }catch(e){
+    window._criminaliteData = {success:false};
   }
 }
 
@@ -2152,7 +2261,7 @@ function showPanel(title, html){
 }
 
 function closePanel(){
-  ['_dvfChart','_risquesChart','_ecolesChart','_mobiliteChart','_radarChart','_radarProfilChart','_servicesChart'].forEach(k=>{if(window[k]){window[k].destroy();window[k]=null;}});
+  ['_dvfChart','_risquesChart','_ecolesChart','_mobiliteChart','_radarChart','_radarProfilChart','_servicesChart','_inseeNeighborChart'].forEach(k=>{if(window[k]){window[k].destroy();window[k]=null;}});
   document.getElementById('detailContainer').innerHTML = '';
   document.getElementById('cardsGrid').style.display = 'grid';
   if(window._leafletMap){window._leafletMap.remove();window._leafletMap=null;}
@@ -2160,6 +2269,7 @@ function closePanel(){
   if(window._leafletMapAlt){window._leafletMapAlt.remove();window._leafletMapAlt=null;}
   if(window._leafletMapEcoles){window._leafletMapEcoles.remove();window._leafletMapEcoles=null;}
   if(window._leafletMapInsee){window._leafletMapInsee.remove();window._leafletMapInsee=null;}
+  if(window._leafletMapRisques){window._leafletMapRisques.remove();window._leafletMapRisques=null;}
 }
 
 function showDVFDetail(){
@@ -2313,17 +2423,65 @@ function showDVFDetail(){
 function showRisquesDetail(){
   const d = window._risquesData;
   if(!d){showPanel('⚠️ Risques naturels','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
-  const liste = d.detail?.filter(r=>r&&r.libelle).map(r=>`<div style="padding:.4rem 0;border-bottom:1px solid var(--border);font-size:.82rem">⚠️ ${r.libelle}</div>`).join('') || '<p style="color:var(--green)">✓ Aucun risque identifié dans ce secteur</p>';
+
+  const CAT_INFO = {
+    inondation:    {icon:'🌊', label:'Inondation',              color:'#2980B9', desc:'Plan de Prévention des Risques Inondation (PPRI) potentiellement applicable. Peut impacter l\'assurance et la valeur du bien.'},
+    seisme:        {icon:'🌍', label:'Séisme',                  color:'#C0392B', desc:'Zone de sismicité réglementaire. Règles de construction parasismiques applicables.'},
+    argile:        {icon:'🪨', label:'Retrait-gonflement argiles', color:'#E67E22', desc:'Les mouvements d\'argile lors de sécheresses peuvent affecter les fondations. Point de vigilance pour l\'assurance habitation.'},
+    mouvement:     {icon:'⛰️', label:'Mouvement de terrain',    color:'#8E44AD', desc:'Risque de glissement, effondrement ou érosion identifié. Consultez la carte BDMVT.'},
+    submersion:    {icon:'🌊', label:'Submersion marine',        color:'#16A085', desc:'Risque de submersion marine ou littorale. Vérifiez le Plan de Submersion Rapide (PSR).'},
+    technologique: {icon:'🏭', label:'Risque technologique',    color:'#7F8C8D', desc:'Établissement industriel à risque à proximité. Plan de Prévention des Risques Technologiques (PPRT) applicable.'},
+  };
+
+  const catBadges = Object.entries(CAT_INFO).filter(([k])=>d.categories?.[k]).map(([k,info])=>`
+    <div style="display:flex;gap:.75rem;align-items:flex-start;border-left:3px solid ${info.color};padding:.55rem .85rem;background:${info.color}18;border-radius:0 6px 6px 0;margin-bottom:.5rem">
+      <span style="font-size:1.25rem;flex-shrink:0">${info.icon}</span>
+      <div><div style="font-weight:600;font-size:.84rem;color:var(--text)">${info.label}</div>
+      <div style="font-size:.72rem;color:var(--muted);margin-top:.1rem">${info.desc}</div></div>
+    </div>`).join('');
+
+  const noRisque = d.total===0?`<div style="display:flex;gap:.75rem;align-items:center;border-left:3px solid var(--green);padding:.6rem .85rem;background:#27ae6018;border-radius:0 6px 6px 0;margin-bottom:.75rem">
+    <span style="font-size:1.3rem">✅</span><div style="font-size:.85rem;color:var(--text);font-weight:500">Aucun risque naturel ou technologique identifié dans ce secteur</div></div>`:'';
+
+  const catnatList = d.catnat?.length
+    ? d.catnat.map(c=>`<div style="padding:.3rem 0;border-bottom:1px solid var(--border);font-size:.77rem"><span style="color:var(--muted);font-family:monospace">${c.debut}${c.fin&&c.fin!==c.debut?' → '+c.fin:''}</span> &nbsp;${c.libelle}</div>`).join('')
+    : '<p style="color:var(--green);font-size:.79rem;margin:.3rem 0">✓ Aucun arrêté de catastrophe naturelle recensé pour cette commune</p>';
+
+  const scoreColor = d.total===0?'var(--green)':d.total>=3?'#C0392B':'#E67E22';
+  const scoreLbl   = d.total===0?'Faible':d.total>=3?'Élevé':'Modéré';
+  const georisquesUrl = `https://www.georisques.gouv.fr/mes-risques/connaitre-les-risques-pres-de-chez-moi/rapport?form-adresse=${encodeURIComponent(currentAddress||'')}&latlon=${d.lng},${d.lat}&ig=1`;
+
   showPanel('⚠️ Risques naturels officiels', `
-    <div style="display:flex;gap:1rem;margin-bottom:1rem;flex-wrap:wrap">
-      ${d.categories?.inondation?'<span class="tag tag-dn">🌊 Inondation</span>':''}
-      ${d.categories?.seisme?'<span class="tag tag-dn">🌍 Séisme</span>':''}
-      ${d.categories?.argile?'<span class="tag tag-gold">🪨 Argile (RGA)</span>':''}
-      ${d.categories?.mouvement?'<span class="tag tag-dn">⛰️ Mouvement terrain</span>':''}
-      ${d.total===0?'<span class="tag tag-up">✓ Zone non exposée</span>':''}
+    <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;padding:.7rem 1rem;background:var(--bg2);border-radius:8px">
+      <div style="font-size:1.7rem">${d.total===0?'🟢':d.total>=3?'🔴':'🟡'}</div>
+      <div>
+        <div style="font-weight:700;font-size:.93rem;color:${scoreColor}">${scoreLbl} — ${d.total} risque${d.total>1?'s':''} identifié${d.total>1?'s':''}</div>
+        <div style="font-size:.71rem;color:var(--muted)">Géorisques · BRGM / Ministère de la Transition Écologique</div>
+      </div>
     </div>
-    ${liste}
-    <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : Géorisques - BRGM / État · <a href="https://www.georisques.gouv.fr/" target="_blank" style="color:var(--gold)">georisques.gouv.fr</a></p>`);
+    ${noRisque}${catBadges}
+    <div id="mapRisques" class="map-container" style="height:250px;margin:1rem 0"></div>
+    <div style="margin-bottom:.75rem">
+      <div style="font-weight:600;font-size:.83rem;color:var(--text);margin-bottom:.35rem">📋 Catastrophes naturelles reconnues (arrêtés)</div>
+      <div style="max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:.4rem .7rem">${catnatList}</div>
+    </div>
+    <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.75rem">
+      <a href="${georisquesUrl}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:.4rem;background:var(--gold);color:#1a1a2e;padding:.42rem .85rem;border-radius:20px;font-size:.77rem;font-weight:600;text-decoration:none">🌐 Rapport Géorisques complet ↗</a>
+      ${d.citycode?`<a href="https://www.georisques.gouv.fr/mes-risques/connaitre-les-risques-pres-de-chez-moi/rapport?code_insee=${d.citycode}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:.4rem;border:1px solid var(--border);color:var(--text);padding:.42rem .85rem;border-radius:20px;font-size:.77rem;font-weight:600;text-decoration:none">📄 DICRIM de la commune ↗</a>`:''}
+    </div>
+    <p style="font-size:.61rem;color:var(--muted);margin-top:.6rem">Données officielles Géorisques (BRGM) · Service public · Mise à jour continue</p>`);
+
+  setTimeout(()=>{
+    const el = document.getElementById('mapRisques');
+    if(!el||!window.L||!d.lat) return;
+    if(window._leafletMapRisques){window._leafletMapRisques.remove();window._leafletMapRisques=null;}
+    const map = L.map('mapRisques',{zoomControl:true,attributionControl:true}).setView([d.lat,d.lng],12);
+    window._leafletMapRisques = map;
+    addFsBtn(map, el);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CartoDB',subdomains:'abcd',maxZoom:19}).addTo(map);
+    const icon = L.divIcon({html:'<div style="width:14px;height:14px;background:#b8832a;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.5)"></div>',iconSize:[14,14],iconAnchor:[7,7],className:''});
+    L.marker([d.lat,d.lng],{icon}).addTo(map).bindPopup(`📍 ${currentAddress||'Adresse analysée'}`).openPopup();
+  },300);
 }
 
 function showEcolesDetail(){
@@ -3094,7 +3252,7 @@ function showBruitDetail(){
 
 function showUrbanismeDetail(){
   const d = window._urbanismeData;
-  if(!d){showPanel('📋 Urbanisme & PLU','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
+  if(!d){showPanel('📋 Urbanisme, PLU & Énergie','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
   const z = d.zone;
   const doc = d.document;
   // Traduction des codes de zone PLU
@@ -3138,7 +3296,7 @@ function showUrbanismeDetail(){
     const pCourt = p.length > 80 ? p.substring(0,77)+'…' : p;
     return `📄 "${pCourt}" — règle spécifique au PLU de cette commune (<a href="https://www.geoportail-urbanisme.gouv.fr/" target="_blank" style="color:var(--gold)">consulter le document complet ↗</a>)`;
   }) || [];
-  showPanel('📋 Urbanisme & PLU · ' + (doc?.nomCommune||''), `
+  showPanel('📋 Urbanisme, PLU & Énergie · ' + (doc?.nomCommune||''), `
     <div style="display:flex;gap:1rem;margin-bottom:1.2rem;flex-wrap:wrap">
       <div style="flex:1;background:var(--ink);border-radius:var(--r);padding:1rem;text-align:center;min-width:80px">
         <div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--gold2)">${z.code||'NC'}</div>
@@ -3156,7 +3314,28 @@ function showUrbanismeDetail(){
       ${prescriptions.map(p=>`<div style="font-size:.8rem;padding:.3rem 0;border-bottom:1px solid var(--borderl);line-height:1.5">${p}</div>`).join('')}
     </div>`:''}
     <p style="font-size:.62rem;color:var(--muted)">Document ${doc?.dateApprobation?'approuvé le '+doc.dateApprobation:''} · ${d.source}</p>
-    <p style="font-size:.72rem;margin-top:.5rem"><a href="https://www.geoportail-urbanisme.gouv.fr/" target="_blank" style="color:var(--gold)">Consulter le PLU complet sur Géoportail Urbanisme →</a></p>`);
+    <p style="font-size:.72rem;margin-top:.5rem"><a href="https://www.geoportail-urbanisme.gouv.fr/" target="_blank" style="color:var(--gold)">Consulter le PLU complet sur Géoportail Urbanisme →</a></p>
+    ${(()=>{
+      const dpe = window._dpeSecteurData;
+      if(!dpe||dpe.error) return '<div style="margin-top:1.2rem;padding-top:1rem;border-top:1px solid var(--border)"><div style="font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.4rem">⚡ Performance énergétique du parc local (DPE)</div><p style="font-size:.75rem;color:var(--muted)">Données ADEME non disponibles pour cette commune.</p></div>';
+      const DPE_COLORS = {A:'#2ECC71',B:'#82D64E',C:'#C9D64E',D:'#FFD700',E:'#FFAC1C',F:'#FF6B1C',G:'#E74C3C'};
+      const bars = ['A','B','C','D','E','F','G'].map(l=>{
+        const n=dpe.dist[l]||0; const pct=dpe.total?Math.round(n/dpe.total*100):0;
+        return `<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.25rem">
+          <span style="width:16px;height:16px;background:${DPE_COLORS[l]};border-radius:3px;display:inline-block;flex-shrink:0;font-size:.65rem;color:#fff;line-height:16px;text-align:center;font-weight:700">${l}</span>
+          <div style="flex:1;background:#eee;border-radius:3px;height:10px;overflow:hidden"><div style="width:${pct}%;background:${DPE_COLORS[l]};height:100%;border-radius:3px"></div></div>
+          <span style="font-size:.72rem;color:var(--muted);width:38px;text-align:right">${pct}%</span>
+        </div>`;}).join('');
+      return `<div style="margin-top:1.2rem;padding-top:1rem;border-top:1px solid var(--border)">
+        <div style="font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.6rem">⚡ Performance énergétique du parc local (DPE) — ${dpe.total.toLocaleString('fr-FR')} logements</div>
+        ${bars}
+        <div style="display:flex;gap:.5rem;margin-top:.6rem;flex-wrap:wrap">
+          <span style="font-size:.72rem;padding:.2rem .6rem;border-radius:12px;background:#E74C3C22;color:#C0392B;font-weight:600">🔴 Passoires (F+G) : ${dpe.pctPassoires}%</span>
+          <span style="font-size:.72rem;padding:.2rem .6rem;border-radius:12px;background:#2ECC7122;color:#27AE60;font-weight:600">🟢 Efficaces (A+B) : ${dpe.pctEfficaces}%</span>
+        </div>
+        <p style="font-size:.61rem;color:var(--muted);margin-top:.4rem">Source : ADEME · DPE logements existants depuis juillet 2021</p>
+      </div>`;
+    })()}`);
 }
 
 function showMeteoDetail(){
@@ -3177,23 +3356,73 @@ function showMeteoDetail(){
     </div>
     <p style="font-size:.8rem;color:var(--ink);font-weight:500;margin-bottom:.3rem">${d.ensoleillement?.label||''}</p>
     <p style="font-size:.75rem;color:var(--muted);margin-bottom:.5rem">${d.periode||''}</p>
-    <p style="font-size:.62rem;color:var(--muted)">Source : ${d.source}</p>`);
+    ${(()=>{
+      const aq = window._qualiteAirData;
+      if(!aq||aq.error) return `<p style="font-size:.75rem;color:var(--muted);margin-bottom:.4rem">Qualité de l\'air : données non disponibles</p>`;
+      const pm10Str = aq.pm10!=null?`PM10 : ${Math.round(aq.pm10)} µg/m³`:''
+      const pm25Str = aq.pm25!=null?`PM2.5 : ${Math.round(aq.pm25)} µg/m³`:'';
+      const subs = [pm10Str,pm25Str].filter(Boolean).join(' · ');
+      return `<div style="margin-bottom:.6rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
+        <span style="background:${aq.color};color:#fff;font-size:.78rem;font-weight:700;padding:.25rem .7rem;border-radius:20px">🌬️ ${aq.label}</span>
+        <span style="font-size:.72rem;color:var(--muted)">IQA européen : ${aq.aqi}/100${subs?' · '+subs:''}</span>
+      </div>`;
+    })()}
+    <p style="font-size:.62rem;color:var(--muted)">Source : ${d.source} · Qualité air : Open-Meteo Air Quality</p>`);
 }
 
 function showINSEEDetail(){
   const d = window._inseeData;
   if(!d){showPanel('📊 Profil du quartier','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
   const c = d.commune;
-  const r = d.revenus;
+  const dens = c?.densite||0;
+  const densLabel = dens>10000?'Très dense':dens>5000?'Dense':dens>2000?'Urbain':dens>500?'Péri-urbain':'Rural';
+  const densColor = dens>10000?'#c0392b':dens>5000?'#e67e22':dens>2000?'#f39c12':dens>500?'#27ae60':'#2980b9';
+  const supKm2 = c?.superficie ? Math.round(c.superficie/100) : null;
+
   showPanel('📊 Profil démographique · ' + (c?.nom||''), `
     <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:1rem">
       <div class="stat-box"><span class="stat-n">${c?.population?.toLocaleString('fr-FR')||'—'}</span><span class="stat-l">👥 Habitants</span></div>
-      <div class="stat-box"><span class="stat-n">${c?.densite?.toLocaleString('fr-FR')||'—'}</span><span class="stat-l">🗺️ Hab./km²</span></div>
+      <div class="stat-box">
+        <span class="stat-n" style="font-size:1rem">${c?.densite?.toLocaleString('fr-FR')||'—'} <small style="font-size:.6em">hab/km²</small></span>
+        <span class="stat-l">🗺️ <span style="color:${densColor};font-weight:600">${densLabel}</span></span>
+      </div>
+      <div class="stat-box"><span class="stat-n">${supKm2?supKm2.toLocaleString('fr-FR')+' km²':'—'}</span><span class="stat-l">📐 Superficie</span></div>
+      <div class="stat-box"><span class="stat-n">${c?.codesPostaux?.[0]||'—'}</span><span class="stat-l">📮 Code postal</span></div>
     </div>
     <p style="font-size:.75rem;color:var(--muted);margin-bottom:.8rem">Département ${c?.departement||'—'} · Code INSEE ${c?.codeInsee||'—'}</p>
     <div class="map-container" id="mapInsee"></div>
-    <p style="font-size:.8rem;color:var(--accent);font-weight:500;margin-top:.6rem;padding:.4rem .6rem;background:rgba(184,131,42,.08);border-radius:4px;border-left:3px solid var(--gold)">🖱️ Cliquez sur une commune pour voir sa densité exacte.</p>
-    <p style="font-size:.62rem;color:var(--muted);margin-top:.3rem">Source : ${d.source} · <a href="https://www.observatoire-des-territoires.gouv.fr/densite-de-population" target="_blank" style="color:var(--gold)">Carte nationale densité →</a></p>`);
+    <p style="font-size:.8rem;color:var(--accent);font-weight:500;margin-top:.6rem;padding:.4rem .6rem;background:rgba(184,131,42,.08);border-radius:4px;border-left:3px solid var(--gold)">🖱️ Cliquez sur une commune pour voir sa densité et superficie.</p>
+    <div style="margin-top:1rem;padding-top:.75rem;border-top:1px solid var(--border)">
+      <div style="font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.5rem">📊 Population · communes voisines</div>
+      <div id="inseeNeighborLoading" style="font-size:.75rem;color:var(--muted);text-align:center;padding:.4rem">Chargement…</div>
+      <div style="position:relative;height:175px;display:none" id="inseeChartWrap"><canvas id="inseeNeighborChart"></canvas></div>
+    </div>
+    <p style="font-size:.62rem;color:var(--muted);margin-top:.3rem">Source : ${d.source} · <a href="https://www.observatoire-des-territoires.gouv.fr/densite-de-population" target="_blank" style="color:var(--gold)">Carte nationale densité →</a></p>
+    ${(()=>{
+      const cr = window._criminaliteData;
+      const deptLink = `https://statcrimes.interieur.gouv.fr/stats/crime/indicateurs-de-criminalite/VC/${c?.codeInsee||''}`;
+      if(!cr||!cr.success||!Object.keys(cr.indicateurs||{}).length){
+        return `<div style="margin-top:1rem;padding-top:.75rem;border-top:1px solid var(--border)">
+          <div style="font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.4rem">🚨 Sécurité & criminalité</div>
+          <p style="font-size:.75rem;color:var(--muted)">Statistiques non disponibles via l\'API. <a href="${deptLink}" target="_blank" style="color:var(--gold)">Consulter sur statcrimes.interieur.gouv.fr →</a></p>
+        </div>`;
+      }
+      const ICON_MAP = {'cambriolage':'🏠','viol':'⚠️','violence':'👊','vol':'🛍️','escroquerie':'💳','destruction':'🔥','stupefiants':'💊','trafic':'🚗','homicide':'☠️'};
+      const rows = Object.entries(cr.indicateurs).slice(0,8).map(([ind,v])=>{
+        const key = Object.keys(ICON_MAP).find(k=>ind.toLowerCase().includes(k));
+        const icon = ICON_MAP[key]||'📋';
+        const tauxStr = v.taux!=null?`<span style="color:var(--muted);font-size:.7rem">${v.taux.toFixed(1)} ‰</span>`:'';
+        const nbStr = v.nb?`${v.nb.toLocaleString('fr-FR')} faits`:'';
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:.28rem 0;border-bottom:1px solid var(--border);font-size:.77rem">
+          <span>${icon} ${ind.length>45?ind.slice(0,42)+'…':ind}</span>
+          <span style="text-align:right;flex-shrink:0;margin-left:.5rem">${nbStr} ${tauxStr}</span>
+        </div>`;}).join('');
+      return `<div style="margin-top:1rem;padding-top:.75rem;border-top:1px solid var(--border)">
+        <div style="font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.5rem">🚨 Sécurité & criminalité · ${cr.annee||''}</div>
+        <div style="border:1px solid var(--border);border-radius:6px;padding:.4rem .7rem">${rows}</div>
+        <p style="font-size:.61rem;color:var(--muted);margin-top:.35rem">Source : SSMSI · Ministère de l'Intérieur · <a href="${deptLink}" target="_blank" style="color:var(--gold)">Détail complet →</a></p>
+      </div>`;
+    })()}`);
 
   setTimeout(async ()=>{
     if(!currentCoords||!window.L) return;
@@ -3204,33 +3433,66 @@ function showINSEEDetail(){
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CartoDB',maxZoom:19}).addTo(map);
     addFsBtn(map, document.getElementById('mapInsee'));
 
-    const dens = c?.densite||0;
-    const densLabel = dens>10000?'Très dense':dens>5000?'Dense':dens>2000?'Urbain':dens>500?'Péri-urbain':'Rural';
-    const densColor = dens>10000?'#c0392b':dens>5000?'#e67e22':dens>2000?'#f39c12':dens>500?'#27ae60':'#2980b9';
-
-
     // Marqueur adresse
     const homeIcon=L.divIcon({html:`<div style="background:#fff;border:3px solid ${densColor};border-radius:50%;width:16px;height:16px;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>`,iconSize:[16,16],iconAnchor:[8,8],className:''});
     L.marker([lat,lng],{icon:homeIcon}).addTo(map)
-      .bindPopup(`<strong>📍 ${currentAddress}</strong><br><span style="font-size:.8rem;color:${densColor}"><strong>${densLabel}</strong></span><br><span style="font-size:.75rem">${(c?.population||0).toLocaleString('fr-FR')} hab. · ${(c?.densite||0).toLocaleString('fr-FR')} hab./km²</span>`).openPopup();
+      .bindPopup(`<strong>📍 ${currentAddress}</strong><br><span style="font-size:.8rem;color:${densColor}"><strong>${densLabel}</strong></span><br><span style="font-size:.75rem">${(c?.population||0).toLocaleString('fr-FR')} hab. · ${(c?.densite||0).toLocaleString('fr-FR')} hab./km²</span>${supKm2?`<br><span style="font-size:.75rem">Superficie : ${supKm2.toLocaleString('fr-FR')} km²</span>`:''}`).openPopup();
 
-    // Clic sur la carte → densité du point (commune la plus proche)
+    // Clic sur la carte → densité + superficie de la commune cliquée
     map.on('click', async e=>{
       const {lat:clat,lng:clng}=e.latlng;
       try{
-        const r2=await fetch(`https://geo.api.gouv.fr/communes?lat=${clat}&lon=${clng}&fields=nom,population,surface&format=json&limit=1`);
+        const r2=await fetch(`https://geo.api.gouv.fr/communes?lat=${clat}&lon=${clng}&fields=nom,population,superficie&format=json&limit=1`);
         if(!r2.ok) return;
         const [com]=await r2.json();
         if(!com) return;
-        const sup2=com.surface||0;
+        const sup2=com.superficie||0;
         const pop2=com.population||0;
         const dens2=(sup2>=50)?Math.round(pop2/(sup2/100)):null;
         const col2=!dens2?'#999':dens2>10000?'#c0392b':dens2>5000?'#e67e22':dens2>2000?'#f39c12':dens2>500?'#27ae60':'#2980b9';
         const lbl2=!dens2?'':dens2>10000?'Très dense · ':dens2>5000?'Dense · ':dens2>2000?'Urbain · ':dens2>500?'Péri-urbain · ':'Rural · ';
         const densStr=dens2?`<span style="color:${col2}"><strong>${lbl2}${dens2.toLocaleString('fr-FR')} hab./km²</strong></span>`:`<span style="color:#999">Densité non disponible</span>`;
-        L.popup().setLatLng(e.latlng).setContent(`<strong>${com.nom}</strong><br>${pop2.toLocaleString('fr-FR')} habitants<br>${densStr}`).openOn(map);
+        const supStr=sup2?`<br><span style="font-size:.75rem">Superficie : ${Math.round(sup2/100).toLocaleString('fr-FR')} km²</span>`:'';
+        L.popup().setLatLng(e.latlng).setContent(`<strong>${com.nom}</strong><br>${pop2.toLocaleString('fr-FR')} habitants<br>${densStr}${supStr}`).openOn(map);
       }catch(e2){}
     });
+
+    // Graphique comparaison communes voisines
+    try{
+      const rv=await fetch(`https://geo.api.gouv.fr/communes?lat=${lat}&lon=${lng}&fields=nom,population&format=json&limit=9`);
+      if(rv.ok){
+        const communes=await rv.json();
+        const loading=document.getElementById('inseeNeighborLoading');
+        const wrap=document.getElementById('inseeChartWrap');
+        if(communes.length>1){
+          const currentNom=c?.nom||'';
+          const labels=communes.map(x=>x.nom);
+          const pops=communes.map(x=>x.population||0);
+          const colors=communes.map(x=>x.nom===currentNom?'rgba(184,131,42,.85)':'rgba(150,150,150,.3)');
+          const borders=communes.map(x=>x.nom===currentNom?'#b8832a':'rgba(150,150,150,.5)');
+          if(loading) loading.style.display='none';
+          if(wrap) wrap.style.display='block';
+          const ctx=document.getElementById('inseeNeighborChart');
+          if(ctx&&window.Chart){
+            if(window._inseeNeighborChart){window._inseeNeighborChart.destroy();window._inseeNeighborChart=null;}
+            window._inseeNeighborChart=new Chart(ctx,{
+              type:'bar',
+              data:{labels,datasets:[{label:'Population',data:pops,backgroundColor:colors,borderColor:borders,borderWidth:1,borderRadius:3}]},
+              options:{
+                indexAxis:'y',responsive:true,maintainAspectRatio:false,
+                plugins:{legend:{display:false},tooltip:{callbacks:{label:c2=>`${(c2.raw||0).toLocaleString('fr-FR')} hab.`}},datalabels:{display:false}},
+                scales:{
+                  x:{ticks:{color:'#999',font:{size:10},callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v},grid:{color:'rgba(255,255,255,.05)'}},
+                  y:{ticks:{color:'#ccc',font:{size:10}},grid:{display:false}}
+                }
+              }
+            });
+          }
+        } else {
+          if(loading) loading.textContent='Pas assez de données voisines.';
+        }
+      }
+    }catch(e){}
   },150);
 }
 
@@ -4125,6 +4387,64 @@ function calcCout(){
       ${[['Prix affiché',fmt(prix)],['Frais notaire (7.5%)',fmt(notaire)],[`Travaux DPE ${dpe}`,fmt(travaux)],['Charges copro 10 ans',fmt(charges*120)],['Taxe foncière 10 ans',fmt(taxe*10)],['Mensualité estimée',fmt(mens)+'/mois']].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
     </div>`;
   setCard('cout', fmt(Math.round(total/1000)*1000), 'Coût total · '+fmt(mens)+'/mois', '');
+}
+
+function switchCoutMode(mode){
+  document.getElementById('coutAchat').style.display   = mode==='achat'   ? '' : 'none';
+  document.getElementById('coutLocation').style.display = mode==='location' ? '' : 'none';
+}
+
+function calcLocation(){
+  const prix    = parseFloat(document.getElementById('lPrix').value)||0;
+  if(!prix){toast('Veuillez saisir le prix d\'achat.','err');return;}
+  const notaire = parseFloat(document.getElementById('lNotaire').value)||Math.round(prix*0.075);
+  const travaux = parseFloat(document.getElementById('lTravaux').value)||0;
+  const loyer   = parseFloat(document.getElementById('lLoyer').value)||0;
+  if(!loyer){toast('Veuillez saisir le loyer mensuel.','err');return;}
+  const charges = parseFloat(document.getElementById('lCharges').value)||0;
+  const taxe    = parseFloat(document.getElementById('lTaxe').value)||0;
+  const gestion = (parseFloat(document.getElementById('lGestion').value)||0)/100;
+  const vacance = (parseFloat(document.getElementById('lVacance').value)||5)/100;
+  const apport  = parseFloat(document.getElementById('lApport').value)||0;
+  const duree   = parseFloat(document.getElementById('lDuree').value)||20;
+
+  const investTotal = prix + notaire + travaux;
+  const loyerEffectif = loyer * 12 * (1 - vacance);       // loyer annuel ajusté vacance
+  const fraisGestion  = loyerEffectif * gestion;
+  const chargesAn     = charges * 12;
+
+  const rendBrut = (loyer * 12 / investTotal) * 100;
+  const revenuNet = loyerEffectif - fraisGestion - chargesAn - taxe;
+  const rendNet  = (revenuNet / investTotal) * 100;
+
+  const emprunt = investTotal - apport;
+  const t = 0.034/12, n = duree*12;
+  const mens = emprunt>0 ? Math.round((emprunt*t)/(1-Math.pow(1+t,-n))) : 0;
+  const cashflow = Math.round(revenuNet/12 - mens);
+
+  const cfColor = cashflow>=0 ? 'var(--green)' : '#e74c3c';
+  const cfLabel = cashflow>=0 ? '✅ Cash-flow positif' : '⚠️ Effort d\'épargne mensuel';
+
+  document.getElementById('resLocation').innerHTML=`
+    <div class="result-dark">
+      <div style="font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem">🔑 Rendement net annuel</div>
+      <div class="result-n">${rendNet.toFixed(2).replace('.',',')} %</div>
+      <div style="font-size:.72rem;color:rgba(255,255,255,.6);text-align:center;margin-bottom:1rem">Rendement brut : ${rendBrut.toFixed(2).replace('.',',')} %</div>
+      ${[
+        ['Investissement total', fmt(Math.round(investTotal))],
+        ['dont notaire', fmt(Math.round(notaire))],
+        ['Loyer brut /an', fmt(Math.round(loyer*12))],
+        ['Loyer net vacance', fmt(Math.round(loyerEffectif))],
+        ['Charges & gestion /an', '− '+fmt(Math.round(fraisGestion+chargesAn+taxe))],
+        ['Revenu net /an', fmt(Math.round(revenuNet))],
+        ['Mensualité emprunt', fmt(mens)+'/mois'],
+      ].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
+      <div style="text-align:center;margin-top:.75rem;padding:.5rem;border-radius:6px;background:${cashflow>=0?'rgba(39,174,96,.15)':'rgba(231,76,60,.15)'}">
+        <div style="font-size:.8rem;font-weight:600;color:${cfColor}">${cfLabel}</div>
+        <div style="font-size:1.2rem;font-weight:700;color:${cfColor}">${cashflow>=0?'+':''}${fmt(cashflow)} €/mois</div>
+      </div>
+    </div>`;
+  setCard('cout', rendNet.toFixed(1).replace('.',',')+' % net', `Cash-flow : ${cashflow>=0?'+':''}${fmt(cashflow)}/mois`, rendNet>=5?'good':rendNet>=3?'':'warn');
 }
 
 function calcEmprunt(){
