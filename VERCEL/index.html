@@ -293,7 +293,7 @@ aside{
 
 .card-icon{font-size:1.4rem;margin-bottom:.7rem;}
 .card-label{
-  font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;
+  font-size:.65rem;letter-spacing:.10em;text-transform:uppercase;
   color:var(--muted);margin-bottom:.3rem;
 }
 .card-value{
@@ -534,7 +534,7 @@ select.inp{
 .source-badge{
   display:inline-flex;align-items:center;gap:.35rem;
   background:var(--goldpale);border:1px solid var(--goldborder);
-  color:var(--gold);font-size:.58rem;padding:.15rem .55rem;
+  color:var(--gold);font-size:.63rem;padding:.15rem .55rem;
   border-radius:20px;margin-top:.4rem;
 }
 
@@ -2290,7 +2290,7 @@ function showPanel(title, html){
 }
 
 function closePanel(){
-  ['_dvfChart','_risquesChart','_ecolesChart','_mobiliteChart','_radarChart','_radarProfilChart','_servicesChart','_inseeNeighborChart','_meteoMensuelChart'].forEach(k=>{if(window[k]){window[k].destroy();window[k]=null;}});
+  ['_dvfChart','_dvfEvoChart','_risquesChart','_ecolesChart','_mobiliteChart','_radarChart','_radarProfilChart','_servicesChart','_inseeNeighborChart','_meteoMensuelChart'].forEach(k=>{if(window[k]){window[k].destroy();window[k]=null;}});
   document.getElementById('detailContainer').innerHTML = '';
   document.getElementById('cardsGrid').style.display = 'grid';
   if(window._leafletMap){window._leafletMap.remove();window._leafletMap=null;}
@@ -2362,20 +2362,20 @@ function showDVFDetail(){
       if(typeof va==='string') return dir==='asc'?va.localeCompare(vb):vb.localeCompare(va);
       return dir==='asc'?va-vb:vb-va;
     });
-    // Stats dynamiques sur la sélection filtrée (avant limite N)
+    // Appliquer la limite N avant le calcul des stats
+    const n = window._dvfFilterN;
+    if(n > 0) liste = liste.slice(0, n);
+    // Stats dynamiques sur la sélection filtrée
     const prix2 = liste.map(t=>t.prixM2).filter(v=>v>0).sort((a,b)=>a-b);
-    const medFilt = prix2.length ? prix2[Math.floor(prix2.length/2)] : null;
+    const moyFilt = prix2.length ? Math.round(prix2.reduce((a,b)=>a+b,0)/prix2.length) : null;
     const el_med = document.getElementById('dvfStatMedian');
     const el_cnt = document.getElementById('dvfStatCount');
     const el_four = document.getElementById('dvfFourchette');
-    if(el_med) el_med.textContent = medFilt ? medFilt.toLocaleString('fr-FR')+'€' : '—';
+    if(el_med) el_med.textContent = moyFilt ? moyFilt.toLocaleString('fr-FR')+'€' : '—';
     const el_base = document.getElementById('dvfMedianBase');
     if(el_base) el_base.textContent = 'sur '+prix2.length+' val.';
     if(el_cnt) el_cnt.textContent = liste.length;
     if(el_four && prix2.length>=2) el_four.textContent = 'Fourchette : '+prix2[0].toLocaleString('fr-FR')+' – '+prix2[prix2.length-1].toLocaleString('fr-FR')+' €/m²';
-
-    const n = window._dvfFilterN;
-    if(n > 0) liste = liste.slice(0, n);
     document.getElementById('dvfTbody').innerHTML = liste.map(t=>`
       <tr>
         <td>${t.date||'—'}</td>
@@ -2413,6 +2413,38 @@ function showDVFDetail(){
       }
     });
   }
+  // Graphique évolution mensuelle maisons vs appartements
+  function buildDvfEvolutionChart(){
+    const all = window._dvfRecentes || [];
+    // Grouper par mois (YYYY-MM) et type
+    const byMonth = {};
+    for(const t of all){
+      const ym = (t.date||'').substring(0,7); if(!ym||ym.length<7) continue;
+      const tp = (t.type||'').toLowerCase();
+      const isAppt = tp.includes('appartement'), isMaison = tp.includes('maison');
+      if(!isAppt&&!isMaison) continue;
+      if(!byMonth[ym]) byMonth[ym]={appt:[],maison:[]};
+      if(isAppt) byMonth[ym].appt.push(t.prixM2);
+      else byMonth[ym].maison.push(t.prixM2);
+    }
+    const months = Object.keys(byMonth).sort();
+    if(months.length < 2){const c2=document.getElementById('dvfEvolutionChart');if(c2)c2.parentElement.style.display='none';return;}
+    const mean = arr => arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : null;
+    const apptData = months.map(m=>mean(byMonth[m].appt));
+    const maisonData = months.map(m=>mean(byMonth[m].maison));
+    const labels = months.map(m=>{const[y,mo]=m.split('-');const noms=['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];return noms[parseInt(mo)-1]+' '+y.slice(2);});
+    const ctx2=document.getElementById('dvfEvolutionChart'); if(!ctx2||!window.Chart)return;
+    if(window._dvfEvoChart){window._dvfEvoChart.destroy();}
+    window._dvfEvoChart=new Chart(ctx2,{type:'line',data:{labels,datasets:[
+      {label:'Appartements',data:apptData,borderColor:'#4678b4',backgroundColor:'rgba(70,120,180,.08)',borderWidth:2,pointRadius:3,spanGaps:true,tension:.3},
+      {label:'Maisons',data:maisonData,borderColor:'#b8832a',backgroundColor:'rgba(184,131,42,.08)',borderWidth:2,pointRadius:3,spanGaps:true,tension:.3},
+    ]},options:{
+      plugins:{legend:{display:true,labels:{font:{size:10,family:'Outfit,sans-serif'},color:'#8a7d68',boxWidth:14}},datalabels:{display:false},title:{display:true,text:'Évolution mensuelle des prix (€/m²)',font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68'}},
+      scales:{x:{ticks:{font:{size:8},color:'#8a7d68'},grid:{display:false}},y:{ticks:{font:{size:9},color:'#8a7d68',callback:v=>v?v.toLocaleString('fr-FR'):''},grid:{color:'rgba(0,0,0,.05)'}}},
+      animation:{duration:300},
+    }});
+  }
+  buildDvfEvolutionChart();
   const btnStyle = 'padding:.25rem .7rem;font-size:.72rem;border:1px solid var(--border);background:var(--white);border-radius:3px;cursor:pointer;margin-right:.3rem';
   const DVF_FILTRES = [10, 20, 50, 0];
   const btnsFiltres = DVF_FILTRES.map(n=>`<button class="dvf-n-btn dvf-filter-btn" data-n="${n}" onclick="filterDVF(${n})" style="${btnStyle}">${n===0?'Toutes':n}</button>`).join('');
@@ -2421,7 +2453,7 @@ function showDVFDetail(){
   const btnsSurf = SURF_TRANCHES.map(([s,l])=>`<button class="dvf-surf-btn dvf-filter-btn" data-s="${s}" onclick="filterDVFSurf(${s})" style="${btnStyle}">${l}</button>`).join('');
   showPanel('💰 Transactions DVF officielles', `
     <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1rem">
-      <div class="stat-box"><span class="stat-n" id="dvfStatMedian">${d.stats.medianM2.toLocaleString('fr-FR')}€</span><span class="stat-l">💰 Médian /m²</span><span class="stat-l" id="dvfMedianBase" style="font-size:.65rem;opacity:.6">sur ${d.count} val.</span></div>
+      <div class="stat-box"><span class="stat-n" id="dvfStatMedian">${d.stats.medianM2.toLocaleString('fr-FR')}€</span><span class="stat-l">💰 Moyenne /m²</span><span class="stat-l" id="dvfMedianBase" style="font-size:.65rem;opacity:.6">sur ${d.count} val.</span></div>
       <div class="stat-box"><span class="stat-n" id="dvfStatCount">${d.count}</span><span class="stat-l" id="dvfStatCountLabel">🏠 Ventes${d.dateRange?' '+d.dateRange:''}</span></div>
       <div class="stat-box"><span class="stat-n">${d.rayon}m</span><span class="stat-l">📍 Rayon analysé</span></div>
     </div>
@@ -2436,6 +2468,7 @@ function showDVFDetail(){
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Afficher :</span>${btnsFiltres}
     </div>
     <div style="margin-bottom:1.2rem"><canvas id="dvfHistChart" height="140"></canvas></div>
+    <div style="margin-bottom:1.2rem"><canvas id="dvfEvolutionChart" height="160"></canvas></div>
     <table class="tbl"><thead><tr>
       <th class="dvf-th" data-col="date"  onclick="sortDVF('date')"  style="cursor:pointer;user-select:none">Date<span class="sort-ind"> ▼</span></th>
       <th class="dvf-th" data-col="type"  onclick="sortDVF('type')"  style="cursor:pointer;user-select:none">Type<span class="sort-ind"> ⇅</span></th>
@@ -3355,6 +3388,25 @@ function showUrbanismeDetail(){
     <p style="font-size:.62rem;color:var(--muted)">Document ${doc?.dateApprobation?'approuvé le '+doc.dateApprobation:''} · ${d.source}</p>
     <p style="font-size:.72rem;margin-top:.5rem"><a href="https://www.geoportail-urbanisme.gouv.fr/" target="_blank" style="color:var(--gold)">Consulter le PLU complet sur Géoportail Urbanisme →</a></p>
     ${(()=>{
+      const dept = (window._inseeData?.commune?.codeDepartement || (window._inseeData?.commune?.codeInsee||'').slice(0,2) || '').toString();
+      const PTZ = {
+        'Abis':['75'],
+        'A':['92','93','94','78','91','95','77','06'],
+        'B1':['13','31','33','34','35','38','44','57','59','67','69','74','76','45','49','35'],
+        'B2':['01','02','10','14','16','17','18','21','22','24','25','26','27','28','29','30','37','40','41','42','49','51','53','54','56','60','62','63','68','71','72','79','80','83','84','85','86','87'],
+      };
+      let zone = 'C';
+      if(PTZ.Abis.includes(dept)) zone='A bis';
+      else if(PTZ.A.includes(dept)) zone='A';
+      else if(PTZ.B1.includes(dept)) zone='B1';
+      else if(PTZ.B2.includes(dept)) zone='B2';
+      const PTZ_DESC = {'A bis':'Très tendue — Paris uniquement','A':'Tendue — grande couronne & Côte d\'Azur','B1':'Tendue — grandes agglomérations','B2':'Modérée — villes moyennes','C':'Détendue — zones rurales'};
+      return dept ? `<div style="margin-top:.8rem;padding:.7rem;background:rgba(70,120,180,.06);border:1px solid rgba(70,120,180,.2);border-radius:var(--r);display:flex;align-items:center;gap:.8rem">
+        <div style="text-align:center;min-width:48px"><div style="font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:700;color:#4678b4">PTZ</div><div style="font-size:.9rem;font-weight:700;color:#4678b4">${zone}</div></div>
+        <div><div style="font-size:.78rem;font-weight:500">Zone PTZ ${zone} — ${PTZ_DESC[zone]||''}</div><div style="font-size:.68rem;color:var(--muted);margin-top:.2rem">Indicatif · <a href="https://www.service-public.fr/particuliers/vosdroits/F10871" target="_blank" style="color:var(--gold)">Vérifier sur service-public.fr →</a></div></div>
+      </div>` : '';
+    })()}
+    ${(()=>{
       const dpe = window._dpeSecteurData;
       if(!dpe||dpe.error) return '<div style="margin-top:1.2rem;padding-top:1rem;border-top:1px solid var(--border)"><div style="font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.4rem">⚡ Performance énergétique du parc local (DPE)</div><p style="font-size:.75rem;color:var(--muted)">Données ADEME non disponibles pour cette commune.</p></div>';
       const DPE_COLORS = {A:'#2ECC71',B:'#82D64E',C:'#C9D64E',D:'#FFD700',E:'#FFAC1C',F:'#FF6B1C',G:'#E74C3C'};
@@ -3491,7 +3543,7 @@ function showINSEEDetail(){
     <div class="map-container" id="mapInsee"></div>
     <p style="font-size:.8rem;color:var(--accent);font-weight:500;margin-top:.6rem;padding:.4rem .6rem;background:rgba(184,131,42,.08);border-radius:4px;border-left:3px solid var(--gold)">🖱️ Cliquez sur une commune pour voir sa densité et superficie.</p>
     <div style="margin-top:1rem;padding-top:.75rem;border-top:1px solid var(--border)">
-      <div style="font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.5rem">📊 Population · communes voisines</div>
+      <div style="font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.5rem">📊 Densité · communes du département</div>
       <div id="inseeNeighborLoading" style="font-size:.75rem;color:var(--muted);text-align:center;padding:.4rem">Chargement…</div>
       <div style="position:relative;height:175px;display:none" id="inseeChartWrap"><canvas id="inseeNeighborChart"></canvas></div>
     </div>
@@ -3549,17 +3601,21 @@ function showINSEEDetail(){
     map.on('click', async e=>{
       const {lat:clat,lng:clng}=e.latlng;
       try{
-        const r2=await fetch(`https://geo.api.gouv.fr/communes?lat=${clat}&lon=${clng}&fields=nom,population,superficie,densitePopulation&format=json&limit=1`);
+        const r2=await fetch(`https://geo.api.gouv.fr/communes?lat=${clat}&lon=${clng}&fields=nom,code,population&format=json&limit=1`);
         if(!r2.ok) return;
         const [com]=await r2.json();
         if(!com) return;
         const pop2=com.population||0;
-        const sup2=com.superficie||0;
-        const dens2=com.densitePopulation||(sup2>=50?Math.round(pop2/(sup2/100)):null);
+        // 2e appel pour récupérer la surface (seul champ dispo pour la densité)
+        let dens2=null, supKm2b=null;
+        try{
+          const r3=await fetch(`https://geo.api.gouv.fr/communes/${com.code}?fields=surface`);
+          if(r3.ok){ const cd=await r3.json(); if(cd.surface){ supKm2b=Math.round(cd.surface/100); dens2=Math.round(pop2/(cd.surface/100)); } }
+        }catch(_){}
         const col2=!dens2?'#999':dens2>10000?'#c0392b':dens2>5000?'#e67e22':dens2>2000?'#f39c12':dens2>500?'#27ae60':'#2980b9';
-        const lbl2=!dens2?'':dens2>10000?'Très dense · ':dens2>5000?'Dense · ':dens2>2000?'Urbain · ':dens2>500?'Péri-urbain · ':'Rural · ';
-        const densStr=dens2?`<span style="color:${col2}"><strong>${lbl2}${Math.round(dens2).toLocaleString('fr-FR')} hab./km²</strong></span>`:`<span style="color:#999">Densité non disponible</span>`;
-        const supStr=sup2?`<br><span style="font-size:.75rem">Superficie : ${Math.round(sup2/100).toLocaleString('fr-FR')} km²</span>`:'';
+        const lbl2=!dens2?'Non disponible':dens2>10000?'Très dense':dens2>5000?'Dense':dens2>2000?'Urbain':dens2>500?'Péri-urbain':'Rural';
+        const densStr=`<span style="color:${col2}"><strong>${lbl2}${dens2?' · '+dens2.toLocaleString('fr-FR')+' hab./km²':''}</strong></span>`;
+        const supStr=supKm2b?`<br><span style="font-size:.75rem">Superficie : ${supKm2b.toLocaleString('fr-FR')} km²</span>`:'';
         L.popup().setLatLng(e.latlng).setContent(`<strong>${com.nom}</strong><br>${pop2.toLocaleString('fr-FR')} habitants<br>${densStr}${supStr}`).openOn(map);
       }catch(e2){}
     });
@@ -3567,17 +3623,22 @@ function showINSEEDetail(){
     // Graphique comparaison communes voisines (par département)
     try{
       const codeDept = c?.codeDepartement || c?.departement || (c?.codeInsee||'').slice(0,2);
-      const rv=await fetch(`https://geo.api.gouv.fr/communes?codeDepartement=${codeDept}&fields=nom,population&limit=50`);
+      const rv=await fetch(`https://geo.api.gouv.fr/communes?codeDepartement=${codeDept}&fields=nom,population,surface&limit=100`);
       if(rv.ok){
-        const communes=(await rv.json()).sort((a,b)=>(b.population||0)-(a.population||0)).slice(0,9);
+        const all=await rv.json();
+        // Calculer densité et trier par densité desc
+        const withDens=all.map(x=>({...x, dens:x.surface?Math.round((x.population||0)/(x.surface/100)):0}));
+        const communes=withDens.sort((a,b)=>b.dens-a.dens).slice(0,9);
         const loading=document.getElementById('inseeNeighborLoading');
         const wrap=document.getElementById('inseeChartWrap');
         if(communes.length>1){
           const currentNom=c?.nom||'';
           const labels=communes.map(x=>x.nom);
-          const pops=communes.map(x=>x.population||0);
-          const colors=communes.map(x=>x.nom===currentNom?'rgba(184,131,42,.85)':'rgba(150,150,150,.3)');
-          const borders=communes.map(x=>x.nom===currentNom?'#b8832a':'rgba(150,150,150,.5)');
+          const dens=communes.map(x=>x.dens);
+          // Couleurs : commune actuelle en or, autres en dégradé bleu selon densité
+          const maxD=Math.max(...dens)||1;
+          const colors=communes.map(x=>x.nom===currentNom?'rgba(184,131,42,.9)':`rgba(70,120,180,${0.35+0.55*(x.dens/maxD)})`);
+          const borders=communes.map(x=>x.nom===currentNom?'#b8832a':'rgba(70,120,180,.7)');
           if(loading) loading.style.display='none';
           if(wrap) wrap.style.display='block';
           const ctx=document.getElementById('inseeNeighborChart');
@@ -3585,10 +3646,10 @@ function showINSEEDetail(){
             if(window._inseeNeighborChart){window._inseeNeighborChart.destroy();window._inseeNeighborChart=null;}
             window._inseeNeighborChart=new Chart(ctx,{
               type:'bar',
-              data:{labels,datasets:[{label:'Population',data:pops,backgroundColor:colors,borderColor:borders,borderWidth:1,borderRadius:3}]},
+              data:{labels,datasets:[{label:'Densité',data:dens,backgroundColor:colors,borderColor:borders,borderWidth:1,borderRadius:3}]},
               options:{
                 indexAxis:'y',responsive:true,maintainAspectRatio:false,
-                plugins:{legend:{display:false},tooltip:{callbacks:{label:c2=>`${(c2.raw||0).toLocaleString('fr-FR')} hab.`}},datalabels:{display:false}},
+                plugins:{legend:{display:false},tooltip:{callbacks:{label:c2=>`${(c2.raw||0).toLocaleString('fr-FR')} hab./km²`}},datalabels:{display:false}},
                 scales:{
                   x:{ticks:{color:'#999',font:{size:10},callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v},grid:{color:'rgba(255,255,255,.05)'}},
                   y:{ticks:{color:'#ccc',font:{size:10}},grid:{display:false}}
@@ -3816,7 +3877,7 @@ async function runIA(type){
 
 // Constantes de scoring
 const SC_ECOLES_COEFF  = 0.5;   // nb établissements × coeff → /10
-const SC_RESTAU_DIV    = 5;     // 1 point par tranche de N restaurants
+const SC_RESTAU_DIV    = 3;     // 1 point par tranche de N restaurants
 const SC_CULTURE_COEFF = 2;     // multiplicateur lieux culturels
 const SC_SPORT_COEFF   = 2;     // multiplicateur équipements sport
 const SC_RISQUES_TABLE = [10,7,4,1]; // score selon nb risques (3+ → dernier)
@@ -4222,7 +4283,7 @@ async function runProfil(){
           labels:dims.map(d=>d.emoji+' '+d.label),
           datasets:[{
             label:'Score',
-            data:dims.map(d=>d.key==='risq'?(scores.risqDisplay||0):(scores[d.key]||0)),
+            data:dims.map(d=>scores[d.key]||0),
             backgroundColor:'rgba(184,131,42,.15)',
             borderColor:'#b8832a',
             borderWidth:2,
