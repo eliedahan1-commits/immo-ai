@@ -1824,7 +1824,7 @@ async function loadRisques(lat, lng, citycode){
     if(citycode){
       try{
         const rc = await fetch(`https://georisques.gouv.fr/api/v1/gaspar/catnat?code_insee=${citycode}&page=1&page_size=15`, {signal:AbortSignal.timeout(8000)});
-        if(rc.ok){ const dc=await rc.json(); catnat=(dc.data||[]).map(c=>({libelle:c.lib_risque_jo||c.libelle_risque_jo||c.libelle||c.lib_risque||c.cod_nat_catnat||'Catastrophe naturelle', debut:(c.dat_deb_evt||c.dat_deb||c.dat_debut||'').slice(0,7), fin:(c.dat_fin_evt||c.dat_fin||c.dat_fin_evt||'').slice(0,7)})); }
+        if(rc.ok){ const dc=await rc.json(); catnat=(dc.data||[]).map(c=>({libelle:c.lib_risque_jo||c.libelle_risque_jo||c.libelleRisqueJo||c.libelle||c.lib_risque||c.typeRisque||c.cod_nat_catnat||'Catastrophe naturelle', debut:(c.dat_deb_evt||c.dat_deb||c.dat_debut||c.dateDebut||c.dateDeb||c.dat_pub_jo||'').slice(0,7), fin:(c.dat_fin_evt||c.dat_fin||c.dateFin||c.date_fin||'').slice(0,7)})); }
       }catch(e){}
     }
     const css = nb===0?'good':nb>=3?'bad':'warn';
@@ -2072,7 +2072,8 @@ async function loadUrbanisme(lat, lng){
 // ── Météo & Ensoleillement ──
 async function loadMeteo(lat, lng){
   try{
-    const r = await apiCall(`/api/meteo?lat=${lat}&lon=${lng}&_v=3`, `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=2019-01-01&end_date=2023-12-31&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Europe%2FParis`);
+    const _endY = new Date().getFullYear()-1, _startY = _endY-4;
+    const r = await apiCall(`/api/meteo?lat=${lat}&lon=${lng}&_v=${_endY}`, `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${_startY}-01-01&end_date=${_endY}-12-31&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Europe%2FParis`);
     if(!r.ok) throw new Error();
     const d = await r.json();
     if(!d.success) throw new Error();
@@ -2488,7 +2489,7 @@ function showRisquesDetail(){
     </div>
     <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.75rem">
       <a href="${georisquesUrl}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:.4rem;background:var(--gold);color:#1a1a2e;padding:.42rem .85rem;border-radius:20px;font-size:.77rem;font-weight:600;text-decoration:none">🌐 Rapport Géorisques complet ↗</a>
-      <a href="https://www.georisques.gouv.fr/me-preparer-me-proteger/le-dicrim" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:.4rem;border:1px solid var(--border);color:var(--text);padding:.42rem .85rem;border-radius:20px;font-size:.77rem;font-weight:600;text-decoration:none">📄 DICRIM ↗</a>
+      <a href="https://www.georisques.gouv.fr/me-preparer-me-proteger" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:.4rem;border:1px solid var(--border);color:var(--text);padding:.42rem .85rem;border-radius:20px;font-size:.77rem;font-weight:600;text-decoration:none">📄 Se préparer aux risques ↗</a>
     </div>
     <p style="font-size:.61rem;color:var(--muted);margin-top:.6rem">Données officielles Géorisques (BRGM) · Service public · Mise à jour continue</p>`);
 
@@ -3314,8 +3315,7 @@ function showUrbanismeDetail(){
     const key = Object.keys(PRESC_FR).find(k => p.toLowerCase().includes(k));
     if(key) return PRESC_FR[key];
     // Code non reconnu : on l'affiche avec une explication générique
-    const pCourt = p.length > 80 ? p.substring(0,77)+'…' : p;
-    return `📄 "${pCourt}" — règle spécifique au PLU de cette commune (<a href="https://www.geoportail-urbanisme.gouv.fr/" target="_blank" style="color:var(--gold)">consulter le document complet ↗</a>)`;
+    return `📄 "${p}" — règle spécifique au PLU de cette commune (<a href="https://www.geoportail-urbanisme.gouv.fr/" target="_blank" style="color:var(--gold)">consulter le document complet ↗</a>)`;
   }) || [];
   showPanel('📋 Urbanisme, PLU & Énergie · ' + (doc?.nomCommune||''), `
     <div style="display:flex;gap:1rem;margin-bottom:1.2rem;flex-wrap:wrap">
@@ -3402,17 +3402,18 @@ function showMeteoDetail(){
     })()}
     <p style="font-size:.62rem;color:var(--muted)">Source : ${d.source} · Qualité air : Open-Meteo Air Quality</p>`);
 
-  // Graphique températures mensuelles
+  // Graphique températures mensuelles (données journalières 2022-2023 agrégées par mois)
   setTimeout(async ()=>{
     if(!currentCoords) return;
     const {lat,lng}=currentCoords;
     try{
-      const rv=await fetch(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=2021-01-01&end_date=2023-12-31&monthly=temperature_2m_max,temperature_2m_min&timezone=Europe%2FParis`);
+      const _ey=new Date().getFullYear()-1, _sy=_ey-1;
+      const rv=await fetch(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${_sy}-01-01&end_date=${_ey}-12-31&daily=temperature_2m_max,temperature_2m_min&timezone=Europe%2FParis`);
       if(!rv.ok) throw new Error();
       const md=await rv.json();
-      const times=md.monthly?.time||[];
-      const tMaxArr=md.monthly?.temperature_2m_max||[];
-      const tMinArr=md.monthly?.temperature_2m_min||[];
+      const times=md.daily?.time||[];
+      const tMaxArr=md.daily?.temperature_2m_max||[];
+      const tMinArr=md.daily?.temperature_2m_min||[];
       if(!times.length) throw new Error();
       // Moyenner par mois (0=Jan…11=Dec) sur les 3 ans
       const MOIS=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
@@ -3465,7 +3466,7 @@ function showINSEEDetail(){
         <span class="stat-n">${c?.densite?.toLocaleString('fr-FR')||'—'}</span>
         <span class="stat-l">🗺️ hab/km² · <span style="color:${densColor};font-weight:600">${densLabel}</span></span>
       </div>
-      <div class="stat-box"><span class="stat-n">${supKm2?supKm2.toLocaleString('fr-FR')+' km²':'—'}</span><span class="stat-l">📐 Superficie</span></div>
+      <div class="stat-box"><span class="stat-n" id="inseeSupVal">${supKm2?supKm2.toLocaleString('fr-FR')+' km²':'—'}</span><span class="stat-l">📐 Superficie</span></div>
       <div class="stat-box"><span class="stat-n">${c?.codesPostaux?.[0]||'—'}</span><span class="stat-l">📮 Code postal</span></div>
     </div>
     <p style="font-size:.75rem;color:var(--muted);margin-bottom:.8rem">Département ${c?.departement||'—'} · Code INSEE ${c?.codeInsee||'—'}</p>
@@ -3512,6 +3513,12 @@ function showINSEEDetail(){
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CartoDB',maxZoom:19}).addTo(map);
     addFsBtn(map, document.getElementById('mapInsee'));
 
+    // Fetch superficie si manquante
+    if(!supKm2 && c?.codeInsee){
+      fetch(`https://geo.api.gouv.fr/communes/${c.codeInsee}?fields=superficie`)
+        .then(r=>r.json()).then(ce=>{if(ce.superficie){const el=document.getElementById('inseeSupVal');if(el)el.textContent=Math.round(ce.superficie/100).toLocaleString('fr-FR')+' km²';}}).catch(()=>{});
+    }
+
     // Marqueur adresse
     const homeIcon=L.divIcon({html:`<div style="background:#fff;border:3px solid ${densColor};border-radius:50%;width:16px;height:16px;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>`,iconSize:[16,16],iconAnchor:[8,8],className:''});
     L.marker([lat,lng],{icon:homeIcon}).addTo(map)
@@ -3521,16 +3528,16 @@ function showINSEEDetail(){
     map.on('click', async e=>{
       const {lat:clat,lng:clng}=e.latlng;
       try{
-        const r2=await fetch(`https://geo.api.gouv.fr/communes?lat=${clat}&lon=${clng}&fields=nom,population,superficie&format=json&limit=1`);
+        const r2=await fetch(`https://geo.api.gouv.fr/communes?lat=${clat}&lon=${clng}&fields=nom,population,superficie,densitePopulation&format=json&limit=1`);
         if(!r2.ok) return;
         const [com]=await r2.json();
         if(!com) return;
-        const sup2=com.superficie||0;
         const pop2=com.population||0;
-        const dens2=(sup2>=50)?Math.round(pop2/(sup2/100)):null;
+        const sup2=com.superficie||0;
+        const dens2=com.densitePopulation||(sup2>=50?Math.round(pop2/(sup2/100)):null);
         const col2=!dens2?'#999':dens2>10000?'#c0392b':dens2>5000?'#e67e22':dens2>2000?'#f39c12':dens2>500?'#27ae60':'#2980b9';
         const lbl2=!dens2?'':dens2>10000?'Très dense · ':dens2>5000?'Dense · ':dens2>2000?'Urbain · ':dens2>500?'Péri-urbain · ':'Rural · ';
-        const densStr=dens2?`<span style="color:${col2}"><strong>${lbl2}${dens2.toLocaleString('fr-FR')} hab./km²</strong></span>`:`<span style="color:#999">Densité non disponible</span>`;
+        const densStr=dens2?`<span style="color:${col2}"><strong>${lbl2}${Math.round(dens2).toLocaleString('fr-FR')} hab./km²</strong></span>`:`<span style="color:#999">Densité non disponible</span>`;
         const supStr=sup2?`<br><span style="font-size:.75rem">Superficie : ${Math.round(sup2/100).toLocaleString('fr-FR')} km²</span>`:'';
         L.popup().setLatLng(e.latlng).setContent(`<strong>${com.nom}</strong><br>${pop2.toLocaleString('fr-FR')} habitants<br>${densStr}${supStr}`).openOn(map);
       }catch(e2){}
@@ -3538,7 +3545,7 @@ function showINSEEDetail(){
 
     // Graphique comparaison communes voisines
     try{
-      const rv=await fetch(`https://geo.api.gouv.fr/communes?lat=${lat}&lon=${lng}&fields=nom,population&format=json&limit=9&rayon=30000`);
+      const rv=await fetch(`https://geo.api.gouv.fr/communes?lat=${lat}&lon=${lng}&fields=nom,population&format=json&limit=9`);
       if(rv.ok){
         const communes=await rv.json();
         const loading=document.getElementById('inseeNeighborLoading');
