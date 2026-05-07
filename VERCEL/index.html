@@ -524,7 +524,7 @@ select.inp{
 .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.85rem;margin-bottom:1.5rem;}
 .stat-box{background:var(--ink);border-radius:var(--r);padding:1.1rem;text-align:center;}
 .stat-n{font-family:'Cormorant Garamond',serif;font-size:1.65rem;color:var(--gold2);display:block;font-style:italic;}
-.stat-l{font-size:.58rem;color:rgba(255,255,255,.65);letter-spacing:.1em;text-transform:uppercase;margin-top:.15rem;}
+.stat-l{font-size:.7rem;color:rgba(255,255,255,.65);letter-spacing:.1em;text-transform:uppercase;margin-top:.15rem;}
 
 /* DVF filtres */
 .dvf-filter-btn,.dvf-type-btn,.dvf-surf-btn,.dvf-n-btn{transition:background .15s,color .15s;}
@@ -3484,7 +3484,7 @@ function showINSEEDetail(){
         <span class="stat-n">${c?.densite?.toLocaleString('fr-FR')||'—'}</span>
         <span class="stat-l">🗺️ hab/km² · <span style="color:${densColor};font-weight:600">${densLabel}</span></span>
       </div>
-      <div class="stat-box"><span class="stat-n" id="inseeSupVal">${supKm2?supKm2.toLocaleString('fr-FR')+' km²':'—'}</span><span class="stat-l">📐 Superficie</span></div>
+      <div class="stat-box"><span class="stat-n" id="inseeSupVal">${supKm2?supKm2.toLocaleString('fr-FR')+' km²':'N/A'}</span><span class="stat-l">📐 Superficie</span></div>
       <div class="stat-box"><span class="stat-n">${c?.codesPostaux?.[0]||'—'}</span><span class="stat-l">📮 Code postal</span></div>
     </div>
     <p style="font-size:.75rem;color:var(--muted);margin-bottom:.8rem">Département ${c?.departement||'—'} · Code INSEE ${c?.codeInsee||'—'}</p>
@@ -3531,10 +3531,13 @@ function showINSEEDetail(){
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CartoDB',maxZoom:19}).addTo(map);
     addFsBtn(map, document.getElementById('mapInsee'));
 
-    // Fetch superficie si manquante
+    // Fetch superficie si manquante (champ pas toujours dispo dans geo.api)
     if(!supKm2 && c?.codeInsee){
       fetch(`https://geo.api.gouv.fr/communes/${c.codeInsee}?fields=superficie`)
-        .then(r=>r.json()).then(ce=>{if(ce.superficie){const el=document.getElementById('inseeSupVal');if(el)el.textContent=Math.round(ce.superficie/100).toLocaleString('fr-FR')+' km²';}}).catch(()=>{});
+        .then(r=>r.json()).then(ce=>{
+          const el=document.getElementById('inseeSupVal');
+          if(el) el.textContent = ce.superficie ? Math.round(ce.superficie/100).toLocaleString('fr-FR')+' km²' : 'N/A';
+        }).catch(()=>{});
     }
 
     // Marqueur adresse
@@ -3561,11 +3564,12 @@ function showINSEEDetail(){
       }catch(e2){}
     });
 
-    // Graphique comparaison communes voisines
+    // Graphique comparaison communes voisines (par département)
     try{
-      const rv=await fetch(`https://geo.api.gouv.fr/communes?lat=${lat}&lon=${lng}&fields=nom,population&format=json&limit=9`);
+      const codeDept = c?.codeDepartement || c?.departement || (c?.codeInsee||'').slice(0,2);
+      const rv=await fetch(`https://geo.api.gouv.fr/communes?codeDepartement=${codeDept}&fields=nom,population&limit=50`);
       if(rv.ok){
-        const communes=await rv.json();
+        const communes=(await rv.json()).sort((a,b)=>(b.population||0)-(a.population||0)).slice(0,9);
         const loading=document.getElementById('inseeNeighborLoading');
         const wrap=document.getElementById('inseeChartWrap');
         if(communes.length>1){
