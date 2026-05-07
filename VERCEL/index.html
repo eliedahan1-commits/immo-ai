@@ -1832,11 +1832,15 @@ async function loadRisques(lat, lng, citycode){
           if(rawEvts.length && (rawEvts[0]?.catnat||rawEvts[0]?.arretes||rawEvts[0]?.risques)){
             rawEvts = rawEvts.flatMap(x=>x.catnat||x.arretes||x.risques||[]);
           }
-          console.log('[ImmoAI catnat] structure API:', rawEvts[0]); // DEBUG — à supprimer après vérification
+          const parseCatnatDate = s => {
+            if(!s) return '';
+            const p = s.split('/');
+            return p.length===3 ? `${p[2]}-${p[1]}` : s.slice(0,7);
+          };
           catnat = rawEvts.map(c=>({
-            libelle: c.lib_risque_jo||c.libelle_risque_jo||c.libelleRisqueJo||c.libelle||c.libelle_risque||c.lib_risque||c.typeRisque||c.cod_nat_catnat||'?',
-            debut: (c.dat_deb_evt||c.dat_deb||c.dat_debut||c.dateDebut||c.dateDeb||c.date_debut||c.dat_pub_jo||c.datePubJo||'').slice(0,7),
-            fin: (c.dat_fin_evt||c.dat_fin||c.dateFin||c.date_fin||'').slice(0,7)
+            libelle: c.libelle_risque_jo || c.lib_risque_jo || c.cod_nat_catnat || 'Catastrophe naturelle',
+            debut: parseCatnatDate(c.date_debut_evt || c.dat_deb_evt || ''),
+            fin: parseCatnatDate(c.date_fin_evt || c.dat_fin_evt || '')
           }));
         }
       }catch(e){}
@@ -2046,12 +2050,10 @@ async function loadDPESecteur(citycode){
   window._dpeSecteurData = null;
   if(!citycode) return;
   try{
-    const url = `https://data.ademe.fr/data-fair/api/v1/datasets/dpe-v2-logements-existants/values_agg?field=etiquette_dpe&size=7&qs=code_insee_ban:${citycode}`;
+    const url = `https://data.ademe.fr/data-fair/api/v1/datasets/meg-83tjwtg8dyz4vv7h1dqe/values_agg?field=etiquette_dpe&size=7&qs=code_insee_ban:${citycode}`;
     const r = await fetch(url, {signal:AbortSignal.timeout(10000)});
-    console.log('[ImmoAI DPE] status:', r.status, r.ok);
-    if(!r.ok){ console.log('[ImmoAI DPE] HTTP error:', r.status); throw new Error('HTTP '+r.status); }
+    if(!r.ok) throw new Error('HTTP '+r.status);
     const d = await r.json();
-    console.log('[ImmoAI DPE] réponse:', JSON.stringify(d).slice(0,300));
     const aggs = d.aggs || d.results || [];
     if(!aggs.length) throw new Error('vide');
     const total = aggs.reduce((s,a)=>s+(a.count||0), 0);
@@ -2062,7 +2064,7 @@ async function loadDPESecteur(citycode){
     window._dpeSecteurData = {total, dist, passoires, efficaces,
       pctPassoires: total?Math.round(passoires/total*100):0,
       pctEfficaces:  total?Math.round(efficaces/total*100):0};
-  }catch(e){ console.log('[ImmoAI DPE] erreur:', e?.message||e); window._dpeSecteurData = {error:true}; }
+  }catch(e){ window._dpeSecteurData = {error:true}; }
 }
 
 // ── Urbanisme, PLU & Énergie ──
