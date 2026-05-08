@@ -4206,7 +4206,7 @@ function showINSEEDetail(){
       window._crimeChartData = { labels: sorted.map(([ind])=>ind), values: sorted.map(([,v])=>v.nb||0), colors: COLORS };
       return `<div style="margin-top:1rem;padding-top:.75rem;border-top:1px solid var(--border)">
         <div style="font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.5rem">🚨 Sécurité & criminalité · ${cr.annee||''}</div>
-        <div style="position:relative;height:${sorted.length*32+10}px;margin-bottom:.4rem">
+        <div style="position:relative;height:${sorted.length*26+10}px;margin-bottom:.4rem">
           <canvas id="crimeDonutChart"></canvas>
         </div>
         <p style="font-size:.61rem;color:var(--muted);margin-top:.2rem">Source : SSMSI · Ministère de l'Intérieur · <a href="${deptLink}" target="_blank" style="color:var(--gold)">Détail complet →</a></p>
@@ -4228,7 +4228,8 @@ function showINSEEDetail(){
           data: cd.values,
           backgroundColor: cd.colors,
           borderWidth: 0,
-          borderRadius: 4
+          borderRadius: 4,
+          maxBarThickness: 16
         }]
       },
       options:{
@@ -4258,8 +4259,8 @@ function showINSEEDetail(){
           }
         },
         scales:{
-          x:{ display:false, grace:'35%' },
-          y:{ afterFit:(axis)=>{axis.width=195;}, ticks:{color:'#555', font:{size:10}}, grid:{display:false} }
+          x:{ display:false, grace:'55%' },
+          y:{ afterFit:(axis)=>{axis.width=240;}, ticks:{color:'#555', font:{size:9.5}}, grid:{display:false} }
         }
       }
     });
