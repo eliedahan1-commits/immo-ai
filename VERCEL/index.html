@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IMMO·AI — L'intelligence immobilière</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=DM+Serif+Display&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
@@ -237,7 +237,7 @@ aside{
   border-top:1px solid rgba(255,255,255,.07);
 }
 .hero-stat{text-align:center;}
-.hero-stat-n{font-family:'Cormorant Garamond',serif;font-size:1.8rem;color:var(--gold2);font-style:italic;}
+.hero-stat-n{font-family:'DM Serif Display',serif;font-size:1.8rem;color:var(--gold2);}
 .hero-stat-l{font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-top:.2rem;}
 
 /* ══ CARTES RÉSULTATS ══ */
@@ -297,7 +297,7 @@ aside{
   color:var(--muted);margin-bottom:.3rem;
 }
 .card-value{
-  font-family:'Cormorant Garamond',serif;
+  font-family:'DM Serif Display',serif;
   font-size:1.45rem;font-weight:400;color:var(--ink);
   line-height:1.1;
 }
@@ -411,7 +411,7 @@ select.inp{
 
 /* Résultat dark */
 .result-dark{background:var(--ink);border-radius:var(--r);padding:1.5rem;color:#fff;}
-.result-n{font-family:'Cormorant Garamond',serif;font-size:2.2rem;color:var(--gold2);text-align:center;margin:.8rem 0;font-style:italic;}
+.result-n{font-family:'DM Serif Display',serif;font-size:2.2rem;color:var(--gold2);text-align:center;margin:.8rem 0;}
 .result-row{display:flex;justify-content:space-between;font-size:.76rem;color:rgba(255,255,255,.72);padding:.42rem 0;border-bottom:1px solid rgba(255,255,255,.06);}
 .result-row:last-child{border-bottom:none;}
 .result-row span:last-child{color:rgba(255,255,255,.82);font-weight:500;}
@@ -523,7 +523,7 @@ select.inp{
 /* Stat boxes */
 .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.85rem;margin-bottom:1.5rem;}
 .stat-box{background:var(--ink);border-radius:var(--r);padding:1.1rem;text-align:center;}
-.stat-n{font-family:'Cormorant Garamond',serif;font-size:1.65rem;color:var(--gold2);display:block;font-style:italic;}
+.stat-n{font-family:'DM Serif Display',serif;font-size:1.65rem;color:var(--gold2);display:block;}
 .stat-l{font-size:.7rem;color:rgba(255,255,255,.65);letter-spacing:.1em;text-transform:uppercase;margin-top:.15rem;}
 
 /* DVF filtres */
@@ -593,7 +593,7 @@ path.leaflet-interactive:focus{outline:none;}
   padding:.6rem;text-align:center;
 }
 .map-stat-n{
-  font-family:'Cormorant Garamond',serif;
+  font-family:'DM Serif Display',serif;
   font-size:1.3rem;color:var(--gold2);display:block;
 }
 .map-stat-l{
@@ -1650,6 +1650,8 @@ function renderCards(props, coords){
         {id:'meteo',     icon:'☀️', label:'Météo & ensoleillement', value:'<span class="spin"></span>', sub:'Moyenne 5 ans',            source:'open-meteo'},
         {id:'insee',     icon:'📊', label:'Profil du quartier',     value:'<span class="spin"></span>', sub:'Population & densité',      source:'INSEE'},
         {id:'altitude',  icon:'🏔️', label:'Altitude',               value:'<span class="spin"></span>', sub:'Précision 1m · IGN',       source:'IGN RGE Alti'},
+        {id:'loyers',    icon:'🏠', label:'Loyers de référence',    value:'<span class="spin"></span>', sub:'Médiane marché privé',      source:'CLAMEUR 2024'},
+        {id:'demographie',icon:'📈',label:'Évolution démographique',value:'<span class="spin"></span>', sub:'Historique population',     source:'Wikidata/INSEE'},
       ]
     },
     {
@@ -1715,6 +1717,8 @@ async function loadAllData(props, coords){
     loadAmenites(lat, lng),
     loadBruit(lat, lng),
     loadPrixCommunes(lat, lng),
+    loadLoyers(props.citycode),
+    loadDemographieHistorique(props.citycode),
   ]).then(() => {
     document.getElementById('addrBadge').textContent = '✓ Analyse complète';
   });
@@ -2230,6 +2234,198 @@ async function loadAmenites(lat, lng){
   }
 }
 
+function getDeptFromCitycode(citycode) {
+  if (!citycode) return null;
+  if (citycode.startsWith('2A') || citycode.startsWith('2B')) return citycode.slice(0, 2);
+  if (citycode.startsWith('97')) return citycode.slice(0, 3);
+  return citycode.slice(0, 2);
+}
+
+async function loadLoyers(citycode) {
+  window._loyersData = null;
+  const dept = getDeptFromCitycode(citycode);
+  if (!dept) { setCard('loyers', 'N/A', 'Code INSEE manquant', ''); return; }
+  try {
+    const r = await fetch(`/api/loyers?dept=${dept}`, { signal: AbortSignal.timeout(6000) });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    if (!d.success) throw new Error('no data');
+    window._loyersData = d;
+    setCard('loyers',
+      d.loyers.t2.toLocaleString('fr-FR') + ' €/mois',
+      'T2 médian · ' + d.loyers.label,
+      ''
+    );
+  } catch(e) {
+    setCard('loyers', 'Non disponible', 'Données département manquantes', '');
+  }
+}
+
+async function loadDemographieHistorique(citycode) {
+  window._demographieData = null;
+  if (!citycode) return;
+  try {
+    // Wikidata SPARQL : population historique par code INSEE (P374)
+    const query = `SELECT ?year ?pop WHERE {
+      ?commune wdt:P374 "${citycode}".
+      ?commune p:P1082 ?stmt.
+      ?stmt ps:P1082 ?pop.
+      ?stmt pq:P585 ?date.
+      BIND(YEAR(?date) AS ?year)
+      FILTER(?year >= 1960 && ?year <= 2030)
+    } ORDER BY ?year`;
+    const url = `https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(query)}`;
+    const r = await fetch(url, { signal: AbortSignal.timeout(10000) });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    const rows = (d.results?.bindings || []).map(b => ({
+      year: parseInt(b.year.value),
+      pop:  parseInt(b.pop.value)
+    })).filter(x => !isNaN(x.year) && !isNaN(x.pop));
+    if (!rows.length) throw new Error('vide');
+    window._demographieData = { rows };
+    // Mettre à jour la card
+    const last = rows[rows.length - 1];
+    const first = rows[0];
+    const evol = last.pop - first.pop;
+    const evolPct = first.pop > 0 ? Math.round((evol / first.pop) * 100) : 0;
+    const sign = evol >= 0 ? '+' : '';
+    setCard('demographie',
+      last.pop.toLocaleString('fr-FR') + ' hab.',
+      sign + evolPct + '% depuis ' + first.year,
+      evol >= 0 ? 'good' : 'warn'
+    );
+  } catch(e) {
+    // Fallback : utiliser la population actuelle de l'INSEE
+    const d = window._inseeData;
+    const pop = d?.commune?.population;
+    if (pop) setCard('demographie', pop.toLocaleString('fr-FR') + ' hab.', 'Données historiques indisponibles', '');
+    else setCard('demographie', 'Non disponible', 'Wikidata / INSEE', '');
+  }
+}
+
+function showLoyersDetail() {
+  const d = window._loyersData;
+  const c = window._inseeData?.commune;
+  if (!d) {
+    showPanel('🏠 Loyers de référence', '<p style="color:var(--muted)">Données non disponibles pour ce département.</p>');
+    return;
+  }
+  const l = d.loyers;
+  const rows = [
+    ['Studio / T1', l.t1],
+    ['T2 (2 pièces)', l.t2],
+    ['T3 (3 pièces)', l.t3],
+    ['T4 et +',       l.t4],
+  ];
+  const maxVal = Math.max(...rows.map(r => r[1]));
+  const bars = rows.map(([lbl, val]) => {
+    const pct = Math.round((val / maxVal) * 100);
+    return `<div style="margin-bottom:.75rem">
+      <div style="display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:.25rem">
+        <span style="color:var(--text)">${lbl}</span>
+        <span style="font-weight:600;color:var(--gold)">${val.toLocaleString('fr-FR')} €<span style="font-weight:400;color:var(--muted)">/mois</span></span>
+      </div>
+      <div style="background:var(--border);border-radius:3px;height:8px">
+        <div style="width:${pct}%;background:linear-gradient(90deg,var(--gold),#e8a020);border-radius:3px;height:8px;transition:width .4s"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Comparaison loyer/achat si données DVF disponibles
+  let achatSection = '';
+  const dvf = window._dvfData?.stats;
+  if (dvf?.prix_m2_median) {
+    const surfT2 = 45; // m² typique T2
+    const prixT2 = Math.round(dvf.prix_m2_median * surfT2);
+    const mensualite = Math.round(prixT2 * 0.004); // approx mensualité crédit 20 ans 3.5%
+    const diff = mensualite - l.t2;
+    const diffStr = diff >= 0
+      ? `+${diff.toLocaleString('fr-FR')} €/mois (achat plus cher)`
+      : `${diff.toLocaleString('fr-FR')} €/mois (achat moins cher)`;
+    achatSection = `<div style="margin-top:1rem;padding:.75rem;background:rgba(184,131,42,.07);border-radius:6px;border:1px solid rgba(184,131,42,.2)">
+      <div style="font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.4rem">⚖️ Louer vs Acheter (T2 ~${surfT2}m²)</div>
+      <div style="display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:.25rem">
+        <span>Loyer marché</span><span style="color:var(--gold);font-weight:600">${l.t2.toLocaleString('fr-FR')} €/mois</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:.25rem">
+        <span>Mensualité crédit estimée</span><span style="font-weight:600">${mensualite.toLocaleString('fr-FR')} €/mois</span>
+      </div>
+      <div style="font-size:.75rem;color:${diff>=0?'#e67e22':'#27ae60'};margin-top:.3rem">${diffStr}</div>
+      <p style="font-size:.65rem;color:var(--muted);margin-top:.3rem">Estimation crédit 20 ans · taux ~3,5% · hors charges et impôts</p>
+    </div>`;
+  }
+
+  showPanel('🏠 Loyers de référence · ' + (l.label || c?.departement || ''), `
+    <p style="font-size:.78rem;color:var(--muted);margin-bottom:1rem">Loyers médians observés — marché privé — charges non comprises — données moyennes du département.</p>
+    <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-bottom:1rem">${bars}</div>
+    ${achatSection}
+    <p style="font-size:.62rem;color:var(--muted);margin-top:.8rem">Source : ${d.source} · ${d.note} · <a href="https://www.clameur.fr" target="_blank" style="color:var(--gold)">clameur.fr →</a></p>
+  `);
+}
+
+function showDemographieDetail() {
+  const d = window._demographieData;
+  const c = window._inseeData?.commune;
+  if (!d || !d.rows || !d.rows.length) {
+    showPanel('📈 Évolution démographique',
+      '<p style="color:var(--muted)">Données historiques non disponibles via Wikidata pour cette commune.</p>'
+      + (c ? `<p style="font-size:.8rem;color:var(--text)">Population actuelle : <strong>${(c.population||0).toLocaleString('fr-FR')} habitants</strong></p>` : '')
+    );
+    return;
+  }
+  const rows = d.rows;
+  const last = rows[rows.length - 1];
+  const first = rows[0];
+  const evol = last.pop - first.pop;
+  const evolPct = first.pop > 0 ? (evol / first.pop * 100).toFixed(1) : '—';
+  const sign = evol >= 0 ? '+' : '';
+  const evolColor = evol >= 0 ? '#27ae60' : '#e74c3c';
+
+  showPanel('📈 Évolution démographique · ' + (c?.nom || ''), `
+    <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:1rem">
+      <div class="stat-box"><span class="stat-n">${last.pop.toLocaleString('fr-FR')}</span><span class="stat-l">👥 Population ${last.year}</span></div>
+      <div class="stat-box"><span class="stat-n" style="color:${evolColor}">${sign}${Number(evolPct).toLocaleString('fr-FR')}%</span><span class="stat-l">📈 Évolution depuis ${first.year}</span></div>
+    </div>
+    <div style="position:relative;height:220px;margin-bottom:1rem"><canvas id="demographieChart"></canvas></div>
+    <p style="font-size:.62rem;color:var(--muted);margin-top:.3rem">Source : Wikidata / INSEE (recensements) · Données : ${rows.length} points de ${first.year} à ${last.year}</p>
+  `);
+
+  setTimeout(() => {
+    const ctx = document.getElementById('demographieChart');
+    if (!ctx || !window.Chart) return;
+    if (window._demographieChart) { window._demographieChart.destroy(); window._demographieChart = null; }
+    window._demographieChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: rows.map(r => r.year),
+        datasets: [{
+          label: 'Population',
+          data: rows.map(r => r.pop),
+          borderColor: 'rgba(184,131,42,1)',
+          backgroundColor: 'rgba(184,131,42,0.12)',
+          borderWidth: 2,
+          pointBackgroundColor: 'rgba(184,131,42,1)',
+          pointRadius: 4,
+          tension: 0.3,
+          fill: true,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx2 => ctx2.raw.toLocaleString('fr-FR') + ' hab.' } }
+        },
+        scales: {
+          x: { ticks: { color: '#999', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,.05)' } },
+          y: { ticks: { color: '#999', font: { size: 10 }, callback: v => v >= 1000 ? (v/1000).toFixed(0)+'k' : v }, grid: { color: 'rgba(255,255,255,.05)' } }
+        }
+      }
+    });
+  }, 100);
+}
+
 function loadPrixCommunes(lat, lng){
   // Chargement différé : la carte se charge au clic sur la carte (appels directs navigateur)
   setCard('prixCommunes','🗺️ Voir la carte','Prix moyen par commune · rayon 18km','');
@@ -2268,6 +2464,8 @@ function showDetail(cardId){
     dpe:           () => go('energie'),
     bruit:         () => showBruitDetail(),
     prixCommunes:  () => showPrixCommunesDetail(),
+    loyers:        () => showLoyersDetail(),
+    demographie:   () => showDemographieDetail(),
   };
   if(data[cardId]) data[cardId]();
 }
@@ -2290,7 +2488,7 @@ function showPanel(title, html){
 }
 
 function closePanel(){
-  ['_dvfChart','_dvfEvoChart','_risquesChart','_ecolesChart','_mobiliteChart','_radarChart','_radarProfilChart','_servicesChart','_inseeNeighborChart','_meteoMensuelChart'].forEach(k=>{if(window[k]){window[k].destroy();window[k]=null;}});
+  ['_dvfChart','_dvfEvoChart','_risquesChart','_ecolesChart','_mobiliteChart','_radarChart','_radarProfilChart','_servicesChart','_inseeNeighborChart','_meteoMensuelChart','_demographieChart'].forEach(k=>{if(window[k]){window[k].destroy();window[k]=null;}});
   document.getElementById('detailContainer').innerHTML = '';
   document.getElementById('cardsGrid').style.display = 'grid';
   if(window._leafletMap){window._leafletMap.remove();window._leafletMap=null;}
@@ -3886,7 +4084,8 @@ const SC_ECOLES_COEFF  = 0.5;   // nb établissements × coeff → /10
 const SC_RESTAU_DIV    = 3;     // 1 point par tranche de N restaurants
 const SC_CULTURE_COEFF = 2;     // multiplicateur lieux culturels
 const SC_SPORT_COEFF   = 2;     // multiplicateur équipements sport
-const SC_RISQUES_TABLE = [10,7,4,1]; // score selon nb risques (3+ → dernier)
+// Score risques : 0→10, 1→9, 2→8 … 10→0 (minimum 0)
+function calcRisqScore(n){ return Math.max(0, 10 - n); }
 
 // Autocomplétion BAN générique
 function setupBanInput(inputId, sugsId, key){
@@ -3946,7 +4145,7 @@ async function fetchAdresseData(lat,lon){
 // Scores bruts 0-10 par critère
 function calcScores(d){
   const ecoTotal=(d.eco?.types?.ecoles||0)+(d.eco?.types?.college||0)+(d.eco?.types?.lycee||0);
-  const nbRisq=Math.min(d.ris?.total||0, SC_RISQUES_TABLE.length-1);
+  const nbRisq=d.ris?.total||0;
   const bruitN=d.bruit?.niveauCode||'';
   const bruitScore=bruitN==='faible'?9:bruitN==='modere'?5:bruitN==='eleve'?2:5;
   const svcScore=Math.min(10,d.svc?.score||0);
@@ -3962,8 +4161,7 @@ function calcScores(d){
     bruit: bruitScore,
     svc:   svcScore,
     meteo: meteoScore,
-    risq: SC_RISQUES_TABLE[nbRisq],
-    risqDisplay: 10 - SC_RISQUES_TABLE[nbRisq],
+    risq: calcRisqScore(nbRisq),
     trav: d.travailKm!=null ? Math.max(0,Math.round(10-d.travailKm*0.3)) : null,
   };
 }
