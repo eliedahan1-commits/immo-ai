@@ -2149,9 +2149,11 @@ async function loadINSEE(citycode, lat, lng){
       }
     }
     const pop = d.commune?.population;
+    const dens = d.commune?.densite;
+    const densLbl = dens>10000?'Très dense':dens>5000?'Dense':dens>2000?'Urbain':dens>500?'Péri-urbain':'Rural';
     setCard('insee',
-      pop ? pop.toLocaleString('fr-FR')+' hab.' : '—',
-      d.commune?.nom||'',
+      dens ? dens.toLocaleString('fr-FR')+' hab/km²' : (pop ? pop.toLocaleString('fr-FR')+' hab.' : '—'),
+      d.commune?.nom ? d.commune.nom + (dens ? ' · '+densLbl : '') : '',
       ''
     );
     window._inseeData = d;
@@ -3863,6 +3865,7 @@ function showUrbanismeDetail(){
         <div style="display:flex;gap:.5rem;margin-top:.6rem;flex-wrap:wrap">
           <span style="font-size:.72rem;padding:.2rem .6rem;border-radius:12px;background:#E74C3C22;color:#C0392B;font-weight:600">🔴 Passoires (F+G) : ${dpe.pctPassoires}%</span>
           <span style="font-size:.72rem;padding:.2rem .6rem;border-radius:12px;background:#2ECC7122;color:#27AE60;font-weight:600">🟢 Efficaces (A+B) : ${dpe.pctEfficaces}%</span>
+          <button onclick="showDetail('dpeSecteur')" style="margin-left:auto;font-size:.72rem;background:none;border:1px solid var(--gold);color:var(--gold);border-radius:12px;padding:.2rem .65rem;cursor:pointer;white-space:nowrap">🏷️ Détail DPE →</button>
         </div>
         <p style="font-size:.61rem;color:var(--muted);margin-top:.4rem">Source : ADEME · DPE logements existants depuis juillet 2021</p>
       </div>`;
@@ -3908,6 +3911,7 @@ function showMeteoDetail(){
         <span style="font-size:.78rem;color:var(--muted);font-weight:500">🌬️ Qualité de l\'air :</span>
         <span style="background:${aq.color};color:#fff;font-size:.78rem;font-weight:700;padding:.25rem .7rem;border-radius:20px">${aq.label}</span>
         <span style="font-size:.72rem;color:var(--muted)">IQA européen : ${aq.aqi}/100${subs?' · '+subs:''}</span>
+        <button onclick="showDetail('qualiteAir')" style="margin-left:auto;font-size:.72rem;background:none;border:1px solid var(--gold);color:var(--gold);border-radius:12px;padding:.2rem .65rem;cursor:pointer;white-space:nowrap">💨 Détail →</button>
       </div>`;
     })()}
     <p style="font-size:.62rem;color:var(--muted)">Source : ${d.source} · Qualité air : Open-Meteo Air Quality</p>`);
@@ -3973,8 +3977,8 @@ function showINSEEDetail(){
     <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:1rem">
       <div class="stat-box"><span class="stat-n">${c?.densite?.toLocaleString('fr-FR')||'—'}</span><span class="stat-l">🗺️ hab/km² · <span style="color:${densColor};font-weight:600">${densLabel}</span></span></div>
       <div class="stat-box">
-        <span class="stat-n">${c?.densite?.toLocaleString('fr-FR')||'—'}</span>
-        <span class="stat-l">🗺️ hab/km² · <span style="color:${densColor};font-weight:600">${densLabel}</span></span>
+        <span class="stat-n">${c?.population?.toLocaleString('fr-FR')||'—'}</span>
+        <span class="stat-l">👥 Habitants</span>
       </div>
       <div class="stat-box"><span class="stat-n" id="inseeSupVal">${supKm2?supKm2.toLocaleString('fr-FR')+' km²':'N/A'}</span><span class="stat-l">📐 Superficie</span></div>
       <div class="stat-box"><span class="stat-n">${c?.codesPostaux?.[0]||'—'}</span><span class="stat-l">📮 Code postal</span></div>
