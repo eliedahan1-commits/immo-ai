@@ -1,6 +1,57 @@
-// ══ VERCEL FUNCTION : ALTITUDE IGN + TAUX IMMOBILIERS ══
+// ══ VERCEL FUNCTION : ALTITUDE IGN + TAUX IMMOBILIERS + CRIMINALITE ══
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
+
+  // ── Branche CRIMINALITE : /api/altitude?type=criminalite&code=31555 ──────
+  if (req.query.type === 'criminalite') {
+    const code = req.query.code;
+    if (!code) return res.status(400).json({ error: 'code requis' });
+
+    // Resource ID du fichier CSV communal SSMSI sur tabular-api.data.gouv.fr (mis à jour mars 2026)
+    const RESOURCE_ID = '44ef4323-1097-48d5-8719-3c544b55d294';
+
+    // Parseur tabular-api.data.gouv.fr : champs directs (pas de .fields wrapper)
+    function parseRecords(records) {
+      const byIndicateur = {};
+      records.forEach(rec => {
+        const ind = rec.indicateur || '';
+        const annee = parseInt(rec.annee || 0);
+        if (!ind) return;
+        if (!byIndicateur[ind] || annee > byIndicateur[ind].annee) {
+          byIndicateur[ind] = {
+            annee,
+            taux: parseFloat(rec.taux_pour_mille || 0) || null,
+            nb: parseInt(rec.nombre || 0) || null
+          };
+        }
+      });
+      return byIndicateur;
+    }
+
+    // Source principale : tabular-api.data.gouv.fr (API officielle data.gouv.fr, filtre par commune)
+    // Champ : CODGEO_2025 (renommé depuis janvier 2025), filtré avec syntaxe __exact
+    try {
+      const url = `https://tabular-api.data.gouv.fr/api/resources/${RESOURCE_ID}/data/?CODGEO_2025__exact=${code}&page_size=200`;
+      const r = await fetch(url, {
+        headers: { 'Accept': 'application/json', 'User-Agent': 'IMMOAI/2.0' },
+        signal: AbortSignal.timeout(12000)
+      });
+      if (r.ok) {
+        const d = await r.json();
+        const records = d.data || [];
+        if (records.length) {
+          const byIndicateur = parseRecords(records);
+          if (Object.keys(byIndicateur).length) {
+            const anneeMax = Math.max(...records.map(r => parseInt(r.annee || 0)));
+            res.setHeader('Cache-Control', 'public, max-age=86400');
+            return res.status(200).json({ success: true, indicateurs: byIndicateur, annee: anneeMax });
+          }
+        }
+      }
+    } catch { /* fallback */ }
+
+    return res.status(200).json({ success: false, error: 'données non disponibles' });
+  }
 
   // ── Branche TAUX : /api/altitude?type=taux ──────────────────────────────
   if (req.query.type === 'taux') {
