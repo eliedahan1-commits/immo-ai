@@ -1650,7 +1650,6 @@ function renderCards(props, coords){
         {id:'meteo',     icon:'☀️', label:'Météo & ensoleillement', value:'<span class="spin"></span>', sub:'Moyenne 5 ans',            source:'open-meteo'},
         {id:'insee',     icon:'📊', label:'Profil du quartier',     value:'<span class="spin"></span>', sub:'Population & densité',      source:'INSEE'},
         {id:'altitude',  icon:'🏔️', label:'Altitude',               value:'<span class="spin"></span>', sub:'Précision 1m · IGN',       source:'IGN RGE Alti'},
-        {id:'loyers',    icon:'🏠', label:'Loyers de référence',    value:'<span class="spin"></span>', sub:'Médiane marché privé',      source:'CLAMEUR 2024'},
         {id:'demographie',icon:'📈',label:'Évolution démographique',value:'<span class="spin"></span>', sub:'Historique population',     source:'Wikidata/INSEE'},
       ]
     },
@@ -1717,7 +1716,6 @@ async function loadAllData(props, coords){
     loadAmenites(lat, lng),
     loadBruit(lat, lng),
     loadPrixCommunes(lat, lng),
-    loadLoyers(props.citycode),
     loadDemographieHistorique(props.citycode),
   ]).then(() => {
     document.getElementById('addrBadge').textContent = '✓ Analyse complète';
@@ -2234,136 +2232,6 @@ async function loadAmenites(lat, lng){
   }
 }
 
-function getDeptFromCitycode(citycode) {
-  if (!citycode) return null;
-  if (citycode.startsWith('2A') || citycode.startsWith('2B')) return citycode.slice(0, 2);
-  if (citycode.startsWith('97')) return citycode.slice(0, 3);
-  return citycode.slice(0, 2);
-}
-
-async function loadLoyers(citycode) {
-  window._loyersData = null;
-  const dept = getDeptFromCitycode(citycode);
-  if (!dept) { setCard('loyers', 'N/A', 'Code INSEE manquant', ''); return; }
-  try {
-    const r = await fetch(`/api/loyers?dept=${dept}`, { signal: AbortSignal.timeout(6000) });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const d = await r.json();
-    if (!d.success) throw new Error('no data');
-    window._loyersData = d;
-    setCard('loyers',
-      d.loyers.t2.toLocaleString('fr-FR') + ' €/mois',
-      'T2 médian · ' + d.loyers.label,
-      ''
-    );
-  } catch(e) {
-    setCard('loyers', 'Non disponible', 'Données département manquantes', '');
-  }
-}
-
-async function loadDemographieHistorique(citycode) {
-  window._demographieData = null;
-  if (!citycode) return;
-  try {
-    // Wikidata SPARQL : population historique par code INSEE (P374)
-    const query = `SELECT ?year ?pop WHERE {
-      ?commune wdt:P374 "${citycode}".
-      ?commune p:P1082 ?stmt.
-      ?stmt ps:P1082 ?pop.
-      ?stmt pq:P585 ?date.
-      BIND(YEAR(?date) AS ?year)
-      FILTER(?year >= 1960 && ?year <= 2030)
-    } ORDER BY ?year`;
-    const url = `https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(query)}`;
-    const r = await fetch(url, { signal: AbortSignal.timeout(10000) });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const d = await r.json();
-    const rows = (d.results?.bindings || []).map(b => ({
-      year: parseInt(b.year.value),
-      pop:  parseInt(b.pop.value)
-    })).filter(x => !isNaN(x.year) && !isNaN(x.pop));
-    if (!rows.length) throw new Error('vide');
-    window._demographieData = { rows };
-    // Mettre à jour la card
-    const last = rows[rows.length - 1];
-    const first = rows[0];
-    const evol = last.pop - first.pop;
-    const evolPct = first.pop > 0 ? Math.round((evol / first.pop) * 100) : 0;
-    const sign = evol >= 0 ? '+' : '';
-    setCard('demographie',
-      last.pop.toLocaleString('fr-FR') + ' hab.',
-      sign + evolPct + '% depuis ' + first.year,
-      evol >= 0 ? 'good' : 'warn'
-    );
-  } catch(e) {
-    // Fallback : utiliser la population actuelle de l'INSEE
-    const d = window._inseeData;
-    const pop = d?.commune?.population;
-    if (pop) setCard('demographie', pop.toLocaleString('fr-FR') + ' hab.', 'Données historiques indisponibles', '');
-    else setCard('demographie', 'Non disponible', 'Wikidata / INSEE', '');
-  }
-}
-
-function showLoyersDetail() {
-  const d = window._loyersData;
-  const c = window._inseeData?.commune;
-  if (!d) {
-    showPanel('🏠 Loyers de référence', '<p style="color:var(--muted)">Données non disponibles pour ce département.</p>');
-    return;
-  }
-  const l = d.loyers;
-  const rows = [
-    ['Studio / T1', l.t1],
-    ['T2 (2 pièces)', l.t2],
-    ['T3 (3 pièces)', l.t3],
-    ['T4 et +',       l.t4],
-  ];
-  const maxVal = Math.max(...rows.map(r => r[1]));
-  const bars = rows.map(([lbl, val]) => {
-    const pct = Math.round((val / maxVal) * 100);
-    return `<div style="margin-bottom:.75rem">
-      <div style="display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:.25rem">
-        <span style="color:var(--text)">${lbl}</span>
-        <span style="font-weight:600;color:var(--gold)">${val.toLocaleString('fr-FR')} €<span style="font-weight:400;color:var(--muted)">/mois</span></span>
-      </div>
-      <div style="background:var(--border);border-radius:3px;height:8px">
-        <div style="width:${pct}%;background:linear-gradient(90deg,var(--gold),#e8a020);border-radius:3px;height:8px;transition:width .4s"></div>
-      </div>
-    </div>`;
-  }).join('');
-
-  // Comparaison loyer/achat si données DVF disponibles
-  let achatSection = '';
-  const dvf = window._dvfData?.stats;
-  if (dvf?.prix_m2_median) {
-    const surfT2 = 45; // m² typique T2
-    const prixT2 = Math.round(dvf.prix_m2_median * surfT2);
-    const mensualite = Math.round(prixT2 * 0.004); // approx mensualité crédit 20 ans 3.5%
-    const diff = mensualite - l.t2;
-    const diffStr = diff >= 0
-      ? `+${diff.toLocaleString('fr-FR')} €/mois (achat plus cher)`
-      : `${diff.toLocaleString('fr-FR')} €/mois (achat moins cher)`;
-    achatSection = `<div style="margin-top:1rem;padding:.75rem;background:rgba(184,131,42,.07);border-radius:6px;border:1px solid rgba(184,131,42,.2)">
-      <div style="font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.4rem">⚖️ Louer vs Acheter (T2 ~${surfT2}m²)</div>
-      <div style="display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:.25rem">
-        <span>Loyer marché</span><span style="color:var(--gold);font-weight:600">${l.t2.toLocaleString('fr-FR')} €/mois</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:.25rem">
-        <span>Mensualité crédit estimée</span><span style="font-weight:600">${mensualite.toLocaleString('fr-FR')} €/mois</span>
-      </div>
-      <div style="font-size:.75rem;color:${diff>=0?'#e67e22':'#27ae60'};margin-top:.3rem">${diffStr}</div>
-      <p style="font-size:.65rem;color:var(--muted);margin-top:.3rem">Estimation crédit 20 ans · taux ~3,5% · hors charges et impôts</p>
-    </div>`;
-  }
-
-  showPanel('🏠 Loyers de référence · ' + (l.label || c?.departement || ''), `
-    <p style="font-size:.78rem;color:var(--muted);margin-bottom:1rem">Loyers médians observés — marché privé — charges non comprises — données moyennes du département.</p>
-    <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-bottom:1rem">${bars}</div>
-    ${achatSection}
-    <p style="font-size:.62rem;color:var(--muted);margin-top:.8rem">Source : ${d.source} · ${d.note} · <a href="https://www.clameur.fr" target="_blank" style="color:var(--gold)">clameur.fr →</a></p>
-  `);
-}
-
 function showDemographieDetail() {
   const d = window._demographieData;
   const c = window._inseeData?.commune;
@@ -2464,7 +2332,6 @@ function showDetail(cardId){
     dpe:           () => go('energie'),
     bruit:         () => showBruitDetail(),
     prixCommunes:  () => showPrixCommunesDetail(),
-    loyers:        () => showLoyersDetail(),
     demographie:   () => showDemographieDetail(),
   };
   if(data[cardId]) data[cardId]();
