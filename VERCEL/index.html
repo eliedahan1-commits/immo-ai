@@ -2605,10 +2605,8 @@ function updateDemographieCard(d) {
     })).filter(x => !isNaN(x.pop));
     _applyRows(rows, 'Wikidata');
     window._demographieLoading = false;
-    // Si le panel est déjà ouvert, le rafraîchir
-    if (document.querySelector('#detailContainer') && !document.querySelector('#detailContainer').hidden) {
-      showDemographieDetail();
-    }
+    // Rafraîchir uniquement si l'utilisateur a déjà ouvert le panel démographie
+    if (window._demographiePanelOpen) showDemographieDetail();
   })
   .catch(() => {
     window._demographieLoading = false;
@@ -2619,16 +2617,16 @@ function updateDemographieCard(d) {
 }
 
 function showDemographieDetail() {
+  window._demographiePanelOpen = true;
   const d = window._demographieData;
   const c = window._inseeData?.commune;
   if (!d || !d.rows || !d.rows.length) {
     if (window._demographieLoading) {
-      // Fetch en cours — afficher spinner et re-tenter dans 2s
+      // Fetch en cours — afficher spinner ; le fetch appellera showDemographieDetail() lui-même quand prêt
       showPanel('📈 Évolution démographique',
         '<p style="color:var(--muted)"><span class="spin"></span> Chargement des données Wikidata…</p>'
         + (c ? `<p style="font-size:.8rem;color:var(--text)">Population actuelle : <strong>${(c.population||0).toLocaleString('fr-FR')} habitants</strong></p>` : '')
       );
-      setTimeout(() => { if (window._demographieData?.rows?.length) showDemographieDetail(); }, 3000);
       return;
     }
     showPanel('📈 Évolution démographique',
@@ -2678,11 +2676,20 @@ function showDemographieDetail() {
         responsive: true, maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
+          datalabels: {
+            display: true,
+            align: ctx2 => ctx2.dataIndex % 2 === 0 ? 'top' : 'bottom',
+            anchor: ctx2 => ctx2.dataIndex % 2 === 0 ? 'end' : 'start',
+            color: '#8a7d68',
+            font: { size: 9, weight: '600' },
+            formatter: v => v >= 1000 ? (v/1000).toFixed(0)+'k' : v,
+            offset: 4
+          },
           tooltip: { callbacks: { label: ctx2 => ctx2.raw.toLocaleString('fr-FR') + ' hab.' } }
         },
         scales: {
-          x: { ticks: { color: '#999', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,.05)' } },
-          y: { ticks: { color: '#999', font: { size: 10 }, callback: v => v >= 1000 ? (v/1000).toFixed(0)+'k' : v }, grid: { color: 'rgba(255,255,255,.05)' } }
+          x: { ticks: { color: '#8a7d68', font: { size: 10 } }, grid: { display: false } },
+          y: { ticks: { color: '#8a7d68', font: { size: 10 }, callback: v => v >= 1000 ? (v/1000).toFixed(0)+'k' : v }, grid: { color: 'rgba(0,0,0,.05)' } }
         }
       }
     });
@@ -2754,6 +2761,7 @@ function showPanel(title, html){
 }
 
 function closePanel(){
+  window._demographiePanelOpen = false;
   ['_dvfChart','_dvfEvoChart','_risquesChart','_ecolesChart','_mobiliteChart','_radarChart','_radarProfilChart','_servicesChart','_inseeNeighborChart','_meteoMensuelChart','_demographieChart'].forEach(k=>{if(window[k]){window[k].destroy();window[k]=null;}});
   document.getElementById('detailContainer').innerHTML = '';
   document.getElementById('cardsGrid').style.display = 'grid';
