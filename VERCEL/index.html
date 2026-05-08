@@ -1678,7 +1678,7 @@ function renderCards(props, coords){
   grid.innerHTML = cardSections.map(section => `
     <div class="cards-section-title">${section.title}</div>
     ${section.cards.map(c => `
-      <div class="info-card${c.wide?' wide':''}" id="card-${c.id}" onclick="${c.action||'showDetail(\''+c.id+'\')'}">
+      <div class="info-card${c.wide?' wide':''}" id="card-${c.id}" onclick="if(event.target.closest('.card-retry-btn'))return;${c.action||'showDetail(\''+c.id+'\')'}">
         <span class="card-arrow">↗</span>
         <div class="card-icon">${c.icon}</div>
         <div class="card-label">${c.label}</div>
@@ -2060,11 +2060,15 @@ async function loadFibre(citycode, lat, lng){
     setCard('fibre',
       eligible === true ? 'Éligible fibre' : eligible === false ? 'Non éligible' : 'À vérifier',
       eligible === true ? `FTTH · ${d.fibre.operateurs?.join(', ')||''}` : 'maconnexioninternet.arcep.fr',
-      eligible === true ? 'good' : 'warn'
+      eligible === true ? 'good' : eligible === false ? 'warn' : ''
     );
     window._fibreData = d;
+    // Bouton retry si résultat indéterminé
+    if(eligible !== true && eligible !== false)
+      setCardRetry('fibre',()=>currentCoords&&loadFibre(window._inseeData?.commune?.codeInsee||'',currentCoords.lat,currentCoords.lng));
   }catch{
     setCard('fibre','Vérifier →','maconnexioninternet.arcep.fr','');
+    setCardRetry('fibre',()=>currentCoords&&loadFibre(window._inseeData?.commune?.codeInsee||'',currentCoords.lat,currentCoords.lng));
   }
 }
 
