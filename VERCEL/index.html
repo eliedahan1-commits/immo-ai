@@ -2236,61 +2236,144 @@ async function loadAmenites(lat, lng){
   }
 }
 
+function showQualiteAirDetail() {
+  const air = window._qualiteAirData;
+  if (!air || air.error) { showPanel("💨 Qualité de l'air", '<p style="color:var(--muted)">Données non disponibles.</p>'); return; }
+  const color = air.color || '#999';
+  const SEUILS = [
+    { label: 'Très bon',              max: 20,  color: '#27ae60' },
+    { label: 'Bon',                   max: 40,  color: '#a3c03a' },
+    { label: 'Modéré',                max: 60,  color: '#f39c12' },
+    { label: 'Mauvais',               max: 80,  color: '#e67e22' },
+    { label: 'Très mauvais',          max: 100, color: '#e74c3c' },
+    { label: 'Extrêmement mauvais',   max: 999, color: '#8e44ad' },
+  ];
+  const polluants = [
+    { label:'PM2.5 (fines particules)', val:air.pm25, unit:'µg/m³', seuil:25 },
+    { label:'PM10 (particules)',         val:air.pm10, unit:'µg/m³', seuil:50 },
+    { label:'NO₂ (dioxyde d'azote)',    val:air.no2,  unit:'µg/m³', seuil:200 },
+    { label:'O₃ (ozone)',               val:air.o3,   unit:'µg/m³', seuil:180 },
+  ].filter(p => p.val != null);
+
+  const polRows = polluants.map(p => {
+    const pct = Math.min(100, Math.round(p.val / p.seuil * 100));
+    const pColor = pct < 50 ? '#27ae60' : pct < 80 ? '#f39c12' : '#e74c3c';
+    return `<div style="margin-bottom:.75rem">
+      <div style="display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:.2rem">
+        <span>${p.label}</span><span style="font-weight:600;color:${pColor}">${p.val.toFixed(1)} <span style="color:var(--muted);font-weight:400">${p.unit}</span></span>
+      </div>
+      <div style="background:var(--border);border-radius:3px;height:7px">
+        <div style="width:${pct}%;background:${pColor};border-radius:3px;height:7px"></div>
+      </div>
+      <div style="font-size:.68rem;color:var(--muted);margin-top:.15rem">Seuil OMS : ${p.seuil} ${p.unit}</div>
+    </div>`;
+  }).join('');
+
+  showPanel("💨 Qualité de l'air · " + (window._inseeData?.commune?.nom||''), `
+    <div style="text-align:center;margin-bottom:1rem">
+      <div style="font-size:3rem;font-weight:800;color:${color}">${air.aqi}</div>
+      <div style="font-size:1rem;font-weight:600;color:${color};margin-bottom:.3rem">${air.label}</div>
+      <div style="font-size:.75rem;color:var(--muted)">Indice AQI Européen (0 = pur, 100+ = très pollué)</div>
+    </div>
+    <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-bottom:1rem">${polRows}</div>
+    <p style="font-size:.62rem;color:var(--muted)">Source : Open-Meteo Air Quality · Données temps réel</p>
+  `);
+}
+
+function showDPESecteurDetail() {
+  const dpe = window._dpeSecteurData;
+  if (!dpe || dpe.error) { showPanel('🏷️ DPE du secteur', '<p style="color:var(--muted)">Données ADEME non disponibles pour cette commune.</p>'); return; }
+  const COLORS = { A:'#1a9641', B:'#52b153', C:'#a6d96a', D:'#ffffbf', E:'#fecc5c', F:'#fd8d3c', G:'#d7191c' };
+  const LABELS = { A:'A – Très performant', B:'B – Performant', C:'C – Assez bon', D:'D – Moyen', E:'E – Peu efficace', F:'F – Mauvais', G:'G – Très mauvais' };
+  const total = dpe.total || 1;
+  const bars = ['A','B','C','D','E','F','G'].map(lbl => {
+    const n = dpe.dist?.[lbl] || 0;
+    const pct = Math.round(n / total * 100);
+    const w = Math.round(n / total * 100);
+    return `<div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.5rem">
+      <span style="font-size:.85rem;font-weight:700;color:${COLORS[lbl]};width:14px">${lbl}</span>
+      <div style="flex:1;background:var(--border);border-radius:3px;height:18px;position:relative">
+        <div style="width:${w}%;background:${COLORS[lbl]};border-radius:3px;height:18px;min-width:${n>0?'4px':'0'}"></div>
+        ${n>0?`<span style="position:absolute;left:.4rem;top:1px;font-size:.72rem;color:${pct>20?'#fff':'var(--text)'};">${pct}% (${n.toLocaleString('fr-FR')})</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+
+  showPanel('🏷️ DPE secteur · ' + (window._inseeData?.commune?.nom||''), `
+    <div style="display:flex;gap:1rem;margin-bottom:1rem;text-align:center">
+      <div class="stat-box" style="flex:1"><span class="stat-n" style="color:#27ae60">${dpe.pctEfficaces}%</span><span class="stat-l">Classes A-C</span></div>
+      <div class="stat-box" style="flex:1"><span class="stat-n" style="color:#e74c3c">${dpe.pctPassoires}%</span><span class="stat-l">Passoires F-G</span></div>
+      <div class="stat-box" style="flex:1"><span class="stat-n">${dpe.total?.toLocaleString('fr-FR')||'—'}</span><span class="stat-l">DPE recensés</span></div>
+    </div>
+    <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:1rem">${bars}</div>
+    <p style="font-size:.62rem;color:var(--muted);margin-top:.8rem">Source : ADEME · Base DPE commune · Logements existants</p>
+  `);
+}
+
 function computeScoreQuartier() {
   const items = [];
 
-  // 1. Services & santé (_servicesData.score déjà /10)
+  // 1. Services & santé
   const svc = window._servicesData;
   if (svc?.score != null)
     items.push({ label:'Services & santé', icon:'🏥', val:svc.score, max:10,
       action:"closePanel();setTimeout(()=>showDetail('services'),120)",
       sub: svc.stats ? `${svc.stats.sante} santé · ${svc.stats.commerce} commerces · ${svc.total} services` : '' });
 
-  // 2. Écoles : score selon nombre d'établissements à proximité
+  // 2. Écoles
   const ecoles = window._ecolesData;
   if (ecoles?.total != null) {
-    const t = ecoles.total;
+    const t = ecoles.total, ty = ecoles.types||{};
     const eScore = t===0?1 : t<=3?4 : t<=7?6 : t<=14?8 : 9.5;
-    const t2 = ecoles.types||{};
     items.push({ label:'Écoles', icon:'🏫', val:eScore, max:10,
       action:"closePanel();setTimeout(()=>showDetail('ecoles'),120)",
-      sub: `${t} établissements · ${t2.ecoles||0} éc. · ${t2.college||0} coll. · ${t2.lycee||0} lyc.` });
+      sub:`${t} établissements · ${ty.ecoles||0} éc. · ${ty.college||0} coll. · ${ty.lycee||0} lyc.` });
   }
 
-  // 3. Mobilité (_mobiliteData.score déjà /10)
+  // 3. Mobilité (score /10 API)
   const mob = window._mobiliteData;
-  if (mob?.score != null)
+  if (mob?.score != null) {
+    const st = mob.stats||{};
+    const mobSub = [
+      st.metro>0    ? `${st.metro} métro`      : null,
+      st.trams>0    ? `${st.trams} tram`        : null,
+      st.gares>0    ? `${st.gares} gare${st.gares>1?'s':''}` : null,
+      st.arretsBus>0? `${st.arretsBus} bus`     : null,
+      st.velos>0    ? `${st.velos} vélo`        : null,
+    ].filter(Boolean).join(' · ') || mob.scoreLabel || '';
     items.push({ label:'Mobilité & transports', icon:'🚇', val:mob.score, max:10,
       action:"closePanel();setTimeout(()=>showDetail('mobilite'),120)",
-      sub: mob.scoreLabel ? `${mob.scoreLabel} · ${mob.stats?.arretsBus||0} arrêts bus` : '' });
+      sub: `${mob.scoreLabel} · ${mobSub}` });
+  }
 
-  // 4. Qualité de l'air (AQI inversé)
+  // 4. Qualité de l'air
   const air = window._qualiteAirData;
   if (air?.aqi != null && !air.error) {
     const airScore = Math.max(0, Math.min(10, Math.round((100 - air.aqi) / 10)));
-    items.push({ label:"Qualité de l'air", icon:'💨', val:airScore, max:10, action:null,
+    items.push({ label:"Qualité de l'air", icon:'💨', val:airScore, max:10,
+      action:"closePanel();setTimeout(()=>showQualiteAirDetail(),120)",
       sub:`AQI ${air.aqi} · ${air.label}` });
   }
 
-  // 5. Risques naturels (score déjà calculé par Géorisques, inversé : 0 risques = 10)
+  // 5. Risques — même formule que le radar : Math.max(0, 10 - n)
   const risques = window._risquesData;
   if (risques?.total != null) {
-    const rScore = Math.max(0, Math.round((10 - risques.total * 2) * 10) / 10);
+    const rScore = Math.max(0, 10 - risques.total);
     items.push({ label:'Risques naturels', icon:'⚠️', val:rScore, max:10,
       action:"closePanel();setTimeout(()=>showDetail('risques'),120)",
       sub:`${risques.total} risque${risques.total>1?'s':''} identifié${risques.total>1?'s':''}` });
   }
 
-  // 6. DPE secteur (_dpeSecteurData.pctEfficaces = % classes A-C)
+  // 6. DPE secteur
   const dpe = window._dpeSecteurData;
   if (dpe && !dpe.error && dpe.pctEfficaces != null) {
     const dpeScore = Math.round(dpe.pctEfficaces / 10 * 10) / 10;
     items.push({ label:'DPE secteur', icon:'🏷️', val:dpeScore, max:10,
-      action:"closePanel();setTimeout(()=>go('energie'),120)",
+      action:"closePanel();setTimeout(()=>showDPESecteurDetail(),120)",
       sub:`${dpe.pctEfficaces}% classes A-C · ${dpe.pctPassoires}% passoires (F-G)` });
   }
 
-  // 7. Bruit (niveauCode : eleve / modere / faible)
+  // 7. Bruit
   const bruit = window._bruitData;
   if (bruit?.success && bruit.niveauCode) {
     const bruitScore = bruit.niveauCode==='eleve'?2 : bruit.niveauCode==='modere'?5.5 : 9;
@@ -2299,7 +2382,7 @@ function computeScoreQuartier() {
       sub: bruit.niveau || '' });
   }
 
-  // 8. Météo & ensoleillement
+  // 8. Ensoleillement
   const meteo = window._meteoData;
   if (meteo?.ensoleillement?.heuresAnnuelles) {
     const h = meteo.ensoleillement.heuresAnnuelles;
@@ -2309,13 +2392,25 @@ function computeScoreQuartier() {
       sub:`${h.toLocaleString('fr-FR')} h/an · moy. max ${meteo.temperatures?.maxMoyenne||'—'}°C` });
   }
 
-  // 9. Fibre
+  // 9. Internet & fibre
   const fibre = window._fibreData;
   if (fibre?.fibre) {
     const fibreScore = fibre.fibre.eligible===true?10 : fibre.fibre.eligible===false?3 : 5;
     items.push({ label:'Internet & fibre', icon:'📶', val:fibreScore, max:10,
       action:"closePanel();setTimeout(()=>showDetail('fibre'),120)",
       sub: fibre.fibre.eligible===true ? `Éligible FTTH · ${fibre.fibre.operateurs?.join(', ')||''}` : fibre.fibre.eligible===false ? 'Non éligible fibre' : 'À vérifier' });
+  }
+
+  // 10. Densité urbaine (critère de cadre de vie)
+  const insee = window._inseeData;
+  if (insee?.commune?.densite != null) {
+    const dens = insee.commune.densite;
+    // Score de densité : ni trop dense (stressant) ni trop rural (isolé) — optimum ~2000-5000
+    const densScore = dens>15000?4 : dens>8000?6 : dens>3000?9 : dens>1000?8 : dens>300?6 : 4;
+    const densLabel = dens>10000?'Très dense':dens>5000?'Dense':dens>2000?'Urbain':dens>500?'Péri-urbain':'Rural';
+    items.push({ label:'Densité urbaine', icon:'🏙️', val:densScore, max:10,
+      action:"closePanel();setTimeout(()=>showDetail('insee'),120)",
+      sub:`${dens.toLocaleString('fr-FR')} hab/km² · ${densLabel}` });
   }
 
   if (!items.length) { setCard('score','Chargement…','Données en attente',''); return; }
@@ -2358,7 +2453,7 @@ function showScoreDetail() {
         <span style="font-size:.7rem;color:var(--muted)">/10</span>
       </div>
       <div style="margin-top:.5rem;font-size:.9rem;font-weight:600;color:${ringColor}">${d.label}</div>
-      <div style="font-size:.72rem;color:var(--muted);margin-top:.2rem">${d.items.length} critères · données à l'adresse · cliquez "Détail →" pour explorer</div>
+      <div style="font-size:.72rem;color:var(--muted);margin-top:.2rem">${d.items.length} critères · rayon 1km · données à l'adresse · cliquez "Détail →" pour explorer</div>
     </div>
     <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:1rem">${rows}</div>
     <p style="font-size:.62rem;color:var(--muted);margin-top:.8rem">Sources : Géorisques · OSM · ADEME · ARCEP · Open-Meteo · Éducation Nationale · données temps réel à l'adresse</p>
@@ -2368,7 +2463,7 @@ function showScoreDetail() {
 function computeLoyersEstimates() {
   const dvf  = window._dvfData;
   const insee = window._inseeData;
-  const prixM2 = dvf?.stats?.prix_m2_median;
+  const prixM2 = dvf?.stats?.medianM2;
   if (!prixM2) { setCard('loyers', 'Données DVF manquantes', 'Indisponible pour ce secteur', ''); return; }
 
   // Rendement locatif brut estimé selon densité urbaine (source : observatoires locatifs)
@@ -2462,25 +2557,44 @@ function showLoyersDetail() {
 }
 
 function updateDemographieCard(d) {
-  const rows = (d?.history || []);
-  if (!rows.length) {
-    const pop = d?.commune?.population;
+  const codeInsee = d?.commune?.codeInsee;
+  const pop = d?.commune?.population;
+
+  // Tenter Wikidata côté navigateur (CORS autorisé, pas limité par timeout Vercel)
+  if (!codeInsee) {
     if (pop) setCard('demographie', pop.toLocaleString('fr-FR') + ' hab.', 'Données historiques indisponibles', '');
-    else setCard('demographie', 'Non disponible', 'Wikidata / INSEE', '');
-    window._demographieData = null;
+    else setCard('demographie', 'Non disponible', 'Code INSEE manquant', '');
     return;
   }
-  const last = rows[rows.length - 1];
-  const first = rows[0];
-  const evol = last.pop - first.pop;
-  const evolPct = first.pop > 0 ? Math.round((evol / first.pop) * 100) : 0;
-  const sign = evol >= 0 ? '+' : '';
-  window._demographieData = { rows };
-  setCard('demographie',
-    last.pop.toLocaleString('fr-FR') + ' hab.',
-    sign + evolPct + '% depuis ' + first.year,
-    evol >= 0 ? 'good' : 'warn'
-  );
+  setCard('demographie', pop ? pop.toLocaleString('fr-FR') + ' hab.' : '…', 'Chargement historique…', '');
+  const sparql = `SELECT ?year ?pop WHERE {
+    ?commune wdt:P374 "${codeInsee}".
+    ?commune p:P1082 ?stmt.
+    ?stmt ps:P1082 ?pop.
+    ?stmt pq:P585 ?date.
+    BIND(YEAR(?date) AS ?year)
+    FILTER(?year >= 1960 && ?year <= 2030)
+  } ORDER BY ?year`;
+  fetch(`https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(sparql)}`, {
+    signal: AbortSignal.timeout(15000),
+    headers: { 'Accept': 'application/sparql-results+json' }
+  }).then(r => r.ok ? r.json() : Promise.reject('HTTP ' + r.status))
+  .then(data => {
+    const rows = (data.results?.bindings || []).map(b => ({
+      year: parseInt(b.year.value), pop: parseInt(b.pop.value)
+    })).filter(x => !isNaN(x.year) && !isNaN(x.pop));
+    if (!rows.length) throw new Error('vide');
+    const last = rows[rows.length - 1], first = rows[0];
+    const evol = last.pop - first.pop;
+    const evolPct = first.pop > 0 ? Math.round(evol / first.pop * 100) : 0;
+    const sign = evol >= 0 ? '+' : '';
+    window._demographieData = { rows };
+    setCard('demographie', last.pop.toLocaleString('fr-FR') + ' hab.', sign + evolPct + '% depuis ' + first.year, evol >= 0 ? 'good' : 'warn');
+  }).catch(() => {
+    window._demographieData = null;
+    if (pop) setCard('demographie', pop.toLocaleString('fr-FR') + ' hab.', 'Historique indisponible', '');
+    else setCard('demographie', 'Non disponible', 'Wikidata / INSEE', '');
+  });
 }
 
 function showDemographieDetail() {
@@ -2581,6 +2695,8 @@ function showDetail(cardId){
     fibre:      () => showFibreDetail(),
     services:      () => showServicesMap(),
     dpe:           () => go('energie'),
+    qualiteAir:    () => showQualiteAirDetail(),
+    dpeSecteur:    () => showDPESecteurDetail(),
     bruit:         () => showBruitDetail(),
     prixCommunes:  () => showPrixCommunesDetail(),
     demographie:   () => showDemographieDetail(),
@@ -3855,7 +3971,7 @@ function showINSEEDetail(){
 
   showPanel('📊 Profil démographique · ' + (c?.nom||''), `
     <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:1rem">
-      <div class="stat-box"><span class="stat-n">${c?.population?.toLocaleString('fr-FR')||'—'}</span><span class="stat-l">👥 Habitants</span></div>
+      <div class="stat-box"><span class="stat-n">${c?.densite?.toLocaleString('fr-FR')||'—'}</span><span class="stat-l">🗺️ hab/km² · <span style="color:${densColor};font-weight:600">${densLabel}</span></span></div>
       <div class="stat-box">
         <span class="stat-n">${c?.densite?.toLocaleString('fr-FR')||'—'}</span>
         <span class="stat-l">🗺️ hab/km² · <span style="color:${densColor};font-weight:600">${densLabel}</span></span>

@@ -21,7 +21,7 @@ export default async function handler(req, res) {
 
     const population = commune.population || 0;
     const surfaceHa = commune.surface || 0;
-    const superficieKm2 = surfaceHa > 0 ? surfaceHa / 100 : 1;
+    const superficieKm2 = surfaceHa > 0 ? surfaceHa / 100 : null;
     const densite = superficieKm2 > 0 ? Math.round(population / superficieKm2) : null;
     const communeCode = codeInsee || commune.code || '';
 
