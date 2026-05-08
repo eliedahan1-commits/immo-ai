@@ -293,19 +293,21 @@ aside{
 
 .card-icon{font-size:1.4rem;margin-bottom:.7rem;}
 .card-label{
-  font-size:.65rem;letter-spacing:.10em;text-transform:uppercase;
-  color:var(--muted);margin-bottom:.3rem;
+  font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;
+  color:#7a6555;margin-bottom:.3rem;font-weight:500;
 }
 .card-value{
   font-family:'DM Serif Display',serif;
-  font-size:1.45rem;font-weight:400;color:var(--ink);
+  font-size:1.25rem;font-weight:400;color:var(--ink);
   line-height:1.1;
 }
-.card-value.score{color:var(--gold);font-size:1.6rem;}
+.card-value.score{color:var(--gold);font-size:1.4rem;}
 .card-value.good{color:var(--green);}
 .card-value.warn{color:#c47d1a;}
 .card-value.bad{color:var(--red);}
 .card-sub{font-size:.7rem;color:var(--muted);margin-top:.3rem;line-height:1.45;}
+.card-retry-btn{display:inline-flex;align-items:center;gap:.25rem;margin-top:.45rem;font-size:.67rem;padding:.18rem .55rem;border:1px solid var(--border);border-radius:10px;background:none;color:var(--muted);cursor:pointer;transition:border-color .15s,color .15s;}
+.card-retry-btn:hover{border-color:var(--gold);color:var(--gold);}
 .card-loading{
   display:flex;align-items:center;gap:.4rem;
   font-size:.72rem;color:var(--muted);
@@ -541,10 +543,10 @@ select.inp{
 /* ══ SECTIONS CARTES ══ */
 .cards-section-title{
   grid-column: 1 / -1;
-  font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;
-  color:var(--gold);padding:.5rem 0 .2rem;
+  font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--gold);padding:.6rem 0 .3rem;
   border-bottom:1px solid var(--goldborder);
-  margin-top:.5rem;font-family:'Outfit',sans-serif;font-weight:500;
+  margin-top:.7rem;font-family:'Outfit',sans-serif;font-weight:600;
 }
 .cards-section-title:first-child{margin-top:0;}
 
@@ -1731,6 +1733,19 @@ function setCard(id, value, sub, cssClass=''){
   if(v)v.innerHTML=value;
   if(s&&sub)s.textContent=sub;
   if(cssClass&&v)v.className='card-value '+cssClass;
+  // Nettoyer le bouton retry à chaque mise à jour
+  document.getElementById('card-'+id)?.querySelectorAll('.card-retry-btn').forEach(b=>b.remove());
+}
+
+// Ajoute un bouton ↻ discret sur une carte en échec (uniquement sur échec)
+function setCardRetry(id, fn){
+  const card=document.getElementById('card-'+id);
+  if(!card||card.querySelector('.card-retry-btn')) return;
+  const btn=document.createElement('button');
+  btn.className='card-retry-btn';
+  btn.innerHTML='↻ Réessayer';
+  btn.onclick=(e)=>{e.stopPropagation();btn.remove();fn();};
+  card.appendChild(btn);
 }
 
 // ── DVF : vraies transactions officielles ──
@@ -1855,6 +1870,7 @@ async function loadRisques(lat, lng, citycode){
     window._risquesData = {success:true, total:nb, score, detail, categories, catnat, citycode, lat, lng};
   }catch(e){
     setCard('risques','Non disponible','Erreur API Géorisques','');
+    setCardRetry('risques',()=>currentCoords&&loadRisques(currentCoords.lat,currentCoords.lng));
   }
 }
 
@@ -2009,6 +2025,7 @@ async function loadEcoles(lat, lng, codeInsee, dist=500){
     window._ecolesData = {...osmData, success:true, total, types, etablissements};
   }catch(e){
     setCard('ecoles','Non disponible','Erreur API Éducation','');
+    setCardRetry('ecoles',()=>currentCoords&&loadEcoles(currentCoords.lat,currentCoords.lng));
   }
 }
 
@@ -2028,6 +2045,7 @@ async function loadMobilite(lat, lng, dist=1000){
     window._mobiliteData = d;
   }catch(e){
     setCard('mobilite','Non disponible','Erreur API transport','');
+    setCardRetry('mobilite',()=>currentCoords&&loadMobilite(currentCoords.lat,currentCoords.lng));
   }
 }
 
@@ -2089,6 +2107,7 @@ async function loadUrbanisme(lat, lng){
     window._urbanismeData = d;
   }catch{
     setCard('urbanisme','Non disponible','Erreur API GPU IGN','');
+    setCardRetry('urbanisme',()=>currentCoords&&loadUrbanisme(currentCoords.lat,currentCoords.lng));
   }
 }
 
@@ -2109,6 +2128,7 @@ async function loadMeteo(lat, lng){
     window._meteoData = d;
   }catch{
     setCard('meteo','Non disponible','Erreur open-meteo','');
+    setCardRetry('meteo',()=>currentCoords&&loadMeteo(currentCoords.lat,currentCoords.lng));
   }
 }
 
@@ -2160,6 +2180,7 @@ async function loadINSEE(citycode, lat, lng){
     updateDemographieCard(d);
   }catch{
     setCard('insee','Non disponible','Erreur INSEE','');
+    setCardRetry('insee',()=>currentCoords&&loadINSEE(window._inseeData?.commune?.codeInsee||'',currentCoords.lat,currentCoords.lng));
   }
 }
 
@@ -2218,6 +2239,7 @@ async function loadServices(lat, lng, dist=500){
     window._servicesCurrentDist = data.dist || dist;
   }catch{
     setCard('services','Non disponible','Erreur API services','');
+    setCardRetry('services',()=>currentCoords&&loadServices(currentCoords.lat,currentCoords.lng));
   }
 }
 
@@ -2629,6 +2651,7 @@ function updateDemographieCard(d) {
   if (!codeInsee) {
     if (pop) setCard('demographie', pop.toLocaleString('fr-FR') + ' hab.', 'Données historiques indisponibles', '');
     else setCard('demographie', 'Non disponible', 'Code INSEE manquant', '');
+    setCardRetry('demographie',()=>window._inseeData&&updateDemographieCard(window._inseeData));
     return;
   }
   window._demographieLoading = true;
@@ -2674,6 +2697,7 @@ function updateDemographieCard(d) {
     window._demographieData = null;
     if (pop) setCard('demographie', pop.toLocaleString('fr-FR') + ' hab.', 'Historique non disponible', '');
     else setCard('demographie', 'Non disponible', 'Wikidata indisponible', '');
+    setCardRetry('demographie',()=>window._inseeData&&updateDemographieCard(window._inseeData));
   });
 }
 
@@ -2705,6 +2729,7 @@ function showDemographieDetail() {
     showPanel('📈 Évolution démographique',
       '<p style="color:var(--muted)">Données historiques non disponibles via Wikidata pour cette commune.</p>'
       + (c ? `<p style="font-size:.8rem;color:var(--text)">Population actuelle : <strong>${(c.population||0).toLocaleString('fr-FR')} habitants</strong></p>` : '')
+      + `<button onclick="if(window._inseeData){updateDemographieCard(window._inseeData);closePanel();}" style="margin-top:.6rem;font-size:.73rem;padding:.25rem .75rem;border:1px solid var(--border);border-radius:10px;background:none;color:var(--muted);cursor:pointer">↻ Réessayer</button>`
     );
     return;
   }
@@ -2789,6 +2814,7 @@ async function loadBruit(lat, lng){
   } catch(e) {
     window._bruitData = null;
     setCard('bruit','Non disponible','Erreur API bruit','');
+    setCardRetry('bruit',()=>currentCoords&&loadBruit(currentCoords.lat,currentCoords.lng));
   }
 }
 
