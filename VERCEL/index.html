@@ -4163,7 +4163,7 @@ function showINSEEDetail(){
     <p style="font-size:.62rem;color:var(--muted);margin-top:.3rem">Source : ${d.source} · <a href="https://www.observatoire-des-territoires.gouv.fr/densite-de-population" target="_blank" style="color:var(--gold)">Carte nationale densité →</a></p>
     ${(()=>{
       const cr = window._criminaliteData;
-      const deptLink = `https://statcrimes.interieur.gouv.fr/stats/crime/indicateurs-de-criminalite/VC/${c?.codeInsee||''}`;
+      const deptLink = `https://www.interieur.gouv.fr/Interstats/Actualites/Insecurite-et-delinquance-en-2024-bilan-statistique-et-atlas-departemental`;
       if(!cr||!cr.success||!Object.keys(cr.indicateurs||{}).length){
         return `<div style="margin-top:1rem;padding-top:.75rem;border-top:1px solid var(--border)">
           <div style="font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.4rem">🚨 Sécurité & criminalité</div>
