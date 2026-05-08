@@ -3913,15 +3913,21 @@ function showBruitDetail(){
     return;
   }
   const colors = {eleve:'#7a2d2d', modere:'#b8832a', faible:'#2d6a4f', inconnu:'#8a7d68'};
-  const color = colors[d.niveauCode] || colors.inconnu;
-  const score = d.score ?? 0;
+  const scoreOSM = d.score ?? 0;
+  const densite = window._inseeData?.commune?.densite || 0;
+  const densBonus = densite > 10000 ? 4 : densite > 5000 ? 3 : densite > 2000 ? 2 : densite > 500 ? 1 : 0;
+  const score = Math.min(scoreOSM + densBonus, 10);
+  const niveauCode = score >= 7 ? 'eleve' : score >= 4 ? 'modere' : score >= 2 ? 'faible' : 'faible';
+  const niveauLabel = score >= 7 ? 'Élevé' : score >= 4 ? 'Modéré' : score >= 2 ? 'Faible' : 'Très faible';
+  const color = colors[niveauCode] || colors.inconnu;
   showPanel('🔇 Bruit & nuisances', `
     <div style="background:var(--ink);border-radius:var(--r);padding:1.2rem;text-align:center;margin-bottom:1.2rem">
-      <div style="font-family:'Cormorant Garamond',serif;font-size:2.2rem;color:${color};line-height:1">${d.niveau}</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:2.2rem;color:${color};line-height:1">${niveauLabel}</div>
       <div style="font-size:.65rem;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.14em;margin-top:.35rem">Risque sonore estimé</div>
       <div style="margin-top:.8rem;height:6px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden;max-width:200px;margin-left:auto;margin-right:auto">
         <div style="height:100%;width:${Math.round(score/10*100)}%;background:${color};border-radius:3px;transition:width .5s"></div>
       </div>
+      ${densBonus>0?`<div style="font-size:.62rem;color:rgba(255,255,255,.4);margin-top:.5rem">+${densBonus} pts densité urbaine (${densite.toLocaleString('fr-FR')} hab/km²)</div>`:''}
     </div>
     ${d.sources.length ? `
     <div style="margin-bottom:1rem">
@@ -4197,7 +4203,7 @@ function showINSEEDetail(){
           <span style="text-align:right;flex-shrink:0;margin-left:.5rem"><strong>${v.nb.toLocaleString('fr-FR')}</strong> faits ${tauxStr}</span>
         </div>`;}).join('');
       // Stocker les données pour le dessin du graphique (après injection HTML)
-      window._crimeChartData = { labels: sorted.map(([ind])=>ind.length>32?ind.slice(0,29)+'…':ind), values: sorted.map(([,v])=>v.nb||0), colors: COLORS };
+      window._crimeChartData = { labels: sorted.map(([ind])=>ind), values: sorted.map(([,v])=>v.nb||0), colors: COLORS };
       return `<div style="margin-top:1rem;padding-top:.75rem;border-top:1px solid var(--border)">
         <div style="font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.5rem">🚨 Sécurité & criminalité · ${cr.annee||''}</div>
         <div style="position:relative;height:${sorted.length*32+10}px;margin-bottom:.4rem">
@@ -4252,8 +4258,8 @@ function showINSEEDetail(){
           }
         },
         scales:{
-          x:{ display:false, grace:'20%' },
-          y:{ ticks:{color:'#555', font:{size:10}}, grid:{display:false} }
+          x:{ display:false, grace:'35%' },
+          y:{ afterFit:(axis)=>{axis.width=195;}, ticks:{color:'#555', font:{size:10}}, grid:{display:false} }
         }
       }
     });
