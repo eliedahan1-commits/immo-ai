@@ -2570,6 +2570,8 @@ function updateDemographieCard(d) {
     else setCard('demographie', 'Non disponible', 'Code INSEE manquant', '');
     return;
   }
+  window._demographieLoading = true;
+  window._demographieData = null;
   setCard('demographie', pop ? pop.toLocaleString('fr-FR') + ' hab.' : '…', 'Chargement historique…', '');
 
   // Requête Wikidata avec date OPTIONNELLE (évite d'exclure les communes sans qualificateur)
@@ -2602,12 +2604,14 @@ function updateDemographieCard(d) {
       pop:  parseInt(b.pop.value)
     })).filter(x => !isNaN(x.pop));
     _applyRows(rows, 'Wikidata');
+    window._demographieLoading = false;
+    // Si le panel est déjà ouvert, le rafraîchir
+    if (document.querySelector('#detailContainer') && !document.querySelector('#detailContainer').hidden) {
+      showDemographieDetail();
+    }
   })
   .catch(() => {
-    // Fallback : statistiques-locales INSEE (open data, sans authentification)
-    const yearNow = new Date().getFullYear();
-    const inseeUrl = `https://api.insee.fr/serie/1.0/donnees/serie/001694878?startPeriod=1968&endPeriod=${yearNow}&observations=1`;
-    // Note : cet endpoint nécessite un token — fallback dégradé avec population actuelle INSEE uniquement
+    window._demographieLoading = false;
     window._demographieData = null;
     if (pop) setCard('demographie', pop.toLocaleString('fr-FR') + ' hab.', 'Historique non disponible', '');
     else setCard('demographie', 'Non disponible', 'Wikidata indisponible', '');
@@ -2618,6 +2622,15 @@ function showDemographieDetail() {
   const d = window._demographieData;
   const c = window._inseeData?.commune;
   if (!d || !d.rows || !d.rows.length) {
+    if (window._demographieLoading) {
+      // Fetch en cours — afficher spinner et re-tenter dans 2s
+      showPanel('📈 Évolution démographique',
+        '<p style="color:var(--muted)"><span class="spin"></span> Chargement des données Wikidata…</p>'
+        + (c ? `<p style="font-size:.8rem;color:var(--text)">Population actuelle : <strong>${(c.population||0).toLocaleString('fr-FR')} habitants</strong></p>` : '')
+      );
+      setTimeout(() => { if (window._demographieData?.rows?.length) showDemographieDetail(); }, 3000);
+      return;
+    }
     showPanel('📈 Évolution démographique',
       '<p style="color:var(--muted)">Données historiques non disponibles via Wikidata pour cette commune.</p>'
       + (c ? `<p style="font-size:.8rem;color:var(--text)">Population actuelle : <strong>${(c.population||0).toLocaleString('fr-FR')} habitants</strong></p>` : '')
