@@ -2686,6 +2686,7 @@ function showDemographieDetail() {
       },
       options: {
         responsive: true, maintainAspectRatio: false,
+        layout: { padding: { top: 20, bottom: 20, left: 4, right: 4 } },
         plugins: {
           legend: { display: false },
           datalabels: {
@@ -2695,7 +2696,8 @@ function showDemographieDetail() {
             color: '#8a7d68',
             font: { size: 9, weight: '600' },
             formatter: v => v >= 1000 ? (v/1000).toFixed(0)+'k' : v,
-            offset: 4
+            offset: 4,
+            clamp: true
           },
           tooltip: { callbacks: { label: ctx2 => ctx2.raw.toLocaleString('fr-FR') + ' hab.' } }
         },
@@ -4120,11 +4122,15 @@ function showINSEEDetail(){
         const all=await rv.json();
         // Calculer densité et trier par densité desc
         const withDens=all.map(x=>({...x, dens:x.surface?Math.round((x.population||0)/(x.surface/100)):0}));
-        const communes=withDens.sort((a,b)=>b.dens-a.dens).slice(0,9);
+        const sorted=withDens.sort((a,b)=>b.dens-a.dens);
+        const top9=sorted.slice(0,9);
+        const currentNomTmp=c?.nom||'';
+        const alreadyIn=top9.some(x=>x.nom===currentNomTmp);
+        const communes=alreadyIn?top9:[...top9.slice(0,8), sorted.find(x=>x.nom===currentNomTmp)||top9[8]];
         const loading=document.getElementById('inseeNeighborLoading');
         const wrap=document.getElementById('inseeChartWrap');
         if(communes.length>1){
-          const currentNom=c?.nom||'';
+          const currentNom=currentNomTmp;
           const labels=communes.map(x=>x.nom);
           const dens=communes.map(x=>x.dens);
           // Couleurs : commune actuelle en or, autres en dégradé bleu selon densité
@@ -4328,6 +4334,36 @@ async function runIA(type){
       const travailLieu=document.getElementById('pTravailLieu')?.value.trim();
       const travailCtx=travailLieu ? `Lieu de travail déclaré : "${travailLieu}" — évalue la compatibilité transports/distance. ` : '';
 
+      // Contextes données nouvelles
+      const air = window._qualiteAirData;
+      const airCtx = air && !air.error
+        ? `Qualité de l'air : IQA ${air.aqi}/100 (${air.label}). `
+        : '';
+      const bruit = window._bruitData;
+      const bruitCtx = bruit && !bruit.error
+        ? `Bruit : niveau ${bruit.level||'modéré'} (routes: ${bruit.road||'—'}, ferroviaire: ${bruit.rail||'—'}). `
+        : '';
+      const dpe = window._dpeSecteurData;
+      const dpeCtx = dpe && !dpe.error
+        ? `DPE secteur : ${dpe.pctEfficaces}% logements efficaces (A+B), ${dpe.pctPassoires}% passoires (F+G). `
+        : '';
+      const risq = window._risquesData;
+      const risqCtx = risq
+        ? `Risques naturels recensés : ${risq.total||0} (${(risq.types||[]).slice(0,3).join(', ')}). `
+        : '';
+      const insee = window._inseeData?.commune;
+      const inseeCtx = insee
+        ? `Densité : ${(insee.densite||0).toLocaleString('fr-FR')} hab/km² (${insee.densite>10000?'très dense':insee.densite>3000?'urbain':insee.densite>500?'péri-urbain':'rural'}). `
+        : '';
+      const loyers = window._loyersData;
+      const loyersCtx = loyers?.estimates
+        ? `Loyers estimés secteur : T2 ~${loyers.estimates[1]?.loyerMensuel||'—'} €/mois, T3 ~${loyers.estimates[2]?.loyerMensuel||'—'} €/mois (base DVF × rendement ${Math.round((loyers.rendement||0)*100)}%). `
+        : '';
+      const meteo = window._meteoData;
+      const meteoCtx = meteo?.ensoleillement
+        ? `Ensoleillement : ${meteo.ensoleillement.heuresAnnuelles||'—'} h/an (${meteo.ensoleillement.label||''}). `
+        : '';
+
       const criteres=[
         `Enfants: ${togVal('tPE')}`,
         `Animaux: ${togVal('tPAnim')}`,
@@ -4338,11 +4374,14 @@ async function runIA(type){
         `Extérieur: ${togVal('tPExt')}`,
         `Type de bien: ${togVal('tPLoge')}`,
         `Priorité de vie: ${togVal('tPS')}`,
+        `Sensibilité bruit: ${togVal('tPBruit')}`,
+        `Ensoleillement: ${togVal('tPSoleil')}`,
         `Budget: ${togVal('tPB')}`,
       ].join(' | ');
 
       return `Profil acheteur pour la ville/secteur "${ville}" : ${criteres}. `
         +`${dvfCtx}${amCtx}${ecoCtx}${mobCtx}${travailCtx}`
+        +`${airCtx}${bruitCtx}${dpeCtx}${risqCtx}${inseeCtx}${loyersCtx}${meteoCtx}`
         +`En te basant sur ces données réelles et ton expertise des quartiers français, recommande 2-3 secteurs ou quartiers précis de "${ville}" uniquement. `
         +`Pour chaque recommandation : nom du quartier, pourquoi il correspond au profil point par point, type de bien disponible, fourchette de prix réaliste cohérente avec les données DVF, avantages et un inconvénient honnête.`;
     },
