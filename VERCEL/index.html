@@ -4259,9 +4259,11 @@ function showFibreDetail(){
     return;
   }
   const f = d.fibre;
+  const fibreLabel = f.eligible===true ? 'Éligible FTTH' : f.eligible===false ? 'Non éligible' : 'À vérifier';
+  const fibreColor = f.eligible===true ? 'var(--gold2)' : f.eligible===false ? 'var(--red)' : 'var(--muted)';
   showPanel('📶 Internet & fibre · ARCEP', `
     <div style="background:var(--ink);border-radius:var(--r);padding:1.2rem;text-align:center;margin-bottom:1rem">
-      <div style="font-family:'Cormorant Garamond',serif;font-size:1.8rem;color:${f.eligible?'var(--gold2)':'var(--red)'}">${f.eligible?'Éligible FTTH':'Non éligible'}</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:1.8rem;color:${fibreColor}">${fibreLabel}</div>
       <div style="font-size:.7rem;color:rgba(255,255,255,.72);margin-top:.3rem">${f.technologie||'—'}</div>
     </div>
     ${f.operateurs?.length?`<p style="font-size:.8rem;margin-bottom:.5rem">Opérateurs : <strong>${f.operateurs.join(', ')}</strong></p>`:''}
