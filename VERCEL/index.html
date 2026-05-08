@@ -2192,18 +2192,30 @@ async function loadCriminalite(citycode){
 }
 
 // ── Services & commerces ──
-async function loadServices(lat, lng, dist=1000){
+async function loadServices(lat, lng, dist=500){
+  // Essai avec le rayon demandé, puis fallback 500m si ça timeout
+  const tryLoad = async (d) => {
+    const r = await apiCall(`/api/services?lat=${lat}&lon=${lng}&dist=${d}&_v=9`, `https://overpass-api.de/api/interpreter`, {signal:AbortSignal.timeout(25000)});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const json = await r.json();
+    if(!json.success) throw new Error('no success');
+    return json;
+  };
   try{
-    const r = await apiCall(`/api/services?lat=${lat}&lon=${lng}&dist=${dist}&_v=9`, `https://overpass-api.de/api/interpreter`, {signal:AbortSignal.timeout(29000)});
-    if(!r.ok) throw new Error();
-    const d = await r.json();
-    if(!d.success) throw new Error();
+    let data;
+    try {
+      data = await tryLoad(dist);
+    } catch(e) {
+      if(dist > 500) data = await tryLoad(500); // retry avec rayon réduit
+      else throw e;
+    }
     setCard('services',
-      d.score+'/10',
-      `${d.stats.sante} santé · ${d.stats.commerce} commerces · ${d.total} services`,
-      d.score>=7?'good':d.score>=4?'':'warn'
+      data.score+'/10',
+      `${data.stats.sante} santé · ${data.stats.commerce} commerces · ${data.total} services`,
+      data.score>=7?'good':data.score>=4?'':'warn'
     );
-    window._servicesData = d;
+    window._servicesData = data;
+    window._servicesCurrentDist = data.dist || dist;
   }catch{
     setCard('services','Non disponible','Erreur API services','');
   }
