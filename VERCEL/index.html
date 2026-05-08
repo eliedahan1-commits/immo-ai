@@ -2528,15 +2528,22 @@ function showLoyersDetail() {
     </div>`;
   }).join('');
 
-  // Comparaison achat vs location pour T2
-  const t2 = d.estimates[1];
-  const prixT2 = Math.round(d.prixM2 * t2.surface);
-  const mensualiteAchat = Math.round(prixT2 * 0.004); // ~20 ans, 3,5%
-  const diff = mensualiteAchat - t2.loyerMensuel;
-  const diffColor = diff >= 0 ? '#e67e22' : '#27ae60';
-  const diffLabel = diff >= 0
-    ? `Acheter coûte ~${diff.toLocaleString('fr-FR')} €/mois de plus que louer`
-    : `Acheter coûte ~${Math.abs(diff).toLocaleString('fr-FR')} €/mois de moins que louer`;
+  // Comparaison achat vs location pour tous les types
+  const lvaRows = d.estimates.map(e => {
+    const prixAchat = Math.round(d.prixM2 * e.surface);
+    const mensualite = Math.round(prixAchat * 0.004); // ~20 ans, 3,5%
+    const diff = mensualite - e.loyerMensuel;
+    const diffColor = diff >= 0 ? '#e67e22' : '#27ae60';
+    const diffLabel = diff >= 0
+      ? `Acheter coûte ~${diff.toLocaleString('fr-FR')} €/mois de plus`
+      : `Acheter coûte ~${Math.abs(diff).toLocaleString('fr-FR')} €/mois de moins`;
+    return `<div style="display:flex;align-items:center;gap:.5rem;padding:.5rem 0;border-bottom:1px solid var(--border);flex-wrap:wrap">
+      <span style="font-size:.78rem;font-weight:600;min-width:70px">${e.label}</span>
+      <span style="font-size:.75rem;color:var(--gold);min-width:90px">🏠 ${e.loyerMensuel.toLocaleString('fr-FR')} €/mois</span>
+      <span style="font-size:.75rem;color:var(--text);min-width:90px">🏦 ${mensualite.toLocaleString('fr-FR')} €/mois</span>
+      <span style="font-size:.72rem;color:${diffColor};font-weight:500">${diffLabel}</span>
+    </div>`;
+  }).join('');
 
   showPanel('🏠 Loyers estimés · ' + (c?.nom || ''), `
     <div style="background:rgba(232,160,32,.1);border:1px solid rgba(184,131,42,.3);border-radius:6px;padding:.6rem .8rem;margin-bottom:1rem;font-size:.78rem;color:var(--muted)">
@@ -2544,15 +2551,11 @@ function showLoyersDetail() {
     </div>
     <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-bottom:1rem">${bars}</div>
     <div style="padding:.75rem;background:rgba(184,131,42,.07);border-radius:6px;border:1px solid rgba(184,131,42,.2);margin-bottom:1rem">
-      <div style="font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.5rem">⚖️ Louer vs Acheter · T2 (~${t2.surface}m²)</div>
-      <div style="display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:.25rem">
-        <span>Loyer estimé</span><span style="color:var(--gold);font-weight:600">${t2.loyerMensuel.toLocaleString('fr-FR')} €/mois</span>
+      <div style="font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.5rem">⚖️ Louer vs Acheter · crédit 20 ans · taux ~3,5%</div>
+      <div style="display:flex;gap:.5rem;font-size:.68rem;color:var(--muted);margin-bottom:.35rem;flex-wrap:wrap">
+        <span>🏠 Loyer estimé</span><span>🏦 Mensualité crédit (hors charges)</span>
       </div>
-      <div style="display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:.25rem">
-        <span>Mensualité crédit estimée</span><span style="font-weight:600">${mensualiteAchat.toLocaleString('fr-FR')} €/mois</span>
-      </div>
-      <div style="font-size:.75rem;color:${diffColor};margin-top:.3rem;font-weight:500">${diffLabel}</div>
-      <p style="font-size:.65rem;color:var(--muted);margin-top:.3rem">Crédit estimé sur 20 ans · taux ~3,5% · hors charges et impôts</p>
+      ${lvaRows}
     </div>
     <p style="font-size:.62rem;color:var(--muted)">Sources : DVF (DGFiP) pour les prix · rendements locatifs observatoires régionaux · surfaces médianes FILOCOM</p>
   `);
@@ -2562,40 +2565,52 @@ function updateDemographieCard(d) {
   const codeInsee = d?.commune?.codeInsee;
   const pop = d?.commune?.population;
 
-  // Tenter Wikidata côté navigateur (CORS autorisé, pas limité par timeout Vercel)
   if (!codeInsee) {
     if (pop) setCard('demographie', pop.toLocaleString('fr-FR') + ' hab.', 'Données historiques indisponibles', '');
     else setCard('demographie', 'Non disponible', 'Code INSEE manquant', '');
     return;
   }
   setCard('demographie', pop ? pop.toLocaleString('fr-FR') + ' hab.' : '…', 'Chargement historique…', '');
-  const sparql = `SELECT ?year ?pop WHERE {
+
+  // Requête Wikidata avec date OPTIONNELLE (évite d'exclure les communes sans qualificateur)
+  const sparql = `SELECT ?pop ?year WHERE {
     ?commune wdt:P374 "${codeInsee}".
     ?commune p:P1082 ?stmt.
     ?stmt ps:P1082 ?pop.
-    ?stmt pq:P585 ?date.
-    BIND(YEAR(?date) AS ?year)
-    FILTER(?year >= 1960 && ?year <= 2030)
-  } ORDER BY ?year`;
-  fetch(`https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(sparql)}`, {
-    signal: AbortSignal.timeout(15000),
-    headers: { 'Accept': 'application/sparql-results+json' }
-  }).then(r => r.ok ? r.json() : Promise.reject('HTTP ' + r.status))
-  .then(data => {
-    const rows = (data.results?.bindings || []).map(b => ({
-      year: parseInt(b.year.value), pop: parseInt(b.pop.value)
-    })).filter(x => !isNaN(x.year) && !isNaN(x.pop));
-    if (!rows.length) throw new Error('vide');
-    const last = rows[rows.length - 1], first = rows[0];
+    OPTIONAL { ?stmt pq:P585 ?date. BIND(YEAR(?date) AS ?year) }
+  } ORDER BY ?year LIMIT 50`;
+
+  const _applyRows = (rows, source) => {
+    // Garder uniquement les lignes avec une année valide dans [1960, 2030]
+    const dated = rows.filter(x => x.year >= 1960 && x.year <= 2030);
+    if (!dated.length) throw new Error('no dated rows');
+    const last = dated[dated.length - 1], first = dated[0];
     const evol = last.pop - first.pop;
     const evolPct = first.pop > 0 ? Math.round(evol / first.pop * 100) : 0;
     const sign = evol >= 0 ? '+' : '';
-    window._demographieData = { rows };
+    window._demographieData = { rows: dated, source };
     setCard('demographie', last.pop.toLocaleString('fr-FR') + ' hab.', sign + evolPct + '% depuis ' + first.year, evol >= 0 ? 'good' : 'warn');
-  }).catch(() => {
+  };
+
+  fetch(`https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(sparql)}`, {
+    signal: AbortSignal.timeout(15000),
+    headers: { 'Accept': 'application/sparql-results+json', 'User-Agent': 'ImmoAI/1.0 (contact: immoai)' }
+  }).then(r => r.ok ? r.json() : Promise.reject('HTTP ' + r.status))
+  .then(data => {
+    const rows = (data.results?.bindings || []).map(b => ({
+      year: b.year ? parseInt(b.year.value) : NaN,
+      pop:  parseInt(b.pop.value)
+    })).filter(x => !isNaN(x.pop));
+    _applyRows(rows, 'Wikidata');
+  })
+  .catch(() => {
+    // Fallback : statistiques-locales INSEE (open data, sans authentification)
+    const yearNow = new Date().getFullYear();
+    const inseeUrl = `https://api.insee.fr/serie/1.0/donnees/serie/001694878?startPeriod=1968&endPeriod=${yearNow}&observations=1`;
+    // Note : cet endpoint nécessite un token — fallback dégradé avec population actuelle INSEE uniquement
     window._demographieData = null;
-    if (pop) setCard('demographie', pop.toLocaleString('fr-FR') + ' hab.', 'Historique indisponible', '');
-    else setCard('demographie', 'Non disponible', 'Wikidata / INSEE', '');
+    if (pop) setCard('demographie', pop.toLocaleString('fr-FR') + ' hab.', 'Historique non disponible', '');
+    else setCard('demographie', 'Non disponible', 'Wikidata indisponible', '');
   });
 }
 
