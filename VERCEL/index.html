@@ -2251,7 +2251,7 @@ function showQualiteAirDetail() {
   const polluants = [
     { label:'PM2.5 (fines particules)', val:air.pm25, unit:'µg/m³', seuil:25 },
     { label:'PM10 (particules)',         val:air.pm10, unit:'µg/m³', seuil:50 },
-    { label:'NO₂ (dioxyde d'azote)',    val:air.no2,  unit:'µg/m³', seuil:200 },
+    { label:"NO₂ (dioxyde d'azote)",    val:air.no2,  unit:"µg/m³", seuil:200 },
     { label:'O₃ (ozone)',               val:air.o3,   unit:'µg/m³', seuil:180 },
   ].filter(p => p.val != null);
 
