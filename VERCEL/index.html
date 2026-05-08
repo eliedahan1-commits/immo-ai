@@ -2237,95 +2237,131 @@ async function loadAmenites(lat, lng){
 }
 
 function computeScoreQuartier() {
-  const scores = [];
+  const items = [];
 
-  // Services & santé (score /10 déjà calculé)
+  // 1. Services & santé (_servicesData.score déjà /10)
   const svc = window._servicesData;
-  if (svc?.score != null) scores.push({ label: 'Services & santé', icon: '🏥', val: svc.score, max: 10, detail: 'services', sub: svc.stats ? `${svc.stats.sante} santé · ${svc.stats.commerce} commerces` : '' });
+  if (svc?.score != null)
+    items.push({ label:'Services & santé', icon:'🏥', val:svc.score, max:10,
+      action:"closePanel();setTimeout(()=>showDetail('services'),120)",
+      sub: svc.stats ? `${svc.stats.sante} santé · ${svc.stats.commerce} commerces · ${svc.total} services` : '' });
 
-  // Écoles (IPS normalisé sur 10)
+  // 2. Écoles : score selon nombre d'établissements à proximité
   const ecoles = window._ecolesData;
-  if (ecoles?.ips_moyen != null) {
-    const ipsScore = Math.min(10, Math.round((ecoles.ips_moyen - 50) / 15 * 10) / 10);
-    scores.push({ label: 'Écoles', icon: '🏫', val: Math.max(0, ipsScore), max: 10, detail: 'ecoles', sub: `IPS ${ecoles.ips_moyen} · ${ecoles.total || ''} établissements` });
+  if (ecoles?.total != null) {
+    const t = ecoles.total;
+    const eScore = t===0?1 : t<=3?4 : t<=7?6 : t<=14?8 : 9.5;
+    const t2 = ecoles.types||{};
+    items.push({ label:'Écoles', icon:'🏫', val:eScore, max:10,
+      action:"closePanel();setTimeout(()=>showDetail('ecoles'),120)",
+      sub: `${t} établissements · ${t2.ecoles||0} éc. · ${t2.college||0} coll. · ${t2.lycee||0} lyc.` });
   }
 
-  // Mobilité (score /10 existant)
+  // 3. Mobilité (_mobiliteData.score déjà /10)
   const mob = window._mobiliteData;
-  if (mob?.score != null) scores.push({ label: 'Mobilité', icon: '🚇', val: mob.score, max: 10, detail: 'mobilite', sub: mob.sub || '' });
+  if (mob?.score != null)
+    items.push({ label:'Mobilité & transports', icon:'🚇', val:mob.score, max:10,
+      action:"closePanel();setTimeout(()=>showDetail('mobilite'),120)",
+      sub: mob.scoreLabel ? `${mob.scoreLabel} · ${mob.stats?.arretsBus||0} arrêts bus` : '' });
 
-  // Qualité de l'air (AQI inversé : bon AQI = bon score)
+  // 4. Qualité de l'air (AQI inversé)
   const air = window._qualiteAirData;
   if (air?.aqi != null && !air.error) {
-    const airScore = Math.max(0, Math.round((100 - air.aqi) / 10));
-    scores.push({ label: "Qualité de l'air", icon: '💨', val: Math.min(10, airScore), max: 10, detail: null, sub: `AQI ${air.aqi} · ${air.label}` });
+    const airScore = Math.max(0, Math.min(10, Math.round((100 - air.aqi) / 10)));
+    items.push({ label:"Qualité de l'air", icon:'💨', val:airScore, max:10, action:null,
+      sub:`AQI ${air.aqi} · ${air.label}` });
   }
 
-  // Risques (inverse du nombre de risques)
+  // 5. Risques naturels (score déjà calculé par Géorisques, inversé : 0 risques = 10)
   const risques = window._risquesData;
-  if (risques?.risques != null) {
-    const nbRisques = Object.values(risques.risques || {}).filter(v => v === true || v === 'Oui' || v > 0).length;
-    const risqueScore = Math.max(0, 10 - nbRisques * 1.5);
-    scores.push({ label: 'Risques naturels', icon: '⚠️', val: Math.round(risqueScore * 10) / 10, max: 10, detail: 'risques', sub: `${nbRisques} risque${nbRisques > 1 ? 's' : ''} identifié${nbRisques > 1 ? 's' : ''}` });
+  if (risques?.total != null) {
+    const rScore = Math.max(0, Math.round((10 - risques.total * 2) * 10) / 10);
+    items.push({ label:'Risques naturels', icon:'⚠️', val:rScore, max:10,
+      action:"closePanel();setTimeout(()=>showDetail('risques'),120)",
+      sub:`${risques.total} risque${risques.total>1?'s':''} identifié${risques.total>1?'s':''}` });
   }
 
-  // DPE (% logements classe A-C)
-  const dpe = window._dpeData;
-  if (dpe?.distribution) {
-    const total = Object.values(dpe.distribution).reduce((a,b) => a + b, 0);
-    const bons = (dpe.distribution['A'] || 0) + (dpe.distribution['B'] || 0) + (dpe.distribution['C'] || 0);
-    const dpeScore = total > 0 ? Math.round((bons / total) * 10 * 10) / 10 : null;
-    if (dpeScore != null) scores.push({ label: 'DPE secteur', icon: '🏷️', val: dpeScore, max: 10, detail: null, sub: `${Math.round(bons/total*100)}% classes A-C` });
+  // 6. DPE secteur (_dpeSecteurData.pctEfficaces = % classes A-C)
+  const dpe = window._dpeSecteurData;
+  if (dpe && !dpe.error && dpe.pctEfficaces != null) {
+    const dpeScore = Math.round(dpe.pctEfficaces / 10 * 10) / 10;
+    items.push({ label:'DPE secteur', icon:'🏷️', val:dpeScore, max:10,
+      action:"closePanel();setTimeout(()=>go('energie'),120)",
+      sub:`${dpe.pctEfficaces}% classes A-C · ${dpe.pctPassoires}% passoires (F-G)` });
   }
 
-  if (!scores.length) { setCard('score', 'Chargement…', 'Données en attente', ''); return; }
+  // 7. Bruit (niveauCode : eleve / modere / faible)
+  const bruit = window._bruitData;
+  if (bruit?.success && bruit.niveauCode) {
+    const bruitScore = bruit.niveauCode==='eleve'?2 : bruit.niveauCode==='modere'?5.5 : 9;
+    items.push({ label:'Bruit & nuisances', icon:'🔊', val:bruitScore, max:10,
+      action:"closePanel();setTimeout(()=>showDetail('bruit'),120)",
+      sub: bruit.niveau || '' });
+  }
 
-  const total = scores.reduce((a, s) => a + s.val, 0);
-  const note = Math.round((total / scores.length) * 10) / 10;
-  const pct = Math.round(note * 10);
-  const cssClass = note >= 7 ? 'good' : note >= 5 ? '' : 'warn';
-  const label = note >= 8 ? 'Excellent' : note >= 6 ? 'Bon' : note >= 4 ? 'Moyen' : 'Faible';
+  // 8. Météo & ensoleillement
+  const meteo = window._meteoData;
+  if (meteo?.ensoleillement?.heuresAnnuelles) {
+    const h = meteo.ensoleillement.heuresAnnuelles;
+    const meteoScore = h>1800?9 : h>1400?7 : h>1000?5 : 3;
+    items.push({ label:'Ensoleillement', icon:'☀️', val:meteoScore, max:10,
+      action:"closePanel();setTimeout(()=>showDetail('meteo'),120)",
+      sub:`${h.toLocaleString('fr-FR')} h/an · moy. max ${meteo.temperatures?.maxMoyenne||'—'}°C` });
+  }
 
-  window._scoreData = { note, pct, label, scores };
-  setCard('score', note.toFixed(1) + ' / 10', label + ' · ' + scores.length + ' critères', cssClass);
+  // 9. Fibre
+  const fibre = window._fibreData;
+  if (fibre?.fibre) {
+    const fibreScore = fibre.fibre.eligible===true?10 : fibre.fibre.eligible===false?3 : 5;
+    items.push({ label:'Internet & fibre', icon:'📶', val:fibreScore, max:10,
+      action:"closePanel();setTimeout(()=>showDetail('fibre'),120)",
+      sub: fibre.fibre.eligible===true ? `Éligible FTTH · ${fibre.fibre.operateurs?.join(', ')||''}` : fibre.fibre.eligible===false ? 'Non éligible fibre' : 'À vérifier' });
+  }
+
+  if (!items.length) { setCard('score','Chargement…','Données en attente',''); return; }
+
+  const note = Math.round(items.reduce((a,s)=>a+s.val,0) / items.length * 10) / 10;
+  const cssClass = note>=7?'good':note>=5?'':'warn';
+  const label = note>=8?'Excellent':note>=6?'Bon':note>=4?'Moyen':'Faible';
+  window._scoreData = { note, label, items };
+  setCard('score', note.toFixed(1)+' / 10', label+' · '+items.length+' critères', cssClass);
 }
 
 function showScoreDetail() {
   const d = window._scoreData;
-  if (!d) { showPanel('⭐ Score de quartier', '<p style="color:var(--muted)">Données en cours de chargement…</p>'); return; }
+  if (!d) { showPanel('⭐ Score de quartier','<p style="color:var(--muted)">Données en cours de chargement…</p>'); return; }
 
-  const note100 = Math.round(d.note * 10);
-  const ringColor = d.note >= 7 ? '#27ae60' : d.note >= 5 ? '#f39c12' : '#e74c3c';
+  const ringColor = d.note>=7?'#27ae60':d.note>=5?'#f39c12':'#e74c3c';
 
-  const rows = d.scores.map(s => {
-    const pct = Math.round((s.val / s.max) * 100);
-    const color = pct >= 70 ? '#27ae60' : pct >= 45 ? '#f39c12' : '#e74c3c';
-    const detailBtn = s.detail
-      ? `<button onclick="closePanel();setTimeout(()=>showDetail('${s.detail}'),120)" style="font-size:.68rem;padding:.15rem .45rem;background:rgba(184,131,42,.15);border:1px solid rgba(184,131,42,.3);border-radius:3px;color:var(--gold);cursor:pointer;margin-left:.4rem">Détail →</button>`
+  const rows = d.items.map(s => {
+    const pct = Math.round((s.val/s.max)*100);
+    const color = pct>=70?'#27ae60':pct>=45?'#f39c12':'#e74c3c';
+    const btn = s.action
+      ? `<button onclick="${s.action}" style="font-size:.68rem;padding:.15rem .45rem;background:rgba(184,131,42,.15);border:1px solid rgba(184,131,42,.3);border-radius:3px;color:var(--gold);cursor:pointer;margin-left:.5rem">Détail →</button>`
       : '';
     return `<div style="margin-bottom:.9rem">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.25rem">
-        <span style="font-size:.82rem;color:var(--text)">${s.icon} ${s.label}${detailBtn}</span>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.2rem">
+        <span style="font-size:.82rem;color:var(--text)">${s.icon} ${s.label}${btn}</span>
         <span style="font-weight:700;font-size:.85rem;color:${color}">${s.val.toFixed(1)}<span style="font-size:.7rem;color:var(--muted);font-weight:400"> /10</span></span>
       </div>
-      ${s.sub ? `<div style="font-size:.7rem;color:var(--muted);margin-bottom:.25rem">${s.sub}</div>` : ''}
+      ${s.sub?`<div style="font-size:.7rem;color:var(--muted);margin-bottom:.2rem">${s.sub}</div>`:''}
       <div style="background:var(--border);border-radius:3px;height:7px">
         <div style="width:${pct}%;background:${color};border-radius:3px;height:7px;transition:width .4s"></div>
       </div>
     </div>`;
   }).join('');
 
-  showPanel('⭐ Score de quartier · ' + (window._inseeData?.commune?.nom || ''), `
+  showPanel('⭐ Score de quartier · '+(window._inseeData?.commune?.nom||''), `
     <div style="text-align:center;margin-bottom:1.2rem">
-      <div style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;width:100px;height:100px;border-radius:50%;border:5px solid ${ringColor};background:rgba(0,0,0,.2)">
+      <div style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;width:100px;height:100px;border-radius:50%;border:5px solid ${ringColor};background:rgba(0,0,0,.15)">
         <span style="font-size:1.8rem;font-weight:800;color:${ringColor}">${d.note.toFixed(1)}</span>
         <span style="font-size:.7rem;color:var(--muted)">/10</span>
       </div>
       <div style="margin-top:.5rem;font-size:.9rem;font-weight:600;color:${ringColor}">${d.label}</div>
-      <div style="font-size:.72rem;color:var(--muted);margin-top:.2rem">Score calculé à partir de ${d.scores.length} critères — données à l'adresse</div>
+      <div style="font-size:.72rem;color:var(--muted);margin-top:.2rem">${d.items.length} critères · données à l'adresse · cliquez "Détail →" pour explorer</div>
     </div>
     <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:1rem">${rows}</div>
-    <p style="font-size:.62rem;color:var(--muted);margin-top:.8rem">Données calculées en temps réel pour l'adresse analysée · Cliquez sur "Détail →" pour explorer chaque critère</p>
+    <p style="font-size:.62rem;color:var(--muted);margin-top:.8rem">Sources : Géorisques · OSM · ADEME · ARCEP · Open-Meteo · Éducation Nationale · données temps réel à l'adresse</p>
   `);
 }
 
