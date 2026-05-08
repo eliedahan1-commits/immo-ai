@@ -2051,6 +2051,7 @@ async function loadMobilite(lat, lng, dist=1000){
 
 // ── Fibre ARCEP ──
 async function loadFibre(citycode, lat, lng){
+  setCard('fibre','<span class="spin"></span>','Vérification en cours…','');
   try{
     const r = await apiCall(`/api/fibre?lat=${lat}&lon=${lng}&codeInsee=${citycode||''}`, `https://api.arcep.fr/api/couverture_fibre/adresses?codeInsee=${citycode||''}`);
     if(!r.ok) throw new Error();
