@@ -2621,12 +2621,24 @@ function showDemographieDetail() {
   const d = window._demographieData;
   const c = window._inseeData?.commune;
   if (!d || !d.rows || !d.rows.length) {
-    if (window._demographieLoading) {
-      // Fetch en cours — afficher spinner ; le fetch appellera showDemographieDetail() lui-même quand prêt
+    // Cas 1 : fetch Wikidata explicitement en cours
+    // Cas 2 : analyse encore en cours (INSEE pas encore répondu → carte a un .spin)
+    const cardStillLoading = !!document.querySelector('#card-demographie .spin');
+    if (window._demographieLoading || cardStillLoading) {
       showPanel('📈 Évolution démographique',
-        '<p style="color:var(--muted)"><span class="spin"></span> Chargement des données Wikidata…</p>'
+        '<p style="color:var(--muted)"><span class="spin"></span> Chargement des données historiques…</p>'
         + (c ? `<p style="font-size:.8rem;color:var(--text)">Population actuelle : <strong>${(c.population||0).toLocaleString('fr-FR')} habitants</strong></p>` : '')
       );
+      // Polling : retry toutes les 2s tant que données absentes
+      const _pollId = setInterval(() => {
+        if (window._demographieData?.rows?.length) {
+          clearInterval(_pollId);
+          showDemographieDetail();
+        } else if (!window._demographieLoading && !document.querySelector('#card-demographie .spin')) {
+          clearInterval(_pollId);
+          showDemographieDetail(); // affichera "non disponible"
+        }
+      }, 2000);
       return;
     }
     showPanel('📈 Évolution démographique',
