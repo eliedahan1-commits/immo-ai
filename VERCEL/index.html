@@ -2462,6 +2462,33 @@ function computeScoreQuartier() {
   setCard('score', note.toFixed(1)+' / 10', label+' · '+items.length+' critères', cssClass);
 }
 
+// Recharge Services + Écoles + Mobilité avec le rayon choisi puis recalcule le score
+window._scoreRayon = null; // null = utilise la valeur courante de chaque data
+async function reloadScoreWithDist(dist){
+  if(!currentCoords) return;
+  window._scoreRayon = dist;
+  const {lat, lng} = currentCoords;
+  const codeInsee = window._inseeData?.commune?.codeInsee || '';
+  // Mise à jour visuelle des boutons
+  document.querySelectorAll('.score-rayon-btn').forEach(b=>{
+    const active = parseInt(b.dataset.r)===dist;
+    b.style.background = active?'var(--ink)':'var(--white)';
+    b.style.color      = active?'#fff':'inherit';
+    b.style.borderColor= active?'var(--ink)':'var(--border)';
+    b.style.fontWeight = active?'600':'400';
+  });
+  const lbl = document.getElementById('scoreRayonLbl');
+  if(lbl) lbl.innerHTML = '<span class="spin"></span> Rechargement…';
+  // 3 appels en parallèle
+  await Promise.allSettled([
+    loadServices(lat, lng, dist),
+    loadEcoles(lat, lng, codeInsee, dist),
+    loadMobilite(lat, lng, dist)
+  ]);
+  computeScoreQuartier();
+  showScoreDetail(); // rafraîchit le panel avec les nouvelles données
+}
+
 function showScoreDetail() {
   const d = window._scoreData;
   if (!d) { showPanel('⭐ Score de quartier','<p style="color:var(--muted)">Données en cours de chargement…</p>'); return; }
@@ -2493,9 +2520,20 @@ function showScoreDetail() {
         <span style="font-size:.7rem;color:var(--muted)">/10</span>
       </div>
       <div style="margin-top:.5rem;font-size:.9rem;font-weight:600;color:${ringColor}">${d.label}</div>
-      <div style="font-size:.72rem;color:var(--muted);margin-top:.2rem">${d.items.length} critères · rayon 1km · données à l'adresse · cliquez "Détail →" pour explorer</div>
+      <div id="scoreRayonLbl" style="font-size:.72rem;color:var(--muted);margin-top:.2rem">${d.items.length} critères · données à l'adresse · cliquez "Détail →" pour explorer</div>
+      <div style="display:flex;justify-content:center;gap:.4rem;margin-top:.7rem;flex-wrap:wrap">
+        <span style="font-size:.72rem;color:var(--muted);align-self:center">Rayon :</span>
+        ${[500,1000,2000].map(r=>{
+          const curDist = window._scoreRayon || window._servicesCurrentDist || 500;
+          const active = curDist===r;
+          const lbl = r>=1000?(r/1000)+'km':r+'m';
+          return `<button class="score-rayon-btn" data-r="${r}" onclick="reloadScoreWithDist(${r})"
+            style="font-size:.72rem;padding:.2rem .6rem;border:1px solid ${active?'var(--ink)':'var(--border)'};border-radius:3px;cursor:pointer;background:${active?'var(--ink)':'var(--white)'};color:${active?'#fff':'inherit'};font-weight:${active?'600':'400'}">${lbl}</button>`;
+        }).join('')}
+        <span style="font-size:.68rem;color:var(--muted);align-self:center;font-style:italic">Services · Écoles · Mobilité recalculés</span>
+      </div>
     </div>
-    <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:1rem">${rows}</div>
+    <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-top:.8rem">${rows}</div>
     <p style="font-size:.62rem;color:var(--muted);margin-top:.8rem">Sources : Géorisques · OSM · ADEME · ARCEP · Open-Meteo · Éducation Nationale · données temps réel à l'adresse</p>
   `);
 }
