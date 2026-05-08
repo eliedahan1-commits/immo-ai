@@ -2498,6 +2498,15 @@ function computeLoyersEstimates() {
   );
 }
 
+// Fetch live taux au chargement de la page (1 seul appel, résultat mis en cache)
+window._tauxMarche = null;
+(async function fetchTauxMarche(){
+  try {
+    const r = await fetch('/api/altitude?type=taux');
+    if(r.ok) window._tauxMarche = await r.json();
+  } catch(e){}
+})();
+
 function showLoyersDetail() {
   const d = window._loyersData;
   const dvf = window._dvfData;
@@ -2528,22 +2537,41 @@ function showLoyersDetail() {
     </div>`;
   }).join('');
 
-  // Comparaison achat vs location pour tous les types
-  const lvaRows = d.estimates.map(e => {
-    const prixAchat = Math.round(d.prixM2 * e.surface);
-    const mensualite = Math.round(prixAchat * 0.004); // ~20 ans, 3,5%
-    const diff = mensualite - e.loyerMensuel;
-    const diffColor = diff >= 0 ? '#e67e22' : '#27ae60';
-    const diffLabel = diff >= 0
-      ? `Acheter coûte ~${diff.toLocaleString('fr-FR')} €/mois de plus`
-      : `Acheter coûte ~${Math.abs(diff).toLocaleString('fr-FR')} €/mois de moins`;
-    return `<div style="display:flex;align-items:center;gap:.5rem;padding:.5rem 0;border-bottom:1px solid var(--border);flex-wrap:wrap">
-      <span style="font-size:.78rem;font-weight:600;min-width:70px">${e.label}</span>
-      <span style="font-size:.75rem;color:var(--gold);min-width:90px">🏠 ${e.loyerMensuel.toLocaleString('fr-FR')} €/mois</span>
-      <span style="font-size:.75rem;color:var(--text);min-width:90px">🏦 ${mensualite.toLocaleString('fr-FR')} €/mois</span>
-      <span style="font-size:.72rem;color:${diffColor};font-weight:500">${diffLabel}</span>
-    </div>`;
-  }).join('');
+  // Fonction de calcul mensualité (amortissement réel)
+  window._lvaEstimates = d.estimates;
+  window._lvaPrixM2 = d.prixM2;
+  window._calcLvaRows = function(){
+    const duree = parseInt(document.getElementById('lvaDuree')?.value||'20');
+    const taux  = parseFloat((document.getElementById('lvaTaux')?.value||'3.5').replace(',','.')) / 100;
+    const t = taux/12, n = duree*12;
+    return (window._lvaEstimates||[]).map(e => {
+      const prixAchat = Math.round((window._lvaPrixM2||0) * e.surface);
+      const mensualite = t > 0 ? Math.round(prixAchat * t / (1 - Math.pow(1+t, -n))) : Math.round(prixAchat / n);
+      const diff = mensualite - e.loyerMensuel;
+      const diffColor = diff >= 0 ? '#e67e22' : '#27ae60';
+      const diffLabel = diff >= 0
+        ? `Acheter coûte ~${diff.toLocaleString('fr-FR')} €/mois de plus`
+        : `Acheter coûte ~${Math.abs(diff).toLocaleString('fr-FR')} €/mois de moins`;
+      return `<div style="display:flex;align-items:center;gap:.5rem;padding:.5rem 0;border-bottom:1px solid var(--border);flex-wrap:wrap">
+        <span style="font-size:.78rem;font-weight:600;min-width:70px">${e.label}</span>
+        <span style="font-size:.75rem;color:var(--gold);min-width:90px">🏠 ${e.loyerMensuel.toLocaleString('fr-FR')} €/mois</span>
+        <span style="font-size:.75rem;color:var(--text);min-width:90px">🏦 ${mensualite.toLocaleString('fr-FR')} €/mois</span>
+        <span style="font-size:.72rem;color:${diffColor};font-weight:500">${diffLabel}</span>
+      </div>`;
+    }).join('');
+  };
+
+  // Taux par durée (live ou fallback)
+  const tm = window._tauxMarche?.taux || { 10: 3.10, 15: 3.27, 20: 3.42, 25: 3.50 };
+  const tauxSrc = window._tauxMarche?.source || 'Fallback';
+  const tauxDate = window._tauxMarche?.date || '';
+  // Durée par défaut 20 ans, taux correspondant
+  const defaultDuree = 20;
+  const defaultTaux = tm[defaultDuree] ?? 3.42;
+  // Options du select avec taux associés
+  const dureeOptions = [10, 15, 20, 25].map(d =>
+    `<option value="${d}" data-taux="${tm[d]??''}" ${d===defaultDuree?'selected':''}>${d} ans${tm[d]?` · ${tm[d].toFixed(2).replace('.',',')}%`:''}</option>`
+  ).join('');
 
   showPanel('🏠 Loyers estimés · ' + (c?.nom || ''), `
     <div style="background:rgba(232,160,32,.1);border:1px solid rgba(184,131,42,.3);border-radius:6px;padding:.6rem .8rem;margin-bottom:1rem;font-size:.78rem;color:var(--muted)">
@@ -2551,14 +2579,34 @@ function showLoyersDetail() {
     </div>
     <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-bottom:1rem">${bars}</div>
     <div style="padding:.75rem;background:rgba(184,131,42,.07);border-radius:6px;border:1px solid rgba(184,131,42,.2);margin-bottom:1rem">
-      <div style="font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.5rem">⚖️ Louer vs Acheter · crédit 20 ans · taux ~3,5%</div>
+      <div style="display:flex;align-items:baseline;gap:.5rem;margin-bottom:.6rem;flex-wrap:wrap">
+        <span style="font-size:.78rem;font-weight:600;color:var(--text)">⚖️ Louer vs Acheter</span>
+        <span style="font-size:.62rem;color:var(--muted)">Taux marché : ${tauxSrc}${tauxDate?' · '+tauxDate:''}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;flex-wrap:wrap">
+        <label style="font-size:.75rem;color:var(--muted);display:flex;align-items:center;gap:.35rem">
+          Durée
+          <select id="lvaDuree" onchange="const opt=this.options[this.selectedIndex];const t=opt.dataset.taux;if(t)document.getElementById('lvaTaux').value=t;document.getElementById('lvaRows').innerHTML=window._calcLvaRows();"
+            style="font-size:.75rem;border:1px solid var(--border);border-radius:4px;padding:.15rem .3rem;background:#fff;color:var(--ink)">
+            ${dureeOptions}
+          </select>
+        </label>
+        <label style="font-size:.75rem;color:var(--muted);display:flex;align-items:center;gap:.35rem">
+          Taux
+          <input id="lvaTaux" type="number" min="0.5" max="10" step="0.1" value="${defaultTaux}"
+            oninput="document.getElementById('lvaRows').innerHTML=window._calcLvaRows()"
+            style="width:60px;font-size:.75rem;border:1px solid var(--border);border-radius:4px;padding:.15rem .3rem;text-align:right"> %
+        </label>
+      </div>
       <div style="display:flex;gap:.5rem;font-size:.68rem;color:var(--muted);margin-bottom:.35rem;flex-wrap:wrap">
         <span>🏠 Loyer estimé</span><span>🏦 Mensualité crédit (hors charges)</span>
       </div>
-      ${lvaRows}
+      <div id="lvaRows"></div>
     </div>
     <p style="font-size:.62rem;color:var(--muted)">Sources : DVF (DGFiP) pour les prix · rendements locatifs observatoires régionaux · surfaces médianes FILOCOM</p>
   `);
+  // Remplir les lignes après injection du DOM
+  setTimeout(()=>{ const el=document.getElementById('lvaRows'); if(el) el.innerHTML=window._calcLvaRows(); },50);
 }
 
 function updateDemographieCard(d) {
@@ -4495,20 +4543,37 @@ function calcScores(d){
 
 // Poids du profil (Compatibilité de vie)
 function getProfilWeights(){
-  const enfants=togVal('tPE'),trans=togVal('tPTrans'),nature=togVal('tPNature'),style=togVal('tPS');
-  const bruit=togVal('tPBruit'),soleil=togVal('tPSoleil');
+  const enfants=togVal('tPE'), trans=togVal('tPTrans'), nature=togVal('tPNature'), style=togVal('tPS');
+  const bruit=togVal('tPBruit'), soleil=togVal('tPSoleil'), anim=togVal('tPAnim'), amb=togVal('tPAmb');
+
+  // Mobilité : Métro/RER → 3, Vélo/Pied → 1 (neutre), Voiture → 0.5 (pas besoin de transports)
+  const mobW = trans==='Métro / RER'?3 : trans==='Voiture'?0.5 : trans==='—'?1 : 1;
+
+  // Parcs : espaces verts souhaités + animaux (besoin de promenades) + sport
+  const parcBase = (nature==='Parc à proximité'||nature==='Nature & forêt'||nature==="Bord d'eau"||style==='Sport & plein air') ? 2.5 : 1;
+  const parcW = anim==='Oui' ? Math.max(parcBase, 2) : parcBase;
+
+  // Commerces/restos : gastronomie ou ambiance animée
+  const restW = style==='Gastronomie & sorties' ? 2.5 : amb==='Animé & commerçant' ? 2 : 1;
+
+  // Services : ambiance commerçante → plus important
+  const svcW = amb==='Animé & commerçant' ? 2 : 1.5;
+
+  // Calme : sensibilité bruit + ambiance résidentielle + priorité tranquillité
+  const bruitW = bruit==='Très sensible' ? 3 : (amb==='Calme & résidentiel'||style==='Tranquillité') ? 2 : 1;
+
   return{
-    mob:   trans==='Métro / RER'?3:trans==='—'?1:1.5,
+    mob:   mobW,
     eco:   enfants==='Non'?0.5:enfants==='—'?1:2.5,
-    parc:  (nature==='Parc à proximité'||nature==='Nature & forêt'||style==='Sport & plein air')?2.5:1,
-    rest:  style==='Gastronomie & sorties'?2.5:1,
+    parc:  parcW,
+    rest:  restW,
     cult:  style==='Culture & musées'?2.5:1,
     sprt:  style==='Sport & plein air'?2:style==='—'?1:0.5,
-    bruit: bruit==='Très sensible'?3:1,
-    svc:   1.5,
+    bruit: bruitW,
+    svc:   svcW,
     meteo: soleil==="Oui, j'aime le soleil"?2:soleil==='—'?1:0.5,
     risq:  2,
-    trav:  0, // sera défini dynamiquement selon le mode de travail
+    trav:  0, // défini dynamiquement selon le mode de travail
   };
 }
 
