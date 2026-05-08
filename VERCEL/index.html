@@ -2596,7 +2596,7 @@ function updateDemographieCard(d) {
 
   fetch(`https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(sparql)}`, {
     signal: AbortSignal.timeout(15000),
-    headers: { 'Accept': 'application/sparql-results+json', 'User-Agent': 'ImmoAI/1.0 (contact: immoai)' }
+    headers: { 'Accept': 'application/sparql-results+json' }
   }).then(r => r.ok ? r.json() : Promise.reject('HTTP ' + r.status))
   .then(data => {
     const rows = (data.results?.bindings || []).map(b => ({
