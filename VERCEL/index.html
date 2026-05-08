@@ -2570,7 +2570,7 @@ function showLoyersDetail() {
   const defaultTaux = tm[defaultDuree] ?? 3.42;
   // Options du select avec taux associés
   const dureeOptions = [10, 15, 20, 25].map(d =>
-    `<option value="${d}" data-taux="${tm[d]??''}" ${d===defaultDuree?'selected':''}>${d} ans${tm[d]?` · ${tm[d].toFixed(2).replace('.',',')}%`:''}</option>`
+    `<option value="${d}" data-taux="${tm[d]??''}" ${d===defaultDuree?'selected':''}>${d} ans</option>`
   ).join('');
 
   showPanel('🏠 Loyers estimés · ' + (c?.nom || ''), `
@@ -2595,7 +2595,8 @@ function showLoyersDetail() {
           Taux
           <input id="lvaTaux" type="number" min="0.5" max="10" step="0.1" value="${defaultTaux}"
             oninput="document.getElementById('lvaRows').innerHTML=window._calcLvaRows()"
-            style="width:60px;font-size:.75rem;border:1px solid var(--border);border-radius:4px;padding:.15rem .3rem;text-align:right"> %
+            style="width:64px;font-size:.82rem;font-weight:600;color:var(--ink);border:1.5px solid var(--gold);border-radius:5px;padding:.25rem .4rem;text-align:right;background:#fffdf7"> %
+          <span style="font-size:.62rem;color:var(--muted);font-style:italic">modifiable</span>
         </label>
       </div>
       <div style="display:flex;gap:.5rem;font-size:.68rem;color:var(--muted);margin-bottom:.35rem;flex-wrap:wrap">
