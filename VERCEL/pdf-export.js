@@ -20,12 +20,12 @@ function generatePDF(){
   // Wrapper défensif — ignore les valeurs NaN/négatives/nulles
   const safeRect = (x,y,w,h,style) => {
     if(!isFinite(x)||!isFinite(y)||!isFinite(w)||!isFinite(h)||w<=0||h<=0) return;
-    safeRect(Math.round(x*100)/100, Math.round(y*100)/100, Math.round(w*100)/100, Math.round(h*100)/100, style);
+    doc.rect(Math.round(x*100)/100, Math.round(y*100)/100, Math.round(w*100)/100, Math.round(h*100)/100, style);
   };
   const safeRRect = (x,y,w,h,rx,ry,style) => {
     if(!isFinite(x)||!isFinite(y)||!isFinite(w)||!isFinite(h)||w<=0||h<=0) return;
     const r = Math.min(rx, w/2-0.1, h/2-0.1);
-    if(r<=0){ safeRect(x,y,w,h,style); return; }
+    if(r<=0){ doc.rect(x,y,w,h,style); return; }
     safeRRect(x,y,w,h,r,r,style);
   };
 
