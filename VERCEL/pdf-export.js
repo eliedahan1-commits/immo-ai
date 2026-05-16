@@ -26,7 +26,7 @@ function generatePDF(){
     if(!isFinite(x)||!isFinite(y)||!isFinite(w)||!isFinite(h)||w<=0||h<=0) return;
     const r = Math.min(rx, w/2-0.1, h/2-0.1);
     if(r<=0){ doc.rect(x,y,w,h,style); return; }
-    safeRRect(x,y,w,h,r,r,style);
+    doc.roundedRect(x,y,w,h,r,r,style);
   };
 
   // ── Helpers ──
@@ -78,22 +78,28 @@ function generatePDF(){
   if(currentCoords) doc.text(currentCoords.lat.toFixed(5)+'° N, '+currentCoords.lng.toFixed(5)+'° E', W-MR, y+3,{align:'right'});
   y += 10;
 
-  // Scores synthétiques
-  const scoreItems = [];
-  if(window._risquesData?.success) scoreItems.push({l:'Risques naturels',v:10-Math.min(window._risquesData.score||0,10),inv:true});
-  if(window._servicesData?.success) scoreItems.push({l:'Services',v:window._servicesData.score||0});
-  if(window._mobiliteData?.success && window._mobiliteData.score!=null) scoreItems.push({l:'Mobilité',v:window._mobiliteData.score||0});
-  if(scoreItems.length){ secTitle('📊','Scores synthétiques');
-    scoreItems.forEach(s=>{
-      np(8); doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(90,85,75);
-      doc.text(s.l, ML+3, y);
-      doc.setFillColor(225,218,200); safeRect(ML+55,y-4,70,5,'F');
-      const clr = s.v>=7?[39,174,96]:s.v>=4?[184,131,42]:[180,60,50];
-      const barW=Math.max(70*s.v/10,0.5);
-      doc.setFillColor(...clr); safeRect(ML+55,y-4,barW,5,'F');
-      doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...clr);
-      doc.text(s.v+'/10', ML+130, y); y+=7;
-    }); sep();
+  // Scores synthétiques (texte uniquement — pas de barres graphiques)
+  const scoreLines = [];
+  if(window._risquesData?.success){
+    const nb = window._risquesData.total;
+    scoreLines.push({l:'Risques naturels', v: nb!=null ? nb+' risque(s) identifié(s)' : 'Voir détail'});
+  }
+  if(window._servicesData?.success){
+    const sc = window._servicesData.score;
+    if(sc!=null) scoreLines.push({l:'Services', v: sc+'/10'});
+  }
+  if(window._mobiliteData?.success && window._mobiliteData.score!=null){
+    scoreLines.push({l:'Mobilité', v: window._mobiliteData.score+'/10'});
+  }
+  if(window._bruitData?.success){
+    const dens=window._inseeData?.commune?.densite||0;
+    const bonus=dens>10000?4:dens>5000?3:dens>2000?2:dens>500?1:0;
+    const sc=Math.min((window._bruitData.score||0)+bonus,10);
+    scoreLines.push({l:'Bruit estimé', v: sc>=7?'Élevé':sc>=4?'Modéré':sc>=2?'Faible':'Très faible'});
+  }
+  if(scoreLines.length){ secTitle('📊','Scores synthétiques');
+    scoreLines.forEach(s=>kv(s.l, s.v));
+    sep();
   }
 
   // ══ DVF ══
