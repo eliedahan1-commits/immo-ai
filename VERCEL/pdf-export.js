@@ -10,7 +10,7 @@ function toast(msg, type='ok', dur=3200){
 // ══ PDF EXPORT ══
 const IMMOAI_LOGO_B64='data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSczMjAnIGhlaWdodD0nODAnIHZpZXdCb3g9JzAgMCAzMjAgODAnPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSdnJyB4MT0nMCUnIHkxPScwJScgeDI9JzEwMCUnIHkyPScxMDAlJz4KICAgICAgPHN0b3Agb2Zmc2V0PScwJScgc3R5bGU9J3N0b3AtY29sb3I6I2Q0YTg0MycvPgogICAgICA8c3RvcCBvZmZzZXQ9JzEwMCUnIHN0eWxlPSdzdG9wLWNvbG9yOiNiODgzMmEnLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxwb2x5Z29uIHBvaW50cz0nMjgsNDQgMjgsNjQgNTIsNjQgNTIsNDQnIGZpbGw9J3VybCgjZyknLz4KICA8cmVjdCB4PSczNScgeT0nNTAnIHdpZHRoPScxMCcgaGVpZ2h0PScxNCcgZmlsbD0nIzFhMTYxMCcvPgogIDxwb2x5Z29uIHBvaW50cz0nMTgsNDYgNDAsMjIgNjIsNDYnIGZpbGw9J3VybCgjZyknLz4KICA8cmVjdCB4PSc0NCcgeT0nMzAnIHdpZHRoPScxMCcgaGVpZ2h0PScxMCcgZmlsbD0nIzFhMTYxMCcgcng9JzEnLz4KICA8dGV4dCB4PSc3NicgeT0nNTQnIGZvbnQtZmFtaWx5PSdHZW9yZ2lhLHNlcmlmJyBmb250LXNpemU9JzMyJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjMmMyNDE2JyBsZXR0ZXItc3BhY2luZz0nLTAuNSc+SW1tbzwvdGV4dD4KICA8cmVjdCB4PScyMDAnIHk9JzI4JyB3aWR0aD0nNDQnIGhlaWdodD0nMjgnIHJ4PSc1JyBmaWxsPSd1cmwoI2cpJy8+CiAgPHRleHQgeD0nMjIyJyB5PSc0OScgZm9udC1mYW1pbHk9J0dlb3JnaWEsc2VyaWYnIGZvbnQtc2l6ZT0nMjAnIGZvbnQtd2VpZ2h0PSc3MDAnIGZpbGw9JyMxYTE2MTAnIHRleHQtYW5jaG9yPSdtaWRkbGUnIGxldHRlci1zcGFjaW5nPScwLjUnPkFJPC90ZXh0Pgo8L3N2Zz4=';
 
-async function generatePDF(){
+function generatePDF(){
   if(!window.jspdf){ toast('jsPDF non chargé','err'); return; }
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
@@ -255,6 +255,12 @@ async function generatePDF(){
   }
 
   const fn='ImmoAI_'+(currentAddress||'rapport').replace(/[^a-zA-Z0-9]/g,'_').slice(0,40)+'_'+new Date().toISOString().slice(0,10)+'.pdf';
-  doc.save(fn);
-  toast('✓ PDF téléchargé','ok');
+  try {
+    doc.save(fn);
+    toast('✓ PDF téléchargé','ok');
+  } catch(e) {
+    const url = URL.createObjectURL(doc.output('blob'));
+    window.open(url,'_blank');
+    toast('✓ PDF ouvert dans un nouvel onglet','ok');
+  }
 }
