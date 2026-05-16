@@ -17,13 +17,24 @@ function generatePDF(){
   const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
   const W=210, H=297, ML=15, MR=15, MT=18;
   let y = MT;
+  // Wrapper défensif — ignore les valeurs NaN/négatives/nulles
+  const safeRect = (x,y,w,h,style) => {
+    if(!isFinite(x)||!isFinite(y)||!isFinite(w)||!isFinite(h)||w<=0||h<=0) return;
+    safeRect(Math.round(x*100)/100, Math.round(y*100)/100, Math.round(w*100)/100, Math.round(h*100)/100, style);
+  };
+  const safeRRect = (x,y,w,h,rx,ry,style) => {
+    if(!isFinite(x)||!isFinite(y)||!isFinite(w)||!isFinite(h)||w<=0||h<=0) return;
+    const r = Math.min(rx, w/2-0.1, h/2-0.1);
+    if(r<=0){ safeRect(x,y,w,h,style); return; }
+    safeRRect(x,y,w,h,r,r,style);
+  };
 
   // ── Helpers ──
   const np = (needed=20) => { if(y+needed > H-15){ doc.addPage(); y=MT; } };
   const secTitle = (icon, title) => {
     np(14);
     doc.setFillColor(245,240,232);
-    doc.rect(ML, y, W-ML-MR, 9, 'F');
+    safeRect(ML, y, W-ML-MR, 9, 'F');
     doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(26,22,16);
     doc.text(`${icon}  ${title}`, ML+3, y+6.2);
     y += 12;
@@ -45,19 +56,19 @@ function generatePDF(){
   const sep = () => { np(6); doc.setDrawColor(210,195,165); doc.line(ML, y, W-MR, y); y+=5; };
 
   // ══ COUVERTURE ══
-  doc.setFillColor(26,22,16); doc.rect(0,0,W,60,'F');
-  doc.setFillColor(184,131,42); doc.rect(0,58,W,1.5,'F');
+  doc.setFillColor(26,22,16); safeRect(0,0,W,60,'F');
+  doc.setFillColor(184,131,42); safeRect(0,58,W,1.5,'F');
   // Logo vectoriel
   doc.setFont('helvetica','bold'); doc.setFontSize(26); doc.setTextColor(184,131,42);
   doc.text('Immo', 18, 37);
-  doc.setFillColor(184,131,42); doc.roundedRect(56,23,21,13,2,2,'F');
+  doc.setFillColor(184,131,42); safeRRect(56,23,21,13,2,2,'F');
   doc.setFontSize(14); doc.setTextColor(26,22,16); doc.text('AI',66.5,32.5,{align:'center'});
   doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(230,220,200);
   doc.text("Rapport d'analyse immobilière", 18, 50);
 
   // Bloc adresse
   y = 70;
-  doc.setFillColor(250,247,241); doc.rect(ML,y-5,W-ML-MR,20,'F');
+  doc.setFillColor(250,247,241); safeRect(ML,y-5,W-ML-MR,20,'F');
   doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(26,22,16);
   const aLines = doc.splitTextToSize(currentAddress||'Adresse non renseignée', W-ML-MR-10);
   doc.text(aLines, ML+5, y+2); y += 22;
@@ -76,10 +87,10 @@ function generatePDF(){
     scoreItems.forEach(s=>{
       np(8); doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(90,85,75);
       doc.text(s.l, ML+3, y);
-      doc.setFillColor(225,218,200); doc.rect(ML+55,y-4,70,5,'F');
+      doc.setFillColor(225,218,200); safeRect(ML+55,y-4,70,5,'F');
       const clr = s.v>=7?[39,174,96]:s.v>=4?[184,131,42]:[180,60,50];
       const barW=Math.max(70*s.v/10,0.5);
-      doc.setFillColor(...clr); doc.rect(ML+55,y-4,barW,5,'F');
+      doc.setFillColor(...clr); safeRect(ML+55,y-4,barW,5,'F');
       doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...clr);
       doc.text(s.v+'/10', ML+130, y); y+=7;
     }); sep();
