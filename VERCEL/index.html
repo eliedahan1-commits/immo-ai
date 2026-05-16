@@ -12,6 +12,8 @@
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
 /* ══ RESET & VARIABLES ══ */
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -747,7 +749,10 @@ path.leaflet-interactive:focus{outline:none;}
         </div>
         <div class="results-addr-badge" id="addrBadge">Analyse en cours…</div>
       </div>
-      <button class="back-btn" onclick="goHome()" style="margin-top:.6rem">← Nouvelle recherche</button>
+      <div style="display:flex;gap:.6rem;margin-top:.6rem;align-items:center">
+        <button class="back-btn" onclick="goHome()">← Nouvelle recherche</button>
+        <button onclick="generatePDF()" title="Exporter en PDF" style="display:flex;align-items:center;gap:.4rem;padding:.45rem .9rem;border:1px solid var(--goldborder);background:transparent;color:var(--gold);border-radius:var(--r);font-size:.78rem;font-weight:600;cursor:pointer;transition:background .2s" onmouseover="this.style.background='rgba(184,131,42,.12)'" onmouseout="this.style.background='transparent'">📄 Exporter PDF</button>
+      </div>
     </div>
 
     <div class="cards-grid" id="cardsGrid">
@@ -5475,18 +5480,13 @@ async function sendMsg(){
   }catch(e){
     document.getElementById('typing')?.remove();
     if(e.message==='no_key'){addMsg('ai','Configurez votre clé Groq pour activer le conseiller.');openModal();}
-    else addMsg('ai','⚠️ '+e.message);
+    else addMsg('ai','\u26a0\ufe0f '+e.message);
   }
   document.getElementById('chatGo').disabled=false;
-  document.getElementById('chatSt').textContent='● Prêt · France entière';
+  document.getElementById('chatSt').textContent='\u25cf Prêt · France entière';
 }
 function ask(q){document.getElementById('chatIn').value=q;sendMsg();}
-
-// ══ TOAST ══
-function toast(msg,type='ok'){
-  const t=document.createElement('div');t.className='toast '+type;t.textContent=msg;
-  document.body.appendChild(t);setTimeout(()=>t.remove(),3500);
-}
 </script>
+<script src="/pdf-export.js"></script>
 </body>
 </html>
