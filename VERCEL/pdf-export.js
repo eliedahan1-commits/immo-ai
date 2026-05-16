@@ -76,9 +76,10 @@ function generatePDF(){
     scoreItems.forEach(s=>{
       np(8); doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(90,85,75);
       doc.text(s.l, ML+3, y);
-      doc.setFillColor(225,218,200); doc.roundedRect(ML+55,y-4,70,5,1,1,'F');
+      doc.setFillColor(225,218,200); doc.rect(ML+55,y-4,70,5,'F');
       const clr = s.v>=7?[39,174,96]:s.v>=4?[184,131,42]:[180,60,50];
-      doc.setFillColor(...clr); const barW=Math.max(70*s.v/10,0.5); doc.roundedRect(ML+55,y-4,barW,5,1,1,'F');
+      const barW=Math.max(70*s.v/10,0.5);
+      doc.setFillColor(...clr); doc.rect(ML+55,y-4,barW,5,'F');
       doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...clr);
       doc.text(s.v+'/10', ML+130, y); y+=7;
     }); sep();
@@ -261,5 +262,6 @@ function generatePDF(){
   } catch(e) {
     console.error('[ImmoAI PDF]', e);
     toast('Erreur PDF : ' + e.message.slice(0,80), 'err');
+    console.error('[ImmoAI PDF stack]', e.stack);
   }
 }
