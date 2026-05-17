@@ -3650,8 +3650,14 @@ function showServicesMap(filterCat){
     showServicesMap();
   };
   const CAT_COLORS = Object.fromEntries(CAT_INFO.map(c=>[c.key,c.couleur]));
+  // Comptage seniors filtré par rayon actif (pas le total 2km brut)
+  const _seniorsList = (window._amenitesData&&window._amenitesData.seniors&&window._amenitesData.seniors.etablissements)||[];
+  const _seniorsCnt = _seniorsList.filter(function(s){
+    var dLa=(s.lat-currentCoords.lat)*111000, dLo=(s.lon-currentCoords.lng)*111000*Math.cos(currentCoords.lat*Math.PI/180);
+    return Math.sqrt(dLa*dLa+dLo*dLo)<=svcDist;
+  }).length;
   const btnsTous = `<button class="svc-tous-btn" onclick="filterServicesMap('tous',this)" style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid var(--ink);border-radius:3px;background:var(--ink);color:var(--gold2);cursor:pointer;font-size:.7rem;font-weight:600;margin-right:.3rem">✓ Tous (${d.total})</button>`;
-  const btnsCateg = CAT_INFO.map(c=>`<button class="svc-cat-btn" data-cat="${c.key}" onclick="filterServicesMap('${c.key}',this)" style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid ${CAT_COLORS[c.key]};border-radius:3px;background:${CAT_COLORS[c.key]}18;cursor:pointer;font-size:.7rem;margin-right:.3rem;margin-bottom:.3rem;transition:opacity .2s"><span style="width:10px;height:10px;border-radius:50%;background:${CAT_COLORS[c.key]};display:inline-block"></span>${c.emoji} ${c.label} (${c.key==='senior'?(window._amenitesData&&window._amenitesData.seniors?window._amenitesData.seniors.total:0):d.stats[c.key]||0})</button>`).join('');
+  const btnsCateg = CAT_INFO.map(c=>`<button class="svc-cat-btn" data-cat="${c.key}" onclick="filterServicesMap('${c.key}',this)" style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid ${CAT_COLORS[c.key]};border-radius:3px;background:${CAT_COLORS[c.key]}18;cursor:pointer;font-size:.7rem;margin-right:.3rem;margin-bottom:.3rem;transition:opacity .2s"><span style="width:10px;height:10px;border-radius:50%;background:${CAT_COLORS[c.key]};display:inline-block"></span>${c.emoji} ${c.label} (${c.key==='senior'?_seniorsCnt:d.stats[c.key]||0})</button>`).join('');
   showPanel('🏥 Services & commerces à proximité', `
     <div class="map-stats">
       <div class="map-stat"><span class="map-stat-n">${d.score}/10</span><span class="map-stat-l">⭐ Score</span></div>
@@ -3790,7 +3796,7 @@ function showServicesMap(filterCat){
     if(ctxSvc&&window.Chart){
       if(window._servicesChart){window._servicesChart.destroy();}
       const CAT_INFO2=CAT_INFO.map(c=>({key:c.key,label:c.emoji+' '+c.label,c:c.couleur+'b3'}));
-      window._servicesChart=new Chart(ctxSvc,{type:'bar',plugins:[ChartDataLabels],data:{labels:CAT_INFO2.map(c=>c.label),datasets:[{data:CAT_INFO2.map(c=>c.key==='senior'?(window._amenitesData&&window._amenitesData.seniors?window._amenitesData.seniors.total:0):d.stats[c.key]||0),backgroundColor:CAT_INFO2.map(c=>c.c),borderWidth:0,borderRadius:4,barThickness:14}]},options:{indexAxis:'y',plugins:{legend:{display:false},datalabels:{anchor:'end',align:'right',color:'#8a7d68',font:{size:9,weight:'600'},formatter:v=>v||''},title:{display:true,text:`Répartition par catégorie (${window._servicesCurrentDist||1000}m)`,font:{size:10,family:'Outfit,sans-serif'},color:'#8a7d68',padding:{bottom:6}}},scales:{x:{ticks:{font:{size:9},color:'#8a7d68'},grid:{color:'rgba(0,0,0,.05)'}},y:{ticks:{font:{size:11},color:'#3d2f1e'},grid:{display:false}}},maintainAspectRatio:false,layout:{padding:{right:32,top:4}},animation:{duration:400}}});
+      window._servicesChart=new Chart(ctxSvc,{type:'bar',plugins:[ChartDataLabels],data:{labels:CAT_INFO2.map(c=>c.label),datasets:[{data:CAT_INFO2.map(c=>c.key==='senior'?_seniorsCnt:d.stats[c.key]||0),backgroundColor:CAT_INFO2.map(c=>c.c),borderWidth:0,borderRadius:4,barThickness:14}]},options:{indexAxis:'y',plugins:{legend:{display:false},datalabels:{anchor:'end',align:'right',color:'#8a7d68',font:{size:9,weight:'600'},formatter:v=>v||''},title:{display:true,text:`Répartition par catégorie (${window._servicesCurrentDist||1000}m)`,font:{size:10,family:'Outfit,sans-serif'},color:'#8a7d68',padding:{bottom:6}}},scales:{x:{ticks:{font:{size:9},color:'#8a7d68'},grid:{color:'rgba(0,0,0,.05)'}},y:{ticks:{font:{size:11},color:'#3d2f1e'},grid:{display:false}}},maintainAspectRatio:false,layout:{padding:{right:32,top:4}},animation:{duration:400}}});
     }
 
     // Labels distances cercles (dynamiques)

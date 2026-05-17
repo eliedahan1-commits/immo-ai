@@ -13,7 +13,8 @@ export default async function handler(req, res) {
     // Requête fusionnée avec regex : 4 sous-requêtes au lieu de 16 → beaucoup plus rapide
     // node pour amenity/shop (presque toujours des points) → léger et rapide
     // nwr pour les éléments cartographiés comme polygones (parcs, culture, sport, crèches)
-    const query = `[out:json][timeout:26];(
+    const ovpTimeout = dist >= 2000 ? 27 : 22;
+    const query = `[out:json][timeout:${ovpTimeout}];(
       node["amenity"~"^(pharmacy|doctors|hospital|clinic|dentist|bank|post_office|restaurant|cafe|charging_station|bicycle_rental|childcare)$"](around:${dist},${lat},${lon});
       node["shop"~"^(supermarket|convenience|bakery|butcher|greengrocer)$"](around:${dist},${lat},${lon});
       nwr["leisure"~"^(fitness_centre|sports_centre|swimming_pool|stadium|sports_hall|golf_course|ice_rink|skatepark)$"](around:${dist},${lat},${lon});
@@ -28,7 +29,7 @@ export default async function handler(req, res) {
       'https://overpass.kumi.systems/api/interpreter',
       'https://overpass.openstreetmap.ru/api/interpreter',
     ];
-    const BUDGET_MS = 28000; // budget global < limite Vercel 30s
+    const BUDGET_MS = dist >= 2000 ? 29000 : 28000; // budget global < limite Vercel 30s
     const start = Date.now();
     let elements = null;
     for (const url of OVERPASS_URLS) {
