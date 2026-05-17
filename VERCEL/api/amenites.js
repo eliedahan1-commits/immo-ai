@@ -66,14 +66,15 @@ export default async function handler(req, res) {
     return [];
   }
 
-  const [restaurants, culture, parcs, sport, commerces, seniors] = await Promise.all([
+  // Comptages en parallèle (requêtes légères), puis seniors en séquentiel pour éviter le rate-limiting Overpass
+  const [restaurants, culture, parcs, sport, commerces] = await Promise.all([
     countOverpass('["amenity"~"restaurant|cafe|bar|fast_food|brasserie"]',          RAYON_RESTAU_M),
     countOverpass('["amenity"~"theatre|cinema|museum|arts_centre|library|art_gallery"]', RAYON_CULTURE_M),
     countOverpass('["leisure"~"park|garden|nature_reserve|playground"]',            RAYON_PARCS_M),
     countOverpass('["leisure"~"sports_centre|fitness_centre|swimming_pool|stadium|golf_course|ice_rink|bowling_alley"]', RAYON_SPORT_M),
     countOverpass('["shop"~"supermarket|convenience|mall"]',                        RAYON_COMMERCE_M),
-    listSeniors(),
   ]);
+  const seniors = await listSeniors();
 
   res.setHeader('Cache-Control', `public, max-age=${CACHE_SECONDES}`);
   return res.status(200).json({
