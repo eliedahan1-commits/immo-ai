@@ -121,7 +121,7 @@ export default async function handler(req, res) {
       success: true, score, dist,
       scoreLabel: score >= 8 ? 'Excellent' : score >= 6 ? 'Très bien' : score >= 4 ? 'Bien' : 'Limité',
       total: services.length, stats,
-      services: services.slice(0, 80),
+      services: services.slice(0, 300),
       source: 'OpenStreetMap via Overpass API',
       dateExtraction: new Date().toISOString()
     });

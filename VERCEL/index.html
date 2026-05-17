@@ -2033,7 +2033,7 @@ async function loadEcoles(lat, lng, codeInsee, dist=500){
   try{
     const url = `/api/ecoles?lat=${lat}&lon=${lng}&dist=${dist}${codeInsee?'&codeInsee='+codeInsee:''}`;
     const [osmResult, eduResult] = await Promise.allSettled([
-      fetch(url, {signal:AbortSignal.timeout(15000)}).then(r=>r.ok?r.json():Promise.reject('API écoles KO')),
+      fetch(url, {signal:AbortSignal.timeout(28000)}).then(r=>r.ok?r.json():Promise.reject('API écoles KO')),
       fetchEducationGouv(lat, lng, dist)
     ]);
     const osmData = osmResult.status==='fulfilled' ? osmResult.value : {success:false, etablissements:[]};
@@ -2065,7 +2065,7 @@ async function loadEcoles(lat, lng, codeInsee, dist=500){
 async function loadMobilite(lat, lng, dist=1000){
   window._mobiliteData = null;
   try{
-    const r = await apiCall(`/api/mobilite?lat=${lat}&lon=${lng}&dist=${dist}`, `https://overpass-api.de/api/interpreter`);
+    const r = await apiCall(`/api/mobilite?lat=${lat}&lon=${lng}&dist=${dist}`, `https://overpass-api.de/api/interpreter`, {signal:AbortSignal.timeout(28000)});
     if(!r.ok) throw new Error();
     const d = await r.json();
     if(!d.success) throw new Error();

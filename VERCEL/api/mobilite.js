@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   if (!lat || !lon) return res.status(400).json({ error: 'lat et lon requis' });
 
   try {
-    const query = `[out:json][timeout:22];(
+    const query = `[out:json][timeout:12];(
       node["public_transport"="stop_position"](around:${dist},${lat},${lon});
       node["highway"="bus_stop"](around:${dist},${lat},${lon});
       node["railway"="station"](around:${dist},${lat},${lon});
@@ -19,30 +19,14 @@ export default async function handler(req, res) {
       node["amenity"="fuel"](around:${dist},${lat},${lon});
     );out body;`;
 
-    const OVERPASS_URLS = [
-      'https://overpass-api.de/api/interpreter',
-      'https://overpass.kumi.systems/api/interpreter',
-    ];
-    const BUDGET_MS = 25000; // budget global < limite Vercel 30s
-    const start = Date.now();
-    let elements = null;
-    for (const url of OVERPASS_URLS) {
-      const remaining = BUDGET_MS - (Date.now() - start);
-      if (remaining < 3000) break; // plus assez de temps
-      try {
-        const _r = await fetch(url, {
-          method: 'POST',
-          body: `data=${encodeURIComponent(query)}`,
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          signal: AbortSignal.timeout(remaining)
-        });
-        if (!_r.ok) continue;
-        const json = await _r.json();
-        elements = json.elements || [];
-        break;
-      } catch { continue; }
-    }
-    if (elements === null) throw new Error('Serveurs Overpass indisponibles');
+    const r = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      body: `data=${encodeURIComponent(query)}`,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'IMMOAI/2.0 (https://immo-ai-nu.vercel.app)', 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(12000)
+    });
+    if (!r.ok) throw new Error(`Overpass ${r.status}`);
+    const elements = (await r.json()).elements || [];
 
     const metro = elements.filter(e => e.tags?.railway === 'subway_entrance' || e.tags?.station === 'subway');
     const gares = elements.filter(e => e.tags?.railway === 'station');
