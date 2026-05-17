@@ -119,11 +119,12 @@ export default async function handler(req, res) {
       success: true, score, dist,
       scoreLabel: score >= 8 ? 'Excellent' : score >= 6 ? 'Très bien' : score >= 4 ? 'Bien' : 'Limité',
       total: services.length, stats,
-      services: services,
+      services: services.slice(0, 80),
       source: 'OpenStreetMap via Overpass API',
       dateExtraction: new Date().toISOString()
     });
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({ success: false, error: error.message });
   }
 }

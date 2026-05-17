@@ -93,6 +93,7 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
+    res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({
       success: false, total: 0,
       types: { ecoles: 0, maternelle: 0, elementaire: 0, college: 0, lycee: 0 },
