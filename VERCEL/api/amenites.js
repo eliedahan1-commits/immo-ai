@@ -73,7 +73,8 @@ export default async function handler(req, res) {
             type: SENIORS_TYPE_MAP[t.amenity||t.social_facility]||'Établissement senior',
             lat: el.lat??el.center?.lat,
             lon: el.lon??el.center?.lon,
-            adresse: [t['addr:housenumber'],t['addr:street'],t['addr:city']].filter(Boolean).join(' ')||null
+            adresse: [t['addr:housenumber'],t['addr:street'],t['addr:city']].filter(Boolean).join(' ')||null,
+            phone: t.phone||t['contact:phone']||null
           };
         }).filter(e=>e.lat&&e.lon);
       } catch { continue; }

@@ -2305,7 +2305,7 @@ async function loadAltitude(lat, lng){
 
 async function loadAmenites(lat, lng){
   try {
-    const r = await fetch(`/api/amenites?lat=${lat}&lon=${lng}&_v=3`, { signal: AbortSignal.timeout(25000) });
+    const r = await fetch(`/api/amenites?lat=${lat}&lon=${lng}&_v=4`, { signal: AbortSignal.timeout(25000) });
     if(!r.ok) throw new Error('API amenites ' + r.status);
     const d = await r.json();
     window._amenitesData = d.success ? d : null;
@@ -3672,17 +3672,21 @@ function showServicesMap(filterCat){
     } else if (!sr.total) {
       h += '<p style="font-size:.8rem;color:var(--muted)">Aucun établissement répertorié dans OSM dans un rayon de 2km.</p>';
     } else {
-      h += '<p style="font-size:.8rem;margin:0 0 .5rem 0">' + sr.total + ' établissement(s) trouvé(s)</p>';
+      var _svcD = window._servicesCurrentDist || 1000;
+      var _srFiltered = (sr.etablissements||[]).filter(function(e){
+        if(!e.lat||!e.lon||!currentCoords) return true;
+        var dLa=(e.lat-currentCoords.lat)*111000, dLo=(e.lon-currentCoords.lng)*111000*Math.cos(currentCoords.lat*Math.PI/180);
+        return Math.sqrt(dLa*dLa+dLo*dLo) <= _svcD;
+      });
+      h += '<p style="font-size:.8rem;margin:0 0 .5rem 0">' + _srFiltered.length + ' établissement(s) dans un rayon de ' + (_svcD>=1000?(_svcD/1000)+'km':_svcD+'m') + '</p>';
       h += '<ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:.5rem">';
-      var etabs = sr.etablissements || [];
-      for (var i = 0; i < etabs.length; i++) {
-        var e = etabs[i];
-        var coordsTxt = e.lat && e.lon ? (e.lat.toFixed(5)+', '+e.lon.toFixed(5)) : '';
+      for (var i = 0; i < _srFiltered.length; i++) {
+        var e = _srFiltered[i];
         h += '<li style="font-size:.78rem;padding:.5rem .7rem;background:var(--surface);border-radius:.5rem;border-left:3px solid #9b59b6">';
         h += '<div style="font-weight:600;margin-bottom:.2rem">🏡 ' + (e.nom || 'Inconnu') + '</div>';
-        h += '<div style="color:#9b59b6;font-size:.72rem;margin-bottom:.15rem">» ' + (e.type || 'Etablissement senior') + '</div>';
+        h += '<div style="color:#9b59b6;font-size:.72rem;margin-bottom:.15rem">» ' + (e.type || 'Établissement senior') + '</div>';
         if (e.adresse) h += '<div style="color:var(--muted);font-size:.72rem">📍 ' + e.adresse + '</div>';
-        if (coordsTxt) h += '<div style="color:var(--muted);font-size:.65rem;margin-top:.15rem;font-family:monospace">GPS: ' + coordsTxt + '</div>';
+        if (e.phone) h += '<div style="color:var(--muted);font-size:.72rem;margin-top:.1rem">📞 ' + e.phone + '</div>';
         h += '</li>';
       }
       h += '</ul>';
@@ -3750,18 +3754,19 @@ function showServicesMap(filterCat){
       if(!window._servicesAllMarkers[cat]) window._servicesAllMarkers[cat]=[];
       window._servicesAllMarkers[cat].push(marker);
     });
-    // Marqueurs seniors depuis amenitesData
+    // Marqueurs seniors depuis amenitesData (cluster deja cree par SVC_CATS_LIST)
     if(window._amenitesData && window._amenitesData.seniors && window._amenitesData.seniors.etablissements) {
-      window._servicesClusters['senior'] = L.markerClusterGroup({maxClusterRadius:50});
-      window._servicesAllMarkers['senior'] = [];
-      map.addLayer(window._servicesClusters['senior']);
-      window._amenitesData.seniors.etablissements.forEach(s => {
+      const _sLat = currentCoords.lat, _sLng = currentCoords.lng;
+      const _seniorsDist = window._servicesCurrentDist || 1000;
+      window._amenitesData.seniors.etablissements.filter(s => {
+        const dLat=(s.lat-_sLat)*111000, dLon=(s.lon-_sLng)*111000*Math.cos(_sLat*Math.PI/180);
+        return Math.sqrt(dLat*dLat+dLon*dLon) <= _seniorsDist;
+      }).forEach(s => {
         const sIcon = L.divIcon({
           html: '<div style="background:#9b59b6;border:2px solid #fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 2px 5px rgba(0,0,0,.25);cursor:pointer">🏡</div>',
           iconSize: [26,26], iconAnchor: [13,13], className:''
         });
-        const coordsTxt = s.lat && s.lon ? (s.lat.toFixed(5)+', '+s.lon.toFixed(5)) : '';
-        const popupContent = '<strong>🏡 '+s.nom+'</strong><br><span style="font-size:.78rem;color:#666">'+s.type+'</span>'+(s.adresse?'<br><span style="font-size:.72rem">📍 '+s.adresse+'</span>':'')+(coordsTxt?'<br><span style="font-size:.68rem;color:#999">'+coordsTxt+'</span>':'');
+        const popupContent = '<strong>🏡 '+s.nom+'</strong><br><span style="font-size:.78rem;color:#666">'+s.type+'</span>'+(s.adresse?'<br><span style="font-size:.72rem">📍 '+s.adresse+'</span>':'')+(s.phone?'<br><span style="font-size:.72rem">📞 '+s.phone+'</span>':'');
         const marker = L.marker([s.lat, s.lon], {icon: sIcon}).bindPopup(popupContent);
         window._servicesClusters['senior'].addLayer(marker);
         window._servicesAllMarkers['senior'].push(marker);
@@ -3774,7 +3779,7 @@ function showServicesMap(filterCat){
     if(ctxSvc&&window.Chart){
       if(window._servicesChart){window._servicesChart.destroy();}
       const CAT_INFO2=CAT_INFO.map(c=>({key:c.key,label:c.emoji+' '+c.label,c:c.couleur+'b3'}));
-      window._servicesChart=new Chart(ctxSvc,{type:'bar',plugins:[ChartDataLabels],data:{labels:CAT_INFO2.map(c=>c.label),datasets:[{data:CAT_INFO2.map(c=>d.stats[c.key]||0),backgroundColor:CAT_INFO2.map(c=>c.c),borderWidth:0,borderRadius:4,barThickness:14}]},options:{indexAxis:'y',plugins:{legend:{display:false},datalabels:{anchor:'end',align:'right',color:'#8a7d68',font:{size:9,weight:'600'},formatter:v=>v||''},title:{display:true,text:`Répartition par catégorie (${window._servicesCurrentDist||1000}m)`,font:{size:10,family:'Outfit,sans-serif'},color:'#8a7d68',padding:{bottom:6}}},scales:{x:{ticks:{font:{size:9},color:'#8a7d68'},grid:{color:'rgba(0,0,0,.05)'}},y:{ticks:{font:{size:11},color:'#3d2f1e'},grid:{display:false}}},maintainAspectRatio:false,layout:{padding:{right:32,top:4}},animation:{duration:400}}});
+      window._servicesChart=new Chart(ctxSvc,{type:'bar',plugins:[ChartDataLabels],data:{labels:CAT_INFO2.map(c=>c.label),datasets:[{data:CAT_INFO2.map(c=>c.key==='senior'?(window._amenitesData&&window._amenitesData.seniors?window._amenitesData.seniors.total:0):d.stats[c.key]||0),backgroundColor:CAT_INFO2.map(c=>c.c),borderWidth:0,borderRadius:4,barThickness:14}]},options:{indexAxis:'y',plugins:{legend:{display:false},datalabels:{anchor:'end',align:'right',color:'#8a7d68',font:{size:9,weight:'600'},formatter:v=>v||''},title:{display:true,text:`Répartition par catégorie (${window._servicesCurrentDist||1000}m)`,font:{size:10,family:'Outfit,sans-serif'},color:'#8a7d68',padding:{bottom:6}}},scales:{x:{ticks:{font:{size:9},color:'#8a7d68'},grid:{color:'rgba(0,0,0,.05)'}},y:{ticks:{font:{size:11},color:'#3d2f1e'},grid:{display:false}}},maintainAspectRatio:false,layout:{padding:{right:32,top:4}},animation:{duration:400}}});
     }
 
     // Labels distances cercles (dynamiques)
@@ -4770,7 +4775,7 @@ async function fetchAdresseData(lat,lon){
     fetch(`/api/dvf?lat=${lat}&lon=${lon}&dist=1500&_v=5`).then(r=>r.json()),
     fetch(`/api/ecoles?lat=${lat}&lon=${lon}&dist=1000&_v=5`).then(r=>r.json()),
     fetch(`/api/mobilite?lat=${lat}&lon=${lon}&dist=500`).then(r=>r.json()),
-    fetch(`/api/amenites?lat=${lat}&lon=${lon}&_v=3`).then(r=>r.json()),
+    fetch(`/api/amenites?lat=${lat}&lon=${lon}&_v=4`).then(r=>r.json()),
     fetch(`/api/risques?lat=${lat}&lon=${lon}&_v=2`).then(r=>r.json()),
   ]);
   return{
@@ -5084,7 +5089,7 @@ async function runProfil(){
     if(!window._amenitesData){
       try{
         txt.innerHTML='<span class="spin"></span> Récupération des aménités…';
-        const r=await fetch(`/api/amenites?lat=${lat}&lon=${lon}&_v=3`,{signal:AbortSignal.timeout(25000)});
+        const r=await fetch(`/api/amenites?lat=${lat}&lon=${lon}&_v=4`,{signal:AbortSignal.timeout(25000)});
         const j=await r.json();
         if(j.success) window._amenitesData=j;
       }catch{}
