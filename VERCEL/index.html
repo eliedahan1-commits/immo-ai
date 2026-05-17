@@ -3407,7 +3407,7 @@ function showMobiliteDetail(){
     ${d.arretsPrincipaux?.length?`<p style="font-size:.75rem;color:var(--muted);margin-top:.5rem">Principaux arrêts : ${d.arretsPrincipaux.join(' · ')}</p>`:''}
     <p style="font-size:.62rem;color:var(--muted);margin-top:.4rem">Source : OpenStreetMap via Overpass API · Rayon ${mobDist}m</p>
     <div id="seniors-section-placeholder"></div>
-  \`);
+  `);
 
   // Initialiser immédiatement pour éviter un crash si toggle avant le setTimeout
   if(!window._mobiliteMarkers) window._mobiliteMarkers = {metro:[],bus:[],velo:[],gare:[],borne:[]};
