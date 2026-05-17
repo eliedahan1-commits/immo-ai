@@ -4,8 +4,9 @@
 const OVERPASS_URLS = [
   'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.openstreetmap.ru/api/interpreter',
 ];
-const TIMEOUT_MS = 25000;
+const TIMEOUT_MS = 9000; // 3 serveurs × 9s = 27s < limite Vercel Hobby (30s)
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -14,7 +15,7 @@ export default async function handler(req, res) {
   if (!lat || !lon) return res.status(400).json({ error: 'lat et lon requis' });
 
   try {
-    const query = `[out:json][timeout:24];(
+    const query = `[out:json][timeout:8];(
       way["highway"~"motorway|trunk"]["tunnel"!="yes"](around:500,${lat},${lon});
       way["highway"="primary"]["tunnel"!="yes"](around:300,${lat},${lon});
       way["highway"="secondary"]["tunnel"!="yes"](around:200,${lat},${lon});

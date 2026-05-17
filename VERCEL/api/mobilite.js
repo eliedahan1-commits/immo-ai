@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   if (!lat || !lon) return res.status(400).json({ error: 'lat et lon requis' });
 
   try {
-    const query = `[out:json][timeout:12];(
+    const query = `[out:json][timeout:8];(
       node["public_transport"="stop_position"](around:${dist},${lat},${lon});
       node["highway"="bus_stop"](around:${dist},${lat},${lon});
       node["railway"="station"](around:${dist},${lat},${lon});
@@ -19,15 +19,26 @@ export default async function handler(req, res) {
       node["amenity"="fuel"](around:${dist},${lat},${lon});
     );out body;`;
 
-    const r = await fetch('https://overpass-api.de/api/interpreter', {
-      method: 'POST',
-      body: `data=${encodeURIComponent(query)}`,
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'IMMOAI/2.0 (https://immo-ai.vercel.app)', 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(12000)
-    });
-    if (!r.ok) throw new Error(`Overpass ${r.status}`);
-
-    const data = await r.json();
+    const OVERPASS_URLS = [
+      'https://overpass-api.de/api/interpreter',
+      'https://overpass.kumi.systems/api/interpreter',
+      'https://overpass.openstreetmap.ru/api/interpreter',
+    ];
+    let data = null;
+    for (const url of OVERPASS_URLS) {
+      try {
+        const r = await fetch(url, {
+          method: 'POST',
+          body: `data=${encodeURIComponent(query)}`,
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          signal: AbortSignal.timeout(9000)
+        });
+        if (!r.ok) continue;
+        data = await r.json();
+        break;
+      } catch { continue; }
+    }
+    if (!data) throw new Error('Tous les serveurs Overpass sont indisponibles');
     const elements = data.elements || [];
 
     const metro = elements.filter(e => e.tags?.railway === 'subway_entrance' || e.tags?.station === 'subway');

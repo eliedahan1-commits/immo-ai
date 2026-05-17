@@ -4,7 +4,7 @@ const OVERPASS_URLS = [
   'https://overpass.kumi.systems/api/interpreter',
   'https://overpass.openstreetmap.ru/api/interpreter',
 ];
-const TIMEOUT_MS = 20000;
+const TIMEOUT_MS = 8000; // 3 serveurs × 8s = 24s < limite Vercel Hobby (30s)
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -17,7 +17,7 @@ export default async function handler(req, res) {
   try {
     // nwr = node + way + relation (capture les écoles mappées comme bâtiment ou relation)
     // out center = retourne les coordonnées du centre pour les ways/relations
-    const query = `[out:json][timeout:18];(
+    const query = `[out:json][timeout:7];(
       nwr["amenity"="school"](around:${dist},${lat},${lon});
       nwr["amenity"="kindergarten"](around:${dist},${lat},${lon});
       nwr["amenity"="college"](around:${dist},${lat},${lon});
