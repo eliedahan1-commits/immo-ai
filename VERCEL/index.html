@@ -2078,7 +2078,7 @@ async function loadEcoles(lat, lng, codeInsee, dist=500){
 async function loadMobilite(lat, lng, dist=1000){
   window._mobiliteData = null;
   try{
-    const r = await apiCall(`/api/mobilite?lat=${lat}&lon=${lng}&dist=${dist}&_v=2`, `https://overpass-api.de/api/interpreter`, {signal:AbortSignal.timeout(28000)});
+    const r = await apiCall(`/api/mobilite?lat=${lat}&lon=${lng}&dist=${dist}&_v=3`, `https://overpass-api.de/api/interpreter`, {signal:AbortSignal.timeout(28000)});
     if(!r.ok) throw new Error();
     const d = await r.json();
     if(!d.success) throw new Error();
