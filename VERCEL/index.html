@@ -2918,26 +2918,6 @@ function showPanel(title, html){
       <div class="detail-body">${html}</div>
     </div>`;
   window.scrollTo({top:0, behavior:'smooth'});
-  // Seniors section (rendu séparé pour éviter les templates imbriqués)
-  setTimeout(()=>{
-    const ph = document.getElementById('seniors-section-placeholder');
-    if(!ph) return;
-    const sr = window._amenitesData?.seniors;
-    if(!sr || !sr.total) { ph.remove(); return; }
-    const etabs = (sr.etablissements||[]).slice(0,8);
-    let html = '<div style="margin-top:1rem;padding:.75rem 1rem;background:var(--warm);border-radius:8px;border:1px solid var(--border)">';
-    html += '<div style="font-weight:600;font-size:.82rem;color:var(--text);margin-bottom:.5rem">\u{1F3E1} Seniors & EHPAD \u00B7 '+(sr.rayon/1000)+'km \u2014 '+sr.total+' \u00E9tablissement(s)</div>';
-    etabs.forEach(e=>{
-      html += '<div style="padding:.4rem 0;border-bottom:1px solid var(--border);font-size:.78rem">';
-      html += '<span style="font-weight:600;color:var(--text)">'+e.nom+'</span>';
-      html += '<span style="color:var(--muted);font-size:.7rem;margin-left:.5rem">'+e.type+'</span>';
-      if(e.adresse) html += '<div style="color:var(--muted);font-size:.68rem">'+e.adresse+'</div>';
-      html += '</div>';
-    });
-    if(sr.total>8) html += '<div style="font-size:.68rem;color:var(--muted);margin-top:.3rem">+ '+(sr.total-8)+' autres</div>';
-    html += '</div>';
-    ph.outerHTML = html;
-  }, 50);
   // Masquer les cartes
   document.getElementById('cardsGrid').style.display = 'none';
 }
@@ -3406,7 +3386,6 @@ function showMobiliteDetail(){
     <div style="margin-top:1.2rem;height:160px;width:70%"><canvas id="mobiliteChart"></canvas></div>
     ${d.arretsPrincipaux?.length?`<p style="font-size:.75rem;color:var(--muted);margin-top:.5rem">Principaux arrêts : ${d.arretsPrincipaux.join(' · ')}</p>`:''}
     <p style="font-size:.62rem;color:var(--muted);margin-top:.4rem">Source : OpenStreetMap via Overpass API · Rayon ${mobDist}m</p>
-    <div id="seniors-section-placeholder"></div>
   `);
 
   // Initialiser immédiatement pour éviter un crash si toggle avant le setTimeout
@@ -3657,7 +3636,36 @@ function showServicesMap(filterCat){
     <div class="map-container" id="mapServices"></div>
     <div style="margin-top:1.2rem;height:220px"><canvas id="servicesChart"></canvas></div>
     <p style="font-size:.62rem;color:var(--muted);margin-top:.4rem">Source : OpenStreetMap · Rayon ${svcDist>=1000?(svcDist/1000)+'km':svcDist+'m'} · ${d.total} établissements trouvés</p>
+    <div id="seniors-section-placeholder"></div>
   `);
+
+  // Afficher les seniors EHPAD depuis les données aménités
+  setTimeout(function() {
+    var ph = document.getElementById('seniors-section-placeholder');
+    if (!ph) return;
+    var sr = window._amenitesData && window._amenitesData.seniors;
+    if (!sr || !sr.total) { ph.remove(); return; }
+    var h = '<div style="margin-top:1.2rem;padding:1rem;background:var(--surface2);border-radius:.75rem">';
+    h += '<h4 style="font-size:.9rem;font-weight:600;margin:0 0 .6rem 0">Seniors & EHPAD (' + sr.total + ' établissements)</h4>';
+    var etabs = sr.etablissements || [];
+    if (etabs.length === 0) {
+      h += '<p style="font-size:.8rem;color:var(--muted)">Aucun établissement répertorié dans ce rayon.</p>';
+    } else {
+      h += '<ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:.4rem">';
+      for (var i = 0; i < etabs.length; i++) {
+        var e = etabs[i];
+        h += '<li style="font-size:.78rem;padding:.3rem .5rem;background:var(--surface);border-radius:.4rem">';
+        h += '<strong>' + (e.nom || 'Inconnu') + '</strong>';
+        h += ' <span style="color:var(--muted)">— ' + (e.type || '') + '</span>';
+        if (e.adresse) h += '<br><span style="color:var(--muted)">' + e.adresse + '</span>';
+        h += '</li>';
+      }
+      h += '</ul>';
+    }
+    h += '<p style="font-size:.6rem;color:var(--muted);margin-top:.5rem">Source : OpenStreetMap via Overpass API · Rayon 2km</p>';
+    h += '</div>';
+    ph.outerHTML = h;
+  }, 100);
 
   // Synchro immédiate des boutons (sans attendre la carte)
   window._applySvcFilters();
@@ -5576,4 +5584,24 @@ function geolocateUser(){
 </script>
 <script src="/pdf-export.js?v=5"></script>
 </body>
-</html>
+</html
+    <div id="seniors-section-placeholder"></div>
+
+  // Seniors & EHPAD — rendu après showPanel pour éviter les templates imbriqués
+  setTimeout(()=>{
+    const ph = document.getElementById('seniors-section-placeholder');
+    if(!ph) return;
+    const sr = window._amenitesData?.seniors;
+    if(!sr || !sr.total){ ph.remove(); return; }
+    const etabs = (sr.etablissements||[]).slice(0,8);
+    let h = '<div style="margin-top:1rem;padding:.75rem 1rem;background:var(--warm);border-radius:8px;border:1px solid var(--border)">';
+    h += '<div style="font-weight:600;font-size:.82rem;color:var(--text);margin-bottom:.5rem">🏡 Seniors & EHPAD · '+(sr.rayon/1000)+'km — '+sr.total+' établissement(s)</div>';
+    etabs.forEach(e=>{
+      h += '<div style="padding:.4rem 0;border-bottom:1px solid var(--border);font-size:.78rem"><span style="font-weight:600;color:var(--text)">'+e.nom+'</span><span style="color:var(--muted);font-size:.7rem;margin-left:.5rem">'+e.type+'</span>';
+      if(e.adresse) h += '<div style="color:var(--muted);font-size:.68rem">'+e.adresse+'</div>';
+      h += '</div>';
+    });
+    if(sr.total>8) h += '<div style="font-size:.68rem;color:var(--muted);margin-top:.3rem">+ '+(sr.total-8)+' autres</div>';
+    h += '</div>';
+    ph.outerHTML = h;
+  }, 50);>
