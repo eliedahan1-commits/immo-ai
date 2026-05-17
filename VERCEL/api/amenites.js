@@ -8,7 +8,7 @@ const RAYON_SPORT_M    = 2000;  // rayon équipements sportifs
 const RAYON_COMMERCE_M = 1000;  // rayon commerces alimentaires
 const RAYON_SENIORS_M  = 2000;  // rayon établissements seniors / EHPAD
 const TIMEOUT_MS       = 7000;  // timeout par requête Overpass (comptages rapides)
-const TIMEOUT_SENIORS_MS = 18000; // timeout pour listSeniors (requête plus complexe)
+const TIMEOUT_SENIORS_MS = 22000; // timeout pour listSeniors (requête plus complexe)
 const CACHE_SECONDES   = 86400; // 1 jour
 
 const SENIORS_TYPE_MAP = {
@@ -51,7 +51,7 @@ export default async function handler(req, res) {
 
   // Requête seniors avec liste nominative
   async function listSeniors() {
-    const q = `[out:json][timeout:10];(nwr["amenity"="nursing_home"](around:${RAYON_SENIORS_M},${lat},${lon});nwr["amenity"="social_facility"]["social_facility"="nursing_home"](around:${RAYON_SENIORS_M},${lat},${lon});nwr["amenity"="social_facility"]["social_facility"="assisted_living"](around:${RAYON_SENIORS_M},${lat},${lon});nwr["amenity"="social_facility"]["social_facility"="group_home"](around:${RAYON_SENIORS_M},${lat},${lon}););out center tags;`;
+    const q = `[out:json][timeout:20];(nwr["amenity"="nursing_home"](around:${RAYON_SENIORS_M},${lat},${lon});nwr["amenity"="social_facility"]["social_facility"~"nursing_home|assisted_living|group_home"](around:${RAYON_SENIORS_M},${lat},${lon}););out center tags;`;
     for (const url of OVERPASS_URLS) {
       try {
         const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'data='+encodeURIComponent(q), signal:AbortSignal.timeout(TIMEOUT_SENIORS_MS) });
