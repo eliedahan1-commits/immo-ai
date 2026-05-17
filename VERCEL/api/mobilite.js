@@ -35,7 +35,7 @@ export default async function handler(req, res) {
     })).filter(e => e.lat && e.lon);
 
     const metro = elements.filter(e => e.tags?.railway === 'subway_entrance' || e.tags?.station === 'subway');
-    const gares = elements.filter(e => e.tags?.railway === 'station');
+    const gares = elements.filter(e => e.tags?.railway === 'station' && e.tags?.station !== 'subway');
     const trams = elements.filter(e => e.tags?.railway === 'tram_stop');
     const bus = elements.filter(e => e.tags?.highway === 'bus_stop' || e.tags?.public_transport === 'stop_position');
     const velos = elements.filter(e => e.tags?.amenity === 'bicycle_rental');
