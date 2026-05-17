@@ -1858,7 +1858,7 @@ function afficherDVF(d){
 async function loadRisques(lat, lng, citycode){
   window._risquesData = null;
   try{
-    const r = await apiCall(`/api/risques?lat=${lat}&lon=${lng}&_v=2`, `https://georisques.gouv.fr/api/v1/gaspar/risques?latlon=${lng},${lat}&rayon=500`);
+    const r = await apiCall(`/api/risques?lat=${lat}&lon=${lng}&_v=3`, `https://georisques.gouv.fr/api/v1/gaspar/risques?latlon=${lng},${lat}&rayon=500`);
     if(!r.ok) throw new Error();
     const d = await r.json();
     let nb, score, detail=[];
