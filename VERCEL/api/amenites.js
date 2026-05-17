@@ -50,7 +50,7 @@ export default async function handler(req, res) {
 
   // Requête seniors avec liste nominative
   async function listSeniors() {
-    const q = `[out:json][timeout:10];(nwr["amenity"="nursing_home"](around:${RAYON_SENIORS_M},${lat},${lon});nwr["amenity"="retirement_home"](around:${RAYON_SENIORS_M},${lat},${lon});nwr["amenity"="social_facility"]["social_facility:for"~"senior|elderly"](around:${RAYON_SENIORS_M},${lat},${lon});nwr["social_facility"~"nursing_home|group_home"](around:${RAYON_SENIORS_M},${lat},${lon}););out center tags;`;
+    const q = `[out:json][timeout:10];(nwr["amenity"="nursing_home"](around:${RAYON_SENIORS_M},${lat},${lon});nwr["amenity"="social_facility"]["social_facility"="nursing_home"](around:${RAYON_SENIORS_M},${lat},${lon});nwr["amenity"="social_facility"]["social_facility"="assisted_living"](around:${RAYON_SENIORS_M},${lat},${lon});nwr["amenity"="social_facility"]["social_facility"="group_home"](around:${RAYON_SENIORS_M},${lat},${lon}););out center tags;`;
     for (const url of OVERPASS_URLS) {
       try {
         const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'data='+encodeURIComponent(q), signal:AbortSignal.timeout(TIMEOUT_MS) });

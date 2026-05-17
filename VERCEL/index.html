@@ -2305,7 +2305,7 @@ async function loadAltitude(lat, lng){
 
 async function loadAmenites(lat, lng){
   try {
-    const r = await fetch(`/api/amenites?lat=${lat}&lon=${lng}&_v=1`, { signal: AbortSignal.timeout(20000) });
+    const r = await fetch(`/api/amenites?lat=${lat}&lon=${lng}&_v=2`, { signal: AbortSignal.timeout(20000) });
     if(!r.ok) throw new Error('API amenites ' + r.status);
     const d = await r.json();
     window._amenitesData = d.success ? d : null;
@@ -4750,7 +4750,7 @@ async function fetchAdresseData(lat,lon){
     fetch(`/api/dvf?lat=${lat}&lon=${lon}&dist=1500&_v=5`).then(r=>r.json()),
     fetch(`/api/ecoles?lat=${lat}&lon=${lon}&dist=1000&_v=5`).then(r=>r.json()),
     fetch(`/api/mobilite?lat=${lat}&lon=${lon}&dist=500`).then(r=>r.json()),
-    fetch(`/api/amenites?lat=${lat}&lon=${lon}&_v=1`).then(r=>r.json()),
+    fetch(`/api/amenites?lat=${lat}&lon=${lon}&_v=2`).then(r=>r.json()),
     fetch(`/api/risques?lat=${lat}&lon=${lon}&_v=2`).then(r=>r.json()),
   ]);
   return{
@@ -5064,7 +5064,7 @@ async function runProfil(){
     if(!window._amenitesData){
       try{
         txt.innerHTML='<span class="spin"></span> Récupération des aménités…';
-        const r=await fetch(`/api/amenites?lat=${lat}&lon=${lon}&_v=1`,{signal:AbortSignal.timeout(15000)});
+        const r=await fetch(`/api/amenites?lat=${lat}&lon=${lon}&_v=2`,{signal:AbortSignal.timeout(15000)});
         const j=await r.json();
         if(j.success) window._amenitesData=j;
       }catch{}
