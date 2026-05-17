@@ -1339,7 +1339,6 @@ function go(id){
     if(id === 'ecoles')    { showEcolesFromMenu(); return; }
     if(id === 'mobilite')  { showMobiliteFromMenu(); return; }
     if(id === 'services')  { showServicesFromMenu(); return; }
-    if(id === 'recherche') { if(typeof showRecherchePanel==='function') showRecherchePanel(); return; }
     if(id === 'bruit')     { ouvrirBruit(); return; }
   }
   _goPage(id);
@@ -1696,7 +1695,6 @@ function renderCards(props, coords){
       cards: [
         {id:'offre',    icon:'🤝', label:"Coaching de l'offre",   value:'Consulter →', sub:'Préparer votre offre',     source:'IA', action:"go('offre')"},
         {id:'profil',   icon:'🎯', label:'Compatibilité de vie',  value:'Tester →',    sub:'Match quartier / profil',  source:'IA', action:"go('profil')"},
-        {id:'recherche', icon:'🏠', label:'Trouver un bien',        value:'Rechercher →', sub:'5 sites pré-filtrés',      source:'ImmoAI', action:"go('recherche')"},
       ]
     },
   ];
@@ -5658,6 +5656,5 @@ function geolocateUser(){
 
 </script>
 <script src="/pdf-export.js?v=5"></script>
-<script src="/recherche-bien.js?v=1"></script>
 </body>
 </html>
