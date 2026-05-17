@@ -11,13 +11,13 @@ export default async function handler(req, res) {
     const query = `[out:json][timeout:12];(
       node["public_transport"="stop_position"](around:${dist},${lat},${lon});
       node["highway"="bus_stop"](around:${dist},${lat},${lon});
-      node["railway"="station"](around:${dist},${lat},${lon});
+      nwr["railway"="station"](around:${dist},${lat},${lon});
       node["railway"="subway_entrance"](around:${dist},${lat},${lon});
       node["railway"="tram_stop"](around:${dist},${lat},${lon});
       node["amenity"="bicycle_rental"](around:${dist},${lat},${lon});
       node["amenity"="charging_station"](around:${dist},${lat},${lon});
       node["amenity"="fuel"](around:${dist},${lat},${lon});
-    );out body;`;
+    );out center;`;
 
     const r = await fetch('https://overpass-api.de/api/interpreter', {
       method: 'POST',
@@ -26,7 +26,13 @@ export default async function handler(req, res) {
       signal: AbortSignal.timeout(12000)
     });
     if (!r.ok) throw new Error(`Overpass ${r.status}`);
-    const elements = (await r.json()).elements || [];
+    const rawElements = (await r.json()).elements || [];
+    // Normaliser center pour les ways/relations (ex: grandes gares mappées comme bâtiment)
+    const elements = rawElements.map(e => ({
+      ...e,
+      lat: e.lat ?? e.center?.lat,
+      lon: e.lon ?? e.center?.lon
+    })).filter(e => e.lat && e.lon);
 
     const metro = elements.filter(e => e.tags?.railway === 'subway_entrance' || e.tags?.station === 'subway');
     const gares = elements.filter(e => e.tags?.railway === 'station');
