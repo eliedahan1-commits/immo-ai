@@ -18,14 +18,30 @@ export default async function handler(req, res) {
       nwr["amenity"="college"](around:${dist},${lat},${lon});
     );out center;`;
 
-    const r = await fetch('https://overpass-api.de/api/interpreter', {
-      method: 'POST',
-      body: `data=${encodeURIComponent(query)}`,
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'IMMOAI/2.0 (https://immo-ai-nu.vercel.app)', 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(25000)
-    });
-    if (!r.ok) throw new Error(`Overpass ${r.status}`);
-    const elements = (await r.json()).elements || [];
+    const OVERPASS_URLS = [
+      'https://overpass-api.de/api/interpreter',
+      'https://overpass.kumi.systems/api/interpreter',
+    ];
+    const BUDGET_MS = 25000;
+    const start = Date.now();
+    let elements = null;
+    for (const url of OVERPASS_URLS) {
+      const remaining = BUDGET_MS - (Date.now() - start);
+      if (remaining < 3000) break;
+      try {
+        const _r = await fetch(url, {
+          method: 'POST',
+          body: `data=${encodeURIComponent(query)}`,
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'IMMOAI/2.0 (https://immo-ai-nu.vercel.app)', 'Accept': 'application/json' },
+          signal: AbortSignal.timeout(remaining)
+        });
+        if (!_r.ok) continue;
+        const json = await _r.json();
+        elements = json.elements || [];
+        break;
+      } catch { continue; }
+    }
+    if (elements === null) throw new Error('Serveurs Overpass indisponibles');
 
     const etablissements = elements
       .filter(el => (el.lat && el.lon) || (el.center?.lat && el.center?.lon))

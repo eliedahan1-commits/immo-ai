@@ -1786,7 +1786,7 @@ function setCardRetry(id, fn){
     const subEl = card.querySelector('.card-sub');
     if(valEl) valEl.innerHTML='<span class="spin"></span>';
     if(subEl) subEl.textContent='Chargement...';
-    fn();
+    setTimeout(fn, 500);
   };
   card.appendChild(btn);
 }
