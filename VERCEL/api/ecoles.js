@@ -1,10 +1,5 @@
 // ══ VERCEL FUNCTION : ÉCOLES via Overpass ══
-const OVERPASS_URLS = [
-  'https://overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
-  'https://overpass.openstreetmap.ru/api/interpreter',
-];
-const TIMEOUT_MS = 8000; // 3 serveurs × 8s = 24s < limite Vercel Hobby (30s)
+
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -17,28 +12,36 @@ export default async function handler(req, res) {
   try {
     // nwr = node + way + relation (capture les écoles mappées comme bâtiment ou relation)
     // out center = retourne les coordonnées du centre pour les ways/relations
-    const query = `[out:json][timeout:7];(
+    const query = `[out:json][timeout:22];(
       nwr["amenity"="school"](around:${dist},${lat},${lon});
       nwr["amenity"="kindergarten"](around:${dist},${lat},${lon});
       nwr["amenity"="college"](around:${dist},${lat},${lon});
     );out center;`;
 
-    let data = null;
+    const OVERPASS_URLS = [
+      'https://overpass-api.de/api/interpreter',
+      'https://overpass.kumi.systems/api/interpreter',
+    ];
+    const BUDGET_MS = 25000; // budget global < limite Vercel 30s
+    const start = Date.now();
+    let elements = null;
     for (const url of OVERPASS_URLS) {
+      const remaining = BUDGET_MS - (Date.now() - start);
+      if (remaining < 3000) break; // plus assez de temps
       try {
-        const r = await fetch(url, {
+        const _r = await fetch(url, {
           method: 'POST',
           body: `data=${encodeURIComponent(query)}`,
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          signal: AbortSignal.timeout(TIMEOUT_MS)
+          signal: AbortSignal.timeout(remaining)
         });
-        if (!r.ok) continue;
-        data = await r.json();
+        if (!_r.ok) continue;
+        const json = await _r.json();
+        elements = json.elements || [];
         break;
       } catch { continue; }
     }
-    if (!data) throw new Error('Tous les serveurs Overpass sont indisponibles');
-    const elements = data.elements || [];
+    if (elements === null) throw new Error('Serveurs Overpass indisponibles');
 
     const etablissements = elements
       .filter(el => (el.lat && el.lon) || (el.center?.lat && el.center?.lon))

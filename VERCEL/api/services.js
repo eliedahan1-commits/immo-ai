@@ -1,10 +1,5 @@
 // ══ VERCEL FUNCTION : SERVICES ══
-const OVERPASS_URLS = [
-  'https://overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
-  'https://overpass.openstreetmap.ru/api/interpreter',
-];
-const TIMEOUT_MS = 9000; // 3 serveurs × 9s = 27s < limite Vercel Hobby (30s)
+
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -18,7 +13,7 @@ export default async function handler(req, res) {
     // Requête fusionnée avec regex : 4 sous-requêtes au lieu de 16 → beaucoup plus rapide
     // node pour amenity/shop (presque toujours des points) → léger et rapide
     // nwr pour les éléments cartographiés comme polygones (parcs, culture, sport, crèches)
-    const query = `[out:json][timeout:8];(
+    const query = `[out:json][timeout:22];(
       node["amenity"~"^(pharmacy|doctors|hospital|clinic|dentist|bank|post_office|restaurant|cafe|charging_station|bicycle_rental|childcare)$"](around:${dist},${lat},${lon});
       node["shop"~"^(supermarket|convenience|bakery|butcher|greengrocer)$"](around:${dist},${lat},${lon});
       nwr["leisure"~"^(fitness_centre|sports_centre|swimming_pool|stadium|sports_hall|golf_course|ice_rink|skatepark)$"](around:${dist},${lat},${lon});
@@ -28,23 +23,30 @@ export default async function handler(req, res) {
       nwr["amenity"="kindergarten"]["name"~"cr.che|halte|accueil|multi.accueil|microcrech",i](around:${dist},${lat},${lon});
     );out center;`;
 
-    let data = null;
+    const OVERPASS_URLS = [
+      'https://overpass-api.de/api/interpreter',
+      'https://overpass.kumi.systems/api/interpreter',
+    ];
+    const BUDGET_MS = 25000; // budget global < limite Vercel 30s
+    const start = Date.now();
+    let elements = null;
     for (const url of OVERPASS_URLS) {
+      const remaining = BUDGET_MS - (Date.now() - start);
+      if (remaining < 3000) break; // plus assez de temps
       try {
-        const r = await fetch(url, {
+        const _r = await fetch(url, {
           method: 'POST',
           body: `data=${encodeURIComponent(query)}`,
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          signal: AbortSignal.timeout(TIMEOUT_MS)
+          signal: AbortSignal.timeout(remaining)
         });
-        if (!r.ok) continue;
-        data = await r.json();
+        if (!_r.ok) continue;
+        const json = await _r.json();
+        elements = json.elements || [];
         break;
       } catch { continue; }
     }
-    if (!data) throw new Error('Tous les serveurs Overpass sont indisponibles');
-    const data_json = data;
-    const elements = data_json.elements || [];
+    if (elements === null) throw new Error('Serveurs Overpass indisponibles');
 
     const services = elements
       .filter(e => (e.lat && e.lon) || (e.center?.lat && e.center?.lon))

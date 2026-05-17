@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   if (!lat || !lon) return res.status(400).json({ error: 'lat et lon requis' });
 
   try {
-    const query = `[out:json][timeout:12];(
+    const query = `[out:json][timeout:22];(
       node["public_transport"="stop_position"](around:${dist},${lat},${lon});
       node["highway"="bus_stop"](around:${dist},${lat},${lon});
       node["railway"="station"](around:${dist},${lat},${lon});
@@ -22,24 +22,27 @@ export default async function handler(req, res) {
     const OVERPASS_URLS = [
       'https://overpass-api.de/api/interpreter',
       'https://overpass.kumi.systems/api/interpreter',
-      'https://overpass.openstreetmap.ru/api/interpreter',
     ];
-    let data = null;
+    const BUDGET_MS = 25000; // budget global < limite Vercel 30s
+    const start = Date.now();
+    let elements = null;
     for (const url of OVERPASS_URLS) {
+      const remaining = BUDGET_MS - (Date.now() - start);
+      if (remaining < 3000) break; // plus assez de temps
       try {
-        const r = await fetch(url, {
+        const _r = await fetch(url, {
           method: 'POST',
           body: `data=${encodeURIComponent(query)}`,
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          signal: AbortSignal.timeout(12000)
+          signal: AbortSignal.timeout(remaining)
         });
-        if (!r.ok) continue;
-        data = await r.json();
+        if (!_r.ok) continue;
+        const json = await _r.json();
+        elements = json.elements || [];
         break;
       } catch { continue; }
     }
-    if (!data) throw new Error('Tous les serveurs Overpass sont indisponibles');
-    const elements = data.elements || [];
+    if (elements === null) throw new Error('Serveurs Overpass indisponibles');
 
     const metro = elements.filter(e => e.tags?.railway === 'subway_entrance' || e.tags?.station === 'subway');
     const gares = elements.filter(e => e.tags?.railway === 'station');
