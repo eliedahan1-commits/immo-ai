@@ -1,4 +1,11 @@
 // ══ VERCEL FUNCTION : ÉCOLES via Overpass ══
+const OVERPASS_URLS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.openstreetmap.ru/api/interpreter',
+];
+const TIMEOUT_MS = 20000;
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   const lat = parseFloat(req.query.lat);
@@ -10,25 +17,27 @@ export default async function handler(req, res) {
   try {
     // nwr = node + way + relation (capture les écoles mappées comme bâtiment ou relation)
     // out center = retourne les coordonnées du centre pour les ways/relations
-    const query = `[out:json][timeout:25];(
+    const query = `[out:json][timeout:18];(
       nwr["amenity"="school"](around:${dist},${lat},${lon});
       nwr["amenity"="kindergarten"](around:${dist},${lat},${lon});
       nwr["amenity"="college"](around:${dist},${lat},${lon});
     );out center;`;
 
-    const r = await fetch('https://overpass-api.de/api/interpreter', {
-      method: 'POST',
-      body: `data=${encodeURIComponent(query)}`,
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'IMMOAI/2.0 (https://immo-ai-nu.vercel.app)',
-        'Accept': 'application/json'
-      },
-      signal: AbortSignal.timeout(25000)
-    });
-
-    if (!r.ok) throw new Error(`Overpass ${r.status}`);
-    const data = await r.json();
+    let data = null;
+    for (const url of OVERPASS_URLS) {
+      try {
+        const r = await fetch(url, {
+          method: 'POST',
+          body: `data=${encodeURIComponent(query)}`,
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          signal: AbortSignal.timeout(TIMEOUT_MS)
+        });
+        if (!r.ok) continue;
+        data = await r.json();
+        break;
+      } catch { continue; }
+    }
+    if (!data) throw new Error('Tous les serveurs Overpass sont indisponibles');
     const elements = data.elements || [];
 
     const etablissements = elements

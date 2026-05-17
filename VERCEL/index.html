@@ -2244,20 +2244,14 @@ async function loadServices(lat, lng, dist=500){
     return json;
   };
   try{
-    let data;
-    try {
-      data = await tryLoad(dist);
-    } catch(e) {
-      if(dist > 500) data = await tryLoad(500); // retry avec rayon réduit
-      else throw e;
-    }
+    const data = await tryLoad(dist);
     setCard('services',
       data.score+'/10',
       `${data.stats.sante} santé · ${data.stats.commerce} commerces · ${data.total} services`,
       data.score>=7?'good':data.score>=4?'':'warn'
     );
     window._servicesData = data;
-    window._servicesCurrentDist = data.dist || dist;
+    window._servicesCurrentDist = dist;
   }catch{
     setCard('services','Non disponible','Erreur API services','');
     setCardRetry('services',()=>currentCoords&&loadServices(currentCoords.lat,currentCoords.lng));
@@ -3640,18 +3634,20 @@ function showServicesMap(filterCat){
   `);
 
   // Afficher les seniors EHPAD depuis les données aménités
-  setTimeout(function() {
+  var _renderSeniors = function() {
     var ph = document.getElementById('seniors-section-placeholder');
     if (!ph) return;
     var sr = window._amenitesData && window._amenitesData.seniors;
-    if (!sr || !sr.total) { ph.remove(); return; }
     var h = '<div style="margin-top:1.2rem;padding:1rem;background:var(--surface2);border-radius:.75rem">';
-    h += '<h4 style="font-size:.9rem;font-weight:600;margin:0 0 .6rem 0">Seniors & EHPAD (' + sr.total + ' établissements)</h4>';
-    var etabs = sr.etablissements || [];
-    if (etabs.length === 0) {
-      h += '<p style="font-size:.8rem;color:var(--muted)">Aucun établissement répertorié dans ce rayon.</p>';
+    h += '<h4 style="font-size:.9rem;font-weight:600;margin:0 0 .6rem 0">🏡 Seniors & EHPAD</h4>';
+    if (!sr) {
+      h += '<p style="font-size:.8rem;color:var(--muted)">Données non disponibles (erreur de chargement).</p>';
+    } else if (!sr.total) {
+      h += '<p style="font-size:.8rem;color:var(--muted)">Aucun établissement répertorié dans OSM dans un rayon de 2km.</p>';
     } else {
+      h += '<p style="font-size:.8rem;margin:0 0 .5rem 0">' + sr.total + ' établissement(s) trouvé(s)</p>';
       h += '<ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:.4rem">';
+      var etabs = sr.etablissements || [];
       for (var i = 0; i < etabs.length; i++) {
         var e = etabs[i];
         h += '<li style="font-size:.78rem;padding:.3rem .5rem;background:var(--surface);border-radius:.4rem">';
@@ -3665,7 +3661,8 @@ function showServicesMap(filterCat){
     h += '<p style="font-size:.6rem;color:var(--muted);margin-top:.5rem">Source : OpenStreetMap via Overpass API · Rayon 2km</p>';
     h += '</div>';
     ph.outerHTML = h;
-  }, 100);
+  };
+  setTimeout(_renderSeniors, 200);
 
   // Synchro immédiate des boutons (sans attendre la carte)
   window._applySvcFilters();

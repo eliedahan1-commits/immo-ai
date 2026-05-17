@@ -1,4 +1,11 @@
 // ══ VERCEL FUNCTION : SERVICES ══
+const OVERPASS_URLS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.openstreetmap.ru/api/interpreter',
+];
+const TIMEOUT_MS = 28000;
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   const lat = parseFloat(req.query.lat);
@@ -11,7 +18,7 @@ export default async function handler(req, res) {
     // Requête fusionnée avec regex : 4 sous-requêtes au lieu de 16 → beaucoup plus rapide
     // node pour amenity/shop (presque toujours des points) → léger et rapide
     // nwr pour les éléments cartographiés comme polygones (parcs, culture, sport, crèches)
-    const query = `[out:json][timeout:28];(
+    const query = `[out:json][timeout:26];(
       node["amenity"~"^(pharmacy|doctors|hospital|clinic|dentist|bank|post_office|restaurant|cafe|charging_station|bicycle_rental|childcare)$"](around:${dist},${lat},${lon});
       node["shop"~"^(supermarket|convenience|bakery|butcher|greengrocer)$"](around:${dist},${lat},${lon});
       nwr["leisure"~"^(fitness_centre|sports_centre|swimming_pool|stadium|sports_hall|golf_course|ice_rink|skatepark)$"](around:${dist},${lat},${lon});
@@ -21,21 +28,23 @@ export default async function handler(req, res) {
       nwr["amenity"="kindergarten"]["name"~"cr.che|halte|accueil|multi.accueil|microcrech",i](around:${dist},${lat},${lon});
     );out center;`;
 
-    const r = await fetch('https://overpass-api.de/api/interpreter', {
-      method: 'POST',
-      body: `data=${encodeURIComponent(query)}`,
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'IMMOAI/2.0 (https://immo-ai.vercel.app)',
-        'Accept': 'application/json'
-      },
-      signal: AbortSignal.timeout(28000)
-    });
-
-    if (!r.ok) throw new Error(`Overpass ${r.status}`);
-
-    const data = await r.json();
-    const elements = data.elements || [];
+    let data = null;
+    for (const url of OVERPASS_URLS) {
+      try {
+        const r = await fetch(url, {
+          method: 'POST',
+          body: `data=${encodeURIComponent(query)}`,
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          signal: AbortSignal.timeout(TIMEOUT_MS)
+        });
+        if (!r.ok) continue;
+        data = await r.json();
+        break;
+      } catch { continue; }
+    }
+    if (!data) throw new Error('Tous les serveurs Overpass sont indisponibles');
+    const data_json = data;
+    const elements = data_json.elements || [];
 
     const services = elements
       .filter(e => (e.lat && e.lon) || (e.center?.lat && e.center?.lon))
