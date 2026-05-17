@@ -721,6 +721,7 @@ path.leaflet-interactive:focus{outline:none;}
       <div class="hero-search">
         <span class="hero-search-icon">📍</span>
         <input type="text" id="heroSearch" placeholder="Ex: 24 rue de la Paix, Paris 75002…" autocomplete="off" />
+        <button id="geoBtn" title="Utiliser ma position" onclick="geolocateUser()" style="background:none;border:none;cursor:pointer;padding:.3rem .5rem;color:rgba(255,255,255,.5);font-size:1.1rem;flex-shrink:0;border-radius:50px;transition:color .2s" onmouseover="this.style.color='rgba(184,131,42,.9)'" onmouseout="this.style.color='rgba(255,255,255,.5)'" title="Me localiser">🎯</button>
         <button class="hero-search-btn" onclick="analyzeAddress()">Analyser ✦</button>
         <div class="hero-suggestions" id="heroSugs"></div>
       </div>
@@ -763,6 +764,7 @@ path.leaflet-interactive:focus{outline:none;}
 
   <!-- ══ PRIX & DVF ══ -->
   <div class="page" id="p-prix"><div class="inner">
+    <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
     <div class="ph"><div class="ptag">✦ Données DVF officielles · DGFiP</div><h2 class="ptitle">Prix & marché <em>par adresse</em></h2><p class="psub">Transactions réelles dans un rayon de 200m autour de votre adresse. Source : Demandes de Valeurs Foncières.</p></div>
     <div class="card"><div class="ctitle">🔍 Analyser une adresse</div>
       <input class="inp" id="dvfAddr" placeholder="Ex: 58 rue des Abondances, Boulogne-Billancourt 92100" onkeydown="if(event.key==='Enter')runDVF()" />
@@ -1103,6 +1105,7 @@ path.leaflet-interactive:focus{outline:none;}
 
   <!-- ══ CONSEILLER IA ══ -->
   <div class="page" id="p-conseil"><div class="inner" style="max-width:820px">
+    <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
     <div class="ph"><div class="ptag">✦ IA 24h/24</div><h2 class="ptitle">Conseiller <em>immobilier IA</em></h2></div>
     <div class="chat-wrap">
       <div class="chat-box">
@@ -1141,6 +1144,7 @@ path.leaflet-interactive:focus{outline:none;}
 
   <!-- ══ PAGES V2 (annonces, alertes) ══ -->
   <div class="page" id="p-annonces"><div class="inner">
+    <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
     <div class="ph"><div class="ptag">✦ Bientôt disponible · V2</div><h2 class="ptitle">Annonces <em>immobilières</em></h2><p class="psub">Le module d'annonces avec dépôt par particuliers et agences, alertes intelligentes et analyse IA de chaque bien sera disponible dans la version 2.</p></div>
     <div style="background:var(--ink);border-radius:var(--r);padding:2rem;text-align:center;color:#fff">
       <div style="font-size:2.5rem;margin-bottom:1rem">🏗️</div>
@@ -1150,6 +1154,7 @@ path.leaflet-interactive:focus{outline:none;}
   </div></div>
 
   <div class="page" id="p-alertes"><div class="inner">
+    <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
     <div class="ph"><div class="ptag">✦ Bientôt disponible · V2</div><h2 class="ptitle">Alertes <em>intelligentes</em></h2><p class="psub">Détection automatique de baisses de prix, biens republiés, ventes sous marché — basée sur de vraies transactions.</p></div>
     <div style="background:var(--ink);border-radius:var(--r);padding:2rem;text-align:center;color:#fff">
       <div style="font-size:2.5rem;margin-bottom:1rem">🔔</div>
@@ -1204,6 +1209,7 @@ path.leaflet-interactive:focus{outline:none;}
 
   <!-- ══ JURIDIQUE ══ -->
   <div class="page" id="p-juridique"><div class="inner">
+    <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
     <div class="ph"><div class="ptag">✦ Guide</div><h2 class="ptitle">Guide <em>juridique</em></h2></div>
     <div class="card"><div class="ctitle">❓ Votre question juridique</div>
       <input class="inp" id="jurQ" placeholder="Ex: Qu'est-ce que le délai SRU ? Comment se passe le compromis ?" onkeydown="if(event.key==='Enter')runIA('juridique')" />
@@ -1223,6 +1229,7 @@ path.leaflet-interactive:focus{outline:none;}
 
   <!-- ══ PROS ══ -->
   <div class="page" id="p-pros"><div class="inner">
+    <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
     <div class="ph"><div class="ptag">✦ Services</div><h2 class="ptitle">Annuaire <em>professionnels</em></h2><p class="psub">Professionnels partenaires vérifiés. Bientôt étendu à toute la France.</p></div>
     <div class="ctitle" style="margin-bottom:.8rem">⚖️ Notaires · Boulogne-Billancourt</div>
     <div class="pro-grid">
@@ -1695,7 +1702,14 @@ function renderCards(props, coords){
 }
 
 // ══ CHARGEMENT DONNÉES RÉELLES via Netlify Functions ══
-async function loadAllData(props, coords){
+async 
+// ── SENIORS & EHPAD (Overpass) ──
+async function loadSeniors(lat, lng){
+  // Les données seniors sont chargées via /api/amenites (fusionné pour rester sous la limite Vercel Hobby = 12 fonctions)
+  // window._seniorsData est alimenté par loadAmenites() — pas d'appel séparé nécessaire
+}
+
+function loadAllData(props, coords){
   const [lng,lat]=[coords[0],coords[1]];
 
   // DPE — nécessite infos du bien, afficher formulaire
@@ -1724,6 +1738,7 @@ async function loadAllData(props, coords){
     loadAmenites(lat, lng),
     loadBruit(lat, lng),
     loadPrixCommunes(lat, lng),
+    loadSeniors(lat, lng),
   ]).then(() => {
     document.getElementById('addrBadge').textContent = '✓ Analyse complète';
     computeLoyersEstimates();
@@ -3371,7 +3386,22 @@ function showMobiliteDetail(){
     <div style="margin-top:1.2rem;height:160px;width:70%"><canvas id="mobiliteChart"></canvas></div>
     ${d.arretsPrincipaux?.length?`<p style="font-size:.75rem;color:var(--muted);margin-top:.5rem">Principaux arrêts : ${d.arretsPrincipaux.join(' · ')}</p>`:''}
     <p style="font-size:.62rem;color:var(--muted);margin-top:.4rem">Source : OpenStreetMap via Overpass API · Rayon ${mobDist}m</p>
-  `);
+    ${(()=>{
+      const sr = window._amenitesData?.seniors ? {success:true, total:window._amenitesData.seniors.total, etablissements:window._amenitesData.seniors.etablissements, rayon:window._amenitesData.rayons?.seniors||2000} : null;
+      if(!sr||!sr.success||sr.total===0) return '';
+      const items = (sr.etablissements||[]).slice(0,8).map(e=>`
+        <div style="padding:.4rem 0;border-bottom:1px solid var(--border);font-size:.78rem">
+          <span style="font-weight:600;color:var(--text)">${e.nom}</span>
+          <span style="color:var(--muted);font-size:.7rem;margin-left:.5rem">${e.type}</span>
+          ${e.adresse?`<div style="color:var(--muted);font-size:.68rem">${e.adresse}</div>`:''}
+        </div>`).join('');
+      return `<div style="margin-top:1rem;padding:.75rem 1rem;background:var(--warm);border-radius:8px;border:1px solid var(--border)">
+        <div style="font-weight:600;font-size:.82rem;color:var(--text);margin-bottom:.5rem">🏡 Seniors & EHPAD · ${sr.rayon/1000}km — ${sr.total} établissement(s)</div>
+        ${items}
+        ${sr.total>8?`<div style="font-size:.68rem;color:var(--muted);margin-top:.3rem">+ ${sr.total-8} autres</div>`:''}
+      </div>`;
+    })()}
+  \`);
 
   // Initialiser immédiatement pour éviter un crash si toggle avant le setTimeout
   if(!window._mobiliteMarkers) window._mobiliteMarkers = {metro:[],bus:[],velo:[],gare:[],borne:[]};
@@ -5490,6 +5520,45 @@ async function sendMsg(){
   document.getElementById('chatSt').textContent='\u25cf Prêt · France entière';
 }
 function ask(q){document.getElementById('chatIn').value=q;sendMsg();}
+// ══ GÉOLOCALISATION ══
+function geolocateUser(){
+  const btn = document.getElementById('geoBtn');
+  if(!navigator.geolocation){
+    alert('La géolocalisation n\'est pas supportée par votre navigateur.');
+    return;
+  }
+  if(btn){ btn.textContent='⏳'; btn.style.color='rgba(184,131,42,.9)'; btn.disabled=true; }
+
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      const { latitude: lat, longitude: lon } = pos.coords;
+      try {
+        const r = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`,
+          { headers: { 'Accept-Language': 'fr' } }
+        );
+        const data = await r.json();
+        const addr = data.display_name || `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+        // Préremplir le champ héro
+        const heroInp = document.getElementById('heroSearch');
+        if(heroInp){ heroInp.value = addr; heroInp.focus(); }
+        // Préremplir aussi sideSearch si visible
+        const sideInp = document.getElementById('sideSearch');
+        if(sideInp) sideInp.value = addr;
+      } catch(e) {
+        alert('Impossible de récupérer votre adresse. Veuillez saisir manuellement.');
+      } finally {
+        if(btn){ btn.textContent='🎯'; btn.style.color='rgba(255,255,255,.5)'; btn.disabled=false; }
+      }
+    },
+    (err) => {
+      if(btn){ btn.textContent='🎯'; btn.style.color='rgba(255,255,255,.5)'; btn.disabled=false; }
+      if(err.code !== 1) alert('Géolocalisation échouée : ' + err.message);
+    },
+    { timeout: 8000, maximumAge: 60000 }
+  );
+}
+
 </script>
 <script src="/pdf-export.js?v=5"></script>
 </body>

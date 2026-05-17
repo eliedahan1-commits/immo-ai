@@ -30,22 +30,24 @@ function generatePDF(){
   };
 
   // ── Helpers ──
+  const fmt = n => { const s=Number(n).toLocaleString('fr-FR'); return s.replace(/[  ]/g,' '); };
   const np = (needed=20) => { if(y+needed > H-15){ doc.addPage(); y=MT; } };
   const secTitle = (icon, title) => {
     np(14);
     doc.setFillColor(245,240,232);
     safeRect(ML, y, W-ML-MR, 9, 'F');
     doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(26,22,16);
-    doc.text(`${icon}  ${title}`, ML+3, y+6.2);
+    doc.text(title, ML+3, y+6.2);
     y += 12;
   };
   const kv = (label, value, sub='') => {
     np(8);
     doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(90,85,75);
     doc.text(String(label), ML+3, y);
-    doc.setFont('helvetica','bold'); doc.setTextColor(26,22,16);
-    doc.text(String(value), ML+72, y);
-    if(sub){ doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(140,130,110); doc.text(String(sub), ML+72+doc.getTextWidth(String(value))+2, y); }
+    doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(26,22,16);
+    const valStr = String(value);
+    doc.text(valStr, ML+72, y);
+    if(sub){ doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(140,130,110); doc.text(' - '+String(sub), ML+72+doc.getTextWidth(valStr), y); }
     y += 6;
   };
   const note = (txt) => {
@@ -106,10 +108,10 @@ function generatePDF(){
   const dvf = window._dvfData;
   if(dvf && !dvf.failed && dvf.stats){
     secTitle('💰','Prix des transactions · DVF');
-    if(dvf.stats.medianM2) kv('Prix médian /m²', dvf.stats.medianM2.toLocaleString('fr-FR')+' €', dvf.count+' ventes');
-    if(dvf.stats.minM2) kv('Prix min /m²', dvf.stats.minM2.toLocaleString('fr-FR')+' €');
-    if(dvf.stats.maxM2) kv('Prix max /m²', dvf.stats.maxM2.toLocaleString('fr-FR')+' €');
-    if(dvf.stats.medianTotal) kv('Valeur médiane totale', dvf.stats.medianTotal.toLocaleString('fr-FR')+' €');
+    if(dvf.stats.medianM2) kv('Prix médian /m²', fmt(dvf.stats.medianM2)+' €', dvf.count+' ventes');
+    if(dvf.stats.minM2) kv('Prix min /m²', fmt(dvf.stats.minM2)+' €');
+    if(dvf.stats.maxM2) kv('Prix max /m²', fmt(dvf.stats.maxM2)+' €');
+    if(dvf.stats.medianTotal) kv('Valeur médiane totale', fmt(dvf.stats.medianTotal)+' €');
     note('Source : DVF · Etalab · rayon '+(dvf.rayon/1000).toFixed(0)+'km'); sep();
   }
 
@@ -117,7 +119,7 @@ function generatePDF(){
   const loy = window._loyersData;
   if(loy?.estimates){
     secTitle('🏠','Loyers estimés');
-    Object.entries(loy.estimates).forEach(([t,v])=>{ if(v?.mensuel) kv(t, v.mensuel.toLocaleString('fr-FR')+' €/mois', v.m2?.toFixed(0)+' €/m²'); });
+    Object.entries(loy.estimates).forEach(([t,v])=>{ if(v?.mensuel) kv(t, fmt(v.mensuel)+' €/mois', v.m2?.toFixed(0)+' €/m²'); });
     if(loy.rendement) kv('Rendement locatif brut', loy.rendement.toFixed(1)+'%');
     note('Estimation basée sur DVF, INSEE et observatoires locaux.'); sep();
   }
@@ -127,9 +129,9 @@ function generatePDF(){
   if(ins?.commune){
     secTitle('📊','Profil de la commune · INSEE');
     const c=ins.commune;
-    if(c.population) kv('Population',c.population.toLocaleString('fr-FR')+' hab.');
-    if(c.densite) kv('Densité',c.densite.toLocaleString('fr-FR')+' hab/km²');
-    if(c.superficie) kv('Superficie',c.superficie.toLocaleString('fr-FR')+' km²');
+    if(c.population) kv('Population',fmt(c.population)+' hab.');
+    if(c.densite) kv('Densité',fmt(c.densite)+' hab/km²');
+    if(c.superficie) kv('Superficie',fmt(c.superficie)+' km²');
     if(ins.logement?.txProprietaires) kv('Propriétaires',ins.logement.txProprietaires.toFixed(1)+'%');
     if(ins.logement?.txLocataires) kv('Locataires',ins.logement.txLocataires.toFixed(1)+'%');
     note('Source : INSEE · Recensement de la population'); sep();
@@ -142,8 +144,8 @@ function generatePDF(){
     const sorted=Object.entries(cr.indicateurs||{}).filter(([,v])=>v.nb!=null&&v.nb>0).sort((a,b)=>(b[1].nb||0)-(a[1].nb||0)).slice(0,6);
     if(sorted.length){
       doc.autoTable({startY:y,margin:{left:ML,right:MR},
-        head:[['Indicateur','Faits','‰']],
-        body:sorted.map(([ind,v])=>[ind.length>45?ind.slice(0,42)+'…':ind,(v.nb||0).toLocaleString('fr-FR'),v.taux!=null?v.taux.toFixed(1):'—']),
+        head:[['Indicateur','Faits','Tx']],
+        body:sorted.map(([ind,v])=>[ind.length>45?ind.slice(0,42)+'…':ind,fmt(v.nb||0),v.taux!=null?v.taux.toFixed(1):'—']),
         styles:{fontSize:8,cellPadding:2},
         headStyles:{fillColor:[184,131,42],textColor:[26,22,16],fontStyle:'bold'},
         alternateRowStyles:{fillColor:[250,247,240]},
@@ -162,7 +164,7 @@ function generatePDF(){
     const bonus=dens>10000?4:dens>5000?3:dens>2000?2:dens>500?1:0;
     const sc=Math.min((bruit.score||0)+bonus,10);
     kv('Niveau estimé', sc>=7?'Élevé':sc>=4?'Modéré':sc>=2?'Faible':'Très faible','score '+sc+'/10');
-    if(bonus>0) kv('Bonus densité','+'+bonus+' pts',dens.toLocaleString('fr-FR')+' hab/km²');
+    if(bonus>0) kv('Bonus densité','+'+bonus+' pts',fmt(dens)+' hab/km²');
     bruit.sources?.forEach(s=>kv(s.label, s.niveau||'', s.detail||''));
     note('Estimation OSM non certifiée · bruit.fr pour mesures officielles'); sep();
   }
@@ -172,7 +174,7 @@ function generatePDF(){
   if(risq?.success){
     secTitle('⚠️','Risques naturels & technologiques · Géorisques');
     kv('Risques identifiés', risq.total||0);
-    risq.detail?.slice(0,8).forEach(r=>{ np(6); doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(90,85,75); doc.text('• '+r, ML+5, y); y+=5.5; });
+    risq.detail?.slice(0,8).forEach(r=>{ np(6); doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(90,85,75); const rStr=typeof r==='string'?r:(r?.libelle||r?.type||r?.nom||r?.description||JSON.stringify(r)); doc.text('• '+rStr, ML+5, y); y+=5.5; });
     note('Source : Géorisques · BRGM'); sep();
   }
 
@@ -198,7 +200,7 @@ function generatePDF(){
   const fib=window._fibreData;
   if(fib){
     secTitle('📡','Couverture fibre · ARCEP');
-    kv('Éligible fibre',fib.eligible===true?'✓ Oui':fib.eligible===false?'✗ Non':'Non déterminé');
+    kv('Éligible fibre',fib.eligible===true?'Oui':fib.eligible===false?'Non':'Non déterminé');
     if(fib.operateurs?.length) kv('Opérateurs',fib.operateurs.join(', '));
     note('Source : ARCEP · THD France'); sep();
   }
@@ -218,10 +220,10 @@ function generatePDF(){
   const met=window._meteoData;
   if(met?.success){
     secTitle('☀️','Données climatiques · Open-Meteo');
-    if(met.ensoleillement?.heuresAnnuelles) kv('Ensoleillement',met.ensoleillement.heuresAnnuelles.toLocaleString('fr-FR')+' h/an',met.ensoleillement.label||'');
+    if(met.ensoleillement?.heuresAnnuelles) kv('Ensoleillement',fmt(met.ensoleillement.heuresAnnuelles)+' h/an',met.ensoleillement.label||'');
     if(met.temperatures?.maxMoyenne) kv('T° max. moyenne',met.temperatures.maxMoyenne+'°C');
     if(met.temperatures?.minMoyenne) kv('T° min. moyenne',met.temperatures.minMoyenne+'°C');
-    if(met.precipitations?.totalAnnuel) kv('Précipitations',met.precipitations.totalAnnuel.toLocaleString('fr-FR')+' mm/an');
+    if(met.precipitations?.totalAnnuel) kv('Précipitations',fmt(met.precipitations.totalAnnuel)+' mm/an');
     note('Source : Open-Meteo Archive · moyennes 5 ans'); sep();
   }
 
@@ -282,3 +284,4 @@ function generatePDF(){
     console.error('[ImmoAI PDF stack]', e.stack);
   }
 }
+                                                                           
