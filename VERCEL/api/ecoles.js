@@ -71,6 +71,7 @@ export default async function handler(req, res) {
           adresse: el.tags?.['addr:street'] || '',
           commune: el.tags?.['addr:city'] || '',
           codePostal: el.tags?.['addr:postcode'] || '',
+          phone: el.tags?.phone || el.tags?.['contact:phone'] || null,
           distanceM, lat: elLat, lon: elLon
         };
       })

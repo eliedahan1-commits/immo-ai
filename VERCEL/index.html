@@ -1921,7 +1921,7 @@ async function loadRisques(lat, lng, citycode){
 async function fetchEducationGouv(lat, lng, dist=500){
   try{
     // API v1 : geofilter.distance est la méthode fiable quelle que soit la structure interne du dataset
-    const fields = 'nom_etablissement,type_etablissement,statut_public_prive,adresse_1,commune,code_postal,coordonnees,latitude,longitude';
+    const fields = 'nom_etablissement,type_etablissement,statut_public_prive,adresse_1,commune,code_postal,coordonnees,latitude,longitude,telephone';
     const url = `https://data.education.gouv.fr/api/records/1.0/search/?dataset=fr-en-annuaire-education&geofilter.distance=${lat},${lng},${dist}&rows=100&fields=${fields}`;
     const r = await fetch(url, {signal: AbortSignal.timeout(12000)});
     if(!r.ok){ console.warn('[EN API] HTTP', r.status, url); return []; }
@@ -1961,6 +1961,7 @@ async function fetchEducationGouv(lat, lng, dist=500){
         adresse: f.adresse_1 || '',
         commune: f.commune || '',
         codePostal: f.code_postal || '',
+        phone: f.telephone || null,
         distanceM, lat: elLat, lon: elLon, source: 'education.gouv.fr' };
     }).filter(Boolean);
   }catch(e){ return []; }
@@ -2262,7 +2263,7 @@ async function loadServices(lat, lng, dist=500){
   window._servicesData = null;
   // Essai avec le rayon demandé, puis fallback 500m si ça timeout
   const tryLoad = async (d) => {
-    const r = await apiCall(`/api/services?lat=${lat}&lon=${lng}&dist=${d}&_v=9`, `https://overpass-api.de/api/interpreter`, {signal:AbortSignal.timeout(25000)});
+    const r = await apiCall(`/api/services?lat=${lat}&lon=${lng}&dist=${d}&_v=9`, `https://overpass-api.de/api/interpreter`, {signal:AbortSignal.timeout(30000)});
     if(!r.ok) throw new Error('HTTP '+r.status);
     const json = await r.json();
     if(!json.success) throw new Error('no success');
@@ -3365,7 +3366,9 @@ function showEcolesDetail(){
       const couleur=cat==='lycee'?'#c0392b':cat==='college'?'#2d6a4f':'#b8832a';
       const emoji=cat==='lycee'?'📚':cat==='college'?'🎓':'🏫';
       const icon=L.divIcon({html:`<div style="background:${couleur};border:2px solid #fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 2px 6px rgba(0,0,0,.25)">${emoji}</div>`,iconSize:[26,26],iconAnchor:[13,13],className:''});
-      const marker=L.marker([e.lat, e.lon],{icon}).addTo(map).bindPopup(`<strong>${emoji} ${e.nom}</strong><br><span style="font-size:.75rem">${e.type||''} · ${e.distanceM||'?'}m</span>`);
+      const adresseEco=[e.adresse,e.commune&&e.codePostal?e.codePostal+' '+e.commune:e.commune||e.codePostal].filter(Boolean).join(', ');
+      const popEco=`<strong>${emoji} ${e.nom}</strong><br><span style="font-size:.75rem;color:#666">${e.type||''} · ${e.distanceM||'?'}m</span>`+(adresseEco?`<br><span style="font-size:.72rem">📍 ${adresseEco}</span>`:'')+((e.phone)?`<br><span style="font-size:.72rem">📞 ${e.phone}</span>`:'')+`<br><span style="font-size:.72rem"><a href="https://maps.google.com/?q=${e.lat},${e.lon}" target="_blank" style="color:#1a73e8;text-decoration:none">🗺️ Y aller</a>`+((e.phone)?` · <a href="tel:${e.phone}" style="color:#1a73e8;text-decoration:none">📞 Appeler</a>`:'')+`</span>`;
+      const marker=L.marker([e.lat, e.lon],{icon}).addTo(map).bindPopup(popEco);
       window._ecolesMarkersMap[cat].push(marker);
     });
     window._ecolesLeafletMap = map;
@@ -3509,7 +3512,11 @@ function showMobiliteDetail(){
         else if(tags.highway==='bus_stop'||tags.public_transport==='stop_position'){icone='🚏';couleur='#e67e22';layerKey='bus';}
         else return; // ignorer les éléments non reconnus
         const icon=L.divIcon({html:`<div style="background:${couleur};border:2px solid #fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;box-shadow:0 2px 5px rgba(0,0,0,.25)">${icone}</div>`,iconSize:[22,22],iconAnchor:[11,11],className:''});
-        const marker=L.marker([e.lat,e.lon],{icon}).bindPopup(`<strong>${icone} ${tags.name||tags.railway||tags.amenity||'Arrêt'}</strong>`);
+        const ligneRef=tags.ref||tags['ref:FR:STIF']||'';
+        const reseauOp=tags.network||tags.operator||'';
+        const adresseMob=[tags['addr:housenumber'],tags['addr:street']].filter(Boolean).join(' ');
+        const popMob=`<strong>${icone} ${tags.name||tags.railway||tags.amenity||'Arrêt'}</strong>`+(ligneRef?`<br><span style="font-size:.72rem">🚌 Ligne ${ligneRef}</span>`:'')+(reseauOp?`<br><span style="font-size:.72rem;color:#666">${reseauOp}</span>`:'')+(adresseMob?`<br><span style="font-size:.72rem">📍 ${adresseMob}</span>`:'')+`<br><span style="font-size:.72rem"><a href="https://maps.google.com/?q=${e.lat},${e.lon}" target="_blank" style="color:#1a73e8;text-decoration:none">🗺️ Y aller</a></span>`;
+        const marker=L.marker([e.lat,e.lon],{icon}).bindPopup(popMob);
         clusters[layerKey].addLayer(marker);
         window._mobiliteMarkers[layerKey].push(marker);
       });
@@ -3627,6 +3634,10 @@ function showServicesMap(filterCat){
   };
   window.reloadServicesWithDist = async function(dist){
     window._servicesCurrentDist = dist;
+    // Afficher spinner sur la carte pendant le chargement
+    const mapEl = document.getElementById('mapServices');
+    if(mapEl) mapEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:.85rem"><span class="spin"></span> Chargement...</div>';
+    if(window._leafletMap){window._leafletMap.remove();window._leafletMap=null;}
     // Ne pas réinitialiser les filtres actifs au changement de rayon
     document.querySelectorAll('.svc-rayon-btn').forEach(b=>{
       const active = parseInt(b.dataset.r)===dist;
@@ -3747,7 +3758,7 @@ function showServicesMap(filterCat){
         html: `<div style="background:${s.couleur};border:2px solid #fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 2px 5px rgba(0,0,0,.25);cursor:pointer">${s.icone}</div>`,
         iconSize: [26,26], iconAnchor: [13,13], className:''
       });
-      const popupContent = `<strong>${s.icone} ${s.nom}</strong><br><span style="font-size:.78rem;color:#666">${s.categorie} · ${s.distanceM}m</span>${s.tags?.opening_hours?`<br><span style="font-size:.72rem">🕐 ${s.tags.opening_hours}</span>`:''}${s.tags?.phone?`<br><span style="font-size:.72rem">📞 ${s.tags.phone}</span>`:''}`;
+      const popupContent = `<strong>${s.icone} ${s.nom}</strong><br><span style="font-size:.78rem;color:#666">${s.categorie} · ${s.distanceM}m</span>${s.tags?.opening_hours?`<br><span style="font-size:.72rem">🕐 ${s.tags.opening_hours}</span>`:''}${s.tags?.phone?`<br><span style="font-size:.72rem">📞 ${s.tags.phone}</span>`:''}<br><span style="font-size:.72rem"><a href="https://maps.google.com/?q=${s.lat},${s.lon}" target="_blank" style="color:#1a73e8;text-decoration:none">🗺️ Y aller</a>${s.tags?.phone?` · <a href=\"tel:${s.tags.phone}\" style=\"color:#1a73e8;text-decoration:none\">📞 Appeler</a>`:''}</span>`;
       const marker = L.marker([s.lat, s.lon], {icon}).bindPopup(popupContent);
       const cat = s.categorie||'service';
       if(window._servicesClusters[cat]) window._servicesClusters[cat].addLayer(marker);
@@ -3766,7 +3777,7 @@ function showServicesMap(filterCat){
           html: '<div style="background:#9b59b6;border:2px solid #fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 2px 5px rgba(0,0,0,.25);cursor:pointer">🏡</div>',
           iconSize: [26,26], iconAnchor: [13,13], className:''
         });
-        const popupContent = '<strong>🏡 '+s.nom+'</strong><br><span style="font-size:.78rem;color:#666">'+s.type+'</span>'+(s.adresse?'<br><span style="font-size:.72rem">📍 '+s.adresse+'</span>':'')+(s.phone?'<br><span style="font-size:.72rem">📞 '+s.phone+'</span>':'');
+        const popupContent = '<strong>🏡 '+s.nom+'</strong><br><span style="font-size:.78rem;color:#666">'+s.type+'</span>'+(s.adresse?'<br><span style="font-size:.72rem">📍 '+s.adresse+'</span>':'')+(s.phone?'<br><span style="font-size:.72rem">📞 '+s.phone+'</span>':'')+'<br><span style="font-size:.72rem"><a href="https://maps.google.com/?q='+s.lat+','+s.lon+'" target="_blank" style="color:#1a73e8;text-decoration:none">🗺️ Y aller</a>'+(s.phone?' · <a href="tel:'+s.phone+'" style="color:#1a73e8;text-decoration:none">📞 Appeler</a>':'')+'</span>';
         const marker = L.marker([s.lat, s.lon], {icon: sIcon}).bindPopup(popupContent);
         window._servicesClusters['senior'].addLayer(marker);
         window._servicesAllMarkers['senior'].push(marker);
