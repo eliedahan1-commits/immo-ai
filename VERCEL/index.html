@@ -1265,9 +1265,22 @@ function goHome(){
   }
 }
 
+// ── Cache-busting sur adresses en échec ──
+const _failSet = new Set(JSON.parse(sessionStorage.getItem('_immoai_fail')||'[]'));
+function _markFail(lat,lng){
+  const k=`${Math.round(lat*1000)}_${Math.round(lng*1000)}`;
+  _failSet.add(k);
+  try{sessionStorage.setItem('_immoai_fail',JSON.stringify([..._failSet]));}catch(e){}
+}
+function _hasFail(lat,lng){
+  const k=`${Math.round(lat*1000)}_${Math.round(lng*1000)}`;
+  return _failSet.has(k);
+}
+
 async function apiCall(netlifyPath, directUrl, options={}) {
   const url = IS_LOCAL ? directUrl : netlifyPath;
-  return fetch(url, { ...options, signal: options.signal || AbortSignal.timeout(10000) });
+  const cacheOpt = (currentCoords && _hasFail(currentCoords.lat, currentCoords.lng)) ? 'reload' : 'default';
+  return fetch(url, { cache: cacheOpt, ...options, signal: options.signal || AbortSignal.timeout(10000) });
 }
 
 const PAGES = {
@@ -2033,7 +2046,7 @@ async function loadEcoles(lat, lng, codeInsee, dist=500){
   try{
     const url = `/api/ecoles?lat=${lat}&lon=${lng}&dist=${dist}${codeInsee?'&codeInsee='+codeInsee:''}`;
     const [osmResult, eduResult] = await Promise.allSettled([
-      fetch(url, {signal:AbortSignal.timeout(28000)}).then(r=>r.ok?r.json():Promise.reject('API écoles KO')),
+      fetch(url, {cache:(currentCoords&&_hasFail(currentCoords.lat,currentCoords.lng))?'reload':'default',signal:AbortSignal.timeout(28000)}).then(r=>r.ok?r.json():Promise.reject('API écoles KO')),
       fetchEducationGouv(lat, lng, dist)
     ]);
     const osmData = osmResult.status==='fulfilled' ? osmResult.value : {success:false, etablissements:[]};
@@ -2056,6 +2069,7 @@ async function loadEcoles(lat, lng, codeInsee, dist=500){
       total>0?'good':'');
     window._ecolesData = {...osmData, success:true, total, types, etablissements};
   }catch(e){
+    if(currentCoords) _markFail(currentCoords.lat, currentCoords.lng);
     setCard('ecoles','Non disponible','Erreur API Éducation','');
     setCardRetry('ecoles',()=>currentCoords&&loadEcoles(currentCoords.lat,currentCoords.lng));
   }
@@ -2077,6 +2091,7 @@ async function loadMobilite(lat, lng, dist=1000){
     );
     window._mobiliteData = d;
   }catch(e){
+    if(currentCoords) _markFail(currentCoords.lat, currentCoords.lng);
     setCard('mobilite','Non disponible','Erreur API transport','');
     setCardRetry('mobilite',()=>currentCoords&&loadMobilite(currentCoords.lat,currentCoords.lng));
   }
@@ -2264,6 +2279,7 @@ async function loadServices(lat, lng, dist=500){
     window._servicesData = data;
     window._servicesCurrentDist = dist;
   }catch{
+    if(currentCoords) _markFail(currentCoords.lat, currentCoords.lng);
     setCard('services','Non disponible','Erreur API services','');
     setCardRetry('services',()=>currentCoords&&loadServices(currentCoords.lat,currentCoords.lng));
   }

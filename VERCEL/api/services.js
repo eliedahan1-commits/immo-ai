@@ -37,7 +37,7 @@ export default async function handler(req, res) {
         const _r = await fetch(url, {
           method: 'POST',
           body: `data=${encodeURIComponent(query)}`,
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'IMMOAI/2.0 (https://immo-ai-nu.vercel.app)', 'Accept': 'application/json' },
           signal: AbortSignal.timeout(remaining)
         });
         if (!_r.ok) continue;
