@@ -11,9 +11,13 @@ const TIMEOUT_MS       = 7000;  // timeout par requête Overpass (comptages rapi
 const TIMEOUT_SENIORS_MS = 22000; // timeout pour listSeniors (requête plus complexe)
 const CACHE_SECONDES   = 86400; // 1 jour
 
+const UA = 'IMMOAI/2.0 (https://immo-ai-nu.vercel.app)';
+
 const SENIORS_TYPE_MAP = {
   nursing_home:    'EHPAD / Maison de retraite',
   retirement_home: 'Résidence autonomie',
+  assisted_living: 'Résidence autonomie',
+  group_home:      'Résidence senior',
   social_facility: 'Centre social seniors',
   community_centre:'Centre communautaire',
 };
@@ -37,7 +41,7 @@ export default async function handler(req, res) {
       try {
         const r = await fetch(url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': UA, 'Accept': 'application/json' },
           body: 'data=' + encodeURIComponent(query),
           signal: AbortSignal.timeout(TIMEOUT_MS)
         });
@@ -54,12 +58,23 @@ export default async function handler(req, res) {
     const q = `[out:json][timeout:20];(nwr["amenity"="nursing_home"](around:${RAYON_SENIORS_M},${lat},${lon});nwr["amenity"="social_facility"]["social_facility"~"nursing_home|assisted_living|group_home"](around:${RAYON_SENIORS_M},${lat},${lon}););out center tags;`;
     for (const url of OVERPASS_URLS) {
       try {
-        const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'data='+encodeURIComponent(q), signal:AbortSignal.timeout(TIMEOUT_SENIORS_MS) });
+        const r = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': UA, 'Accept': 'application/json' },
+          body: 'data=' + encodeURIComponent(q),
+          signal: AbortSignal.timeout(TIMEOUT_SENIORS_MS)
+        });
         if (!r.ok) continue;
         const d = await r.json();
         return (d.elements||[]).map(el => {
           const t = el.tags||{};
-          return { nom: t.name||t['name:fr']||'Établissement sans nom', type: SENIORS_TYPE_MAP[t.amenity||t.social_facility]||'Établissement senior', lat: el.lat??el.center?.lat, lon: el.lon??el.center?.lon, adresse:[t['addr:housenumber'],t['addr:street'],t['addr:city']].filter(Boolean).join(' ')||null };
+          return {
+            nom: t.name||t['name:fr']||'Établissement sans nom',
+            type: SENIORS_TYPE_MAP[t.amenity||t.social_facility]||'Établissement senior',
+            lat: el.lat??el.center?.lat,
+            lon: el.lon??el.center?.lon,
+            adresse: [t['addr:housenumber'],t['addr:street'],t['addr:city']].filter(Boolean).join(' ')||null
+          };
         }).filter(e=>e.lat&&e.lon);
       } catch { continue; }
     }
