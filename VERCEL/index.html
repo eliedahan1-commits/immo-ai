@@ -5584,24 +5584,4 @@ function geolocateUser(){
 </script>
 <script src="/pdf-export.js?v=5"></script>
 </body>
-</html
-    <div id="seniors-section-placeholder"></div>
-
-  // Seniors & EHPAD — rendu après showPanel pour éviter les templates imbriqués
-  setTimeout(()=>{
-    const ph = document.getElementById('seniors-section-placeholder');
-    if(!ph) return;
-    const sr = window._amenitesData?.seniors;
-    if(!sr || !sr.total){ ph.remove(); return; }
-    const etabs = (sr.etablissements||[]).slice(0,8);
-    let h = '<div style="margin-top:1rem;padding:.75rem 1rem;background:var(--warm);border-radius:8px;border:1px solid var(--border)">';
-    h += '<div style="font-weight:600;font-size:.82rem;color:var(--text);margin-bottom:.5rem">🏡 Seniors & EHPAD · '+(sr.rayon/1000)+'km — '+sr.total+' établissement(s)</div>';
-    etabs.forEach(e=>{
-      h += '<div style="padding:.4rem 0;border-bottom:1px solid var(--border);font-size:.78rem"><span style="font-weight:600;color:var(--text)">'+e.nom+'</span><span style="color:var(--muted);font-size:.7rem;margin-left:.5rem">'+e.type+'</span>';
-      if(e.adresse) h += '<div style="color:var(--muted);font-size:.68rem">'+e.adresse+'</div>';
-      h += '</div>';
-    });
-    if(sr.total>8) h += '<div style="font-size:.68rem;color:var(--muted);margin-top:.3rem">+ '+(sr.total-8)+' autres</div>';
-    h += '</div>';
-    ph.outerHTML = h;
-  }, 50);>
+</html>
