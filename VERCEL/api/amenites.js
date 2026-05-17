@@ -7,7 +7,8 @@ const RAYON_PARCS_M    = 2000;  // rayon espaces verts
 const RAYON_SPORT_M    = 2000;  // rayon équipements sportifs
 const RAYON_COMMERCE_M = 1000;  // rayon commerces alimentaires
 const RAYON_SENIORS_M  = 2000;  // rayon établissements seniors / EHPAD
-const TIMEOUT_MS       = 7000;  // timeout par requête Overpass (Vercel max 30s configuré)
+const TIMEOUT_MS       = 7000;  // timeout par requête Overpass (comptages rapides)
+const TIMEOUT_SENIORS_MS = 18000; // timeout pour listSeniors (requête plus complexe)
 const CACHE_SECONDES   = 86400; // 1 jour
 
 const SENIORS_TYPE_MAP = {
@@ -53,7 +54,7 @@ export default async function handler(req, res) {
     const q = `[out:json][timeout:10];(nwr["amenity"="nursing_home"](around:${RAYON_SENIORS_M},${lat},${lon});nwr["amenity"="social_facility"]["social_facility"="nursing_home"](around:${RAYON_SENIORS_M},${lat},${lon});nwr["amenity"="social_facility"]["social_facility"="assisted_living"](around:${RAYON_SENIORS_M},${lat},${lon});nwr["amenity"="social_facility"]["social_facility"="group_home"](around:${RAYON_SENIORS_M},${lat},${lon}););out center tags;`;
     for (const url of OVERPASS_URLS) {
       try {
-        const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'data='+encodeURIComponent(q), signal:AbortSignal.timeout(TIMEOUT_MS) });
+        const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'data='+encodeURIComponent(q), signal:AbortSignal.timeout(TIMEOUT_SENIORS_MS) });
         if (!r.ok) continue;
         const d = await r.json();
         return (d.elements||[]).map(el => {

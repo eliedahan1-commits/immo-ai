@@ -2247,7 +2247,7 @@ async function loadCriminalite(citycode){
   try{
     // Proxy Vercel → statcrimes.interieur.gouv.fr (CORS)
     const url = `/api/altitude?type=criminalite&code=${citycode}`;
-    const r = await fetch(url, {signal:AbortSignal.timeout(15000)});
+    const r = await fetch(url, {signal:AbortSignal.timeout(25000)});
     if(!r.ok) throw new Error('HTTP '+r.status);
     const d = await r.json();
     if(!d.success) throw new Error(d.error||'vide');
@@ -2305,7 +2305,7 @@ async function loadAltitude(lat, lng){
 
 async function loadAmenites(lat, lng){
   try {
-    const r = await fetch(`/api/amenites?lat=${lat}&lon=${lng}&_v=2`, { signal: AbortSignal.timeout(20000) });
+    const r = await fetch(`/api/amenites?lat=${lat}&lon=${lng}&_v=2`, { signal: AbortSignal.timeout(25000) });
     if(!r.ok) throw new Error('API amenites ' + r.status);
     const d = await r.json();
     window._amenitesData = d.success ? d : null;
@@ -5064,7 +5064,7 @@ async function runProfil(){
     if(!window._amenitesData){
       try{
         txt.innerHTML='<span class="spin"></span> Récupération des aménités…';
-        const r=await fetch(`/api/amenites?lat=${lat}&lon=${lon}&_v=2`,{signal:AbortSignal.timeout(15000)});
+        const r=await fetch(`/api/amenites?lat=${lat}&lon=${lon}&_v=2`,{signal:AbortSignal.timeout(25000)});
         const j=await r.json();
         if(j.success) window._amenitesData=j;
       }catch{}
