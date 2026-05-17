@@ -55,7 +55,7 @@ export default async function handler(req, res) {
 
   // Requête seniors avec liste nominative
   async function listSeniors() {
-    const q = `[out:json][timeout:20];(nwr["amenity"="nursing_home"](around:${RAYON_SENIORS_M},${lat},${lon});nwr["amenity"="social_facility"]["social_facility"~"nursing_home|assisted_living|group_home"](around:${RAYON_SENIORS_M},${lat},${lon}););out center tags;`;
+    const q = `[out:json][timeout:20];(nwr["amenity"="nursing_home"](around:${RAYON_SENIORS_M},${lat},${lon});nwr["amenity"="social_facility"]["social_facility"~"nursing_home|assisted_living|group_home"](around:${RAYON_SENIORS_M},${lat},${lon});nwr["amenity"="social_facility"]["social_facility:for"~"senior|elderly"](around:${RAYON_SENIORS_M},${lat},${lon}););out center tags;`;
     for (const url of OVERPASS_URLS) {
       try {
         const r = await fetch(url, {

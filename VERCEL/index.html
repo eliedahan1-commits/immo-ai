@@ -1446,16 +1446,16 @@ function initFranceMap(){
   map.setView([46.5, 2.3], 5);
   addFsBtn(map, el);
 
-  let _franceMarker = null;
+  window._franceMarker = null;
 
   map.on('click', async function(e){
     const { lat, lng } = e.latlng;
 
     // Marqueur provisoire
-    if(_franceMarker) _franceMarker.remove();
+    if(window._franceMarker) window._franceMarker.remove();
     const icon = L.divIcon({ html:'<div style="width:14px;height:14px;background:#b8832a;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.5)"></div>', iconSize:[14,14], iconAnchor:[7,7], className:'' });
-    _franceMarker = L.marker([lat, lng], { icon }).addTo(map);
-    _franceMarker.bindTooltip('⏳ Localisation en cours…', { permanent:false }).openTooltip();
+    window._franceMarker = L.marker([lat, lng], { icon }).addTo(map);
+    window._franceMarker.bindTooltip('⏳ Localisation en cours…', { permanent:false }).openTooltip();
 
     // Reverse geocoding Nominatim (OSM, gratuit, sans clé)
     try {
@@ -1477,7 +1477,7 @@ function initFranceMap(){
       if(inp) inp.value = adresse;
 
       // Mettre à jour le tooltip du marqueur
-      _franceMarker.setTooltipContent(`📍 ${adresse}`).openTooltip();
+      window._franceMarker.setTooltipContent(`📍 ${adresse}`).openTooltip();
 
       // Zoomer légèrement sur la zone cliquée
       map.setView([lat, lng], Math.max(map.getZoom(), 12), { animate:true });
@@ -1485,7 +1485,7 @@ function initFranceMap(){
     } catch {
       const inp = document.getElementById('heroSearch');
       if(inp) inp.value = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-      if(_franceMarker) _franceMarker.setTooltipContent('📍 Position sélectionnée').openTooltip();
+      if(window._franceMarker) window._franceMarker.setTooltipContent('📍 Position sélectionnée').openTooltip();
     }
   });
 }
@@ -2305,7 +2305,7 @@ async function loadAltitude(lat, lng){
 
 async function loadAmenites(lat, lng){
   try {
-    const r = await fetch(`/api/amenites?lat=${lat}&lon=${lng}&_v=2`, { signal: AbortSignal.timeout(25000) });
+    const r = await fetch(`/api/amenites?lat=${lat}&lon=${lng}&_v=3`, { signal: AbortSignal.timeout(25000) });
     if(!r.ok) throw new Error('API amenites ' + r.status);
     const d = await r.json();
     window._amenitesData = d.success ? d : null;
@@ -3575,6 +3575,7 @@ function showServicesMap(filterCat){
     {key:'creche',      label:'Petite enfance', couleur:'#ff6b9d', emoji:'🍼'},
     {key:'parc',        label:'Parcs & jardins',couleur:'#52b788', emoji:'🌳'},
     {key:'culture',     label:'Culture',        couleur:'#9b72cf', emoji:'🎭'},
+    {key:'senior',      label:'Seniors',        couleur:'#9b59b6', emoji:'🏡'},
   ];
   const legendItems = CAT_INFO.map(c=>({couleur:c.couleur, label:c.label}));
   const svcDist = window._servicesCurrentDist || 1000;
@@ -3639,7 +3640,7 @@ function showServicesMap(filterCat){
   };
   const CAT_COLORS = Object.fromEntries(CAT_INFO.map(c=>[c.key,c.couleur]));
   const btnsTous = `<button class="svc-tous-btn" onclick="filterServicesMap('tous',this)" style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid var(--ink);border-radius:3px;background:var(--ink);color:var(--gold2);cursor:pointer;font-size:.7rem;font-weight:600;margin-right:.3rem">✓ Tous (${d.total})</button>`;
-  const btnsCateg = CAT_INFO.map(c=>`<button class="svc-cat-btn" data-cat="${c.key}" onclick="filterServicesMap('${c.key}',this)" style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid ${CAT_COLORS[c.key]};border-radius:3px;background:${CAT_COLORS[c.key]}18;cursor:pointer;font-size:.7rem;margin-right:.3rem;margin-bottom:.3rem;transition:opacity .2s"><span style="width:10px;height:10px;border-radius:50%;background:${CAT_COLORS[c.key]};display:inline-block"></span>${c.emoji} ${c.label} (${d.stats[c.key]||0})</button>`).join('');
+  const btnsCateg = CAT_INFO.map(c=>`<button class="svc-cat-btn" data-cat="${c.key}" onclick="filterServicesMap('${c.key}',this)" style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid ${CAT_COLORS[c.key]};border-radius:3px;background:${CAT_COLORS[c.key]}18;cursor:pointer;font-size:.7rem;margin-right:.3rem;margin-bottom:.3rem;transition:opacity .2s"><span style="width:10px;height:10px;border-radius:50%;background:${CAT_COLORS[c.key]};display:inline-block"></span>${c.emoji} ${c.label} (${c.key==='senior'?(window._amenitesData&&window._amenitesData.seniors?window._amenitesData.seniors.total:0):d.stats[c.key]||0})</button>`).join('');
   showPanel('🏥 Services & commerces à proximité', `
     <div class="map-stats">
       <div class="map-stat"><span class="map-stat-n">${d.score}/10</span><span class="map-stat-l">⭐ Score</span></div>
@@ -3665,21 +3666,23 @@ function showServicesMap(filterCat){
     if (!ph) return;
     var sr = window._amenitesData && window._amenitesData.seniors;
     var h = '<div style="margin-top:1.2rem;padding:1rem;background:var(--surface2);border-radius:.75rem">';
-    h += '<h4 style="font-size:.9rem;font-weight:600;margin:0 0 .6rem 0">🏡 Seniors & EHPAD</h4>';
+    h += '<h4 style="font-size:.9rem;font-weight:600;margin:0 0 .6rem 0">🏡 Seniors & établissements</h4><p style="font-size:.7rem;color:var(--muted);margin:0 0 .5rem">🗺 Visibles sur la carte via le filtre “Seniors”</p>';
     if (!sr) {
       h += '<p style="font-size:.8rem;color:var(--muted)">Données non disponibles (erreur de chargement).</p>';
     } else if (!sr.total) {
       h += '<p style="font-size:.8rem;color:var(--muted)">Aucun établissement répertorié dans OSM dans un rayon de 2km.</p>';
     } else {
       h += '<p style="font-size:.8rem;margin:0 0 .5rem 0">' + sr.total + ' établissement(s) trouvé(s)</p>';
-      h += '<ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:.4rem">';
+      h += '<ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:.5rem">';
       var etabs = sr.etablissements || [];
       for (var i = 0; i < etabs.length; i++) {
         var e = etabs[i];
-        h += '<li style="font-size:.78rem;padding:.3rem .5rem;background:var(--surface);border-radius:.4rem">';
-        h += '<strong>' + (e.nom || 'Inconnu') + '</strong>';
-        h += ' <span style="color:var(--muted)">— ' + (e.type || '') + '</span>';
-        if (e.adresse) h += '<br><span style="color:var(--muted)">' + e.adresse + '</span>';
+        var coordsTxt = e.lat && e.lon ? (e.lat.toFixed(5)+', '+e.lon.toFixed(5)) : '';
+        h += '<li style="font-size:.78rem;padding:.5rem .7rem;background:var(--surface);border-radius:.5rem;border-left:3px solid #9b59b6">';
+        h += '<div style="font-weight:600;margin-bottom:.2rem">🏡 ' + (e.nom || 'Inconnu') + '</div>';
+        h += '<div style="color:#9b59b6;font-size:.72rem;margin-bottom:.15rem">» ' + (e.type || 'Etablissement senior') + '</div>';
+        if (e.adresse) h += '<div style="color:var(--muted);font-size:.72rem">📍 ' + e.adresse + '</div>';
+        if (coordsTxt) h += '<div style="color:var(--muted);font-size:.65rem;margin-top:.15rem;font-family:monospace">GPS: ' + coordsTxt + '</div>';
         h += '</li>';
       }
       h += '</ul>';
@@ -3747,6 +3750,23 @@ function showServicesMap(filterCat){
       if(!window._servicesAllMarkers[cat]) window._servicesAllMarkers[cat]=[];
       window._servicesAllMarkers[cat].push(marker);
     });
+    // Marqueurs seniors depuis amenitesData
+    if(window._amenitesData && window._amenitesData.seniors && window._amenitesData.seniors.etablissements) {
+      window._servicesClusters['senior'] = L.markerClusterGroup({maxClusterRadius:50});
+      window._servicesAllMarkers['senior'] = [];
+      map.addLayer(window._servicesClusters['senior']);
+      window._amenitesData.seniors.etablissements.forEach(s => {
+        const sIcon = L.divIcon({
+          html: '<div style="background:#9b59b6;border:2px solid #fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 2px 5px rgba(0,0,0,.25);cursor:pointer">🏡</div>',
+          iconSize: [26,26], iconAnchor: [13,13], className:''
+        });
+        const coordsTxt = s.lat && s.lon ? (s.lat.toFixed(5)+', '+s.lon.toFixed(5)) : '';
+        const popupContent = '<strong>🏡 '+s.nom+'</strong><br><span style="font-size:.78rem;color:#666">'+s.type+'</span>'+(s.adresse?'<br><span style="font-size:.72rem">📍 '+s.adresse+'</span>':'')+(coordsTxt?'<br><span style="font-size:.68rem;color:#999">'+coordsTxt+'</span>':'');
+        const marker = L.marker([s.lat, s.lon], {icon: sIcon}).bindPopup(popupContent);
+        window._servicesClusters['senior'].addLayer(marker);
+        window._servicesAllMarkers['senior'].push(marker);
+      });
+    }
     // Appliquer l'état des filtres actifs sur la nouvelle carte
     window._applySvcFilters();
     // Chart services
@@ -4750,7 +4770,7 @@ async function fetchAdresseData(lat,lon){
     fetch(`/api/dvf?lat=${lat}&lon=${lon}&dist=1500&_v=5`).then(r=>r.json()),
     fetch(`/api/ecoles?lat=${lat}&lon=${lon}&dist=1000&_v=5`).then(r=>r.json()),
     fetch(`/api/mobilite?lat=${lat}&lon=${lon}&dist=500`).then(r=>r.json()),
-    fetch(`/api/amenites?lat=${lat}&lon=${lon}&_v=2`).then(r=>r.json()),
+    fetch(`/api/amenites?lat=${lat}&lon=${lon}&_v=3`).then(r=>r.json()),
     fetch(`/api/risques?lat=${lat}&lon=${lon}&_v=2`).then(r=>r.json()),
   ]);
   return{
@@ -5064,7 +5084,7 @@ async function runProfil(){
     if(!window._amenitesData){
       try{
         txt.innerHTML='<span class="spin"></span> Récupération des aménités…';
-        const r=await fetch(`/api/amenites?lat=${lat}&lon=${lon}&_v=2`,{signal:AbortSignal.timeout(25000)});
+        const r=await fetch(`/api/amenites?lat=${lat}&lon=${lon}&_v=3`,{signal:AbortSignal.timeout(25000)});
         const j=await r.json();
         if(j.success) window._amenitesData=j;
       }catch{}
@@ -5590,6 +5610,14 @@ function geolocateUser(){
         // Préremplir aussi sideSearch si visible
         const sideInp = document.getElementById('sideSearch');
         if(sideInp) sideInp.value = addr;
+        // Synchroniser la carte France avec la position geolocalisee
+        if(window._franceMap) {
+          window._franceMap.setView([lat, lon], 14, {animate: true});
+          if(window._franceMarker) window._franceMarker.remove();
+          const geoIcon = L.divIcon({ html:'<div style="width:14px;height:14px;background:#b8832a;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.5)"></div>', iconSize:[14,14], iconAnchor:[7,7], className:'' });
+          window._franceMarker = L.marker([lat, lon], { icon: geoIcon }).addTo(window._franceMap);
+          window._franceMarker.bindTooltip(addr).openTooltip();
+        }
       } catch(e) {
         alert('Impossible de récupérer votre adresse. Veuillez saisir manuellement.');
       } finally {
