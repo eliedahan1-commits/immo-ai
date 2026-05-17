@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   if (!lat || !lon) return res.status(400).json({ error: 'lat et lon requis' });
 
   try {
-    const query = `[out:json][timeout:8];(
+    const query = `[out:json][timeout:12];(
       node["public_transport"="stop_position"](around:${dist},${lat},${lon});
       node["highway"="bus_stop"](around:${dist},${lat},${lon});
       node["railway"="station"](around:${dist},${lat},${lon});
@@ -31,7 +31,7 @@ export default async function handler(req, res) {
           method: 'POST',
           body: `data=${encodeURIComponent(query)}`,
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          signal: AbortSignal.timeout(9000)
+          signal: AbortSignal.timeout(12000)
         });
         if (!r.ok) continue;
         data = await r.json();
