@@ -1759,11 +1759,22 @@ function setCard(id, value, sub, cssClass=''){
 // Ajoute un bouton ↻ discret sur une carte en échec (uniquement sur échec)
 function setCardRetry(id, fn){
   const card=document.getElementById('card-'+id);
-  if(!card||card.querySelector('.card-retry-btn')) return;
+  if(!card) return;
+  // Supprimer ancien bouton si présent (permet les retry successifs)
+  card.querySelectorAll('.card-retry-btn').forEach(b=>b.remove());
   const btn=document.createElement('button');
   btn.className='card-retry-btn';
   btn.innerHTML='↻ Réessayer';
-  btn.onclick=(e)=>{e.stopPropagation();btn.remove();fn();};
+  btn.onclick=(e)=>{
+    e.stopPropagation();
+    btn.remove();
+    // Afficher un spinner sur la carte pendant le rechargement
+    const valEl = card.querySelector('.card-value');
+    const subEl = card.querySelector('.card-sub');
+    if(valEl) valEl.innerHTML='<span class="spin"></span>';
+    if(subEl) subEl.textContent='Chargement...';
+    fn();
+  };
   card.appendChild(btn);
 }
 
