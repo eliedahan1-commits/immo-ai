@@ -5544,7 +5544,15 @@ function geolocateUser(){
           { headers: { 'Accept-Language': 'fr' } }
         );
         const data = await r.json();
-        const addr = data.display_name || `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+        // Reformater l'adresse Nominatim en format lisible
+        const a = data.address || {};
+        const num    = a.house_number || '';
+        const rue    = a.road || a.pedestrian || a.path || '';
+        const ville  = a.city || a.town || a.village || a.municipality || '';
+        const cp     = a.postcode || '';
+        const ligne1 = [num, rue].filter(Boolean).join(' ');
+        const ligne2 = [cp, ville].filter(Boolean).join(' ');
+        const addr   = [ligne1, ligne2].filter(Boolean).join(', ') || data.display_name || `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
         // Préremplir le champ héro
         const heroInp = document.getElementById('heroSearch');
         if(heroInp){ heroInp.value = addr; heroInp.focus(); }
@@ -5561,7 +5569,7 @@ function geolocateUser(){
       if(btn){ btn.textContent='🎯'; btn.style.color='rgba(255,255,255,.5)'; btn.disabled=false; }
       if(err.code !== 1) alert('Géolocalisation échouée : ' + err.message);
     },
-    { timeout: 8000, maximumAge: 60000 }
+    { timeout: 15000, maximumAge: 120000, enableHighAccuracy: false }
   );
 }
 
