@@ -284,4 +284,3 @@ function generatePDF(){
     console.error('[ImmoAI PDF stack]', e.stack);
   }
 }
-                                                                           
