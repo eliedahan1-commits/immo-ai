@@ -2078,7 +2078,7 @@ async function loadEcoles(lat, lng, codeInsee, dist=500){
 async function loadMobilite(lat, lng, dist=1000){
   window._mobiliteData = null;
   try{
-    const r = await apiCall(`/api/mobilite?lat=${lat}&lon=${lng}&dist=${dist}`, `https://overpass-api.de/api/interpreter`, {signal:AbortSignal.timeout(28000)});
+    const r = await apiCall(`/api/mobilite?lat=${lat}&lon=${lng}&dist=${dist}&_v=2`, `https://overpass-api.de/api/interpreter`, {signal:AbortSignal.timeout(28000)});
     if(!r.ok) throw new Error();
     const d = await r.json();
     if(!d.success) throw new Error();
@@ -2361,7 +2361,7 @@ function showQualiteAirDetail() {
 function showDPESecteurDetail() {
   const dpe = window._dpeSecteurData;
   if (!dpe || dpe.error) { showPanel('🏷️ DPE du secteur', '<p style="color:var(--muted)">Données ADEME non disponibles pour cette commune.</p>'); return; }
-  const COLORS = { A:'#1a9641', B:'#52b153', C:'#a6d96a', D:'#ffffbf', E:'#fecc5c', F:'#fd8d3c', G:'#d7191c' };
+  const COLORS = { A:'#1a9641', B:'#52b153', C:'#a6d96a', D:'#e8c619', E:'#fecc5c', F:'#fd8d3c', G:'#d7191c' };
   const LABELS = { A:'A – Très performant', B:'B – Performant', C:'C – Assez bon', D:'D – Moyen', E:'E – Peu efficace', F:'F – Mauvais', G:'G – Très mauvais' };
   const total = dpe.total || 1;
   const bars = ['A','B','C','D','E','F','G'].map(lbl => {
@@ -2372,7 +2372,7 @@ function showDPESecteurDetail() {
       <span style="font-size:.85rem;font-weight:700;color:${COLORS[lbl]};width:14px">${lbl}</span>
       <div style="flex:1;background:var(--border);border-radius:3px;height:18px;position:relative">
         <div style="width:${w}%;background:${COLORS[lbl]};border-radius:3px;height:18px;min-width:${n>0?'4px':'0'}"></div>
-        ${n>0?`<span style="position:absolute;left:.4rem;top:1px;font-size:.72rem;color:${lbl==='D'?'#555':pct>20?'#fff':'var(--text)'};">${pct}% (${n.toLocaleString('fr-FR')})</span>`:''}
+        ${n>0?`<span style="position:absolute;left:.4rem;top:1px;font-size:.72rem;color:${pct>20?'#fff':'var(--text)'};">${pct}% (${n.toLocaleString('fr-FR')})</span>`:''}
       </div>
     </div>`;
   }).join('');
