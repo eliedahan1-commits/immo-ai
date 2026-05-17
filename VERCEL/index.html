@@ -2918,6 +2918,26 @@ function showPanel(title, html){
       <div class="detail-body">${html}</div>
     </div>`;
   window.scrollTo({top:0, behavior:'smooth'});
+  // Seniors section (rendu séparé pour éviter les templates imbriqués)
+  setTimeout(()=>{
+    const ph = document.getElementById('seniors-section-placeholder');
+    if(!ph) return;
+    const sr = window._amenitesData?.seniors;
+    if(!sr || !sr.total) { ph.remove(); return; }
+    const etabs = (sr.etablissements||[]).slice(0,8);
+    let html = '<div style="margin-top:1rem;padding:.75rem 1rem;background:var(--warm);border-radius:8px;border:1px solid var(--border)">';
+    html += '<div style="font-weight:600;font-size:.82rem;color:var(--text);margin-bottom:.5rem">\u{1F3E1} Seniors & EHPAD \u00B7 '+(sr.rayon/1000)+'km \u2014 '+sr.total+' \u00E9tablissement(s)</div>';
+    etabs.forEach(e=>{
+      html += '<div style="padding:.4rem 0;border-bottom:1px solid var(--border);font-size:.78rem">';
+      html += '<span style="font-weight:600;color:var(--text)">'+e.nom+'</span>';
+      html += '<span style="color:var(--muted);font-size:.7rem;margin-left:.5rem">'+e.type+'</span>';
+      if(e.adresse) html += '<div style="color:var(--muted);font-size:.68rem">'+e.adresse+'</div>';
+      html += '</div>';
+    });
+    if(sr.total>8) html += '<div style="font-size:.68rem;color:var(--muted);margin-top:.3rem">+ '+(sr.total-8)+' autres</div>';
+    html += '</div>';
+    ph.outerHTML = html;
+  }, 50);
   // Masquer les cartes
   document.getElementById('cardsGrid').style.display = 'none';
 }
@@ -3386,21 +3406,7 @@ function showMobiliteDetail(){
     <div style="margin-top:1.2rem;height:160px;width:70%"><canvas id="mobiliteChart"></canvas></div>
     ${d.arretsPrincipaux?.length?`<p style="font-size:.75rem;color:var(--muted);margin-top:.5rem">Principaux arrêts : ${d.arretsPrincipaux.join(' · ')}</p>`:''}
     <p style="font-size:.62rem;color:var(--muted);margin-top:.4rem">Source : OpenStreetMap via Overpass API · Rayon ${mobDist}m</p>
-    ${(()=>{
-      const sr = window._amenitesData?.seniors ? {success:true, total:window._amenitesData.seniors.total, etablissements:window._amenitesData.seniors.etablissements, rayon:window._amenitesData.rayons?.seniors||2000} : null;
-      if(!sr||!sr.success||sr.total===0) return '';
-      const items = (sr.etablissements||[]).slice(0,8).map(e=>`
-        <div style="padding:.4rem 0;border-bottom:1px solid var(--border);font-size:.78rem">
-          <span style="font-weight:600;color:var(--text)">${e.nom}</span>
-          <span style="color:var(--muted);font-size:.7rem;margin-left:.5rem">${e.type}</span>
-          ${e.adresse?`<div style="color:var(--muted);font-size:.68rem">${e.adresse}</div>`:''}
-        </div>`).join('');
-      return `<div style="margin-top:1rem;padding:.75rem 1rem;background:var(--warm);border-radius:8px;border:1px solid var(--border)">
-        <div style="font-weight:600;font-size:.82rem;color:var(--text);margin-bottom:.5rem">🏡 Seniors & EHPAD · ${sr.rayon/1000}km — ${sr.total} établissement(s)</div>
-        ${items}
-        ${sr.total>8?`<div style="font-size:.68rem;color:var(--muted);margin-top:.3rem">+ ${sr.total-8} autres</div>`:''}
-      </div>`;
-    })()}
+    <div id="seniors-section-placeholder"></div>
   \`);
 
   // Initialiser immédiatement pour éviter un crash si toggle avant le setTimeout
