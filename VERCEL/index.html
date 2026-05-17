@@ -851,7 +851,7 @@ path.leaflet-interactive:focus{outline:none;}
 
   <!-- ══ DPE ══ -->
   <div class="page" id="p-energie"><div class="inner">
-    <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
+    <button class="back-btn" onclick="_goPage('analyse');document.getElementById('cardsGrid').style.display='grid'" style="margin:0 0 1rem 0">← Retour aux cartes</button>
     <div class="ph"><div class="ptag">✦ Énergie · Source ADEME</div><h2 class="ptitle">Simulateur <em>DPE</em></h2></div>
     <div class="g2" style="align-items:start">
       <div class="card"><div class="ctitle">⚡ Calculer la facture énergétique</div>
@@ -1200,7 +1200,7 @@ path.leaflet-interactive:focus{outline:none;}
     </div>
   </div></div>
 
-  <div class="page" id="p-soleil"><div class="inner"><div class="ph"><div class="ptag">✦ Source Météo-France</div><h2 class="ptitle">Météo & <em>ensoleillement</em></h2><p class="psub">Heures d'ensoleillement annuel, températures moyennes, pluviométrie — données Météo-France.</p></div><div class="card"><p style="font-size:.83rem;color:var(--muted)">Entrez une adresse dans la barre de recherche pour voir les données météo locales.</p></div></div></div>
+  <div class="page" id="p-soleil"><div class="inner"><button class="back-btn" onclick="_goPage('analyse');document.getElementById('cardsGrid').style.display='grid'" style="margin:0 0 1rem 0">← Retour aux cartes</button><div class="ph"><div class="ptag">✦ Source Météo-France</div><h2 class="ptitle">Météo & <em>ensoleillement</em></h2><p class="psub">Heures d'ensoleillement annuel, températures moyennes, pluviométrie — données Météo-France.</p></div><div class="card"><p style="font-size:.83rem;color:var(--muted)">Entrez une adresse dans la barre de recherche pour voir les données météo locales.</p></div></div></div>
 
   <!-- ══ JURIDIQUE ══ -->
   <div class="page" id="p-juridique"><div class="inner">
@@ -1636,18 +1636,6 @@ function renderCards(props, coords){
 
   const cardSections = [
     {
-      title: '🏠 Analyser un bien',
-      cards: [
-        {id:'dvf',           icon:'💰', label:'Prix des dernières transactions', value:'<span class="spin"></span>', sub:'Transactions réelles',      source:'DVF DGFiP'},
-        {id:'loyers',        icon:'🏠', label:'Loyers estimés',                  value:'<span class="spin"></span>', sub:'Estimation DVF × rendement', source:'DVF + calcul'},
-        {id:'prixCommunes',  icon:'🗺️', label:'Prix au m² par commune',          value:'<span class="spin"></span>', sub:'Carte choroplèthe commune',  source:'DVF + geo.api.gouv.fr'},
-        {id:'risques',   icon:'⚠️', label:'Risques naturels',       value:'<span class="spin"></span>', sub:'Géorisques officiel',       source:'Géorisques'},
-        {id:'dpe',       icon:'⚡', label:'Énergie & DPE',          value:'Simuler →',                  sub:'Cliquez pour simuler',      source:'ADEME'},
-        {id:'bruit',     icon:'🔇', label:'Bruit & nuisances',      value:'<span class="spin"></span>', sub:'Routes, voies ferrées, aéroports', source:'OSM'},
-        {id:'urbanisme', icon:'📋', label:'Urbanisme, PLU & Énergie',        value:'<span class="spin"></span>', sub:'Zonage officiel IGN',       source:'IGN GPU'},
-      ]
-    },
-    {
       title: '🏘️ Mon quartier',
       cards: [
         {id:'score',     icon:'⭐', label:'Score de quartier',      value:'<span class="spin"></span>', sub:'Synthèse automatique',      source:'Multi-sources'},
@@ -1659,6 +1647,18 @@ function renderCards(props, coords){
         {id:'insee',     icon:'📊', label:'Profil du quartier',     value:'<span class="spin"></span>', sub:'Population & densité',      source:'INSEE'},
         {id:'altitude',  icon:'🏔️', label:'Altitude',               value:'<span class="spin"></span>', sub:'Précision 1m · IGN',       source:'IGN RGE Alti'},
         {id:'demographie',icon:'📈',label:'Évolution démographique',value:'<span class="spin"></span>', sub:'Historique population',     source:'Wikidata/INSEE'},
+      ]
+    },
+    {
+      title: '🏠 Analyser un bien',
+      cards: [
+        {id:'dvf',           icon:'💰', label:'Prix des dernières transactions', value:'<span class="spin"></span>', sub:'Transactions réelles',      source:'DVF DGFiP'},
+        {id:'loyers',        icon:'🏠', label:'Loyers estimés',                  value:'<span class="spin"></span>', sub:'Estimation DVF × rendement', source:'DVF + calcul'},
+        {id:'prixCommunes',  icon:'🗺️', label:'Prix au m² par commune',          value:'<span class="spin"></span>', sub:'Carte choroplèthe commune',  source:'DVF + geo.api.gouv.fr'},
+        {id:'risques',   icon:'⚠️', label:'Risques naturels',       value:'<span class="spin"></span>', sub:'Géorisques officiel',       source:'Géorisques'},
+        {id:'dpe',       icon:'⚡', label:'Énergie & DPE',          value:'Simuler →',                  sub:'Cliquez pour simuler',      source:'ADEME'},
+        {id:'bruit',     icon:'🔇', label:'Bruit & nuisances',      value:'<span class="spin"></span>', sub:'Routes, voies ferrées, aéroports', source:'OSM'},
+        {id:'urbanisme', icon:'📋', label:'Urbanisme, PLU & Énergie',        value:'<span class="spin"></span>', sub:'Zonage officiel IGN',       source:'IGN GPU'},
       ]
     },
     {
@@ -3268,7 +3268,12 @@ function showEcolesDetail(){
     </div>
     <div class="map-container" id="mapEcoles" style="margin-bottom:.8rem"></div>
     <div id="ecolesListe"></div>
-    <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : OpenStreetMap · Rayon ${(window._ecolesCurrentDist||500)>=1000?((window._ecolesCurrentDist||500)/1000)+'km':(window._ecolesCurrentDist||500)+'m'}</p>`);
+    <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : OpenStreetMap · Rayon ${(window._ecolesCurrentDist||500)>=1000?((window._ecolesCurrentDist||500)/1000)+'km':(window._ecolesCurrentDist||500)+'m'}</p>
+    <div style="margin-top:.8rem;padding:.75rem 1rem;background:linear-gradient(135deg,rgba(184,131,42,.08),rgba(184,131,42,.03));border:1px solid var(--goldborder);border-radius:8px;display:flex;align-items:center;gap:.8rem;flex-wrap:wrap">
+      <span style="font-size:.82rem;color:var(--text);flex:1;min-width:180px">🎓 Vous aider à choisir votre parcours d'études et trouver votre école ?</span>
+      <a href="https://www.chooseandconnect.com/" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:.4rem;padding:.45rem 1rem;background:var(--ink);color:var(--gold);border-radius:6px;font-size:.78rem;font-weight:600;text-decoration:none;white-space:nowrap;transition:opacity .2s" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">Choisir avec Choose &amp; Connect ↗</a>
+    </div>`);
+
 
   window.reloadEcolesWithDist = async function(dist){
     window._ecolesCurrentDist = dist;
@@ -5486,6 +5491,6 @@ async function sendMsg(){
 }
 function ask(q){document.getElementById('chatIn').value=q;sendMsg();}
 </script>
-<script src="/pdf-export.js?v=4"></script>
+<script src="/pdf-export.js?v=5"></script>
 </body>
-</html>                   
+</html>
