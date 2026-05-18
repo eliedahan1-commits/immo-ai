@@ -87,19 +87,34 @@
   }
 
   function buildLeBonCoin(p) {
-    const cat  = p.mode === 'achat' ? '9' : '10';
-    const ret  = p.type === 'appart' ? '2' : p.type === 'maison' ? '1' : '1,2';  // LBC: Maison=1, Appart=2, Terrain=3, Parking=4, Autre=5
-    let url    = `https://www.leboncoin.fr/recherche?category=${cat}`;
-    if (ret)       url += `&real_estate_type=${ret}`;
-    // Ville : supprimer le suffixe arrondissement pour Paris
+    // LBC : Maison=1, Appart=2, Terrain=3, Parking=4, Autre=5
+    const cat = p.mode === 'achat' ? '9' : '10';
+    const ret = p.type === 'appart' ? '2' : p.type === 'maison' ? '1' : '1,2';
+    let url   = `https://www.leboncoin.fr/recherche?category=${cat}`;
+    if (ret) url += `&real_estate_type=${ret}`;
     const lcCity = (p.cityName || '').replace(/\s+\d.*$/i, '').trim() || p.cityName;
-    if (p.cp && lcCity) url += `&locations=${encodeURIComponent(lcCity.replace(/\s+/g, '_') + '_' + p.cp)}`;
+    if (p.cp && lcCity) url += `&locations=${encodeURIComponent(lcCity.replace(/\s+/g,'_')+'_'+p.cp)}`;
     if (p.budget)  url += `&price=min-${p.budget}`;
     if (p.surface) url += `&square=${p.surface}-max`;
     if (p.pieces)  url += `&rooms=${p.pieces}-max`;
-    // Type de vente
     url += p.neuf ? '&immo_sell_type=new' : '&immo_sell_type=old';
-    (p.chips||[]).forEach(l => { const m=CHIP_MAP[l]; if(m&&m.lbcAccess) url+=`&outside_access=${m.lbcAccess}`; });
+    // Collecte critères (listes comma-séparées)
+    const outside = [], specs = [], floorProps = [];
+    (p.chips||[]).forEach(label => {
+      const m = CHIP_MAP[label];
+      if (m && m.lbc) {
+        if (m.lbc.outside_access) outside.push(m.lbc.outside_access);
+        if (m.lbc.specificities)  specs.push(m.lbc.specificities);
+        if (m.lbc.floor_property) floorProps.push(...m.lbc.floor_property.split(','));
+        if (m.lbc.elevator)       url += `&elevator=${m.lbc.elevator}`;
+      }
+      const le = LBC_EXTRA[label];
+      if (le && le.energy_rate) url += `&energy_rate=${le.energy_rate}`;
+    });
+    if (p.jardin) outside.push('garden');
+    if (outside.length)    url += `&outside_access=${outside.join(',')}`;
+    if (specs.length)      url += `&specificities=${specs.join(',')}`;
+    if (floorProps.length) url += `&floor_property=${[...new Set(floorProps)].join(',')}`;
     return url;
   }
 
