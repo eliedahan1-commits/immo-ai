@@ -149,13 +149,17 @@
     if (chips.has('Piscine'))                           path.push('piscine');
     let url = `https://www.pap.fr/annonce/${trans}-${typeStr}`;
     if (path.length) url += `-${path.join('-')}`;
-    if (p.cp) url += `-${p.cp}`;
-    const params = [];
-    if (p.budget)  params.push(`${p.mode === 'achat' ? 'prix_max' : 'loyer_max'}=${p.budget}`);
-    if (p.surface) params.push(`surface_min=${p.surface}`);
-    if (p.pieces)  params.push(`nb_pieces_min=${p.pieces}`);
-    if (p.jardin)  params.push(`surface_terrain_min=${p.jardin}`);
-    return params.length ? `${url}?${params.join('&')}` : url;
+    // Localisation dans le chemin : slug-CP (le g{id} PAP est inconnu, on l'omet)
+    if (p.citySlug && p.cp) url += `-${p.citySlug}-${p.cp}`;
+    else if (p.cp)          url += `-${p.cp}`;
+    // Prix, pièces, surface dans le chemin (format PAP)
+    if (p.pieces) url += `-a-partir-du-${p.pieces}-piece${parseInt(p.pieces)>1?'s':''}`;
+    if (p.budget) url += `-jusqu-a-${p.budget}-euros`;
+    if (p.surface) url += `-a-partir-de-${p.surface}-m2`;
+    // Surface terrain (maison) en query param — pas de slug PAP connu
+    const qParams = [];
+    if (p.jardin) qParams.push(`surface_terrain_min=${p.jardin}`);
+    return qParams.length ? `${url}?${qParams.join('&')}` : url;
   }
 
   function buildBienIci(p) {
