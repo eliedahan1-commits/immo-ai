@@ -149,9 +149,11 @@
     if (chips.has('Piscine'))                           path.push('piscine');
     let url = `https://www.pap.fr/annonce/${trans}-${typeStr}`;
     if (path.length) url += `-${path.join('-')}`;
-    // Localisation dans le chemin : slug-CP (le g{id} PAP est inconnu, on l'omet)
-    if (p.citySlug && p.cp) url += `-${p.citySlug}-${p.cp}`;
-    else if (p.cp)          url += `-${p.cp}`;
+    // Localisation : PAP utilise le code département (2 premiers chiffres du CP)
+    // ex: paris-75, vannes-56, boulogne-billancourt-92
+    const papDept = p.cp ? p.cp.slice(0, 2) : '';
+    if (p.citySlug && papDept) url += `-${p.citySlug}-${papDept}`;
+    else if (papDept)          url += `-${papDept}`;
     // Prix, pièces, surface dans le chemin (format PAP)
     if (p.pieces) url += `-a-partir-du-${p.pieces}-piece${parseInt(p.pieces)>1?'s':''}`;
     if (p.budget) url += `-jusqu-a-${p.budget}-euros`;
@@ -213,7 +215,7 @@
   // ── HTML du panneau ──
   function renderPanel(cityName, cp, photoUrl) {
     const photoStyle = photoUrl
-      ? `background:url('${photoUrl}') center/cover no-repeat`
+      ? `background:url('${photoUrl}') center 40%/cover no-repeat`
       : `background:linear-gradient(135deg,#b8832a,#7a6040)`;
 
     return `
