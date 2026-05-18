@@ -26,6 +26,23 @@
     { v: 10000, l: '10 km' },
   ];
 
+  // ── Mapping critères → valeurs URL par site ──
+  // Modifier ici si un site change son format.
+  const CHIP_MAP = {
+    'Balcon':             { selogerFeat: 'Balcony_Terrace', lbcAccess: 'balcony',  papSlug: 'balcon',    bienici: 'balcon=oui' },
+    'Terrasse':           { selogerFeat: 'Balcony_Terrace', lbcAccess: 'terrace',  papSlug: 'terrasse',  bienici: 'terrasse=oui' },
+    'Ascenseur':          { selogerFeat: 'Elevator',        lbcAccess: null,       papSlug: 'ascenseur', bienici: null },
+    'Cave':               { selogerFeat: 'Cellar',          lbcAccess: null,       papSlug: 'cave',      bienici: null },
+    'Parking':            { selogerFeat: 'Parking',         lbcAccess: null,       papSlug: 'parking',   bienici: null },
+    'Pas rez-de-chaussée':{ selogerFeat: null,              lbcAccess: null,       papSlug: null,        bienici: null },
+    'Piscine possible':   { selogerFeat: 'SwimmingPool',    lbcAccess: null,       papSlug: 'piscine',   bienici: null },
+    'Dépendances':        { selogerFeat: null,              lbcAccess: null,       papSlug: 'dependance',bienici: null },
+  };
+  const BIENICI_EXTRA = {
+    'DPE A→C':       'classification-energetique=A%2CB%2CC',
+    'Avec photos':        'photo=oui',
+  };
+
   // ── Helpers ──
   function slugify(str) {
     return (str || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -54,37 +71,48 @@
 
   // ── Builders URL ──
   function buildSeLoger(p) {
-    const types   = p.type === 'appart' ? '1' : p.type === 'maison' ? '2' : '1,2';
-    const project = p.mode === 'achat'  ? '2' : '1';
-    const natures = p.neuf             ? '2' : '1,2';
-    let url = `https://www.seloger.com/list.htm?types=${types}&projects=${project}&enterprise=0&natures=${natures}`;
-    if (p.insee)   url += `&places=${encodeURIComponent('[{"inse":"' + p.insee + '"}]')}`;
-    if (p.surface) url += `&surface=${p.surface}`;
-    if (p.pieces)  url += `&rooms=${p.pieces}`;
-    if (p.budget)  url += `&price=${p.budget}`;
-    return url;
+    // SeLoger : format classified-search (POCOFR location non disponible sans API)
+    const estate   = p.type === 'appart' ? 'Apartment' : p.type === 'maison' ? 'House' : 'Apartment,House';
+    const distrib  = p.mode === 'achat'  ? 'Buy' : 'Rent';
+    const projects = p.neuf ? 'NewConstruction' : 'Resale,NewConstruction';
+    const params   = [`distributionTypes=${distrib}`, `estateTypes=${estate}`, `projectTypes=${projects}`];
+    if (p.budget)  params.push(`priceMax=${p.budget}`);
+    if (p.surface) params.push(`spaceMin=${p.surface}`);
+    if (p.pieces)  params.push(`numberOfRoomsMin=${p.pieces}`);
+    if (p.dpeAC)   params.push('energyCertificate=A,B,C');
+    const slFeats = new Set();
+    (p.chips||[]).forEach(l => { const m=CHIP_MAP[l]; if(m&&m.selogerFeat) slFeats.add(m.selogerFeat); });
+    if (slFeats.size) params.push('featuresIncluded=' + [...slFeats].join(','));
+    return `https://www.seloger.com/classified-search?${params.join('&')}`;
   }
 
   function buildLeBonCoin(p) {
-    const cat = p.mode === 'achat' ? '9' : '10';
-    const ret = p.type === 'appart' ? '1' : p.type === 'maison' ? '2' : '1,2';
-    let url = `https://www.leboncoin.fr/recherche?category=${cat}`;
+    const cat  = p.mode === 'achat' ? '9' : '10';
+    const ret  = p.type === 'appart' ? '1' : p.type === 'maison' ? '2' : '1,2';
+    let url    = `https://www.leboncoin.fr/recherche?category=${cat}`;
     if (ret)       url += `&real_estate_type=${ret}`;
-    if (p.budget)  url += `&price=0-${p.budget}`;
+    // Ville : supprimer le suffixe arrondissement pour Paris
+    const lcCity = (p.cityName || '').replace(/\s+\d.*$/i, '').trim() || p.cityName;
+    if (p.cp && lcCity) url += `&locations=${encodeURIComponent(lcCity.replace(/\s+/g, '_') + '_' + p.cp)}`;
+    if (p.budget)  url += `&price=min-${p.budget}`;
     if (p.surface) url += `&square=${p.surface}-max`;
     if (p.pieces)  url += `&rooms=${p.pieces}-max`;
-    if (p.cp && p.cityName) url += `&locations=${encodeURIComponent(p.cityName.replace(/\s+/g, '_') + '_' + p.cp)}`;
+    // Type de vente
+    url += p.neuf ? '&immo_sell_type=new' : '&immo_sell_type=old';
+    (p.chips||[]).forEach(l => { const m=CHIP_MAP[l]; if(m&&m.lbcAccess) url+=`&outside_access=${m.lbcAccess}`; });
     return url;
   }
 
   function buildPAP(p) {
     const trans   = p.mode === 'achat' ? 'vente' : 'location';
-    // PAP utilise la forme plurielle
     const typeStr = p.type === 'appart' ? 'appartements'
                   : p.type === 'maison' ? 'maisons'
                   : 'appartements-et-maisons';
+    const criteriaPath = [];
+    (p.chips||[]).forEach(l => { const m=CHIP_MAP[l]; if(m&&m.papSlug) criteriaPath.push(m.papSlug); });
     let url = `https://www.pap.fr/annonce/${trans}-${typeStr}`;
-    if (p.cp) url += `-${p.cp}`;   // filtre ville via code postal
+    if (criteriaPath.length) url += `-${criteriaPath.join('-')}`;
+    if (p.cp) url += `-${p.cp}`;
     const params = [];
     if (p.budget)  params.push(`${p.mode === 'achat' ? 'prix_max' : 'loyer_max'}=${p.budget}`);
     if (p.surface) params.push(`surface_min=${p.surface}`);
@@ -100,28 +128,38 @@
     const typeStr = p.type === 'appart' ? 'appartement'
                   : p.type === 'maison' ? 'maison'
                   : 'appartement,maison';
+    // Slug ville avec CP (ex: boulogne-billancourt-92100)
+    const locSlug = p.citySlug ? (p.cp ? `${p.citySlug}-${p.cp}` : p.citySlug) : '';
     let url = `https://www.bienici.com/recherche/${trans}`;
-    if (p.citySlug) url += `/${p.citySlug}`;
+    if (locSlug) url += `/${locSlug}`;
     url += `/${typeStr}`;
+    // Pièces dans le chemin
+    if (p.pieces) url += `/${p.pieces}-pieces-et-plus`;
     const params = [];
     if (p.budget)  params.push(`${p.mode === 'achat' ? 'prix-max' : 'loyer-max'}=${p.budget}`);
     if (p.surface) params.push(`surface-min=${p.surface}`);
-    if (p.pieces)  params.push(`nb-pieces-min=${p.pieces}`);
     if (p.jardin)  params.push(`surface-terrain-min=${p.jardin}`);
-    if (p.neuf)    params.push('neuf=true');
+    if (p.neuf) params.push('neuf=true');
+    (p.chips||[]).forEach(l => {
+      const m=CHIP_MAP[l]; if(m&&m.bienici) params.push(m.bienici);
+      const e=BIENICI_EXTRA[l]; if(e) params.push(e);
+    });
     return params.length ? `${url}?${params.join('&')}` : url;
   }
 
   function buildLogicImmo(p) {
-    const trans = p.mode === 'achat' ? 'vente' : 'location';
-    let url = `https://www.logic-immo.com/${trans}-immobilier`;
-    if (p.cp) url += `-${p.cp}`;
-    url += '/';
-    const params = [];
-    if (p.budget)  params.push(`prix-max=${p.budget}`);
-    if (p.surface) params.push(`surface-min=${p.surface}`);
-    if (p.pieces)  params.push(`nb-pieces=${p.pieces}`);
-    return params.length ? `${url}?${params.join('&')}` : url;
+    // Logic-Immo : même format que SeLoger (POCOFR location non disponible sans API)
+    const estate   = p.type === 'appart' ? 'Apartment' : p.type === 'maison' ? 'House' : 'Apartment,House';
+    const distrib  = p.mode === 'achat'  ? 'Buy' : 'Rent';
+    const params   = [`distributionTypes=${distrib}`, `estateTypes=${estate}`];
+    if (p.budget)  params.push(`priceMax=${p.budget}`);
+    if (p.surface) params.push(`spaceMin=${p.surface}`);
+    if (p.pieces)  params.push(`numberOfRoomsMin=${p.pieces}`);
+    if (p.dpeAC)   params.push('energyCertificate=A,B,C');
+    const liFeats = new Set();
+    (p.chips||[]).forEach(l => { const m=CHIP_MAP[l]; if(m&&m.selogerFeat) liFeats.add(m.selogerFeat); });
+    if (liFeats.size) params.push('featuresIncluded=' + [...liFeats].join(','));
+    return `https://www.logic-immo.com/classified-search?${params.join('&')}`;
   }
 
   function buildAllUrls(p) {
@@ -237,7 +275,7 @@
     return SITES.map((s, i) => {
       const url  = urls[s.id] || '#';
       const wide = i === 4 ? 'grid-column:1/-1;' : '';
-      return `<a href="${url}" target="_blank" onclick="this.querySelector('.rb-link-txt').textContent='⏳ Ouverture...'" rel="noopener"
+      return `<a href="${url}" target="_blank" onclick="var t=this.querySelector('.rb-link-txt');t.textContent='⏳ Ouverture...';setTimeout(function(){t.textContent='Voir les annonces →';},3000)" rel="noopener"
         style="${wide}display:block;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;text-decoration:none;color:inherit">
         <div style="padding:8px 12px;display:flex;align-items:center;gap:7px;border-bottom:1px solid var(--borderl)">
           <span style="width:9px;height:9px;border-radius:50%;background:${s.couleur};flex-shrink:0;display:inline-block"></span>
@@ -272,13 +310,9 @@
       cp:        _ctx.cp       || '',
       cityName:  _ctx.cityName || '',
       citySlug:  _ctx.citySlug || '',
-      neuf:      chips.includes('Neuf seulement'),
-      avecPhotos:chips.includes('Avec photos'),
-      dpeAC:     chips.includes('DPE A→C'),
-      ascenseur: chips.includes('Ascenseur'),
-      cave:      chips.includes('Cave'),
-      parking:   chips.includes('Parking'),
-      garage:    val('rb-garage') === '1',
+      chips,   // liste brute des labels actifs → utilisée par les builders via CHIP_MAP
+      neuf:    chips.includes('Neuf seulement'),  // encore utilisé directement dans certains builders
+      garage:  val('rb-garage') === '1',
     };
   }
 
