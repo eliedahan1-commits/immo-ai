@@ -88,7 +88,7 @@
 
   function buildLeBonCoin(p) {
     const cat  = p.mode === 'achat' ? '9' : '10';
-    const ret  = p.type === 'appart' ? '1' : p.type === 'maison' ? '2' : '1,2';
+    const ret  = p.type === 'appart' ? '2' : p.type === 'maison' ? '1' : '1,2';  // LBC: Maison=1, Appart=2, Terrain=3, Parking=4, Autre=5
     let url    = `https://www.leboncoin.fr/recherche?category=${cat}`;
     if (ret)       url += `&real_estate_type=${ret}`;
     // Ville : supprimer le suffixe arrondissement pour Paris
@@ -126,17 +126,17 @@
   function buildBienIci(p) {
     const trans   = p.mode === 'achat' ? 'achat' : 'location';
     const typeStr = p.type === 'appart' ? 'appartement'
-                  : p.type === 'maison' ? 'maison'
-                  : 'appartement,maison';
+                  : p.type === 'maison' ? 'maisonvilla'
+                  : 'appartement,maisonvilla';
     // Slug ville avec CP (ex: boulogne-billancourt-92100)
     const locSlug = p.citySlug ? (p.cp ? `${p.citySlug}-${p.cp}` : p.citySlug) : '';
     let url = `https://www.bienici.com/recherche/${trans}`;
     if (locSlug) url += `/${locSlug}`;
     url += `/${typeStr}`;
     // Pièces dans le chemin
-    if (p.pieces) url += `/${p.pieces}-pieces-et-plus`;
+    if (p.pieces) url += `/${p.pieces}-piece${parseInt(p.pieces) > 1 ? 's' : ''}-et-plus`;
     const params = [];
-    if (p.budget)  params.push(`${p.mode === 'achat' ? 'prix-max' : 'loyer-max'}=${p.budget}`);
+    if (p.budget)  params.push(`prix-max=${p.budget}`);  // Bien'ici : prix-max en achat ET location
     if (p.surface) params.push(`surface-min=${p.surface}`);
     if (p.jardin)  params.push(`surface-terrain-min=${p.jardin}`);
     if (p.neuf) params.push('neuf=true');
@@ -338,7 +338,7 @@
     const bInput = sel('rb-budget');
     if (bInput) {
       bInput.placeholder = mode === 'location' ? 'ex: 1200' : 'ex: 300000';
-      bInput.value = '';
+      // Ne pas effacer la valeur : l'utilisateur l'ajuste lui-même
     }
     window._rbUpdateSites();
   };
