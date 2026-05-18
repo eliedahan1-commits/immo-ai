@@ -28,19 +28,28 @@
 
   // ── Mapping critères → valeurs URL par site ──
   // Modifier ici si un site change son format.
+  // selogerFeat : valeur featuresIncluded SeLoger/LogicImmo
+  // lbc         : { outside_access?, specificities?, floor_property?, elevator? }
+  // papSlug     : slug dans le chemin PAP
+  // bienici     : paramètre query string Bien'ici
   const CHIP_MAP = {
-    'Balcon':             { selogerFeat: 'Balcony_Terrace', lbcAccess: 'balcony',  papSlug: 'balcon',    bienici: 'balcon=oui' },
-    'Terrasse':           { selogerFeat: 'Balcony_Terrace', lbcAccess: 'terrace',  papSlug: 'terrasse',  bienici: 'terrasse=oui' },
-    'Ascenseur':          { selogerFeat: 'Elevator',        lbcAccess: null,       papSlug: 'ascenseur', bienici: 'ascenseur=oui' },
-    'Cave':               { selogerFeat: 'Cellar',          lbcAccess: null,       papSlug: 'cave',      bienici: 'cave=oui' },
-    'Parking':            { selogerFeat: 'Parking',         lbcAccess: null,       papSlug: 'parking',   bienici: 'parking=oui' },
-    'Pas rez-de-chaussée':{ selogerFeat: null,              lbc: { floor_property: 'upper_floor' },      papSlug: null,        bienici: 'pas-au-rez-de-chaussee=oui' },
-    'Piscine':            { selogerFeat: 'SwimmingPool',    lbcAccess: null,       papSlug: 'piscine',   bienici: 'piscine=oui' },
+    'Balcon':             { selogerFeat: 'Balcony_Terrace', lbc: { outside_access: 'balcony' },                    papSlug: 'balcon',    bienici: 'balcon=oui' },
+    'Terrasse':           { selogerFeat: 'Balcony_Terrace', lbc: { outside_access: 'terrace' },                    papSlug: 'terrasse',  bienici: 'terrasse=oui' },
+    'Ascenseur':          { selogerFeat: 'Elevator',        lbc: { elevator: '1' },                                papSlug: 'ascenseur', bienici: 'ascenseur=oui' },
+    'Cave':               { selogerFeat: 'Cellar',          lbc: { specificities: 'cellar' },                      papSlug: 'cave',      bienici: 'cave=oui' },
+    'Parking':            { selogerFeat: 'Parking',         lbc: { specificities: 'with_garage_or_parking_spot' }, papSlug: 'parking',   bienici: 'parking=oui' },
+    'Pas rez-de-chaussée':{ selogerFeat: null,              lbc: { floor_property: 'upper_floor' },                papSlug: null,        bienici: 'pas-au-rez-de-chaussee=oui' },
+    'Piscine':            { selogerFeat: 'SwimmingPool',    lbc: { outside_access: 'pool' },                       papSlug: 'piscine',   bienici: 'piscine=oui' },
   };
+  // Critères communs mappés directement (sans CHIP_MAP)
   const BIENICI_EXTRA = {
     'Neuf seulement': 'neuf=oui',
     'DPE A→C':        'classification-energetique=A%2CB%2CC',
     'Avec photos':    'photo=oui',
+  };
+  const LBC_EXTRA = {
+    'DPE A→C': { energy_rate: 'a,b,c' },
+    // 'Avec photos' : non supporté par LeBonCoin
   };
 
   // ── Helpers ──
