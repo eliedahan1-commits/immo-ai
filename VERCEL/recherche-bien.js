@@ -34,7 +34,7 @@
     'Ascenseur':          { selogerFeat: 'Elevator',        lbcAccess: null,       papSlug: 'ascenseur', bienici: 'ascenseur=oui' },
     'Cave':               { selogerFeat: 'Cellar',          lbcAccess: null,       papSlug: 'cave',      bienici: 'cave=oui' },
     'Parking':            { selogerFeat: 'Parking',         lbcAccess: null,       papSlug: 'parking',   bienici: 'parking=oui' },
-    'Pas rez-de-chaussée':{ selogerFeat: null,              lbcAccess: null,       papSlug: null,        bienici: 'pas-au-rez-de-chaussee=oui' },
+    'Pas rez-de-chaussée':{ selogerFeat: null,              lbc: { floor_property: 'upper_floor' },      papSlug: null,        bienici: 'pas-au-rez-de-chaussee=oui' },
     'Piscine':            { selogerFeat: 'SwimmingPool',    lbcAccess: null,       papSlug: 'piscine',   bienici: 'piscine=oui' },
   };
   const BIENICI_EXTRA = {
