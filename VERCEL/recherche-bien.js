@@ -8,7 +8,7 @@
   const SITES = [
     { id: 'seloger',   nom: 'SeLoger',    couleur: '#e63946', desc: 'N°1 des portails immo' },
     { id: 'leboncoin', nom: 'LeBonCoin',  couleur: '#f4a261', desc: 'Annonces particuliers & agences' },
-    { id: 'pap',       nom: 'PAP',        couleur: '#2a9d8f', desc: 'Particulier à particulier' },
+    { id: 'pap',       nom: 'PAP',        couleur: '#2a9d8f', desc: 'Particulier à particulier', note: '📍 Précisez la ville sur PAP' },
     { id: 'bienici',   nom: "Bien'ici",   couleur: '#457b9d', desc: 'Multi-diffusion agences' },
     { id: 'logicimmo', nom: 'Logic-Immo', couleur: '#9b59b6', desc: 'Réseau agences nationales' },
   ];
@@ -149,11 +149,11 @@
     if (chips.has('Piscine'))                           path.push('piscine');
     let url = `https://www.pap.fr/annonce/${trans}-${typeStr}`;
     if (path.length) url += `-${path.join('-')}`;
-    // Localisation : PAP utilise le code département (2 premiers chiffres du CP)
-    // ex: paris-75, vannes-56, boulogne-billancourt-92
-    const papDept = p.cp ? p.cp.slice(0, 2) : '';
-    if (p.citySlug && papDept) url += `-${p.citySlug}-${papDept}`;
-    else if (papDept)          url += `-${papDept}`;
+    // Localisation : PAP utilise le CP complet (ex: vannes-56000)
+    // Note: PAP requiert aussi un identifiant g{id} propriétaire pour la recherche géolocalisée
+    // Sans cet id, PAP peut ignorer la ville mais garde CP+critères dans l'URL
+    if (p.citySlug && p.cp) url += `-${p.citySlug}-${p.cp}`;
+    else if (p.cp)           url += `-${p.cp}`;
     // Prix, pièces, surface dans le chemin (format PAP)
     if (p.pieces) url += `-a-partir-du-${p.pieces}-piece${parseInt(p.pieces)>1?'s':''}`;
     if (p.budget) url += `-jusqu-a-${p.budget}-euros`;
@@ -323,6 +323,7 @@
         </div>
         <div style="padding:7px 12px 9px;background:var(--warm)">
           <div style="font-size:.7rem;color:var(--muted);margin-bottom:5px">${s.desc}</div>
+          ${s.note ? `<div style="font-size:.67rem;color:#c07a00;margin-bottom:4px">${s.note}</div>` : ''}
           <div class="rb-link-txt" style="font-size:.75rem;color:var(--gold);font-weight:600">Voir les annonces →</div>
         </div>
       </a>`;
@@ -443,6 +444,18 @@
 
     const html = renderPanel(_ctx.cityName, _ctx.cp, photoUrl);
     if (typeof showPanel === 'function') {
+      showPanel('🏠 Trouver un bien · ' + (_ctx.cityName || ''), html);
+    }
+    window._rbUpdateSites();
+  };
+
+})();
+    }
+    window._rbUpdateSites();
+  };
+
+})();
+howPanel === 'function') {
       showPanel('🏠 Trouver un bien · ' + (_ctx.cityName || ''), html);
     }
     window._rbUpdateSites();
