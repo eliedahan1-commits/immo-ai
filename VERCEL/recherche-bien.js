@@ -128,22 +128,33 @@
   }
 
   function buildPAP(p) {
+    // PAP : critères dans le chemin avec règles de combinaison spécifiques
     const trans   = p.mode === 'achat' ? 'vente' : 'location';
     const typeStr = p.type === 'appart' ? 'appartements'
                   : p.type === 'maison' ? 'maisons'
                   : 'appartements-et-maisons';
-    const criteriaPath = [];
-    (p.chips||[]).forEach(l => { const m=CHIP_MAP[l]; if(m&&m.papSlug) criteriaPath.push(m.papSlug); });
+    const chips = new Set(p.chips || []);
+    const path  = [];
+    // Neuf en premier dans le chemin (PAP : "neuf-exclus")
+    if (p.neuf)                                         path.push('neuf-exclus');
+    // Ascenseur
+    if (chips.has('Ascenseur'))                         path.push('ascenseur');
+    // Balcon OU Terrasse → toujours le slug combiné "balcon-terrasse"
+    if (chips.has('Balcon') || chips.has('Terrasse'))   path.push('balcon-terrasse');
+    // Cave
+    if (chips.has('Cave'))                              path.push('cave');
+    // Parking OU Garage → "garages-parkings"
+    if (chips.has('Parking') || p.garage)               path.push('garages-parkings');
+    // Piscine
+    if (chips.has('Piscine'))                           path.push('piscine');
     let url = `https://www.pap.fr/annonce/${trans}-${typeStr}`;
-    if (criteriaPath.length) url += `-${criteriaPath.join('-')}`;
+    if (path.length) url += `-${path.join('-')}`;
     if (p.cp) url += `-${p.cp}`;
     const params = [];
     if (p.budget)  params.push(`${p.mode === 'achat' ? 'prix_max' : 'loyer_max'}=${p.budget}`);
     if (p.surface) params.push(`surface_min=${p.surface}`);
     if (p.pieces)  params.push(`nb_pieces_min=${p.pieces}`);
     if (p.jardin)  params.push(`surface_terrain_min=${p.jardin}`);
-    if (p.neuf)    params.push('neuf=1');
-    if (p.garage)  params.push('garage=1');
     return params.length ? `${url}?${params.join('&')}` : url;
   }
 
