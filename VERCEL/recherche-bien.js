@@ -450,15 +450,3 @@
   };
 
 })();
-    }
-    window._rbUpdateSites();
-  };
-
-})();
-howPanel === 'function') {
-      showPanel('🏠 Trouver un bien · ' + (_ctx.cityName || ''), html);
-    }
-    window._rbUpdateSites();
-  };
-
-})();
