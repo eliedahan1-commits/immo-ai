@@ -297,16 +297,16 @@
 
   // ── Point d'entrée principal ──
   window.showRecherchePanel = async function () {
-    if (!window.currentCoords) {
+    if (!currentCoords) {
       alert('Analysez d\'abord une adresse.');
       return;
     }
     if (typeof _goPage === 'function') _goPage('analyse');
 
-    const commune  = window._inseeData?.commune;
+    const commune  = _inseeData?.commune;
     _ctx.cityName  = commune?.nom || '';
     _ctx.insee     = commune?.codeInsee || '';
-    _ctx.cp        = extractCP(window.currentAddress || '');
+    _ctx.cp        = extractCP(currentAddress || '');
     _ctx.citySlug  = slugify(_ctx.cityName);
     _mode = 'achat';
     _type = 'both';
