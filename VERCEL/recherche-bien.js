@@ -31,16 +31,16 @@
   const CHIP_MAP = {
     'Balcon':             { selogerFeat: 'Balcony_Terrace', lbcAccess: 'balcony',  papSlug: 'balcon',    bienici: 'balcon=oui' },
     'Terrasse':           { selogerFeat: 'Balcony_Terrace', lbcAccess: 'terrace',  papSlug: 'terrasse',  bienici: 'terrasse=oui' },
-    'Ascenseur':          { selogerFeat: 'Elevator',        lbcAccess: null,       papSlug: 'ascenseur', bienici: null },
-    'Cave':               { selogerFeat: 'Cellar',          lbcAccess: null,       papSlug: 'cave',      bienici: null },
-    'Parking':            { selogerFeat: 'Parking',         lbcAccess: null,       papSlug: 'parking',   bienici: null },
-    'Pas rez-de-chaussée':{ selogerFeat: null,              lbcAccess: null,       papSlug: null,        bienici: null },
-    'Piscine possible':   { selogerFeat: 'SwimmingPool',    lbcAccess: null,       papSlug: 'piscine',   bienici: null },
-    'Dépendances':        { selogerFeat: null,              lbcAccess: null,       papSlug: 'dependance',bienici: null },
+    'Ascenseur':          { selogerFeat: 'Elevator',        lbcAccess: null,       papSlug: 'ascenseur', bienici: 'ascenseur=oui' },
+    'Cave':               { selogerFeat: 'Cellar',          lbcAccess: null,       papSlug: 'cave',      bienici: 'cave=oui' },
+    'Parking':            { selogerFeat: 'Parking',         lbcAccess: null,       papSlug: 'parking',   bienici: 'parking=oui' },
+    'Pas rez-de-chaussée':{ selogerFeat: null,              lbcAccess: null,       papSlug: null,        bienici: 'pas-au-rez-de-chaussee=oui' },
+    'Piscine':            { selogerFeat: 'SwimmingPool',    lbcAccess: null,       papSlug: 'piscine',   bienici: 'piscine=oui' },
   };
   const BIENICI_EXTRA = {
-    'DPE A→C':       'classification-energetique=A%2CB%2CC',
-    'Avec photos':        'photo=oui',
+    'Neuf seulement': 'neuf=oui',
+    'DPE A→C':        'classification-energetique=A%2CB%2CC',
+    'Avec photos':    'photo=oui',
   };
 
   // ── Helpers ──
@@ -138,8 +138,7 @@
     const params = [];
     if (p.budget)  params.push(`prix-max=${p.budget}`);  // Bien'ici : prix-max en achat ET location
     if (p.surface) params.push(`surface-min=${p.surface}`);
-    if (p.jardin)  params.push(`surface-terrain-min=${p.jardin}`);
-    if (p.neuf) params.push('neuf=true');
+    if (p.jardin)  { params.push(`surface-terrain-min=${p.jardin}`); params.push('jardin=oui'); }
     (p.chips||[]).forEach(l => {
       const m=CHIP_MAP[l]; if(m&&m.bienici) params.push(m.bienici);
       const e=BIENICI_EXTRA[l]; if(e) params.push(e);
@@ -253,7 +252,7 @@
     </div>
   </div>
   <div style="display:flex;flex-wrap:wrap;gap:5px">
-    ${['Piscine possible','Dépendances'].map(o =>
+    ${['Piscine'].map(o =>
       `<span class="rb-chip" onclick="this.classList.toggle('rb-on');window._rbUpdateSites()" style="padding:3px 9px;border:1px solid var(--border);border-radius:99px;font-size:.72rem;cursor:pointer;background:var(--warm)">${o}</span>`
     ).join('')}
   </div>
