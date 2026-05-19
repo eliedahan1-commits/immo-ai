@@ -5553,54 +5553,103 @@ async function initEmpruntPage() {
 
 function renderTauxHistChart(data) {
   const chartEl = document.getElementById('emprunt-hist');
-  if (!chartEl || !data?.length) return;
-  const W = 600, H = 190, ML = 36, MR = 14, MT = 14, MB = 26;
-  const pw = W - ML - MR, ph = H - MT - MB;
-  const years = data.map(d => d.annee);
-  const rates = data.map(d => d.taux);
-  const minR = 0, maxR = Math.ceil(Math.max(...rates)) + 1;
-  const xS = y => ML + (y - years[0]) / (years[years.length-1] - years[0]) * pw;
-  const yS = r => MT + ph - (r - minR) / (maxR - minR) * ph;
-  const curRate = window._tauxMarche?.taux?.[20] ?? null;
-  const mirStart = data.find(d => d.source === 'BCE MIR')?.annee ?? years[0];
-  const svg = [];
-  svg.push('<rect width="' + W + '" height="' + H + '" fill="var(--card-bg,#12122a)" rx="8"/>');
-  // Grille Y
-  const yStep = maxR > 7 ? 2 : 1;
-  for (let r = 0; r <= maxR; r += yStep) {
-    const y = yS(r);
-    svg.push('<line x1="' + ML + '" y1="' + y + '" x2="' + (W-MR) + '" y2="' + y + '" stroke="rgba(255,255,255,.07)" stroke-width="1"/>');
-    svg.push('<text x="' + (ML-4) + '" y="' + (y+4) + '" text-anchor="end" fill="rgba(255,255,255,.4)" font-size="9">' + r + '%</text>');
-  }
-  // Labels X (tous les 5 ans)
-  years.filter(y => y % 5 === 0).forEach(y => {
-    svg.push('<text x="' + xS(y) + '" y="' + (H-MB+14) + '" text-anchor="middle" fill="rgba(255,255,255,.4)" font-size="9">' + y + '</text>');
-  });
-  // Zone proxy (OAT 10y, tireté)
-  const proxyPts = data.filter(d => d.annee < mirStart).map(d => xS(d.annee) + ',' + yS(d.taux)).join(' ');
-  if (proxyPts) svg.push('<polyline points="' + proxyPts + '" fill="none" stroke="rgba(232,160,32,.45)" stroke-width="2" stroke-dasharray="4,3"/>');
-  // Zone MIR (plein)
-  const mirData = data.filter(d => d.annee >= mirStart);
-  if (mirData.length) {
-    const mp = mirData.map(d => xS(d.annee) + ',' + yS(d.taux));
-    const areaP = xS(mirData[0].annee) + ',' + yS(0) + ' ' + mp.join(' ') + ' ' + xS(mirData[mirData.length-1].annee) + ',' + yS(0);
-    svg.push('<polygon points="' + areaP + '" fill="rgba(232,160,32,.09)"/>');
-    svg.push('<polyline points="' + mp.join(' ') + '" fill="none" stroke="var(--gold,#e8a020)" stroke-width="2.5" stroke-linejoin="round"/>');
-    const ld = mirData[mirData.length-1];
-    svg.push('<circle cx="' + xS(ld.annee) + '" cy="' + yS(ld.taux) + '" r="3.5" fill="var(--gold,#e8a020)"/>');
-  }
-  // Taux actuel (ligne pointillée horizontale)
-  if (curRate != null) {
-    const cy = yS(curRate);
-    svg.push('<line x1="' + ML + '" y1="' + cy + '" x2="' + (W-MR) + '" y2="' + cy + '" stroke="var(--gold,#e8a020)" stroke-width="1" stroke-dasharray="5,4" opacity=".55"/>');
-    svg.push('<text x="' + (W-MR-2) + '" y="' + (cy-4) + '" text-anchor="end" fill="var(--gold,#e8a020)" font-size="9" font-weight="600">' + (+curRate).toFixed(2) + '% (20 ans)</text>');
-  }
-  const proxyNote = proxyPts ? '<div style="font-size:.6rem;color:rgba(255,255,255,.3);text-align:center;margin-top:3px">- - OAT 10 ans (proxy 1994-2002) &nbsp;·&nbsp; — Taux habitat réel (BCE MIR 2003+)</div>' : '';
+  if (!chartEl || !data?.length || !window.Chart) return;
+
+  // Détruire le chart existant si re-render
+  if (window._tauxHistChart) { window._tauxHistChart.destroy(); window._tauxHistChart = null; }
+
+  const tm = window._tauxMarche?.taux || { 10: 3.10, 15: 3.27, 20: 3.42, 25: 3.50 };
+  const base20 = tm[20] || 3.42;
+  const spreads = { 10: (tm[10]||3.10)-base20, 15: (tm[15]||3.27)-base20, 20: 0, 25: (tm[25]||3.50)-base20 };
+
+  const labels = data.map(d => d.annee);
+  const mirStartYear = data.find(d => d.source === 'BCE MIR')?.annee ?? labels[0];
+
+  // Calcule les valeurs par durée (taux de base + écart relatif au taux 20 ans actuel)
+  const vals = dur => data.map(d => +Math.max(0.1, d.taux + spreads[dur]).toFixed(2));
+
+  // Durées disponibles selon les données live
+  const durs = [10,15,20,25].filter(d => tm[d] != null);
+  const CFG = {
+    10: { color:'#4678b4', bg:'rgba(70,120,180,.06)',  w:1.8 },
+    15: { color:'#2a9d8f', bg:'rgba(42,157,143,.06)',  w:1.8 },
+    20: { color:'#e8a020', bg:'rgba(232,160,32,.09)',  w:2.5 },
+    25: { color:'#e63946', bg:'rgba(230,57,70,.06)',   w:1.8 },
+  };
+
+  const datasets = durs.map(d => ({
+    label: d + ' ans',
+    data: vals(d),
+    borderColor: CFG[d].color,
+    backgroundColor: CFG[d].bg,
+    borderWidth: CFG[d].w,
+    pointRadius: 0,
+    pointHoverRadius: 5,
+    tension: 0.35,
+    fill: d === 20,
+    spanGaps: true,
+  }));
+
+  // Plugin : ligne verticale pointillée à l'année de début BCE MIR (fin zone proxy)
+  const mirIdx = labels.indexOf(mirStartYear);
+  const proxyPlugin = {
+    id: 'proxyBoundary',
+    afterDraw(chart) {
+      if (mirIdx <= 0) return;
+      const meta = chart.getDatasetMeta(0);
+      const pt = meta.data[mirIdx];
+      if (!pt) return;
+      const ctx2 = chart.ctx;
+      ctx2.save();
+      ctx2.strokeStyle = 'rgba(255,255,255,.18)';
+      ctx2.lineWidth = 1;
+      ctx2.setLineDash([4, 4]);
+      ctx2.beginPath();
+      ctx2.moveTo(pt.x, chart.chartArea.top);
+      ctx2.lineTo(pt.x, chart.chartArea.bottom);
+      ctx2.stroke();
+      if (mirIdx > 2) {
+        ctx2.fillStyle = 'rgba(255,255,255,.28)';
+        ctx2.font = '9px Outfit,sans-serif';
+        ctx2.fillText('← proxy', pt.x - 44, chart.chartArea.top + 14);
+        ctx2.fillText('réel →', pt.x + 4, chart.chartArea.top + 14);
+      }
+      ctx2.restore();
+    }
+  };
+
   chartEl.style.display = '';
-  chartEl.innerHTML = '<div style="background:var(--card-bg,#12122a);border:1px solid var(--border);border-radius:8px;padding:.9rem 1rem;margin-top:1rem">'
-    + '<div style="font-size:.74rem;font-weight:600;color:var(--text);margin-bottom:.5rem">📈 Évolution des taux immobiliers · France · ' + years[0] + '–' + years[years.length-1] + '</div>'
-    + '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;display:block" xmlns="http://www.w3.org/2000/svg">' + svg.join('') + '</svg>'
-    + proxyNote + '</div>';
+  chartEl.innerHTML =
+    '<div style="background:var(--card-bg,#12122a);border:1px solid var(--border);border-radius:8px;padding:.9rem 1rem;margin-top:1rem">' +
+    '<div style="font-size:.74rem;font-weight:600;color:var(--text);margin-bottom:.5rem">📈 Taux immobiliers · France · ' + labels[0] + '–' + labels[labels.length-1] + '</div>' +
+    '<div style="position:relative;height:230px"><canvas id="tauxHistCanvas"></canvas></div>' +
+    (mirIdx > 0 ? '<div style="font-size:.6rem;color:var(--muted);text-align:center;margin-top:.35rem">Avant ' + mirStartYear + ' : proxy OAT 10 ans · Depuis ' + mirStartYear + ' : taux habitat réel (BCE MIR) · Courbes calculées depuis taux marché live</div>' : '') +
+    '</div>';
+
+  const ctx = document.getElementById('tauxHistCanvas');
+  if (!ctx) return;
+
+  window._tauxHistChart = new Chart(ctx, {
+    type: 'line',
+    plugins: [proxyPlugin],
+    data: { labels, datasets },
+    options: {
+      plugins: {
+        legend: { display: true, labels: { font: { size: 10, family: 'Outfit,sans-serif' }, color: '#8a7d68', boxWidth: 12, padding: 10 } },
+        datalabels: { display: false },
+        tooltip: {
+          mode: 'index', intersect: false,
+          callbacks: { label: c => ' ' + c.dataset.label + ' : ' + (+c.raw).toFixed(2) + '%' }
+        }
+      },
+      scales: {
+        x: { ticks: { font: { size: 8 }, color: '#8a7d68', maxTicksLimit: 12, autoSkip: true }, grid: { display: false } },
+        y: { min: 0, ticks: { font: { size: 9 }, color: '#8a7d68', callback: v => v.toFixed(1) + '%' }, grid: { color: 'rgba(0,0,0,.06)' } }
+      },
+      interaction: { mode: 'index', intersect: false },
+      animation: { duration: 500 },
+    }
+  });
 }
 
 function calcEmprunt(){
