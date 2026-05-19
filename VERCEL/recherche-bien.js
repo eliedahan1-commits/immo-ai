@@ -37,8 +37,8 @@
     'Terrasse':           { selogerFeat: 'Balcony_Terrace', lbc: { outside_access: 'terrace' },                    papSlug: 'terrasse',  bienici: 'terrasse=oui' },
     'Ascenseur':          { selogerFeat: 'Elevator',        lbc: { elevator: '1' },                                papSlug: 'ascenseur', bienici: 'ascenseur=oui' },
     'Cave':               { selogerFeat: 'Cellar',          lbc: { specificities: 'cellar' },                      papSlug: 'cave',      bienici: 'cave=oui' },
-    'Parking':            { selogerFeat: 'Parking',         lbc: { specificities: 'with_garage_or_parking_spot' }, papSlug: 'parking',   bienici: 'parking=oui' },
-    'Pas rez-de-chaussée':{ selogerFeat: null,              lbc: { floor_property: 'upper_floor' },                papSlug: null,        bienici: 'pas-au-rez-de-chaussee=oui' },
+    'Parking':            { selogerFeat: 'Parking_Garage',  lbc: { specificities: 'with_garage_or_parking_spot' }, papSlug: 'parking',   bienici: 'parking=oui' },
+    'Pas rez-de-chaussée':{ selogerFeat: null, selogerParam: 'locationsInBuildingExcluded=Groundfloor', lbc: { floor_property: 'upper_floor' }, papSlug: null, bienici: 'pas-au-rez-de-chaussee=oui' },
     'Piscine':            { selogerFeat: 'SwimmingPool',    lbc: { outside_access: 'pool' },                       papSlug: 'piscine',   bienici: 'piscine=oui' },
   };
   // Critères communs mappés directement (sans CHIP_MAP)
@@ -84,13 +84,13 @@
     const estate   = p.type === 'appart' ? 'Apartment' : p.type === 'maison' ? 'House' : 'Apartment,House';
     const distrib  = p.mode === 'achat'  ? 'Buy' : 'Rent';
     const params   = ['distributionTypes=' + distrib, 'estateTypes=' + estate];
-    if (p.neuf) params.push('projectTypes=NewConstruction');
+    if (p.neuf) params.push('projectTypes=New_Build');
     if (p.budget)  params.push(`priceMax=${p.budget}`);
     if (p.surface) params.push(`spaceMin=${p.surface}`);
     if (p.pieces)  params.push(`numberOfRoomsMin=${p.pieces}`);
     if (p.dpeAC)   params.push('energyCertificate=A,B,C');
     const slFeats = new Set();
-    (p.chips||[]).forEach(l => { const m=CHIP_MAP[l]; if(m&&m.selogerFeat) slFeats.add(m.selogerFeat); });
+    (p.chips||[]).forEach(l => { const m=CHIP_MAP[l]; if(m&&m.selogerFeat) slFeats.add(m.selogerFeat); if(m&&m.selogerParam) params.push(m.selogerParam); });
     if (slFeats.size) params.push('featuresIncluded=' + [...slFeats].join(','));
     if (p.slLocationId) params.push('locations=' + p.slLocationId);
     return `https://www.seloger.com/classified-search?${params.join('&')}`;
@@ -193,12 +193,13 @@
     const estate   = p.type === 'appart' ? 'Apartment' : p.type === 'maison' ? 'House' : 'Apartment,House';
     const distrib  = p.mode === 'achat'  ? 'Buy' : 'Rent';
     const params   = [`distributionTypes=${distrib}`, `estateTypes=${estate}`];
+    if (p.neuf) params.push('projectTypes=New_Build');
     if (p.budget)  params.push(`priceMax=${p.budget}`);
     if (p.surface) params.push(`spaceMin=${p.surface}`);
     if (p.pieces)  params.push(`numberOfRoomsMin=${p.pieces}`);
     if (p.dpeAC)   params.push('energyCertificate=A,B,C');
     const liFeats = new Set();
-    (p.chips||[]).forEach(l => { const m=CHIP_MAP[l]; if(m&&m.selogerFeat) liFeats.add(m.selogerFeat); });
+    (p.chips||[]).forEach(l => { const m=CHIP_MAP[l]; if(m&&m.selogerFeat) liFeats.add(m.selogerFeat); if(m&&m.selogerParam) params.push(m.selogerParam); });
     if (liFeats.size) params.push('featuresIncluded=' + [...liFeats].join(','));
     if (p.slLocationId) params.push('locations=' + p.slLocationId);
     return `https://www.logic-immo.com/classified-search?${params.join('&')}`;
