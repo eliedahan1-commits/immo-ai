@@ -126,6 +126,68 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, taux: FALLBACK, source: 'Fallback (dernier connu)', date: '2026-04-30' });
   }
 
+  // ── Branche TAUX-HISTORIQUE : /api/altitude?type=taux-historique ────────
+  if (req.query.type === 'taux-historique') {
+    const result = [];
+
+    // Source 1 : BCE MIR — taux habitat France mensuel depuis 2003
+    try {
+      const ecbUrl = 'https://data-api.ecb.europa.eu/service/data/MIR/M.FR.B.A2C.AM.R.A.2250.EUR.N?startPeriod=2003-01&format=jsondata';
+      const r = await fetch(ecbUrl, { headers: { 'Accept': 'application/json' }, signal: AbortSignal.timeout(12000) });
+      if (r.ok) {
+        const data = await r.json();
+        const series = Object.values(data.dataSets[0].series)[0];
+        const periods = data.structure.dimensions.observation[0].values;
+        const byYear = {};
+        periods.forEach((p, i) => {
+          const year = parseInt(p.id.slice(0, 4));
+          const val = series.observations[String(i)]?.[0];
+          if (val != null && val > 0) {
+            if (!byYear[year]) byYear[year] = [];
+            byYear[year].push(val);
+          }
+        });
+        Object.entries(byYear).forEach(([y, vals]) => {
+          result.push({ annee: parseInt(y), taux: Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 100) / 100, source: 'BCE MIR' });
+        });
+      }
+    } catch(e) {}
+
+    // Source 2 : FRED CSV — OAT 10 ans France (proxy pré-2003, 1994-2002)
+    try {
+      const fredRes = await fetch('https://fred.stlouisfed.org/graph/fredgraph.csv?id=IRLTLT01FRM156N', {
+        headers: { 'Accept': 'text/csv', 'User-Agent': 'Mozilla/5.0' },
+        signal: AbortSignal.timeout(10000)
+      });
+      if (fredRes.ok) {
+        const csv = await fredRes.text();
+        const byYear = {};
+        csv.split('\n').slice(1).forEach(line => {
+          const [date, val] = line.split(',');
+          if (!date || !val || val.trim() === '.') return;
+          const year = parseInt(date.slice(0, 4));
+          if (year >= 1994 && year < 2003) {
+            const rate = parseFloat(val.trim());
+            if (rate > 1 && rate < 20) {
+              if (!byYear[year]) byYear[year] = [];
+              byYear[year].push(rate);
+            }
+          }
+        });
+        Object.entries(byYear).forEach(([y, vals]) => {
+          result.push({ annee: parseInt(y), taux: Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 100) / 100, source: 'OAT 10y proxy' });
+        });
+      }
+    } catch(e) {}
+
+    result.sort((a, b) => a.annee - b.annee);
+    if (result.length) {
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      return res.status(200).json({ success: true, data: result });
+    }
+    return res.status(500).json({ success: false, error: 'données non disponibles' });
+  }
+
   // ── Branche ALTITUDE (comportement original) ────────────────────────────
   const { lat, lon } = req.query;
   if (!lat || !lon) return res.status(400).json({ error: 'lat et lon requis' });

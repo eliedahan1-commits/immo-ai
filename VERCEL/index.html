@@ -794,12 +794,18 @@ path.leaflet-interactive:focus{outline:none;}
         <label class="lbl">Co-emprunteur (€/mois)</label><input class="inp" id="eRev2" type="number" placeholder="0" />
         <label class="lbl">Crédits en cours / mois (€) <span style="font-weight:400;color:var(--muted);font-size:.75em">— loyers, prêts auto, conso…</span></label><input class="inp" id="eCharges" type="number" placeholder="0" />
         <label class="lbl">Apport disponible (€)</label><input class="inp" id="eApport" type="number" placeholder="80000" />
-        <label class="lbl">Durée (ans)</label><input class="inp" id="eDuree" type="number" value="20" />
-        <label class="lbl">Taux estimé (%)</label><input class="inp" id="eTaux" type="number" value="3.4" step="0.1" />
+        <label class="lbl">Durée</label>
+        <select class="inp" id="eDuree" onchange="(function(){const t=document.getElementById('eDuree').options[document.getElementById('eDuree').selectedIndex].dataset.taux;if(t){const el=document.getElementById('eTaux');el.value=t;el._userModified=false;}})()">
+          <option value="10">10 ans</option><option value="15">15 ans</option><option value="20" selected>20 ans</option><option value="25">25 ans</option>
+        </select>
+        <label class="lbl">Taux (%)</label>
+        <input class="inp" id="eTaux" type="number" value="3.4" step="0.1" oninput="this._userModified=true" />
+        <div id="eTauxSrc" style="font-size:.62rem;color:var(--muted);margin-bottom:.3rem"></div>
         <button class="btn btn-dark btn-full" onclick="calcEmprunt()">✦ Calculer ma capacité</button>
       </div>
       <div id="resEmprunt"><div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez vos revenus pour calculer.</p></div></div>
     </div>
+    <div id="emprunt-hist" style="display:none"></div>
   </div></div>
 
   <!-- ══ VRAI COÛT ══ -->
@@ -1348,6 +1354,7 @@ function go(id){
     const set = (id, val) => { const el=document.getElementById(id); if(el && !el.value) el.value=val; };
     const setFirst = (sel, val) => { const el=document.querySelector(sel); if(el && !el.value) el.value=val; };
     const extractVille = addr => { const m=addr.match(/\d{5}\s+(.+)$/); return m?m[1]:addr; };
+    if(id === 'emprunt')  setTimeout(initEmpruntPage, 100);
     if(id === 'prix')     set('dvfAddr', currentAddress);
     if(id === 'offre')    set('oRue',    currentAddress);
     if(id === 'profil')   {
@@ -5507,6 +5514,93 @@ function calcLocation(){
       </div>
     </div>`;
   setCard('cout', rendNet.toFixed(1).replace('.',',')+' % net', `Cash-flow : ${cashflow>=0?'+':''}${fmt(cashflow)}/mois`, rendNet>=5?'good':rendNet>=3?'':'warn');
+}
+
+// ── Capacité d'emprunt : init page + graphique historique ──────────────────
+window._tauxHistData = null;
+async function initEmpruntPage() {
+  const tm = window._tauxMarche?.taux || { 10: 3.10, 15: 3.27, 20: 3.42, 25: 3.50 };
+  const src = window._tauxMarche?.source || '';
+  const date = window._tauxMarche?.date || '';
+  const sel = document.getElementById('eDuree');
+  if (sel && sel.tagName === 'SELECT') {
+    const cur = sel.value || '20';
+    sel.innerHTML = [10,15,20,25].map(d =>
+      '<option value="' + d + '" data-taux="' + (tm[d]??'') + '"' + (String(d)===String(cur)?' selected':'') + '>' + d + ' ans — ' + (tm[d]!=null?(+tm[d]).toFixed(2)+'%':'?') + '</option>'
+    ).join('');
+    const opt = sel.options[sel.selectedIndex];
+    const t = opt?.dataset?.taux;
+    const et = document.getElementById('eTaux');
+    if (t && et && !et._userModified) et.value = t;
+  }
+  const srcEl = document.getElementById('eTauxSrc');
+  if (srcEl) srcEl.textContent = src ? 'Taux marché : ' + src + (date ? ' · ' + date : '') : '';
+
+  const chartEl = document.getElementById('emprunt-hist');
+  if (!chartEl) return;
+  if (window._tauxHistData) { renderTauxHistChart(window._tauxHistData); return; }
+  chartEl.style.display = '';
+  chartEl.innerHTML = '<p style="color:var(--muted);font-size:.8rem;text-align:center;padding:1.2rem">⏳ Chargement des données historiques…</p>';
+  try {
+    const r = await fetch('/api/altitude?type=taux-historique', { signal: AbortSignal.timeout(18000) });
+    if (r.ok) {
+      const d = await r.json();
+      if (d.success && d.data?.length) { window._tauxHistData = d.data; renderTauxHistChart(d.data); return; }
+    }
+  } catch(e) {}
+  chartEl.style.display = 'none';
+}
+
+function renderTauxHistChart(data) {
+  const chartEl = document.getElementById('emprunt-hist');
+  if (!chartEl || !data?.length) return;
+  const W = 600, H = 190, ML = 36, MR = 14, MT = 14, MB = 26;
+  const pw = W - ML - MR, ph = H - MT - MB;
+  const years = data.map(d => d.annee);
+  const rates = data.map(d => d.taux);
+  const minR = 0, maxR = Math.ceil(Math.max(...rates)) + 1;
+  const xS = y => ML + (y - years[0]) / (years[years.length-1] - years[0]) * pw;
+  const yS = r => MT + ph - (r - minR) / (maxR - minR) * ph;
+  const curRate = window._tauxMarche?.taux?.[20] ?? null;
+  const mirStart = data.find(d => d.source === 'BCE MIR')?.annee ?? years[0];
+  const svg = [];
+  svg.push('<rect width="' + W + '" height="' + H + '" fill="var(--card-bg,#12122a)" rx="8"/>');
+  // Grille Y
+  const yStep = maxR > 7 ? 2 : 1;
+  for (let r = 0; r <= maxR; r += yStep) {
+    const y = yS(r);
+    svg.push('<line x1="' + ML + '" y1="' + y + '" x2="' + (W-MR) + '" y2="' + y + '" stroke="rgba(255,255,255,.07)" stroke-width="1"/>');
+    svg.push('<text x="' + (ML-4) + '" y="' + (y+4) + '" text-anchor="end" fill="rgba(255,255,255,.4)" font-size="9">' + r + '%</text>');
+  }
+  // Labels X (tous les 5 ans)
+  years.filter(y => y % 5 === 0).forEach(y => {
+    svg.push('<text x="' + xS(y) + '" y="' + (H-MB+14) + '" text-anchor="middle" fill="rgba(255,255,255,.4)" font-size="9">' + y + '</text>');
+  });
+  // Zone proxy (OAT 10y, tireté)
+  const proxyPts = data.filter(d => d.annee < mirStart).map(d => xS(d.annee) + ',' + yS(d.taux)).join(' ');
+  if (proxyPts) svg.push('<polyline points="' + proxyPts + '" fill="none" stroke="rgba(232,160,32,.45)" stroke-width="2" stroke-dasharray="4,3"/>');
+  // Zone MIR (plein)
+  const mirData = data.filter(d => d.annee >= mirStart);
+  if (mirData.length) {
+    const mp = mirData.map(d => xS(d.annee) + ',' + yS(d.taux));
+    const areaP = xS(mirData[0].annee) + ',' + yS(0) + ' ' + mp.join(' ') + ' ' + xS(mirData[mirData.length-1].annee) + ',' + yS(0);
+    svg.push('<polygon points="' + areaP + '" fill="rgba(232,160,32,.09)"/>');
+    svg.push('<polyline points="' + mp.join(' ') + '" fill="none" stroke="var(--gold,#e8a020)" stroke-width="2.5" stroke-linejoin="round"/>');
+    const ld = mirData[mirData.length-1];
+    svg.push('<circle cx="' + xS(ld.annee) + '" cy="' + yS(ld.taux) + '" r="3.5" fill="var(--gold,#e8a020)"/>');
+  }
+  // Taux actuel (ligne pointillée horizontale)
+  if (curRate != null) {
+    const cy = yS(curRate);
+    svg.push('<line x1="' + ML + '" y1="' + cy + '" x2="' + (W-MR) + '" y2="' + cy + '" stroke="var(--gold,#e8a020)" stroke-width="1" stroke-dasharray="5,4" opacity=".55"/>');
+    svg.push('<text x="' + (W-MR-2) + '" y="' + (cy-4) + '" text-anchor="end" fill="var(--gold,#e8a020)" font-size="9" font-weight="600">' + (+curRate).toFixed(2) + '% (20 ans)</text>');
+  }
+  const proxyNote = proxyPts ? '<div style="font-size:.6rem;color:rgba(255,255,255,.3);text-align:center;margin-top:3px">- - OAT 10 ans (proxy 1994-2002) &nbsp;·&nbsp; — Taux habitat réel (BCE MIR 2003+)</div>' : '';
+  chartEl.style.display = '';
+  chartEl.innerHTML = '<div style="background:var(--card-bg,#12122a);border:1px solid var(--border);border-radius:8px;padding:.9rem 1rem;margin-top:1rem">'
+    + '<div style="font-size:.74rem;font-weight:600;color:var(--text);margin-bottom:.5rem">📈 Évolution des taux immobiliers · France · ' + years[0] + '–' + years[years.length-1] + '</div>'
+    + '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;display:block" xmlns="http://www.w3.org/2000/svg">' + svg.join('') + '</svg>'
+    + proxyNote + '</div>';
 }
 
 function calcEmprunt(){

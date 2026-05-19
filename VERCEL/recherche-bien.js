@@ -17,15 +17,6 @@
     { v: '', l: 'Indifférent' }, { v: 1, l: '1 pièce' }, { v: 2, l: '2 pièces' },
     { v: 3, l: '3 pièces' }, { v: 4, l: '4 pièces' }, { v: 5, l: '5 pièces +' },
   ];
-  // Rayon trié par ordre croissant
-  const RAYONS = [
-    { v: 500,   l: '500 m' },
-    { v: 1000,  l: '1 km' },
-    { v: 2000,  l: '2 km' },
-    { v: 5000,  l: '5 km' },
-    { v: 10000, l: '10 km' },
-  ];
-
   // ── Mapping critères → valeurs URL par site ──
   // Modifier ici si un site change son format.
   // selogerFeat : valeur featuresIncluded SeLoger/LogicImmo
@@ -253,7 +244,7 @@
   <button id="rb-btn-maison" onclick="window._rbSetType('maison')" style="flex:1;padding:6px 4px;border:1px solid var(--border);border-radius:var(--r);font-size:.75rem;cursor:pointer;background:var(--white);color:var(--muted)">🏡 Maison</button>
 </div>
 
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
   <div>
     <label style="font-size:.7rem;color:var(--muted);display:block;margin-bottom:3px" id="rb-lbl-budget">Budget max (€)</label>
     ${inputNum('rb-budget', 'ex: 300000')}
@@ -265,10 +256,6 @@
   <div>
     <label style="font-size:.7rem;color:var(--muted);display:block;margin-bottom:3px">Nb pièces min</label>
     ${selectHtml('rb-pieces', PIECES, 2)}
-  </div>
-  <div>
-    <label style="font-size:.7rem;color:var(--muted);display:block;margin-bottom:3px">Rayon</label>
-    ${selectHtml('rb-rayon', RAYONS, 1000)}
   </div>
 </div>
 
@@ -316,7 +303,7 @@
   function renderSiteCards(urls) {
     return SITES.map((s, i) => {
       const url  = urls[s.id] || '#';
-      const wide = i === 4 ? 'grid-column:1/-1;' : '';
+      const wide = '';
       return `<a href="${url}" target="_blank" onclick="var t=this.querySelector('.rb-link-txt');t.textContent='⏳ Ouverture...';setTimeout(function(){t.textContent='Voir les annonces →';},3000)" rel="noopener"
         style="${wide}display:block;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;text-decoration:none;color:inherit">
         <div style="padding:8px 12px;display:flex;align-items:center;gap:7px;border-bottom:1px solid var(--borderl)">
@@ -403,6 +390,16 @@
     const blocMaison = sel('rb-bloc-maison');
     if (blocAppart) blocAppart.style.display = type === 'appart' ? '' : 'none';
     if (blocMaison) blocMaison.style.display = type === 'maison' ? '' : 'none';
+    // Réinitialiser les champs maison quand on quitte ce mode
+    if (type !== 'maison') {
+      const pp = sel('rb-plainpied'); if (pp) pp.value = '';
+      const jr = sel('rb-jardin');    if (jr) jr.value = '';
+      if (blocMaison) blocMaison.querySelectorAll('.rb-chip.rb-on').forEach(c => c.classList.remove('rb-on'));
+    }
+    // Réinitialiser les champs appart quand on quitte ce mode
+    if (type !== 'appart') {
+      if (blocAppart) blocAppart.querySelectorAll('.rb-chip.rb-on').forEach(c => c.classList.remove('rb-on'));
+    }
     window._rbUpdateSites();
   };
 
