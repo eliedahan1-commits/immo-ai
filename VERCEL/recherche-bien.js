@@ -83,8 +83,8 @@
     // SeLoger : format classified-search (POCOFR location non disponible sans API)
     const estate   = p.type === 'appart' ? 'Apartment' : p.type === 'maison' ? 'House' : 'Apartment,House';
     const distrib  = p.mode === 'achat'  ? 'Buy' : 'Rent';
-    const projects = p.neuf ? 'NewConstruction' : 'Resale,NewConstruction';
-    const params   = [`distributionTypes=${distrib}`, `estateTypes=${estate}`, `projectTypes=${projects}`];
+    const params   = ['distributionTypes=' + distrib, 'estateTypes=' + estate];
+    if (p.neuf) params.push('projectTypes=NewConstruction');
     if (p.budget)  params.push(`priceMax=${p.budget}`);
     if (p.surface) params.push(`spaceMin=${p.surface}`);
     if (p.pieces)  params.push(`numberOfRoomsMin=${p.pieces}`);
