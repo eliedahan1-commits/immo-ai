@@ -356,7 +356,8 @@
       citySlug:     _ctx.citySlug     || '',
       slLocationId: _ctx.slLocationId || '',
       chips,   // liste brute des labels actifs → utilisée par les builders via CHIP_MAP
-      neuf:    chips.includes('Neuf seulement'),  // encore utilisé directement dans certains builders
+      neuf:    chips.includes('Neuf seulement'),
+      dpeAC:   chips.includes('DPE A→C'),
       garage:  val('rb-garage') === '1',
     };
   }
