@@ -37,9 +37,9 @@
     'Terrasse':           { selogerFeat: 'Balcony_Terrace', lbc: { outside_access: 'terrace' },                    papSlug: 'terrasse',  bienici: 'terrasse=oui' },
     'Ascenseur':          { selogerFeat: 'Elevator',        lbc: { elevator: '1' },                                papSlug: 'ascenseur', bienici: 'ascenseur=oui' },
     'Cave':               { selogerFeat: 'Cellar',          lbc: { specificities: 'cellar' },                      papSlug: 'cave',      bienici: 'cave=oui' },
-    'Parking':            { selogerFeat: 'Parking_Garage',  lbc: { specificities: 'with_garage_or_parking_spot' }, papSlug: 'parking',   bienici: 'parking=oui' },
+    'Parking/Garage':     { selogerFeat: 'Parking_Garage',  lbc: { specificities: 'with_garage_or_parking_spot' }, papSlug: 'parking',   bienici: 'parking=oui' },
     'Pas rez-de-chaussée':{ selogerFeat: null, selogerParam: 'locationsInBuildingExcluded=Groundfloor', lbc: { floor_property: 'upper_floor' }, papSlug: null, bienici: 'pas-au-rez-de-chaussee=oui' },
-    'Piscine':            { selogerFeat: 'SwimmingPool',    lbc: { outside_access: 'pool' },                       papSlug: 'piscine',   bienici: 'piscine=oui' },
+    'Piscine':            { selogerFeat: 'Swimming_Pool',   lbc: { outside_access: 'pool' },                       papSlug: 'piscine',   bienici: 'piscine=oui' },
   };
   // Critères communs mappés directement (sans CHIP_MAP)
   const BIENICI_EXTRA = {
@@ -88,7 +88,9 @@
     if (p.budget)  params.push(`priceMax=${p.budget}`);
     if (p.surface) params.push(`spaceMin=${p.surface}`);
     if (p.pieces)  params.push(`numberOfRoomsMin=${p.pieces}`);
-    if (p.dpeAC)   params.push('energyCertificate=A,B,C');
+    if (p.dpeAC)      params.push('energyCertificate=A,B,C');
+    if (p.jardin)     params.push('plotSpaceMin=' + p.jardin);
+    if (p.plainpied)  params.push('keywords=Plain-pied');
     const slFeats = new Set();
     (p.chips||[]).forEach(l => { const m=CHIP_MAP[l]; if(m&&m.selogerFeat) slFeats.add(m.selogerFeat); if(m&&m.selogerParam) params.push(m.selogerParam); });
     if (slFeats.size) params.push('featuresIncluded=' + [...slFeats].join(','));
@@ -145,7 +147,7 @@
     // Cave
     if (chips.has('Cave'))                              path.push('cave');
     // Parking OU Garage → "garages-parkings"
-    if (chips.has('Parking') || p.garage)               path.push('garages-parkings');
+    if (chips.has('Parking/Garage'))                     path.push('garages-parkings');
     // Piscine
     if (chips.has('Piscine'))                           path.push('piscine');
     let url = `https://www.pap.fr/annonce/${trans}-${typeStr}`;
@@ -197,7 +199,9 @@
     if (p.budget)  params.push(`priceMax=${p.budget}`);
     if (p.surface) params.push(`spaceMin=${p.surface}`);
     if (p.pieces)  params.push(`numberOfRoomsMin=${p.pieces}`);
-    if (p.dpeAC)   params.push('energyCertificate=A,B,C');
+    if (p.dpeAC)      params.push('energyCertificate=A,B,C');
+    if (p.jardin)     params.push('plotSpaceMin=' + p.jardin);
+    if (p.plainpied)  params.push('keywords=Plain-pied');
     const liFeats = new Set();
     (p.chips||[]).forEach(l => { const m=CHIP_MAP[l]; if(m&&m.selogerFeat) liFeats.add(m.selogerFeat); if(m&&m.selogerParam) params.push(m.selogerParam); });
     if (liFeats.size) params.push('featuresIncluded=' + [...liFeats].join(','));
@@ -271,7 +275,7 @@
 <div id="rb-bloc-appart" style="display:none;border-left:2px solid var(--goldborder);padding-left:10px;margin-bottom:10px">
   <div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Critères appartement</div>
   <div style="display:flex;flex-wrap:wrap;gap:5px">
-    ${['Balcon','Terrasse','Ascenseur','Pas rez-de-chaussée','Cave','Parking'].map(o =>
+    ${['Balcon','Terrasse','Ascenseur','Pas rez-de-chaussée','Cave','Parking/Garage'].map(o =>
       `<span class="rb-chip" onclick="this.classList.toggle('rb-on');window._rbUpdateSites()" style="padding:3px 9px;border:1px solid var(--border);border-radius:99px;font-size:.72rem;cursor:pointer;background:var(--warm)">${o}</span>`
     ).join('')}
   </div>
@@ -279,15 +283,10 @@
 
 <div id="rb-bloc-maison" style="display:none;border-left:2px solid var(--goldborder);padding-left:10px;margin-bottom:10px">
   <div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Critères maison</div>
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
     <div>
       <label style="font-size:.7rem;color:var(--muted);display:block;margin-bottom:3px">Jardin min (m²)</label>
       ${inputNum('rb-jardin', 'ex: 100')}
-    </div>
-    <div><label style="font-size:.7rem;color:var(--muted);display:block;margin-bottom:3px">Garage</label>
-      <select id="rb-garage" onchange="window._rbUpdateSites()" style="width:100%;padding:5px 7px;border:1px solid var(--border);border-radius:var(--r);font-size:.78rem;background:var(--white);color:var(--ink)">
-        <option value="">Indifférent</option><option value="1">Oui</option>
-      </select>
     </div>
     <div><label style="font-size:.7rem;color:var(--muted);display:block;margin-bottom:3px">Plain-pied</label>
       <select id="rb-plainpied" onchange="window._rbUpdateSites()" style="width:100%;padding:5px 7px;border:1px solid var(--border);border-radius:var(--r);font-size:.78rem;background:var(--white);color:var(--ink)">
@@ -296,7 +295,7 @@
     </div>
   </div>
   <div style="display:flex;flex-wrap:wrap;gap:5px">
-    ${['Piscine'].map(o =>
+    ${['Parking/Garage','Piscine'].map(o =>
       `<span class="rb-chip" onclick="this.classList.toggle('rb-on');window._rbUpdateSites()" style="padding:3px 9px;border:1px solid var(--border);border-radius:99px;font-size:.72rem;cursor:pointer;background:var(--warm)">${o}</span>`
     ).join('')}
   </div>
@@ -356,9 +355,9 @@
       citySlug:     _ctx.citySlug     || '',
       slLocationId: _ctx.slLocationId || '',
       chips,   // liste brute des labels actifs → utilisée par les builders via CHIP_MAP
-      neuf:    chips.includes('Neuf seulement'),
-      dpeAC:   chips.includes('DPE A→C'),
-      garage:  val('rb-garage') === '1',
+      neuf:     chips.includes('Neuf seulement'),
+      dpeAC:    chips.includes('DPE A→C'),
+      plainpied: val('rb-plainpied') === '1',
     };
   }
 
