@@ -5618,37 +5618,49 @@ function renderTauxHistChart(data) {
     }
   };
 
+  const footerNote = mirIdx > 0
+    ? 'Avant ' + mirStartYear + ' : proxy OAT 10 ans · Depuis ' + mirStartYear + ' : taux habitat réel (BCE MIR) · Courbes calculées depuis taux marché live'
+    : 'Taux habitat réel (BCE MIR) · Courbes calculées depuis taux marché live';
+
   chartEl.style.display = '';
   chartEl.innerHTML =
-    '<div style="background:var(--card-bg,#12122a);border:1px solid var(--border);border-radius:8px;padding:.9rem 1rem;margin-top:1rem">' +
-    '<div style="font-size:.74rem;font-weight:600;color:var(--text);margin-bottom:.5rem">📈 Taux immobiliers · France · ' + labels[0] + '–' + labels[labels.length-1] + '</div>' +
-    '<div style="position:relative;height:230px"><canvas id="tauxHistCanvas"></canvas></div>' +
-    (mirIdx > 0 ? '<div style="font-size:.6rem;color:var(--muted);text-align:center;margin-top:.35rem">Avant ' + mirStartYear + ' : proxy OAT 10 ans · Depuis ' + mirStartYear + ' : taux habitat réel (BCE MIR) · Courbes calculées depuis taux marché live</div>' : '') +
+    '<div id="tauxHistWrap" style="background:var(--card-bg,#12122a);border:1px solid var(--border);border-radius:8px;padding:.9rem 1rem;margin-top:1rem;width:100%;box-sizing:border-box">' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">' +
+    '<span style="font-size:.74rem;font-weight:600;color:var(--text)">📈 Taux immobiliers · France · ' + labels[0] + '–' + labels[labels.length-1] + '</span>' +
+    '<button onclick="(function(){var w=document.getElementById(\'tauxHistWrap\');if(!document.fullscreenElement){w.requestFullscreen&&w.requestFullscreen();w.style.borderRadius=\'0\';w.style.padding=\'1.5rem\';}else{document.exitFullscreen&&document.exitFullscreen();w.style.borderRadius=\'\';w.style.padding=\'\';}document.onfullscreenchange=function(){if(!document.fullscreenElement&&window._tauxHistChart)window._tauxHistChart.resize();};})()" ' +
+    'style="font-size:.7rem;padding:.2rem .6rem;border:1px solid var(--border);border-radius:4px;background:transparent;color:var(--muted);cursor:pointer" title="Plein écran">⛶ Plein écran</button>' +
+    '</div>' +
+    '<div style="position:relative;width:100%;height:360px"><canvas id="tauxHistCanvas"></canvas></div>' +
+    '<div style="font-size:.6rem;color:var(--muted);text-align:center;margin-top:.35rem">' + footerNote + '</div>' +
     '</div>';
 
-  const ctx = document.getElementById('tauxHistCanvas');
-  if (!ctx) return;
-
-  window._tauxHistChart = new Chart(ctx, {
-    type: 'line',
-    plugins: [proxyPlugin],
-    data: { labels, datasets },
-    options: {
-      plugins: {
-        legend: { display: true, labels: { font: { size: 10, family: 'Outfit,sans-serif' }, color: '#8a7d68', boxWidth: 12, padding: 10 } },
-        datalabels: { display: false },
-        tooltip: {
-          mode: 'index', intersect: false,
-          callbacks: { label: c => ' ' + c.dataset.label + ' : ' + (+c.raw).toFixed(2) + '%' }
-        }
-      },
-      scales: {
-        x: { ticks: { font: { size: 8 }, color: '#8a7d68', maxTicksLimit: 12, autoSkip: true }, grid: { display: false } },
-        y: { min: 0, ticks: { font: { size: 9 }, color: '#8a7d68', callback: v => v.toFixed(1) + '%' }, grid: { color: 'rgba(0,0,0,.06)' } }
-      },
-      interaction: { mode: 'index', intersect: false },
-      animation: { duration: 500 },
-    }
+  // Attendre que le DOM soit rendu avant de créer le chart (évite la zone morte)
+  requestAnimationFrame(function() {
+    const ctx = document.getElementById('tauxHistCanvas');
+    if (!ctx) return;
+    window._tauxHistChart = new Chart(ctx, {
+      type: 'line',
+      plugins: [proxyPlugin],
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, labels: { font: { size: 11, family: 'Outfit,sans-serif' }, color: '#8a7d68', boxWidth: 14, padding: 14 } },
+          datalabels: { display: false },
+          tooltip: {
+            mode: 'index', intersect: false,
+            callbacks: { label: c => ' ' + c.dataset.label + ' : ' + (+c.raw).toFixed(2) + '%' }
+          }
+        },
+        scales: {
+          x: { ticks: { font: { size: 9 }, color: '#8a7d68', maxTicksLimit: 14, autoSkip: true }, grid: { display: false } },
+          y: { min: 0, ticks: { font: { size: 10 }, color: '#8a7d68', callback: v => v.toFixed(1) + '%' }, grid: { color: 'rgba(0,0,0,.06)' } }
+        },
+        interaction: { mode: 'index', intersect: false },
+        animation: { duration: 600 },
+      }
+    });
   });
 }
 
