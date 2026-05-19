@@ -92,6 +92,7 @@
     const slFeats = new Set();
     (p.chips||[]).forEach(l => { const m=CHIP_MAP[l]; if(m&&m.selogerFeat) slFeats.add(m.selogerFeat); });
     if (slFeats.size) params.push('featuresIncluded=' + [...slFeats].join(','));
+    if (p.slLocationId) params.push('locations=' + p.slLocationId);
     return `https://www.seloger.com/classified-search?${params.join('&')}`;
   }
 
@@ -199,6 +200,7 @@
     const liFeats = new Set();
     (p.chips||[]).forEach(l => { const m=CHIP_MAP[l]; if(m&&m.selogerFeat) liFeats.add(m.selogerFeat); });
     if (liFeats.size) params.push('featuresIncluded=' + [...liFeats].join(','));
+    if (p.slLocationId) params.push('locations=' + p.slLocationId);
     return `https://www.logic-immo.com/classified-search?${params.join('&')}`;
   }
 
@@ -350,7 +352,8 @@
       insee:     _ctx.insee    || '',
       cp:        _ctx.cp       || '',
       cityName:  _ctx.cityName || '',
-      citySlug:  _ctx.citySlug || '',
+      citySlug:     _ctx.citySlug     || '',
+      slLocationId: _ctx.slLocationId || '',
       chips,   // liste brute des labels actifs → utilisée par les builders via CHIP_MAP
       neuf:    chips.includes('Neuf seulement'),  // encore utilisé directement dans certains builders
       garage:  val('rb-garage') === '1',
@@ -440,6 +443,18 @@
           if (r2.ok) { const d2 = await r2.json(); photoUrl = d2.thumbnail?.source || ''; }
         } catch {}
       }
+    }
+
+    // Fetch SeLoger/Logic-Immo location ID (best-effort, via proxy INSEE)
+    _ctx.slLocationId = '';
+    if (_ctx.cityName) {
+      try {
+        const slRes = await fetch(
+          `/api/insee?action=seloger-location&q=${encodeURIComponent(_ctx.cityName)}`,
+          { signal: AbortSignal.timeout(4000) }
+        );
+        if (slRes.ok) { const slData = await slRes.json(); _ctx.slLocationId = slData.id || ''; }
+      } catch {}
     }
 
     const html = renderPanel(_ctx.cityName, _ctx.cp, photoUrl);

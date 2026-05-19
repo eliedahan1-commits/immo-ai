@@ -1,6 +1,32 @@
-// ══ VERCEL FUNCTION : INSEE (population + densité) ══
+// ══ VERCEL FUNCTION : INSEE (population + densité) + proxy SeLoger location ══
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
+
+  // ── Action : lookup SeLoger/Logic-Immo location ID ──
+  if (req.query.action === 'seloger-location') {
+    const q = (req.query.q || '').trim();
+    if (!q || q.length < 2) return res.status(400).json({ error: 'q requis (min 2 chars)' });
+    try {
+      const r = await fetch('https://www.seloger.com/search-mfe-bff/autocomplete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ text: q, country: 'FR', limit: 5 }),
+        signal: AbortSignal.timeout(5000)
+      });
+      if (!r.ok) throw new Error('autocomplete HTTP ' + r.status);
+      const data = await r.json();
+      const city = (Array.isArray(data) ? data : []).find(item => item.type_key === 'AD08') || data[0];
+      if (!city || !city.id) return res.status(404).json({ error: 'Ville introuvable' });
+      res.setHeader('Cache-Control', 'public, max-age=2592000');
+      return res.status(200).json({
+        id: city.id,
+        label: Array.isArray(city.labels) ? city.labels[0] : city.labels
+      });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
   const lat = parseFloat(req.query.lat);
   const lon = parseFloat(req.query.lon);
   const codeInsee = req.query.codeInsee || '';
@@ -8,12 +34,13 @@ export default async function handler(req, res) {
   if (!lat || !lon) return res.status(400).json({ error: 'lat et lon requis' });
 
   try {
+    const fields = 'nom,population,surface,codesPostaux,codeDepartement';
     const geoUrl = codeInsee
-      ? `https://geo.api.gouv.fr/communes/${codeInsee}?fields=nom,population,surface,codesPostaux,codeDepartement`
-      : `https://geo.api.gouv.fr/communes?lat=${lat}&lon=${lon}&fields=nom,population,surface,codesPostaux,codeDepartement&format=json&limit=1`;
+      ? 'https://geo.api.gouv.fr/communes/' + codeInsee + '?fields=' + fields
+      : 'https://geo.api.gouv.fr/communes?lat=' + lat + '&lon=' + lon + '&fields=' + fields + '&format=json&limit=1';
 
     const geoRes = await fetch(geoUrl, { signal: AbortSignal.timeout(6000) });
-    if (!geoRes.ok) throw new Error(`geo.api ${geoRes.status}`);
+    if (!geoRes.ok) throw new Error('geo.api ' + geoRes.status);
 
     const geoData = await geoRes.json();
     const commune = Array.isArray(geoData) ? geoData[0] : geoData;
