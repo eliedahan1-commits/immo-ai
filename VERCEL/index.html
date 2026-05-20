@@ -838,9 +838,9 @@ path.leaflet-interactive:focus{outline:none;}
     </div>
     <!-- Tableau d'amortissement -->
     <div id="amortSection" style="display:none;margin-top:1.5rem">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+      <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.75rem">
         <div style="font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">📊 Tableau d'amortissement</div>
-        <button onclick="toggleAmort()" id="amortToggleBtn" style="font-size:.72rem;padding:.3rem .7rem;border:1px solid var(--border);border-radius:var(--r);background:var(--white);cursor:pointer;color:var(--muted)">Afficher</button>
+        <button onclick="toggleAmort()" id="amortToggleBtn" style="font-size:.72rem;padding:.25rem .6rem;border:1px solid var(--border);border-radius:var(--r);background:var(--white);cursor:pointer;color:var(--muted)">Afficher</button>
       </div>
       <div id="amortTableWrap" style="display:none;overflow-x:auto;border-radius:var(--r);border:1px solid var(--border)">
         <table id="amortTable" style="width:100%;border-collapse:collapse;font-size:.72rem">
@@ -880,6 +880,23 @@ path.leaflet-interactive:focus{outline:none;}
           <label class="lbl">Durée prêt (ans)</label><input class="inp" id="lDuree" type="number" value="20" />
           <label class="lbl">Taux (%)</label><input class="inp" id="lTaux" type="number" value="3.4" step="0.1" oninput="this._userModified=true" />
           <label class="lbl">Assurance emprunteur (%/an)</label><input class="inp" id="lAssur" type="number" value="0.25" step="0.05" />
+          <label class="lbl">GLI — Garantie loyers impayés (%/an) <span style="font-weight:400;color:var(--muted);font-size:.75em">— 0 = sans</span></label>
+          <input class="inp" id="lGli" type="number" value="0" step="0.1" placeholder="2.5" />
+          <label class="lbl">Régime fiscal</label>
+          <select class="inp" id="lRegime">
+            <option value="micro">Micro-foncier (abatt. 30%)</option>
+            <option value="reel">Régime réel</option>
+            <option value="lmnp_micro">LMNP micro-BIC (abatt. 50%)</option>
+            <option value="lmnp_reel">LMNP régime réel</option>
+          </select>
+          <label class="lbl">Tranche marginale d'imposition (TMI)</label>
+          <select class="inp" id="lTmi">
+            <option value="0">0 %</option>
+            <option value="11">11 %</option>
+            <option value="30" selected>30 %</option>
+            <option value="41">41 %</option>
+            <option value="45">45 %</option>
+          </select>
           <button class="btn btn-dark btn-full" onclick="calcLocation()">✦ Calculer le rendement</button>
         </div>
         <div id="resLocation"><div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez votre investissement pour calculer le rendement net.</p></div></div>
@@ -888,6 +905,13 @@ path.leaflet-interactive:focus{outline:none;}
         ⚠️ Simulation indicative. Le rendement réel dépend de la fiscalité (régime réel ou micro-foncier, IFI, PFU…), des travaux imprévus et de l'évolution du marché locatif.
         <a href="https://www.service-public.fr/particuliers/vosdroits/F14868" target="_blank" style="color:var(--gold2);margin-left:.5rem">Fiscalité location →</a>
       </div>
+    <!-- Graphique cashflow -->
+    <div id="cashflowSection" style="display:none;margin-top:1.5rem">
+      <div style="font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem">📈 Cash-flow sur la durée du prêt</div>
+      <div style="position:relative;background:var(--ink);border-radius:var(--r);padding:1.25rem 1rem 1rem">
+        <canvas id="cashflowChart" height="220"></canvas>
+      </div>
+    </div>
     </div>
   </div></div>
 
@@ -5505,12 +5529,15 @@ function calcCout(){
   const factorAmortC=t/(1-Math.pow(1+t,-n));
   const mensAssurC=emprunt>0?Math.round(emprunt*assurC/12):0;
   const mens=emprunt>0?Math.round(emprunt*(factorAmortC+assurC/12)):0;
-  const total=prix+notaire+travaux+(charges*120)+(taxe*10);
+  const moisPret = duree * 12;
+  const totalBanque = mens * moisPret; // capital + intérêts + assurance
+  const interetsTotaux = totalBanque - emprunt - (mensAssurC * moisPret);
+  const total = prix + notaire + travaux + (charges * moisPret) + (taxe * duree);
   document.getElementById('resCout').innerHTML=`
     <div class="result-dark">
-      <div style="font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem">💰 Coût réel sur 10 ans</div>
+      <div style="font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem">💰 Coût réel sur ${duree} ans</div>
       <div class="result-n">${fmt(Math.round(total/1000)*1000)}</div>
-      ${[['Prix affiché',fmt(prix)],['Frais notaire (7.5%)',fmt(notaire)],[`Travaux DPE ${dpe}`,fmt(travaux)],['Charges copro 10 ans',fmt(charges*120)],['Taxe foncière 10 ans',fmt(taxe*10)],['Mensualité estimée',fmt(mens)+'/mois'],['dont assurance',fmt(mensAssurC)+'/mois']].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
+      ${[['Prix affiché',fmt(prix)],['Frais notaire (7.5%)',fmt(notaire)],[`Travaux DPE ${dpe}`,fmt(travaux)],[`Charges copro (${duree} ans)`,fmt(charges*moisPret)],[`Taxe foncière (${duree} ans)`,fmt(taxe*duree)],['Mensualité (capital+intérêts)',fmt(mens-mensAssurC)+'/mois'],['Assurance emprunteur',fmt(mensAssurC)+'/mois'],['Total remboursé banque',fmt(Math.round(totalBanque))],['dont intérêts',fmt(Math.max(0,Math.round(interetsTotaux)))]].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
     </div>`;
   setCard('cout', fmt(Math.round(total/1000)*1000), 'Coût total · '+fmt(mens)+'/mois', '');
 
@@ -5559,6 +5586,40 @@ function calcCout(){
       + '</tr>';
     document.getElementById('amortSection').style.display = '';
   }
+
+  // ── Simulation négociation ──
+  if(prix > 0 && emprunt > 0) {
+    const scenarios = [
+      { label: 'Prix affiché', pct: 0, color: 'var(--muted)', badge: '' },
+      { label: 'Négociation −5%', pct: 0.05, color: '#2a9d8f', badge: '−5%' },
+      { label: 'Négociation −10%', pct: 0.10, color: '#e8a020', badge: '−10%' },
+    ];
+    const cards = scenarios.map(s => {
+      const newPrix     = Math.round(prix * (1 - s.pct));
+      const saving      = prix - newPrix;
+      const newEmprunt  = newPrix - apport + Math.round(newPrix * 0.075);
+      const newMens     = newEmprunt > 0 ? Math.round(newEmprunt * (factorAmortC + assurC / 12)) : 0;
+      const newNotaire  = Math.round(newPrix * 0.075);
+      const newTotal    = newPrix + newNotaire + travaux + (charges * 120) + (taxe * 10);
+      const savingTotal = total - newTotal;
+      const accent = s.pct === 0 ? 'var(--border)' : s.color;
+      return `<div style="border:2px solid ${accent};border-radius:var(--r);padding:1rem;background:var(--white)">
+        <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.6rem">
+          ${s.badge ? '<span style="background:'+s.color+';color:#fff;border-radius:99px;font-size:.65rem;font-weight:700;padding:.15rem .5rem">'+s.badge+'</span>' : '<span style="font-size:.65rem;color:var(--muted);font-weight:600">REF</span>'}
+          <span style="font-size:.72rem;font-weight:600;color:var(--ink)">${s.label}</span>
+        </div>
+        <div style="font-size:1.1rem;font-weight:700;color:${s.pct===0?'var(--ink)':s.color};margin-bottom:.1rem">${fmt(newPrix)}</div>
+        ${s.pct > 0 ? '<div style="font-size:.7rem;color:'+s.color+';font-weight:600;margin-bottom:.6rem">économie '+fmt(saving)+'</div>' : '<div style="margin-bottom:.6rem"></div>'}
+        <div style="font-size:.72rem;color:var(--muted);display:flex;flex-direction:column;gap:.25rem">
+          <div style="display:flex;justify-content:space-between"><span>Mensualité</span><span style="font-weight:600;color:var(--ink)">${fmt(newMens)}/mois</span></div>
+          <div style="display:flex;justify-content:space-between"><span>Coût total 10 ans</span><span style="font-weight:600;color:var(--ink)">${fmt(Math.round(newTotal/1000)*1000)}</span></div>
+          ${s.pct > 0 ? '<div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:.25rem;margin-top:.1rem"><span>Économie totale</span><span style="font-weight:700;color:'+s.color+'">'+fmt(Math.round(savingTotal/100)*100)+'</span></div>' : ''}
+        </div>
+      </div>`;
+    });
+    document.getElementById('negoGrid').innerHTML = cards.join('');
+    document.getElementById('negoSection').style.display = '';
+  }
 }
 
 function toggleAmort(){
@@ -5587,27 +5648,50 @@ function calcLocation(){
   const vacance = (parseFloat(document.getElementById('lVacance').value)||5)/100;
   const apport  = parseFloat(document.getElementById('lApport').value)||0;
   const duree   = parseFloat(document.getElementById('lDuree').value)||20;
+  const gliPct  = (parseFloat(document.getElementById('lGli').value)||0)/100;
+  const regime  = document.getElementById('lRegime').value;
+  const tmi     = (parseFloat(document.getElementById('lTmi').value)||30)/100;
 
-  const investTotal = prix + notaire + travaux;
-  const loyerEffectif = loyer * 12 * (1 - vacance);       // loyer annuel ajusté vacance
+  const investTotal   = prix + notaire + travaux;
+  const loyerEffectif = loyer * 12 * (1 - vacance);
   const fraisGestion  = loyerEffectif * gestion;
   const chargesAn     = charges * 12;
+  const gliAn         = loyerEffectif * gliPct;
 
   const rendBrut = (loyer * 12 / investTotal) * 100;
-  const revenuNet = loyerEffectif - fraisGestion - chargesAn - taxe;
-  const rendNet  = (revenuNet / investTotal) * 100;
+  const depensesHorsCredit = fraisGestion + chargesAn + taxe + gliAn;
+  const revenuNet = loyerEffectif - depensesHorsCredit;
+  const rendNet   = (revenuNet / investTotal) * 100;
 
   const emprunt = investTotal - apport;
-  const tauxL=(parseFloat(document.getElementById('lTaux').value)||3.4)/100;
-  const assurL=(parseFloat(document.getElementById('lAssur').value)||0.25)/100;
-  const tL=tauxL/12, n=duree*12;
-  const factorAmortL=tL/(1-Math.pow(1+tL,-n));
-  const mensAssurL=emprunt>0?Math.round(emprunt*assurL/12):0;
-  const mens = emprunt>0 ? Math.round(emprunt*(factorAmortL+assurL/12)) : 0;
-  const cashflow = Math.round(revenuNet/12 - mens);
+  const tauxL   = (parseFloat(document.getElementById('lTaux').value)||3.4)/100;
+  const assurL  = (parseFloat(document.getElementById('lAssur').value)||0.25)/100;
+  const tL = tauxL/12, nL = duree*12;
+  const factorAmortL = tL/(1-Math.pow(1+tL,-nL));
+  const mensAssurL   = emprunt>0 ? Math.round(emprunt*assurL/12) : 0;
+  const mens         = emprunt>0 ? Math.round(emprunt*(factorAmortL+assurL/12)) : 0;
 
-  const cfColor = cashflow>=0 ? 'var(--green)' : '#e74c3c';
-  const cfLabel = cashflow>=0 ? '✅ Cash-flow positif' : '⚠️ Effort d\'épargne mensuel';
+  // Intérêts année 1 (pour régime réel)
+  const interetsAn1 = emprunt * tauxL;
+
+  // ── Fiscalité ──
+  let baseIR = 0;
+  const isLMNP = regime.startsWith('lmnp');
+  const PS_RATE = isLMNP ? 0 : 0.172; // PS uniquement sur revenus fonciers
+  if(regime === 'micro')       baseIR = loyerEffectif * 0.70;
+  else if(regime === 'reel')   baseIR = Math.max(0, loyerEffectif - fraisGestion - chargesAn - taxe - gliAn - interetsAn1 - (mensAssurL*12));
+  else if(regime === 'lmnp_micro') baseIR = loyerEffectif * 0.50;
+  else if(regime === 'lmnp_reel')  baseIR = Math.max(0, loyerEffectif - fraisGestion - chargesAn - taxe - gliAn - interetsAn1 - (mensAssurL*12));
+  const irAn  = Math.round(baseIR * tmi);
+  const psAn  = Math.round(baseIR * PS_RATE);
+  const fiscalAn = irAn + psAn;
+
+  const cashflowAvantFisc = Math.round(revenuNet/12 - mens);
+  const cashflowApresFisc = Math.round((revenuNet - fiscalAn)/12 - mens);
+
+  const cfColor = cashflowApresFisc>=0 ? '#27ae60' : '#e74c3c';
+  const cfLabel = cashflowApresFisc>=0 ? '✅ Cash-flow net fiscal positif' : '⚠️ Effort mensuel après impôts';
+  const regimeLabel = {'micro':'Micro-foncier','reel':'Régime réel','lmnp_micro':'LMNP micro-BIC','lmnp_reel':'LMNP réel'}[regime];
 
   document.getElementById('resLocation').innerHTML=`
     <div class="result-dark">
@@ -5616,20 +5700,88 @@ function calcLocation(){
       <div style="font-size:.72rem;color:rgba(255,255,255,.6);text-align:center;margin-bottom:1rem">Rendement brut : ${rendBrut.toFixed(2).replace('.',',')} %</div>
       ${[
         ['Investissement total', fmt(Math.round(investTotal))],
-        ['dont notaire', fmt(Math.round(notaire))],
         ['Loyer brut /an', fmt(Math.round(loyer*12))],
         ['Loyer net vacance', fmt(Math.round(loyerEffectif))],
         ['Charges & gestion /an', '− '+fmt(Math.round(fraisGestion+chargesAn+taxe))],
+        gliPct>0 ? ['GLI /an', '− '+fmt(Math.round(gliAn))] : null,
         ['Revenu net /an', fmt(Math.round(revenuNet))],
         ['Mensualité emprunt', fmt(mens)+'/mois'],
-        ['dont assurance', fmt(mensAssurL)+'/mois'],
-      ].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
-      <div style="text-align:center;margin-top:.75rem;padding:.5rem;border-radius:6px;background:${cashflow>=0?'rgba(39,174,96,.15)':'rgba(231,76,60,.15)'}">
+        ['Cash-flow avant impôts', (cashflowAvantFisc>=0?'+':'')+fmt(cashflowAvantFisc)+'/mois'],
+        ['─── Fiscalité ('+regimeLabel+')', ''],
+        ['Base imposable /an', fmt(Math.round(baseIR))],
+        ['IR (TMI '+Math.round(tmi*100)+'%) /an', '− '+fmt(irAn)],
+        isLMNP ? null : ['PS 17.2% /an', '− '+fmt(psAn)],
+      ].filter(Boolean).map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
+      <div style="text-align:center;margin-top:.75rem;padding:.5rem;border-radius:6px;background:${cashflowApresFisc>=0?'rgba(39,174,96,.15)':'rgba(231,76,60,.15)'}">
         <div style="font-size:.8rem;font-weight:600;color:${cfColor}">${cfLabel}</div>
-        <div style="font-size:1.2rem;font-weight:700;color:${cfColor}">${cashflow>=0?'+':''}${fmt(cashflow)} €/mois</div>
+        <div style="font-size:1.2rem;font-weight:700;color:${cfColor}">${cashflowApresFisc>=0?'+':''}${fmt(cashflowApresFisc)} €/mois</div>
       </div>
     </div>`;
-  setCard('cout', rendNet.toFixed(1).replace('.',',')+' % net', `Cash-flow : ${cashflow>=0?'+':''}${fmt(cashflow)}/mois`, rendNet>=5?'good':rendNet>=3?'':'warn');
+  setCard('cout', rendNet.toFixed(1).replace('.',',')+' % net', 'Cash-flow net : '+(cashflowApresFisc>=0?'+':'')+fmt(cashflowApresFisc)+'/mois', rendNet>=5?'good':rendNet>=3?'':'warn');
+
+  // ── Graphique cashflow sur la durée ──
+  if(window.Chart && emprunt >= 0) {
+    let capital = emprunt;
+    const labels = [], cfAnnuel = [], cfCumul = [];
+    let cumul = 0;
+    for(let y = 1; y <= duree; y++) {
+      let interetsAn = 0;
+      for(let m = 0; m < 12; m++) {
+        const im = capital * tauxL / 12;
+        const km = mens - mensAssurL - im;
+        interetsAn += im;
+        capital -= km;
+        if(capital < 0) capital = 0;
+      }
+      // Base IR ajustée aux intérêts réels de l'année
+      let baseIRy = 0;
+      if(regime==='micro')        baseIRy = loyerEffectif * 0.70;
+      else if(regime==='reel')    baseIRy = Math.max(0, loyerEffectif - depensesHorsCredit - Math.round(interetsAn) - mensAssurL*12);
+      else if(regime==='lmnp_micro') baseIRy = loyerEffectif * 0.50;
+      else if(regime==='lmnp_reel')  baseIRy = Math.max(0, loyerEffectif - depensesHorsCredit - Math.round(interetsAn) - mensAssurL*12);
+      const fiscAn = Math.round(baseIRy * (tmi + PS_RATE));
+      const cf = Math.round((loyerEffectif - depensesHorsCredit - fiscAn) / 12 - mens);
+      cumul += cf * 12;
+      labels.push('An ' + y);
+      cfAnnuel.push(cf);
+      cfCumul.push(Math.round(cumul));
+    }
+    if(window._cashflowChart) { window._cashflowChart.destroy(); window._cashflowChart = null; }
+    const ctx = document.getElementById('cashflowChart').getContext('2d');
+    window._cashflowChart = new Chart(ctx, {
+      data: {
+        labels,
+        datasets: [
+          {
+            type: 'bar', label: 'Cash-flow mensuel (€)',
+            data: cfAnnuel,
+            backgroundColor: cfAnnuel.map(v => v >= 0 ? 'rgba(39,174,96,.7)' : 'rgba(231,76,60,.7)'),
+            borderColor:     cfAnnuel.map(v => v >= 0 ? '#27ae60' : '#e74c3c'),
+            borderWidth: 1, yAxisID: 'y',
+          },
+          {
+            type: 'line', label: 'Cumul (€)',
+            data: cfCumul,
+            borderColor: '#e8a020', backgroundColor: 'rgba(232,160,32,.08)',
+            borderWidth: 2, pointRadius: 0, tension: 0.4, fill: true, yAxisID: 'y2',
+          }
+        ]
+      },
+      options: {
+        responsive: true, interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { labels: { color: 'rgba(255,255,255,.7)', font: { size: 11 } } },
+          tooltip: { callbacks: { label: ctx => ' ' + ctx.dataset.label + ' : ' + fmt(ctx.parsed.y) + ' €' } }
+        },
+        scales: {
+          x: { ticks: { color: 'rgba(255,255,255,.5)', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,.06)' } },
+          y:  { position: 'left',  ticks: { color: '#27ae60', font: { size: 10 }, callback: v => fmt(v)+' €' }, grid: { color: 'rgba(255,255,255,.06)' } },
+          y2: { position: 'right', ticks: { color: '#e8a020', font: { size: 10 }, callback: v => fmt(v)+' €' }, grid: { drawOnChartArea: false } }
+        }
+      }
+    });
+    document.getElementById('cashflowSection').style.display = '';
+  }
 }
 
 // ── Capacité d'emprunt : init page + graphique historique ──────────────────
