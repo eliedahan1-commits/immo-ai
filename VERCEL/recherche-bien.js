@@ -462,7 +462,7 @@
     if (grid) grid.style.display = 'none';
     container.innerHTML =
       '<button class="back-btn" onclick="closePanel()" style="margin-bottom:.75rem">← Retour aux cartes</button>' +
-      '<div class="detail-panel" style="margin:0.75rem 0 2rem">' +
+      '<div class="detail-panel">' +
       renderPanel(_ctx.cityName, _ctx.cp, photoUrl) +
       '</div>';
     window.scrollTo({ top: 0, behavior: 'smooth' });

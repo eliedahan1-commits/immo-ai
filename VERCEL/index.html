@@ -349,8 +349,8 @@ aside{
 /* ══ DÉTAIL PANEL ══ */
 .detail-panel{
   background:#fff;border:1px solid var(--border);
-  border-radius:var(--r);margin:0 2rem 2rem;
-  max-width:920px;
+  border-radius:var(--r);margin:0 auto 2rem;
+  max-width:860px;width:100%;
   animation:rise .3s ease;overflow:hidden;
 }
 .detail-head{
@@ -835,6 +835,34 @@ path.leaflet-interactive:focus{outline:none;}
         </div>
         <div id="resCout"><div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez le bien pour voir le coût total réel.</p></div></div>
       </div>
+    </div>
+    <!-- Tableau d'amortissement -->
+    <div id="amortSection" style="display:none;margin-top:1.5rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+        <div style="font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">📊 Tableau d'amortissement</div>
+        <button onclick="toggleAmort()" id="amortToggleBtn" style="font-size:.72rem;padding:.3rem .7rem;border:1px solid var(--border);border-radius:var(--r);background:var(--white);cursor:pointer;color:var(--muted)">Afficher</button>
+      </div>
+      <div id="amortTableWrap" style="display:none;overflow-x:auto;border-radius:var(--r);border:1px solid var(--border)">
+        <table id="amortTable" style="width:100%;border-collapse:collapse;font-size:.72rem">
+          <thead>
+            <tr style="background:var(--warm);color:var(--muted);text-transform:uppercase;font-size:.62rem;letter-spacing:.07em">
+              <th style="padding:.5rem .75rem;text-align:left;white-space:nowrap">Année</th>
+              <th style="padding:.5rem .75rem;text-align:right;white-space:nowrap">Mensualité</th>
+              <th style="padding:.5rem .75rem;text-align:right;white-space:nowrap">Capital remb.</th>
+              <th style="padding:.5rem .75rem;text-align:right;white-space:nowrap">Intérêts</th>
+              <th style="padding:.5rem .75rem;text-align:right;white-space:nowrap">Assurance</th>
+              <th style="padding:.5rem .75rem;text-align:right;white-space:nowrap">Capital restant</th>
+            </tr>
+          </thead>
+          <tbody id="amortBody"></tbody>
+          <tfoot id="amortFoot"></tfoot>
+        </table>
+      </div>
+    </div>
+    <!-- Simulation négociation -->
+    <div id="negoSection" style="display:none;margin-top:1.5rem">
+      <div style="font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem">🤝 Simulation négociation</div>
+      <div id="negoGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem"></div>
     </div>
     <!-- Onglet Investissement locatif -->
     <div id="coutLocation" style="display:none">
@@ -2965,7 +2993,7 @@ function showPanel(title, html){
   // Bouton retour vers les cartes
   const backBtn = `<button class="back-btn" onclick="closePanel()">← Retour aux cartes</button>`;
   container.innerHTML = backBtn + `
-    <div class="detail-panel" style="margin:0.75rem 2rem 2rem">
+    <div class="detail-panel">
       <div class="detail-head">
         <div class="detail-title">${title}</div>
         <button class="detail-close" onclick="closePanel()">✕ Fermer</button>
@@ -5485,6 +5513,60 @@ function calcCout(){
       ${[['Prix affiché',fmt(prix)],['Frais notaire (7.5%)',fmt(notaire)],[`Travaux DPE ${dpe}`,fmt(travaux)],['Charges copro 10 ans',fmt(charges*120)],['Taxe foncière 10 ans',fmt(taxe*10)],['Mensualité estimée',fmt(mens)+'/mois'],['dont assurance',fmt(mensAssurC)+'/mois']].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
     </div>`;
   setCard('cout', fmt(Math.round(total/1000)*1000), 'Coût total · '+fmt(mens)+'/mois', '');
+
+  // ── Tableau d'amortissement ──
+  if(emprunt > 0) {
+    const tbody = document.getElementById('amortBody');
+    const tfoot = document.getElementById('amortFoot');
+    let capital = emprunt;
+    let totalInterets = 0, totalCapital = 0, totalAssur = 0;
+    const mensAssurAn = Math.round(emprunt * assurC / 12);
+    let rows = '';
+    for(let y = 1; y <= duree; y++){
+      let interetsAn = 0, capitalAn = 0;
+      for(let m = 0; m < 12; m++){
+        const interetsMois = capital * tauxC / 12;
+        const capitalMois  = mens - mensAssurAn - interetsMois;
+        interetsAn += interetsMois;
+        capitalAn  += capitalMois;
+        capital    -= capitalMois;
+        if(capital < 0) capital = 0;
+      }
+      interetsAn = Math.round(interetsAn);
+      capitalAn  = Math.round(capitalAn);
+      const assurAn = mensAssurAn * 12;
+      totalInterets += interetsAn;
+      totalCapital  += capitalAn;
+      totalAssur    += assurAn;
+      const bg = y % 2 === 0 ? 'background:var(--warm)' : '';
+      rows += '<tr style="' + bg + '">'
+        + '<td style="padding:.4rem .75rem;font-weight:600">Année ' + y + '</td>'
+        + '<td style="padding:.4rem .75rem;text-align:right">' + fmt(mens) + '</td>'
+        + '<td style="padding:.4rem .75rem;text-align:right;color:#2a9d8f">' + fmt(capitalAn) + '</td>'
+        + '<td style="padding:.4rem .75rem;text-align:right;color:#e63946">' + fmt(interetsAn) + '</td>'
+        + '<td style="padding:.4rem .75rem;text-align:right;color:var(--muted)">' + fmt(assurAn) + '</td>'
+        + '<td style="padding:.4rem .75rem;text-align:right;font-weight:600">' + fmt(Math.max(0,Math.round(capital))) + '</td>'
+        + '</tr>';
+    }
+    tbody.innerHTML = rows;
+    tfoot.innerHTML = '<tr style="background:var(--ink);color:#fff;font-weight:600">'
+      + '<td style="padding:.5rem .75rem">Total</td>'
+      + '<td style="padding:.5rem .75rem;text-align:right"></td>'
+      + '<td style="padding:.5rem .75rem;text-align:right;color:#7ef0d8">' + fmt(totalCapital) + '</td>'
+      + '<td style="padding:.5rem .75rem;text-align:right;color:#ff8a8a">' + fmt(totalInterets) + '</td>'
+      + '<td style="padding:.5rem .75rem;text-align:right;color:rgba(255,255,255,.6)">' + fmt(totalAssur) + '</td>'
+      + '<td style="padding:.5rem .75rem;text-align:right">0 €</td>'
+      + '</tr>';
+    document.getElementById('amortSection').style.display = '';
+  }
+}
+
+function toggleAmort(){
+  const wrap = document.getElementById('amortTableWrap');
+  const btn  = document.getElementById('amortToggleBtn');
+  const open = wrap.style.display === 'none';
+  wrap.style.display = open ? '' : 'none';
+  btn.textContent = open ? 'Masquer' : 'Afficher';
 }
 
 function switchCoutMode(mode){
