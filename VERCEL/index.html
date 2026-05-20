@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>IMMO·AI — L'intelligence immobilière</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=DM+Serif+Display&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -663,7 +663,7 @@ path.leaflet-interactive:focus{outline:none;}
 
 /* ── Responsive ≤1024px : sidebar en drawer, hamburger visible ── */
 @media(max-width:1024px){
-  aside{transform:translateX(-100%);transition:transform .3s;z-index:500;}
+  aside{transform:translateX(-100%);transition:transform .3s;z-index:1100;}
   aside.open{transform:translateX(0);box-shadow:4px 0 32px rgba(0,0,0,.5);}
   .main-wrap{margin-left:0;padding-bottom:64px;}
   .cards-grid{grid-template-columns:1fr 1fr;}
@@ -744,6 +744,16 @@ path.leaflet-interactive:focus{outline:none;}
 
   /* Graphique écoles */
   #ecolesChartWrap       { display:none; }
+
+  /* Hero — évite le débordement horizontal */
+  .hero                  { padding:2.5rem 1rem 2rem; }
+  .hero-title            { font-size:2rem; }
+  .hero-sub              { font-size:.8rem; max-width:100%; }
+  .hero-search           { padding:.4rem .4rem .4rem 1rem; gap:.4rem; border-radius:12px; }
+  .hero-search-btn       { padding:.6rem .9rem; font-size:.75rem; }
+  .hero-stats            { gap:1rem; flex-wrap:wrap; margin-top:1.5rem; padding-top:1.2rem; }
+  .hero-stat-n           { font-size:1.3rem; }
+  .hero-stat-l           { font-size:.55rem; }
 }
 
 @media(max-width:480px){
@@ -6443,7 +6453,7 @@ function ask(q){document.getElementById('chatIn').value=q;sendMsg();}
 function geolocateUser(){
   const btn = document.getElementById('geoBtn');
   if(!navigator.geolocation){
-    alert('La géolocalisation n\'est pas supportée par votre navigateur.');
+    toast('Géolocalisation non supportée par ce navigateur.','err'); return;
     return;
   }
   if(btn){ btn.textContent='⏳'; btn.style.color='rgba(184,131,42,.9)'; btn.disabled=true; }
@@ -6481,16 +6491,16 @@ function geolocateUser(){
           window._franceMarker.bindTooltip(addr).openTooltip();
         }
       } catch(e) {
-        alert('Impossible de récupérer votre adresse. Veuillez saisir manuellement.');
+        toast('Adresse introuvable, saisissez-la manuellement.','err');
       } finally {
         if(btn){ btn.textContent='🎯'; btn.style.color='rgba(255,255,255,.5)'; btn.disabled=false; }
       }
     },
     (err) => {
       if(btn){ btn.textContent='🎯'; btn.style.color='rgba(255,255,255,.5)'; btn.disabled=false; }
-      if(err.code !== 1) alert('Géolocalisation échouée : ' + err.message);
+      if(err.code !== 1) toast('Géolocalisation échouée : ' + err.message,'err');
     },
-    { timeout: 15000, maximumAge: 120000, enableHighAccuracy: false }
+    { timeout: 30000, maximumAge: 300000, enableHighAccuracy: false }
   );
 }
 
