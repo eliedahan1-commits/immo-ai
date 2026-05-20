@@ -1091,7 +1091,7 @@ path.leaflet-interactive:focus{outline:none;}
   </div></div>
 
   <!-- ══ DPE ══ -->
-  <div class="page" id="p-energie"><div class="inner">
+  <div class="page" id="p-energie"><div class="inner"><div style="max-width:860px;margin:0 auto">
     <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 1rem 0">
       <button class="back-btn" onclick="go('analyse')">← Retour aux cartes</button>
       <button class="detail-close" onclick="go('analyse')" style="color:var(--muted);font-size:.9rem;padding:.3rem .5rem;border:1px solid var(--border);border-radius:var(--r)">✕ Fermer</button>
@@ -1108,7 +1108,7 @@ path.leaflet-interactive:focus{outline:none;}
       </div>
       <div id="resDpe"><div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez le DPE et la surface.</p></div></div>
     </div>
-  </div></div>
+  </div></div></div>
 
   <!-- ══ AIDES ══ -->
   <div class="page" id="p-aides"><div class="inner">
@@ -3495,10 +3495,17 @@ function showDVFDetail(){
     const a6=avg(last6), b6=avg(prev6), a12=avg(last12), b12=avg(prev12);
     // Préférer 6 mois si assez de données, sinon 12 mois
     let pct=null, label='', usedPeriod='6 mois';
-    if(a6&&b6&&last6.length>=3&&prev6.length>=3){
+    if(a6&&b6&&last6.length>=2&&prev6.length>=2){
       pct=Math.round((a6-b6)/b6*100); label='📈 Tendance 6 mois';
-    } else if(a12&&b12&&last12.length>=3&&prev12.length>=3){
+    } else if(a12&&b12&&last12.length>=2&&prev12.length>=2){
       pct=Math.round((a12-b12)/b12*100); label='📈 Tendance 1 an'; usedPeriod='1 an';
+    } else if(withDate.length>=4){
+      // Fallback : moitié ancienne vs moitié récente
+      const sorted=withDate.slice().sort((a,b)=>a.date.localeCompare(b.date));
+      const mid=Math.floor(sorted.length/2);
+      const aOld=avg(sorted.slice(0,mid).map(t=>t.prixM2));
+      const aNew=avg(sorted.slice(mid).map(t=>t.prixM2));
+      if(aOld&&aNew){pct=Math.round((aNew-aOld)/aOld*100);label='📈 Tendance globale';}
     }
     if(pct===null){ tEl.textContent='N/D'; tEl.style.color='var(--muted)'; lEl.textContent='📈 Données insuffisantes'; return; }
     const up = pct>=0;
