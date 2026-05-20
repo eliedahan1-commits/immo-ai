@@ -740,20 +740,22 @@ path.leaflet-interactive:focus{outline:none;}
     </div>
   </div>
 
+  <!-- ══ BANDEAU ADRESSE (persistant) ══ -->
+  <div class="results-header" id="resultsHeader" style="display:none">
+    <div class="results-addr">
+      <button class="back-btn" onclick="goHome()" style="flex-shrink:0">← Nouvelle recherche</button>
+    <div class="results-addr-icon">📍</div>
+    <div class="results-addr-text">
+      <div class="results-addr-main" id="addrMain">—</div>
+      <div class="results-addr-sub" id="addrSub">—</div>
+      </div>
+    <div class="results-addr-badge" id="addrBadge">Analyse en cours…</div>
+      <button onclick="generatePDF()" title="Exporter en PDF" style="flex-shrink:0;display:flex;align-items:center;gap:.4rem;padding:.45rem .9rem;border:1px solid var(--goldborder);background:transparent;color:var(--gold);border-radius:var(--r);font-size:.78rem;font-weight:600;cursor:pointer;transition:background .2s;white-space:nowrap" onmouseover="this.style.background='rgba(184,131,42,.12)'" onmouseout="this.style.background='transparent'">📄 Exporter PDF</button>
+    </div>
+    </div>
+
   <!-- ══ ANALYSE COMPLÈTE ══ -->
   <div class="page" id="p-analyse">
-    <div class="results-header" id="resultsHeader" style="display:none">
-      <div class="results-addr">
-        <button class="back-btn" onclick="goHome()" style="flex-shrink:0">← Nouvelle recherche</button>
-        <div class="results-addr-icon">📍</div>
-        <div class="results-addr-text">
-          <div class="results-addr-main" id="addrMain">—</div>
-          <div class="results-addr-sub" id="addrSub">—</div>
-        </div>
-        <div class="results-addr-badge" id="addrBadge">Analyse en cours…</div>
-        <button onclick="generatePDF()" title="Exporter en PDF" style="flex-shrink:0;display:flex;align-items:center;gap:.4rem;padding:.45rem .9rem;border:1px solid var(--goldborder);background:transparent;color:var(--gold);border-radius:var(--r);font-size:.78rem;font-weight:600;cursor:pointer;transition:background .2s;white-space:nowrap" onmouseover="this.style.background='rgba(184,131,42,.12)'" onmouseout="this.style.background='transparent'">📄 Exporter PDF</button>
-      </div>
-    </div>
 
     <div class="cards-grid" id="cardsGrid">
       <!-- Cartes générées dynamiquement -->
@@ -764,7 +766,10 @@ path.leaflet-interactive:focus{outline:none;}
 
   <!-- ══ PRIX & DVF ══ -->
   <div class="page" id="p-prix"><div class="inner">
-    <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 1rem 0">
+      <button class="back-btn" onclick="go('analyse')">← Retour aux cartes</button>
+      <button class="detail-close" onclick="go('analyse')" style="color:var(--muted);font-size:.9rem;padding:.3rem .5rem;border:1px solid var(--border);border-radius:var(--r)">✕ Fermer</button>
+    </div>
     <div class="ph"><div class="ptag">✦ Données DVF officielles · DGFiP</div><h2 class="ptitle">Prix & marché <em>par adresse</em></h2><p class="psub">Transactions réelles dans un rayon de 200m autour de votre adresse. Source : Demandes de Valeurs Foncières.</p></div>
     <div class="card"><div class="ctitle">🔍 Analyser une adresse</div>
       <input class="inp" id="dvfAddr" placeholder="Ex: 58 rue des Abondances, Boulogne-Billancourt 92100" onkeydown="if(event.key==='Enter')runDVF()" />
@@ -786,7 +791,10 @@ path.leaflet-interactive:focus{outline:none;}
 
   <!-- ══ EMPRUNT ══ -->
   <div class="page" id="p-emprunt"><div class="inner">
-    <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 1rem 0">
+      <button class="back-btn" onclick="go('analyse')">← Retour aux cartes</button>
+      <button class="detail-close" onclick="go('analyse')" style="color:var(--muted);font-size:.9rem;padding:.3rem .5rem;border:1px solid var(--border);border-radius:var(--r)">✕ Fermer</button>
+    </div>
     <div class="ph"><div class="ptag">✦ Financement</div><h2 class="ptitle">Capacité <em>d'emprunt</em></h2></div>
     <div class="g2" style="align-items:start">
       <div class="card"><div class="ctitle">💶 Vos revenus et charges</div>
@@ -812,7 +820,10 @@ path.leaflet-interactive:focus{outline:none;}
 
   <!-- ══ VRAI COÛT ══ -->
   <div class="page" id="p-cout"><div class="inner">
-    <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 1rem 0">
+      <button class="back-btn" onclick="go('analyse')">← Retour aux cartes</button>
+      <button class="detail-close" onclick="go('analyse')" style="color:var(--muted);font-size:.9rem;padding:.3rem .5rem;border:1px solid var(--border);border-radius:var(--r)">✕ Fermer</button>
+    </div>
     <div class="ph"><div class="ptag">✦ Financement</div><h2 class="ptitle">Le <em>vrai coût</em> du bien</h2></div>
     <div class="toggles" id="tCoutMode" style="margin-bottom:1.5rem">
       <button class="tog on" onclick="tog('tCoutMode',this);switchCoutMode('achat')">🏠 Achat</button>
@@ -934,7 +945,10 @@ path.leaflet-interactive:focus{outline:none;}
 
   <!-- ══ AIDES ══ -->
   <div class="page" id="p-aides"><div class="inner">
-    <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 1rem 0">
+      <button class="back-btn" onclick="go('analyse')">← Retour aux cartes</button>
+      <button class="detail-close" onclick="go('analyse')" style="color:var(--muted);font-size:.9rem;padding:.3rem .5rem;border:1px solid var(--border);border-radius:var(--r)">✕ Fermer</button>
+    </div>
     <div class="ph"><div class="ptag">✦ Financement · Barèmes officiels 2025</div><h2 class="ptitle">Aides <em>de l'État</em></h2></div>
     <div class="g2" style="align-items:start">
       <div class="card"><div class="ctitle">🎁 Votre situation</div>
@@ -970,7 +984,10 @@ path.leaflet-interactive:focus{outline:none;}
 
   <!-- ══ RÉNOVATION ══ -->
   <div class="page" id="p-renov"><div class="inner">
-    <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 1rem 0">
+      <button class="back-btn" onclick="go('analyse')">← Retour aux cartes</button>
+      <button class="detail-close" onclick="go('analyse')" style="color:var(--muted);font-size:.9rem;padding:.3rem .5rem;border:1px solid var(--border);border-radius:var(--r)">✕ Fermer</button>
+    </div>
     <div class="ph"><div class="ptag">✦ Travaux · Barèmes MaPrimeRénov' 2025</div><h2 class="ptitle">Rénovation & <em>MaPrimeRénov'</em></h2></div>
     <div class="g2" style="align-items:start">
       <div class="card"><div class="ctitle">🔨 Votre projet de rénovation</div>
@@ -995,9 +1012,46 @@ path.leaflet-interactive:focus{outline:none;}
     </div>
   </div></div>
 
+  <!-- ══ SIMULATION MENSUALITÉS ══ -->
+  <div class="page" id="p-mensualites"><div class="inner">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 1rem 0">
+      <button class="back-btn" onclick="go('analyse')">← Retour aux cartes</button>
+      <button class="detail-close" onclick="go('analyse')" style="color:var(--muted);font-size:.9rem;padding:.3rem .5rem;border:1px solid var(--border);border-radius:var(--r)">✕ Fermer</button>
+    </div>
+    <div class="ph"><div class="ptag">✦ Financement</div><h2 class="ptitle">Simulation <em>mensualités</em></h2><p class="psub">Calculez votre mensualité exacte et le coût total de votre crédit.</p></div>
+    <div class="g2" style="align-items:start">
+      <div class="card">
+        <div class="ctitle">🧮 Votre prêt</div>
+        <label class="lbl">Montant emprunté (€)</label>
+        <input class="inp" id="mMontant" type="number" placeholder="300000" />
+        <label class="lbl">Durée (ans)</label>
+        <select class="inp" id="mDuree" onchange="(function(){const t=document.getElementById('mDuree').options[document.getElementById('mDuree').selectedIndex].dataset.taux;if(t){const el=document.getElementById('mTaux');if(el&&!el._userModified)el.value=t;}})()">
+          <option value="10">10 ans</option><option value="15">15 ans</option><option value="20" selected>20 ans</option><option value="25">25 ans</option>
+        </select>
+        <label class="lbl">Taux annuel (%)</label>
+        <input class="inp" id="mTaux" type="number" value="3.42" step="0.01" oninput="this._userModified=true" />
+        <div id="mTauxSrc" style="font-size:.62rem;color:var(--muted);margin-bottom:.3rem"></div>
+        <label class="lbl">Assurance emprunteur (%/an) <span style="font-weight:400;color:var(--muted);font-size:.75em">— 0,25% par défaut</span></label>
+        <input class="inp" id="mAssur" type="number" value="0.25" step="0.05" />
+        <label class="lbl">Apport personnel (€) <span style="font-weight:400;color:var(--muted);font-size:.75em">— optionnel</span></label>
+        <input class="inp" id="mApport" type="number" placeholder="0" />
+        <button class="btn btn-dark btn-full" onclick="calcMensualites()">✦ Calculer ma mensualité</button>
+        <div style="margin-top:1rem;text-align:center;font-size:.72rem;color:var(--muted)">
+          Simulation détaillée par <a href="https://www.meilleurtaux.com/credit-immobilier/simulation-de-pret-immobilier/calcul-des-mensualites.html" target="_blank" style="color:var(--gold)">meilleurtaux.com →</a>
+        </div>
+      </div>
+      <div id="resMensualites">
+        <div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez le montant et la durée pour calculer votre mensualité.</p></div>
+      </div>
+    </div>
+  </div></div>
+
   <!-- ══ COACHING OFFRE ══ -->
   <div class="page" id="p-offre"><div class="inner">
-    <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 1rem 0">
+      <button class="back-btn" onclick="go('analyse')">← Retour aux cartes</button>
+      <button class="detail-close" onclick="go('analyse')" style="color:var(--muted);font-size:.9rem;padding:.3rem .5rem;border:1px solid var(--border);border-radius:var(--r)">✕ Fermer</button>
+    </div>
     <div class="ph"><div class="ptag">✦ Stratégie</div><h2 class="ptitle">Coaching <em>de l'offre</em></h2></div>
     <div class="card"><div class="ctitle">🤝 Décrivez le bien</div>
       <div class="g2"><div><label class="lbl">Prix demandé (€)</label><input class="inp" id="oPrix" type="number" placeholder="650000" /></div><div><label class="lbl">Surface (m²)</label><input class="inp" id="oSurf" type="number" placeholder="75" /></div></div>
@@ -1023,7 +1077,10 @@ path.leaflet-interactive:focus{outline:none;}
 
   <!-- ══ PROFIL DE VIE ══ -->
   <div class="page" id="p-profil"><div class="inner">
-    <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 1rem 0">
+      <button class="back-btn" onclick="go('analyse')">← Retour aux cartes</button>
+      <button class="detail-close" onclick="go('analyse')" style="color:var(--muted);font-size:.9rem;padding:.3rem .5rem;border:1px solid var(--border);border-radius:var(--r)">✕ Fermer</button>
+    </div>
     <div class="ph"><div class="ptag">✦ Stratégie</div><h2 class="ptitle">Compatibilité <em>de vie</em></h2><p class="psub">L'IA identifie les secteurs vraiment compatibles avec votre style de vie, en s'appuyant sur les données réelles DVF, OpenStreetMap et l'annuaire scolaire.</p></div>
 
     <!-- Adresse en haut -->
@@ -1169,7 +1226,10 @@ path.leaflet-interactive:focus{outline:none;}
 
   <!-- ══ CONSEILLER IA ══ -->
   <div class="page" id="p-conseil"><div class="inner" style="max-width:820px">
-    <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 1rem 0">
+      <button class="back-btn" onclick="go('analyse')">← Retour aux cartes</button>
+      <button class="detail-close" onclick="go('analyse')" style="color:var(--muted);font-size:.9rem;padding:.3rem .5rem;border:1px solid var(--border);border-radius:var(--r)">✕ Fermer</button>
+    </div>
     <div class="ph"><div class="ptag">✦ IA 24h/24</div><h2 class="ptitle">Conseiller <em>immobilier IA</em></h2></div>
     <div class="chat-wrap">
       <div class="chat-box">
@@ -1208,7 +1268,10 @@ path.leaflet-interactive:focus{outline:none;}
 
   <!-- ══ PAGES V2 (annonces, alertes) ══ -->
   <div class="page" id="p-annonces"><div class="inner">
-    <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 1rem 0">
+      <button class="back-btn" onclick="go('analyse')">← Retour aux cartes</button>
+      <button class="detail-close" onclick="go('analyse')" style="color:var(--muted);font-size:.9rem;padding:.3rem .5rem;border:1px solid var(--border);border-radius:var(--r)">✕ Fermer</button>
+    </div>
     <div class="ph"><div class="ptag">✦ Bientôt disponible · V2</div><h2 class="ptitle">Annonces <em>immobilières</em></h2><p class="psub">Le module d'annonces avec dépôt par particuliers et agences, alertes intelligentes et analyse IA de chaque bien sera disponible dans la version 2.</p></div>
     <div style="background:var(--ink);border-radius:var(--r);padding:2rem;text-align:center;color:#fff">
       <div style="font-size:2.5rem;margin-bottom:1rem">🏗️</div>
@@ -1218,7 +1281,10 @@ path.leaflet-interactive:focus{outline:none;}
   </div></div>
 
   <div class="page" id="p-alertes"><div class="inner">
-    <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 1rem 0">
+      <button class="back-btn" onclick="go('analyse')">← Retour aux cartes</button>
+      <button class="detail-close" onclick="go('analyse')" style="color:var(--muted);font-size:.9rem;padding:.3rem .5rem;border:1px solid var(--border);border-radius:var(--r)">✕ Fermer</button>
+    </div>
     <div class="ph"><div class="ptag">✦ Bientôt disponible · V2</div><h2 class="ptitle">Alertes <em>intelligentes</em></h2><p class="psub">Détection automatique de baisses de prix, biens republiés, ventes sous marché — basée sur de vraies transactions.</p></div>
     <div style="background:var(--ink);border-radius:var(--r);padding:2rem;text-align:center;color:#fff">
       <div style="font-size:2.5rem;margin-bottom:1rem">🔔</div>
@@ -1228,9 +1294,19 @@ path.leaflet-interactive:focus{outline:none;}
   </div></div>
 
   <!-- ══ PAGES PLACEHOLDER ══ -->
-  <div class="page" id="p-risques"><div class="inner"><div class="ph"><div class="ptag">✦ Source Géorisques</div><h2 class="ptitle">Risques <em>naturels</em></h2><p class="psub">Inondations, séismes, retraits-gonflements des argiles, mouvements de terrain — données officielles Géorisques.</p></div><div class="card"><p style="font-size:.83rem;color:var(--muted)">Entrez une adresse dans la barre de recherche pour voir les risques naturels spécifiques à ce bien.</p></div></div></div>
+  <div class="page" id="p-risques"><div class="inner">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 1rem 0">
+      <button class="back-btn" onclick="go('analyse')">← Retour aux cartes</button>
+      <button class="detail-close" onclick="go('analyse')" style="color:var(--muted);font-size:.9rem;padding:.3rem .5rem;border:1px solid var(--border);border-radius:var(--r)">✕ Fermer</button>
+    </div>
+    <div class="ph"><div class="ptag">✦ Source Géorisques</div><h2 class="ptitle">Risques <em>naturels</em></h2><p class="psub">Inondations, séismes, retraits-gonflements des argiles, mouvements de terrain — données officielles Géorisques.</p></div><div class="card"><p style="font-size:.83rem;color:var(--muted)">Entrez une adresse dans la barre de recherche pour voir les risques naturels spécifiques à ce bien.</p></div></div></div>
 
   <div class="page" id="p-bruit"><div class="inner">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 1rem 0">
+      <button class="back-btn" onclick="go('analyse')">← Retour aux cartes</button>
+      <button class="detail-close" onclick="go('analyse')" style="color:var(--muted);font-size:.9rem;padding:.3rem .5rem;border:1px solid var(--border);border-radius:var(--r)">✕ Fermer</button>
+    </div>
+    
     <div class="ph"><div class="ptag">✦ Source Bruit.fr</div><h2 class="ptitle">Bruit & <em>nuisances</em></h2><p class="psub">Cartes de bruit officielles — routes, voies ferrées, aéroports.</p></div>
     <div class="card">
       <div class="ctitle">🔇 Carte sonore officielle</div>
@@ -1240,6 +1316,11 @@ path.leaflet-interactive:focus{outline:none;}
   </div></div>
 
   <div class="page" id="p-urbanisme"><div class="inner">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 1rem 0">
+      <button class="back-btn" onclick="go('analyse')">← Retour aux cartes</button>
+      <button class="detail-close" onclick="go('analyse')" style="color:var(--muted);font-size:.9rem;padding:.3rem .5rem;border:1px solid var(--border);border-radius:var(--r)">✕ Fermer</button>
+    </div>
+    
     <div class="ph"><div class="ptag">✦ Source GPU Géoportail</div><h2 class="ptitle">Urbanisme & <em>PLU</em></h2><p class="psub">Zonage PLU, droits à construire — données officielles IGN.</p></div>
     <div id="urbanisme-panel-container">
       <div class="card"><p style="font-size:.83rem;color:var(--muted)">Analysez d'abord une adresse via la barre de recherche pour voir le zonage PLU.</p></div>
@@ -1247,6 +1328,11 @@ path.leaflet-interactive:focus{outline:none;}
   </div></div>
 
   <div class="page" id="p-ecoles"><div class="inner">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 1rem 0">
+      <button class="back-btn" onclick="go('analyse')">← Retour aux cartes</button>
+      <button class="detail-close" onclick="go('analyse')" style="color:var(--muted);font-size:.9rem;padding:.3rem .5rem;border:1px solid var(--border);border-radius:var(--r)">✕ Fermer</button>
+    </div>
+    
     <div class="ph"><div class="ptag">✦ Source Data Éducation</div><h2 class="ptitle">Écoles & <em>IPS</em></h2></div>
     <div id="ecoles-panel-container">
       <div class="card"><p style="font-size:.83rem;color:var(--muted)">Analysez d'abord une adresse via la barre de recherche pour voir les écoles à proximité.</p></div>
@@ -1254,15 +1340,30 @@ path.leaflet-interactive:focus{outline:none;}
   </div></div>
 
   <div class="page" id="p-mobilite"><div class="inner">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 1rem 0">
+      <button class="back-btn" onclick="go('analyse')">← Retour aux cartes</button>
+      <button class="detail-close" onclick="go('analyse')" style="color:var(--muted);font-size:.9rem;padding:.3rem .5rem;border:1px solid var(--border);border-radius:var(--r)">✕ Fermer</button>
+    </div>
+    
     <div class="ph"><div class="ptag">✦ Source Transport.data</div><h2 class="ptitle">Mobilité & <em>transports</em></h2></div>
     <div id="mobilite-panel-container">
       <div class="card"><p style="font-size:.83rem;color:var(--muted)">Analysez d'abord une adresse via la barre de recherche pour voir les transports à proximité.</p></div>
     </div>
   </div></div>
 
-  <div class="page" id="p-fibre"><div class="inner"><div class="ph"><div class="ptag">✦ Source ARCEP</div><h2 class="ptitle">Internet & <em>fibre</em></h2><p class="psub">Éligibilité fibre optique, débits mobiles 4G/5G — données ARCEP officielles.</p></div><div class="card"><p style="font-size:.83rem;color:var(--muted)">Entrez une adresse dans la barre de recherche pour vérifier l'éligibilité fibre.</p></div></div></div>
+  <div class="page" id="p-fibre"><div class="inner">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 1rem 0">
+      <button class="back-btn" onclick="go('analyse')">← Retour aux cartes</button>
+      <button class="detail-close" onclick="go('analyse')" style="color:var(--muted);font-size:.9rem;padding:.3rem .5rem;border:1px solid var(--border);border-radius:var(--r)">✕ Fermer</button>
+    </div>
+    <div class="ph"><div class="ptag">✦ Source ARCEP</div><h2 class="ptitle">Internet & <em>fibre</em></h2><p class="psub">Éligibilité fibre optique, débits mobiles 4G/5G — données ARCEP officielles.</p></div><div class="card"><p style="font-size:.83rem;color:var(--muted)">Entrez une adresse dans la barre de recherche pour vérifier l'éligibilité fibre.</p></div></div></div>
 
   <div class="page" id="p-services"><div class="inner">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 1rem 0">
+      <button class="back-btn" onclick="go('analyse')">← Retour aux cartes</button>
+      <button class="detail-close" onclick="go('analyse')" style="color:var(--muted);font-size:.9rem;padding:.3rem .5rem;border:1px solid var(--border);border-radius:var(--r)">✕ Fermer</button>
+    </div>
+    
     <div class="ph"><div class="ptag">✦ Source OpenStreetMap</div><h2 class="ptitle">Services & <em>santé</em></h2></div>
     <div id="services-panel-container">
       <div class="card"><p style="font-size:.83rem;color:var(--muted)">Analysez d'abord une adresse via la barre de recherche pour voir les services à proximité.</p></div>
@@ -1273,7 +1374,10 @@ path.leaflet-interactive:focus{outline:none;}
 
   <!-- ══ JURIDIQUE ══ -->
   <div class="page" id="p-juridique"><div class="inner">
-    <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 1rem 0">
+      <button class="back-btn" onclick="go('analyse')">← Retour aux cartes</button>
+      <button class="detail-close" onclick="go('analyse')" style="color:var(--muted);font-size:.9rem;padding:.3rem .5rem;border:1px solid var(--border);border-radius:var(--r)">✕ Fermer</button>
+    </div>
     <div class="ph"><div class="ptag">✦ Guide</div><h2 class="ptitle">Guide <em>juridique</em></h2></div>
     <div class="card"><div class="ctitle">❓ Votre question juridique</div>
       <input class="inp" id="jurQ" placeholder="Ex: Qu'est-ce que le délai SRU ? Comment se passe le compromis ?" onkeydown="if(event.key==='Enter')runIA('juridique')" />
@@ -1293,7 +1397,10 @@ path.leaflet-interactive:focus{outline:none;}
 
   <!-- ══ PROS ══ -->
   <div class="page" id="p-pros"><div class="inner">
-    <button class="back-btn" onclick="go('analyse')" style="margin:0 0 1rem 0">← Retour aux cartes</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 1rem 0">
+      <button class="back-btn" onclick="go('analyse')">← Retour aux cartes</button>
+      <button class="detail-close" onclick="go('analyse')" style="color:var(--muted);font-size:.9rem;padding:.3rem .5rem;border:1px solid var(--border);border-radius:var(--r)">✕ Fermer</button>
+    </div>
     <div class="ph"><div class="ptag">✦ Services</div><h2 class="ptitle">Annuaire <em>professionnels</em></h2><p class="psub">Professionnels partenaires vérifiés. Bientôt étendu à toute la France.</p></div>
     <div class="ctitle" style="margin-bottom:.8rem">⚖️ Notaires · Boulogne-Billancourt</div>
     <div class="pro-grid">
@@ -1353,7 +1460,7 @@ const PAGES = {
   urbanisme:'Urbanisme, PLU & Énergie', ecoles:'Écoles & IPS', mobilite:'Mobilité & transports',
   fibre:'Internet & fibre', services:'Services & santé', soleil:'Météo & ensoleillement',
   emprunt:'Capacité d\'emprunt', cout:'Vrai coût du bien', aides:'Aides de l\'État',
-  renov:'Rénovation & MaPrimeRénov\'', offre:'Coaching de l\'offre',
+  renov:'Rénovation & MaPrimeRénov\'', mensualites:'Simulation mensualités', offre:'Coaching de l\'offre',
   profil:'Compatibilité de vie',
   conseil:'Conseiller IA 24h/24', annonces:'Annonces', alertes:'Alertes intelligentes',
   pros:'Annuaire pros', juridique:'Guide juridique'
@@ -1407,7 +1514,8 @@ function go(id){
   }
   if(id === 'recherche') { if(typeof showRecherchePanel==='function') showRecherchePanel(); return; }
   _goPage(id);
-  if(id === 'emprunt')  setTimeout(initEmpruntPage, 100);
+  if(id === 'emprunt')     setTimeout(initEmpruntPage, 100);
+  if(id === 'mensualites') setTimeout(initMensualitesPage, 100);
   if(id === 'cout') { const tm=window._tauxMarche?.taux; if(tm){ const t20=(tm[20]||3.4).toFixed(2); ['cTaux','lTaux'].forEach(fid=>{const el=document.getElementById(fid);if(el&&!el._userModified)el.value=t20;}); } }
   // Pré-remplissage automatique si une adresse est déjà analysée
   if(currentAddress) {
@@ -1755,6 +1863,7 @@ function renderCards(props, coords){
         {id:'cout',    icon:'📊', label:'Vrai coût du bien',    value:'Simuler →', sub:'Coût total acquisition',  source:'Calcul', action:"go('cout')"},
         {id:'aides',   icon:'🎁', label:'Aides PTZ & État',     value:'Simuler →', sub:'PTZ, Action Logement...', source:'État',   action:"go('aides')"},
         {id:'renov',   icon:'🔨', label:'Rénovation & aides',   value:'Simuler →', sub:"MaPrimeRénov', CEE...",  source:'ANAH',   action:"go('renov')"},
+        {id:'mensualites', icon:'🧮', label:'Simulation mensualités', value:'Calculer →', sub:'Mensualité, coût crédit', source:'Calcul', action:"go('mensualites')"},
       ]
     },
     {
@@ -5622,6 +5731,81 @@ function calcCout(){
   }
 }
 
+function initMensualitesPage(){
+  const tm = window._tauxMarche?.taux || {};
+  const src = window._tauxMarche?.source || '';
+  const date = window._tauxMarche?.date || '';
+  const sel = document.getElementById('mDuree');
+  if(sel){
+    sel.innerHTML = [10,15,20,25].map(d=>
+      '<option value="'+d+'"'+(d===20?' selected':'')+'data-taux="'+(tm[d]||'')+'">'
+      +d+' ans'+(tm[d]?' — '+(+tm[d]).toFixed(2)+'%':'')+'</option>'
+    ).join('');
+    const opt = sel.options[sel.selectedIndex];
+    const t = opt?.dataset?.taux;
+    const el = document.getElementById('mTaux');
+    if(t && el && !el._userModified) el.value = t;
+  }
+  const srcEl = document.getElementById('mTauxSrc');
+  if(srcEl && src) srcEl.textContent = 'Taux marché : '+src+(date?' · '+date:'');
+}
+
+function calcMensualites(){
+  const montant = parseFloat(document.getElementById('mMontant').value)||0;
+  if(!montant){toast('Veuillez saisir le montant emprunté.','err');return;}
+  const duree  = parseFloat(document.getElementById('mDuree').value)||20;
+  const taux   = (parseFloat(document.getElementById('mTaux').value)||3.42)/100;
+  const assur  = (parseFloat(document.getElementById('mAssur').value)||0.25)/100;
+  const apport = parseFloat(document.getElementById('mApport').value)||0;
+  const n = duree * 12;
+  const t = taux / 12;
+  const factor = t / (1 - Math.pow(1+t, -n));
+  const mensAssur  = Math.round(montant * assur / 12);
+  const mensCredit = Math.round(montant * factor);
+  const mensTotal  = mensCredit + mensAssur;
+  const coutCredit = mensCredit * n - montant;
+  const coutAssur  = mensAssur * n;
+  const coutTotal  = montant + coutCredit + coutAssur;
+  // Intérêts mois 1
+  const interetM1  = Math.round(montant * t);
+  const capitalM1  = mensCredit - interetM1;
+  // Proportions pour la barre visuelle
+  const pCap  = Math.round(montant / coutTotal * 100);
+  const pInt  = Math.round(coutCredit / coutTotal * 100);
+  const pAss  = 100 - pCap - pInt;
+
+  document.getElementById('resMensualites').innerHTML = `
+    <div class="result-dark">
+      <div style="font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem">💳 Votre mensualité totale</div>
+      <div class="result-n">${fmt(mensTotal)} <span style="font-size:1rem;font-weight:400">€/mois</span></div>
+      <div style="display:flex;gap:.5rem;margin:.9rem 0 .3rem;font-size:.68rem;color:rgba(255,255,255,.55)">
+        <span style="flex:${pCap};background:#2a9d8f;height:8px;border-radius:4px 0 0 4px"></span>
+        <span style="flex:${pInt};background:#e63946;height:8px"></span>
+        <span style="flex:${Math.max(pAss,1)};background:#888;height:8px;border-radius:0 4px 4px 0"></span>
+      </div>
+      <div style="display:flex;gap:1rem;font-size:.67rem;margin-bottom:1rem">
+        <span><span style="color:#2a9d8f">■</span> Capital ${pCap}%</span>
+        <span><span style="color:#e63946">■</span> Intérêts ${pInt}%</span>
+        <span><span style="color:#888">■</span> Assurance ${pAss}%</span>
+      </div>
+      ${[
+        ['Capital + intérêts /mois', fmt(mensCredit)+' €'],
+        ['dont intérêts (1ʳᵉ mensualité)', fmt(interetM1)+' €'],
+        ['dont capital (1ʳᵉ mensualité)', fmt(capitalM1)+' €'],
+        ['Assurance /mois', fmt(mensAssur)+' €'],
+        ['─── Coût total du crédit', ''],
+        ['Capital emprunté', fmt(montant)+' €'],
+        ['Coût des intérêts', fmt(Math.round(coutCredit))+' €'],
+        ['Coût assurance', fmt(coutAssur)+' €'],
+        ['Coût total (capital + intérêts + assurance)', fmt(Math.round(coutTotal))+' €'],
+        ['Taux Annuel Effectif Global (TAEG approx.)', ((taux + assur)*100).toFixed(2)+' %'],
+      ].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
+      ${apport>0?`<div style="margin:.75rem 0 .3rem;font-size:.62rem;color:rgba(255,255,255,.5);letter-spacing:.1em;text-transform:uppercase">🏠 Avec votre apport</div>
+      ${[['Prix du bien estimé',fmt(montant+apport)+' €'],['dont apport',fmt(apport)+' €'],['dont emprunt',fmt(montant)+' €']].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}`:''}
+    </div>`;
+  setCard('mensualites', fmt(mensTotal)+' €/mois', 'Coût crédit : '+fmt(Math.round(coutCredit))+' €', '');
+}
+
 function toggleAmort(){
   const wrap = document.getElementById('amortTableWrap');
   const btn  = document.getElementById('amortToggleBtn');
@@ -5927,7 +6111,11 @@ function calcEmprunt(){
   const mensPret=Math.round(empruntMax*factorAmort);
   const prixMax=empruntMax+apport;
   function stressEmpr(ts){ const fa=ts/12/(1-Math.pow(1+ts/12,-n)); return Math.round(mensMax/(fa+assur/12)); }
+  const stress_m2=taux>=0.01?stressEmpr(taux-0.01):null;
+  const stress_m1=taux>=0.005?stressEmpr(taux-0.005):null;
   const stress1=stressEmpr(taux+0.005), stress2=stressEmpr(taux+0.01);
+  const pct = v => (v*100).toFixed(2)+'%';
+  const diffStr = (v, ref) => { const d=v-ref; return d>0 ? ' <span style="color:#27ae60">↑ +'+fmt(d)+'</span>' : ' <span style="color:#e63946">↓ −'+fmt(Math.abs(d))+'</span>'; };
   const cible20=Math.round(prixMax*0.20);
   const manque20=Math.max(0,cible20-apport);
   const epargne2a=manque20>0?Math.round(manque20/24):0, epargne3a=manque20>0?Math.round(manque20/36):0;
@@ -5935,10 +6123,17 @@ function calcEmprunt(){
     <div class="result-dark">
       <div style="font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem">🏦 Votre capacité</div>
       <div class="result-n">${fmt(Math.round(prixMax/1000)*1000)}</div>
-      <div style="font-size:.7rem;color:rgba(255,255,255,.7);text-align:center;margin-bottom:1rem">Budget d'achat total estimé</div>
-      ${[['Mensualité max (35%)',fmt(Math.round(mensMax))+'/mois'],['dont intérêts',fmt(mensPret)+'/mois'],['dont assurance',fmt(mensAssur)+'/mois'],['Capacité d\'emprunt',fmt(Math.round(empruntMax))],['Apport',fmt(apport)]].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
-      <div style="margin:.8rem 0 .4rem;font-size:.62rem;color:rgba(255,255,255,.5);letter-spacing:.1em;text-transform:uppercase">📉 Stress test taux</div>
-      ${[['Taux actuel ('+((taux)*100).toFixed(2)+'%)',fmt(Math.round(empruntMax))],['Taux +0,5% → '+(((taux+0.005)*100).toFixed(2))+'%',fmt(stress1)],['Taux +1% → '+(((taux+0.01)*100).toFixed(2))+'%',fmt(stress2)]].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
+      <div style="font-size:.7rem;color:rgba(255,255,255,.7);text-align:center;margin-bottom:1rem">Budget d'achat total estimé (emprunt + apport)</div>
+      ${[['Mensualité max (35%)',fmt(Math.round(mensMax))+'/mois'],['dont capital + intérêts',fmt(mensPret)+' €/mois'],['dont assurance emprunteur',fmt(mensAssur)+' €/mois'],['Capacité d\'emprunt (hors apport)',fmt(Math.round(empruntMax))+' €'],['Apport personnel',fmt(apport)+' €']].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
+      <div style="margin:.8rem 0 .2rem;font-size:.62rem;color:rgba(255,255,255,.5);letter-spacing:.1em;text-transform:uppercase">📊 Stress test — capacité d'emprunt selon le taux</div>
+      <div style="font-size:.67rem;color:rgba(255,255,255,.38);margin-bottom:.45rem">À mensualité identique, combien pouvez-vous emprunter si les taux bougent ?</div>
+      ${[
+        stress_m2!=null ? ['Taux −1% → '+pct(taux-0.01)+' (baisse)', fmt(stress_m2)+' €'+diffStr(stress_m2,Math.round(empruntMax))] : null,
+        stress_m1!=null ? ['Taux −0,5% → '+pct(taux-0.005)+' (baisse)', fmt(stress_m1)+' €'+diffStr(stress_m1,Math.round(empruntMax))] : null,
+        ['✦ Taux actuel '+pct(taux)+' (référence)', fmt(Math.round(empruntMax))+' €'],
+        ['Taux +0,5% → '+pct(taux+0.005)+' (hausse)', fmt(stress1)+' €'+diffStr(stress1,Math.round(empruntMax))],
+        ['Taux +1% → '+pct(taux+0.01)+' (hausse)', fmt(stress2)+' €'+diffStr(stress2,Math.round(empruntMax))],
+      ].filter(Boolean).map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
       ${manque20>0?`<div style="margin:.8rem 0 .4rem;font-size:.62rem;color:rgba(255,255,255,.5);letter-spacing:.1em;text-transform:uppercase">🐖 Effort d'épargne pour atteindre 20% d'apport</div>${[['Manque (20% de '+fmt(Math.round(prixMax/1000)*1000)+')',fmt(manque20)],['Épargne sur 2 ans',fmt(epargne2a)+'/mois'],['Épargne sur 3 ans',fmt(epargne3a)+'/mois']].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}`:''}
       <div class="result-insight">Budget de <strong>${fmt(Math.round(prixMax/1000)*1000)}</strong> — consultez la page <strong>Prix des dernières transactions</strong> pour voir ce que vous pouvez acheter dans votre ville cible.</div>
     </div>`;
