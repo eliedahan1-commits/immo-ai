@@ -1682,6 +1682,9 @@ function renderCards(props, coords){
         {id:'insee',     icon:'📊', label:'Profil du quartier',     value:'<span class="spin"></span>', sub:'Population & densité',      source:'INSEE'},
         {id:'altitude',  icon:'🏔️', label:'Altitude',               value:'<span class="spin"></span>', sub:'Précision 1m · IGN',       source:'IGN RGE Alti'},
         {id:'demographie',icon:'📈',label:'Évolution démographique',value:'<span class="spin"></span>', sub:'Historique population',     source:'Wikidata/INSEE'},
+        {id:'risques',   icon:'⚠️', label:'Risques naturels',       value:'<span class="spin"></span>', sub:'Géorisques officiel',       source:'Géorisques'},
+        {id:'bruit',     icon:'🔇', label:'Bruit & nuisances',      value:'<span class="spin"></span>', sub:'Routes, voies ferrées, aéroports', source:'OSM'},
+        {id:'urbanisme', icon:'📋', label:'Urbanisme, PLU & Énergie', value:'<span class="spin"></span>', sub:'Zonage officiel IGN',       source:'IGN GPU'},
       ]
     },
     {
@@ -1690,10 +1693,7 @@ function renderCards(props, coords){
         {id:'dvf',           icon:'💰', label:'Prix des dernières transactions', value:'<span class="spin"></span>', sub:'Transactions réelles',      source:'DVF DGFiP'},
         {id:'loyers',        icon:'🏠', label:'Loyers estimés',                  value:'<span class="spin"></span>', sub:'Estimation DVF × rendement', source:'DVF + calcul'},
         {id:'prixCommunes',  icon:'🗺️', label:'Prix au m² par commune',          value:'<span class="spin"></span>', sub:'Carte choroplèthe commune',  source:'DVF + geo.api.gouv.fr'},
-        {id:'risques',   icon:'⚠️', label:'Risques naturels',       value:'<span class="spin"></span>', sub:'Géorisques officiel',       source:'Géorisques'},
         {id:'dpe',       icon:'⚡', label:'Énergie & DPE',          value:'Simuler →',                  sub:'Cliquez pour simuler',      source:'ADEME'},
-        {id:'bruit',     icon:'🔇', label:'Bruit & nuisances',      value:'<span class="spin"></span>', sub:'Routes, voies ferrées, aéroports', source:'OSM'},
-        {id:'urbanisme', icon:'📋', label:'Urbanisme, PLU & Énergie',        value:'<span class="spin"></span>', sub:'Zonage officiel IGN',       source:'IGN GPU'},
       ]
     },
     {
