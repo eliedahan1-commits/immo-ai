@@ -1092,7 +1092,10 @@ path.leaflet-interactive:focus{outline:none;}
 
   <!-- ══ DPE ══ -->
   <div class="page" id="p-energie"><div class="inner">
-    <button class="back-btn" onclick="_goPage('analyse');document.getElementById('cardsGrid').style.display='grid'" style="margin:0 0 1rem 0">← Retour aux cartes</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 1rem 0">
+      <button class="back-btn" onclick="go('analyse')">← Retour aux cartes</button>
+      <button class="detail-close" onclick="go('analyse')" style="color:var(--muted);font-size:.9rem;padding:.3rem .5rem;border:1px solid var(--border);border-radius:var(--r)">✕ Fermer</button>
+    </div>
     <div class="ph"><div class="ptag">✦ Énergie · Source ADEME</div><h2 class="ptitle">Simulateur <em>DPE</em></h2></div>
     <div class="g2" style="align-items:start">
       <div class="card"><div class="ctitle">⚡ Calculer la facture énergétique</div>
