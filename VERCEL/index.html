@@ -5595,7 +5595,9 @@ function renderTauxHistChart(data) {
   // Ajouter point 2026 live depuis _tauxMarche si absent
   const currentYear = new Date().getFullYear();
   const tm0 = window._tauxMarche?.taux || {};
-  if (tm0[20] != null && !data.find(d => d.annee === currentYear)) {
+  if (tm0[20] != null) {
+    // Toujours remplacer/ajouter le point année courante avec le taux live pretto
+    data = data.filter(d => d.annee !== currentYear);
     data = [...data, { annee: currentYear, taux: tm0[20], source: 'Live' }];
   }
   const labels = data.map(d => d.annee);
