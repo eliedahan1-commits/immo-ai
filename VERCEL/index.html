@@ -3123,9 +3123,10 @@ function showDetail(cardId){
 
 function showPanel(title, html){
   const container = document.getElementById('detailContainer');
-  // Bouton retour vers les cartes
-  const backBtn = `<button class="back-btn" onclick="closePanel()">← Retour aux cartes</button>`;
-  container.innerHTML = backBtn + `
+  container.innerHTML = `
+    <div style="max-width:860px;margin:0 auto .75rem;width:100%">
+      <button class="back-btn" onclick="closePanel()">← Retour aux cartes</button>
+    </div>
     <div class="detail-panel">
       <div class="detail-head">
         <div class="detail-title">${title}</div>
@@ -5738,7 +5739,7 @@ function initMensualitesPage(){
   const sel = document.getElementById('mDuree');
   if(sel){
     sel.innerHTML = [10,15,20,25].map(d=>
-      '<option value="'+d+'"'+(d===20?' selected':'')+'data-taux="'+(tm[d]||'')+'">'
+      '<option value="'+d+'" '+(d===20?'selected ':'')+'data-taux="'+(tm[d]||'')+'">'
       +d+' ans'+(tm[d]?' — '+(+tm[d]).toFixed(2)+'%':'')+'</option>'
     ).join('');
     const opt = sel.options[sel.selectedIndex];
