@@ -614,6 +614,93 @@ path.leaflet-interactive:focus{outline:none;}
   .cards-grid{grid-template-columns:1fr 1fr;}
   .chat-wrap{grid-template-columns:1fr;}
 }
+
+/* ══ RESPONSIVE MOBILE — Phase 1 ══════════════════════════════════════════ */
+
+@media(max-width:768px){
+  /* Layout général */
+  .inner        { padding:1.5rem 1rem; }
+  .inner-wide   { padding:1.5rem 1rem; }
+
+  /* Typographie */
+  .ptitle       { font-size:1.5rem; }
+  .psub         { font-size:.78rem; }
+  .result-n     { font-size:1.8rem; }
+
+  /* Grilles → 1 colonne */
+  .g2           { grid-template-columns:1fr; }
+  .cards-grid   { grid-template-columns:1fr 1fr; padding:0 1rem 1.5rem; gap:.75rem; }
+
+  /* Bandeau adresse */
+  .results-header        { padding:1rem 1rem 0; }
+  .results-addr          { gap:.4rem; flex-wrap:wrap; }
+  .results-addr-badge    { display:none; }
+  .results-addr-text .results-addr-sub { font-size:.62rem; }
+  #btnAnalyseComplete    { display:none; }
+
+  /* Cards info-card */
+  .info-card             { padding:.9rem; }
+  .ic-value              { font-size:1.1rem; }
+
+  /* Formulaires */
+  .inp, .btn             { font-size:.85rem; }
+  .lbl                   { font-size:.72rem; }
+
+  /* Résultats */
+  .result-dark           { padding:1.1rem 1rem; }
+  .result-row            { font-size:.72rem; gap:.5rem; }
+
+  /* Tableaux → scroll horizontal */
+  #amortTableWrap,
+  .table-scroll          { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  #amortTable            { min-width:520px; }
+
+  /* Simulation négociation : 1 col */
+  #negoGrid              { grid-template-columns:1fr !important; }
+
+  /* Détail panels */
+  .detail-panel          { margin:0 0 1.5rem; }
+  .detail-head           { padding:.9rem 1rem; }
+  .detail-body           { padding:1rem; }
+
+  /* Graphiques */
+  #cashflowSection > div { padding:.75rem .5rem .75rem; }
+
+  /* Back btn row */
+  .back-btn              { font-size:.78rem; padding:.4rem .75rem; }
+  .detail-close          { font-size:.78rem; }
+
+  /* Section amortissement titre */
+  #amortSection > div:first-child { flex-wrap:wrap; gap:.4rem; }
+
+  /* Cards phare */
+  .ph                    { margin-bottom:1.2rem; }
+  .ptag                  { font-size:.55rem; }
+}
+
+@media(max-width:480px){
+  /* 1 seule colonne pour les cartes */
+  .cards-grid            { grid-template-columns:1fr; padding:0 .75rem 1.25rem; }
+
+  /* Bandeau adresse ultra-compact */
+  .results-addr-icon     { width:30px; height:30px; font-size:.75rem; }
+  .results-addr-main     { font-size:.82rem; }
+  .results-addr-sub      { font-size:.6rem; }
+
+  /* Titres encore plus compacts */
+  .ptitle                { font-size:1.25rem; }
+  .inner                 { padding:1.1rem .75rem; }
+
+  /* Négociation : toujours 1 col */
+  #negoGrid              { grid-template-columns:1fr !important; }
+
+  /* Graphique cashflow plus petit */
+  #cashflowChart         { height:160px !important; }
+
+  /* Stress test delta : wrap */
+  .result-row span:last-child { text-align:right; flex-shrink:0; }
+}
+/* ══ FIN RESPONSIVE ═══════════════════════════════════════════════════════ */
 </style>
 </head>
 <body>
