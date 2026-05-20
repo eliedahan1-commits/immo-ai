@@ -606,27 +606,7 @@ path.leaflet-interactive:focus{outline:none;}
   text-transform:uppercase;letter-spacing:.08em;
 }
 
-/* Responsive */
-@media(max-width:768px){
-  aside{transform:translateX(-100%);transition:transform .3s;z-index:500;}
-  aside.open{transform:translateX(0);box-shadow:4px 0 32px rgba(0,0,0,.5);}
-  .main-wrap{margin-left:0;}
-  .cards-grid{grid-template-columns:1fr 1fr;}
-  .chat-wrap{grid-template-columns:1fr;}
-  /* Overlay */
-  #sideOverlay{display:block;}
-  /* Topbar : logo + hamburger */
-  .topbar{padding:.55rem 1rem;}
-  .topbar-logo-mobile{display:flex;}
-  .topbar-right .tb-btn{display:none;}
-  /* Bottom tab bar */
-  #bottomTabBar{display:flex;}
-  .main-wrap{padding-bottom:64px;}
-  /* Hamburger */
-  #hamburgerBtn{display:flex;}
-}
-
-/* ── Hamburger button ── */
+/* ── Hamburger button (masqué par défaut, visible sur mobile) ── */
 #hamburgerBtn{
   display:none;
   flex-direction:column;justify-content:center;align-items:center;
@@ -645,7 +625,7 @@ path.leaflet-interactive:focus{outline:none;}
 #hamburgerBtn.open span:nth-child(2){opacity:0;}
 #hamburgerBtn.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
 
-/* ── Logo mobile dans topbar ── */
+/* ── Logo mobile dans topbar (masqué par défaut) ── */
 .topbar-logo-mobile{
   display:none;
   font-family:'Cormorant Garamond',serif;font-size:1.1rem;
@@ -653,14 +633,14 @@ path.leaflet-interactive:focus{outline:none;}
 }
 .topbar-logo-mobile em{color:var(--gold2);font-style:italic;}
 
-/* ── Sidebar overlay ── */
+/* ── Sidebar overlay (masqué par défaut) ── */
 #sideOverlay{
   display:none;position:fixed;inset:0;
   background:rgba(0,0,0,.55);z-index:499;
   backdrop-filter:blur(2px);
 }
 
-/* ── Bottom tab bar ── */
+/* ── Bottom tab bar (masqué par défaut) ── */
 #bottomTabBar{
   display:none;
   position:fixed;bottom:0;left:0;right:0;
@@ -680,6 +660,21 @@ path.leaflet-interactive:focus{outline:none;}
 .btab:active{background:rgba(255,255,255,.05);}
 .btab.active{color:var(--gold2);}
 .btab-icon{font-size:1.2rem;line-height:1;}
+
+/* ── Responsive ≤1024px : sidebar en drawer, hamburger visible ── */
+@media(max-width:1024px){
+  aside{transform:translateX(-100%);transition:transform .3s;z-index:500;}
+  aside.open{transform:translateX(0);box-shadow:4px 0 32px rgba(0,0,0,.5);}
+  .main-wrap{margin-left:0;padding-bottom:64px;}
+  .cards-grid{grid-template-columns:1fr 1fr;}
+  .chat-wrap{grid-template-columns:1fr;}
+  .topbar{padding:.55rem 1rem;}
+  .topbar-right .tb-btn{display:none;}
+  #hamburgerBtn{display:flex;}
+  .topbar-logo-mobile{display:flex;}
+  #sideOverlay{display:none;} /* géré par JS */
+  #bottomTabBar{display:flex;}
+}
 
 
 /* ══ RESPONSIVE MOBILE — Phase 1 ══════════════════════════════════════════ */
@@ -814,7 +809,7 @@ path.leaflet-interactive:focus{outline:none;}
     <span class="ai-lbl" id="aiLbl">Configurer l'IA</span>
   </div>
 
-  <div class="nav-section">Analyser un bien</div>
+  <div class="nav-section">Coûts du bien</div>
   <div class="nav-item" onclick="go('analyse')"><span class="nav-icon">🏠</span>Analyse complète</div>
   <div class="nav-sub">
     <div class="nav-item" onclick="go('prix')"><span class="nav-icon">💰</span>Prix des dernières transactions</div>
@@ -863,7 +858,7 @@ path.leaflet-interactive:focus{outline:none;}
     <span class="btab-icon">🏠</span><span>Accueil</span>
   </button>
   <button class="btab" id="btab-analyse" onclick="go('analyse');setActiveTab('analyse')">
-    <span class="btab-icon">🔍</span><span>Analyse</span>
+    <span class="btab-icon">🔍</span><span>Bien</span>
   </button>
   <button class="btab" id="btab-quartier" onclick="go('ecoles');setActiveTab('quartier')">
     <span class="btab-icon">📍</span><span>Quartier</span>
@@ -1033,34 +1028,7 @@ path.leaflet-interactive:focus{outline:none;}
         <div id="resCout"><div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez le bien pour voir le coût total réel.</p></div></div>
       </div>
     </div>
-    <!-- Tableau d'amortissement -->
-    <div id="amortSection" style="display:none;margin-top:1.5rem">
-      <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.75rem">
-        <div style="font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">📊 Tableau d'amortissement</div>
-        <button onclick="toggleAmort()" id="amortToggleBtn" style="font-size:.72rem;padding:.25rem .6rem;border:1px solid var(--border);border-radius:var(--r);background:var(--white);cursor:pointer;color:var(--muted)">Afficher</button>
-      </div>
-      <div id="amortTableWrap" style="display:none;overflow-x:auto;border-radius:var(--r);border:1px solid var(--border)">
-        <table id="amortTable" style="width:100%;border-collapse:collapse;font-size:.72rem">
-          <thead>
-            <tr style="background:var(--warm);color:var(--muted);text-transform:uppercase;font-size:.62rem;letter-spacing:.07em">
-              <th style="padding:.5rem .75rem;text-align:left;white-space:nowrap">Année</th>
-              <th style="padding:.5rem .75rem;text-align:right;white-space:nowrap">Mensualité</th>
-              <th style="padding:.5rem .75rem;text-align:right;white-space:nowrap">Capital remb.</th>
-              <th style="padding:.5rem .75rem;text-align:right;white-space:nowrap">Intérêts</th>
-              <th style="padding:.5rem .75rem;text-align:right;white-space:nowrap">Assurance</th>
-              <th style="padding:.5rem .75rem;text-align:right;white-space:nowrap">Capital restant</th>
-            </tr>
-          </thead>
-          <tbody id="amortBody"></tbody>
-          <tfoot id="amortFoot"></tfoot>
-        </table>
-      </div>
-    </div>
-    <!-- Simulation négociation -->
-    <div id="negoSection" style="display:none;margin-top:1.5rem">
-      <div style="font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem">🤝 Simulation négociation</div>
-      <div id="negoGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem"></div>
-    </div>
+
     <!-- Onglet Investissement locatif -->
     <div id="coutLocation" style="display:none">
       <div class="g2" style="align-items:start">
@@ -1230,6 +1198,29 @@ path.leaflet-interactive:focus{outline:none;}
         <div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez le montant et la durée pour calculer votre mensualité.</p></div>
       </div>
     </div>
+    <!-- Tableau d'amortissement -->
+    <div id="mAmortSection" style="display:none;margin-top:1.5rem">
+      <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.75rem">
+        <div style="font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">📊 Tableau d'amortissement</div>
+        <button onclick="toggleMAmort()" id="mAmortToggleBtn" style="font-size:.72rem;padding:.25rem .6rem;border:1px solid var(--border);border-radius:var(--r);background:var(--white);cursor:pointer;color:var(--muted)">Afficher</button>
+      </div>
+      <div id="mAmortTableWrap" style="display:none;overflow-x:auto;border-radius:var(--r);border:1px solid var(--border)">
+        <table id="mAmortTable" style="width:100%;border-collapse:collapse;font-size:.72rem">
+          <thead>
+            <tr style="background:var(--warm);color:var(--muted);text-transform:uppercase;font-size:.62rem;letter-spacing:.07em">
+              <th style="padding:.5rem .75rem;text-align:left;white-space:nowrap">Année</th>
+              <th style="padding:.5rem .75rem;text-align:right;white-space:nowrap">Mensualité</th>
+              <th style="padding:.5rem .75rem;text-align:right;white-space:nowrap">Capital remb.</th>
+              <th style="padding:.5rem .75rem;text-align:right;white-space:nowrap">Intérêts</th>
+              <th style="padding:.5rem .75rem;text-align:right;white-space:nowrap">Assurance</th>
+              <th style="padding:.5rem .75rem;text-align:right;white-space:nowrap">Capital restant</th>
+            </tr>
+          </thead>
+          <tbody id="mAmortBody"></tbody>
+          <tfoot id="mAmortFoot"></tfoot>
+        </table>
+      </div>
+    </div>
   </div></div>
 
   <!-- ══ COACHING OFFRE ══ -->
@@ -1259,6 +1250,34 @@ path.leaflet-interactive:focus{outline:none;}
         ⚠️ Conseil indicatif basé sur les données saisies. À croiser impérativement avec les prix de marché réels avant toute offre.
       </div>
     </div>
+  </div>
+  <!-- Simulation négociation -->
+  <div style="margin-top:1.5rem">
+    <div style="font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem">🤝 Simulation impact négociation</div>
+    <div class="card" style="margin-bottom:1rem">
+      <div class="ctitle">Paramètres du financement</div>
+      <div class="g2">
+        <div>
+          <label class="lbl">Prix affiché (€) <span style="font-weight:400;color:var(--muted);font-size:.8em">— reprend le champ ci-dessus</span></label>
+          <input class="inp" id="negoOffrePrix" type="number" placeholder="350000" />
+        </div>
+        <div>
+          <label class="lbl">Apport personnel (€)</label>
+          <input class="inp" id="negoOffreApport" type="number" placeholder="50000" />
+        </div>
+        <div>
+          <label class="lbl">Durée prêt (ans)</label>
+          <input class="inp" id="negoOffreDuree" type="number" value="20" />
+        </div>
+        <div>
+          <label class="lbl">Taux (%)</label>
+          <input class="inp" id="negoOffreTaux" type="number" value="3.42" step="0.01" />
+        </div>
+      </div>
+      <button class="btn btn-dark btn-full" onclick="calcNegoOffre()" style="margin-top:.75rem">✦ Simuler les scénarios</button>
+    </div>
+    <div id="negoOffreGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem"></div>
+  </div>
   </div></div>
 
   <!-- ══ PROFIL DE VIE ══ -->
@@ -2034,7 +2053,7 @@ function renderCards(props, coords){
       ]
     },
     {
-      title: '🏠 Analyser un bien',
+      title: '🏠 Coûts du bien',
       cards: [
         {id:'dvf',           icon:'💰', label:'Prix des dernières transactions', value:'<span class="spin"></span>', sub:'Transactions réelles',      source:'DVF DGFiP'},
         {id:'loyers',        icon:'🏠', label:'Loyers estimés',                  value:'<span class="spin"></span>', sub:'Estimation DVF × rendement', source:'DVF + calcul'},
@@ -5880,7 +5899,6 @@ function calcCout(){
       + '<td style="padding:.5rem .75rem;text-align:right;color:rgba(255,255,255,.6)">' + fmt(totalAssur) + '</td>'
       + '<td style="padding:.5rem .75rem;text-align:right">0 €</td>'
       + '</tr>';
-    document.getElementById('amortSection').style.display = '';
   }
 
   // ── Simulation négociation ──
@@ -5913,8 +5931,6 @@ function calcCout(){
         </div>
       </div>`;
     });
-    document.getElementById('negoGrid').innerHTML = cards.join('');
-    document.getElementById('negoSection').style.display = '';
   }
 }
 
@@ -5991,15 +6007,47 @@ function calcMensualites(){
       ${[['Prix du bien estimé',fmt(montant+apport)+' €'],['dont apport',fmt(apport)+' €'],['dont emprunt',fmt(montant)+' €']].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}`:''}
     </div>`;
   setCard('mensualites', fmt(mensTotal)+' €/mois', 'Coût crédit : '+fmt(Math.round(coutCredit))+' €', '');
+
+  // ── Tableau d'amortissement ──
+  const tbody = document.getElementById('mAmortBody');
+  const tfoot = document.getElementById('mAmortFoot');
+  if(tbody) {
+    let restant = montant, rows = [], totCap=0, totInt=0, totAss=0;
+    for(let yr=1; yr<=duree; yr++){
+      let capAn=0, intAn=0;
+      for(let m=0; m<12; m++){
+        const intM = restant * t;
+        const capM = mensCredit - intM;
+        intAn += intM; capAn += capM; restant -= capM;
+      }
+      capAn=Math.round(capAn); intAn=Math.round(intAn);
+      const assAn=mensAssur*12;
+      totCap+=capAn; totInt+=intAn; totAss+=assAn;
+      rows.push('<tr style="border-bottom:1px solid var(--border)">'
+        +'<td style="padding:.4rem .75rem">Année '+yr+'</td>'
+        +'<td style="padding:.4rem .75rem;text-align:right">'+fmt(mensCredit+mensAssur)+' €</td>'
+        +'<td style="padding:.4rem .75rem;text-align:right;color:#2a9d8f">'+fmt(capAn)+' €</td>'
+        +'<td style="padding:.4rem .75rem;text-align:right;color:#e63946">'+fmt(intAn)+' €</td>'
+        +'<td style="padding:.4rem .75rem;text-align:right;color:var(--muted)">'+fmt(assAn)+' €</td>'
+        +'<td style="padding:.4rem .75rem;text-align:right">'+fmt(Math.max(0,Math.round(restant)))+' €</td>'
+        +'</tr>');
+    }
+    tbody.innerHTML = rows.join('');
+    tfoot.innerHTML = '<tr style="background:var(--warm);font-weight:600">'
+      +'<td style="padding:.5rem .75rem">Total</td>'
+      +'<td style="padding:.5rem .75rem;text-align:right">—</td>'
+      +'<td style="padding:.5rem .75rem;text-align:right;color:#2a9d8f">'+fmt(totCap)+' €</td>'
+      +'<td style="padding:.5rem .75rem;text-align:right;color:#e63946">'+fmt(totInt)+' €</td>'
+      +'<td style="padding:.5rem .75rem;text-align:right;color:var(--muted)">'+fmt(totAss)+' €</td>'
+      +'<td style="padding:.5rem .75rem;text-align:right">0 €</td>'
+      +'</tr>';
+    document.getElementById('mAmortSection').style.display = '';
+    document.getElementById('mAmortTableWrap').style.display = 'none';
+    document.getElementById('mAmortToggleBtn').textContent = 'Afficher';
+  }
 }
 
-function toggleAmort(){
-  const wrap = document.getElementById('amortTableWrap');
-  const btn  = document.getElementById('amortToggleBtn');
-  const open = wrap.style.display === 'none';
-  wrap.style.display = open ? '' : 'none';
-  btn.textContent = open ? 'Masquer' : 'Afficher';
-}
+
 
 function switchCoutMode(mode){
   document.getElementById('coutAchat').style.display   = mode==='achat'   ? '' : 'none';
@@ -6495,6 +6543,74 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('.nav-item').forEach(el=>{
     el.addEventListener('click',()=>{ if(window.innerWidth<=768) closeSidebar(); });
   });
+});
+
+
+function toggleMAmort(){
+  const wrap = document.getElementById('mAmortTableWrap');
+  const btn  = document.getElementById('mAmortToggleBtn');
+  const hidden = wrap.style.display==='none';
+  wrap.style.display = hidden ? '' : 'none';
+  btn.textContent = hidden ? 'Masquer' : 'Afficher';
+}
+
+function calcNegoOffre(){
+  const prix   = parseFloat(document.getElementById('negoOffrePrix').value)||0;
+  const apport = parseFloat(document.getElementById('negoOffreApport').value)||0;
+  const duree  = parseFloat(document.getElementById('negoOffreDuree').value)||20;
+  const taux   = (parseFloat(document.getElementById('negoOffreTaux').value)||3.42)/100;
+  if(!prix){ toast('Veuillez saisir le prix affiché.','err'); return; }
+  const t = taux/12, n = duree*12;
+  const factor = t/(1-Math.pow(1+t,-n));
+  const notaire = prix*0.075;
+  const scenarios = [
+    {label:'Prix affiché',pct:0,color:'var(--muted)',badge:''},
+    {label:'Négociation −5%',pct:0.05,color:'#2a9d8f',badge:'−5%'},
+    {label:'Négociation −10%',pct:0.10,color:'#e8a020',badge:'−10%'},
+  ];
+  const cards = scenarios.map(s => {
+    const newPrix    = Math.round(prix*(1-s.pct));
+    const saving     = prix-newPrix;
+    const newNotaire = Math.round(newPrix*0.075);
+    const newEmprunt = Math.max(0, newPrix+newNotaire-apport);
+    const newMens    = newEmprunt>0 ? Math.round(newEmprunt*factor) : 0;
+    const newTotal   = newPrix+newNotaire;
+    const accent = s.pct===0?'var(--border)':s.color;
+    return `<div style="border:2px solid ${accent};border-radius:var(--r);padding:1rem;background:var(--white)">
+      <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.6rem">
+        ${s.badge?'<span style="background:'+s.color+';color:#fff;border-radius:99px;font-size:.65rem;font-weight:700;padding:.15rem .5rem">'+s.badge+'</span>':'<span style="font-size:.65rem;color:var(--muted);font-weight:600">REF</span>'}
+        <span style="font-size:.72rem;font-weight:600;color:var(--ink)">${s.label}</span>
+      </div>
+      <div style="font-size:1.1rem;font-weight:700;color:${s.pct===0?'var(--ink)':s.color};margin-bottom:.1rem">${fmt(newPrix)} €</div>
+      ${s.pct>0?'<div style="font-size:.7rem;color:'+s.color+';font-weight:600;margin-bottom:.6rem">économie '+fmt(saving)+' €</div>':'<div style="margin-bottom:.6rem"></div>'}
+      <div style="font-size:.72rem;color:var(--muted);display:flex;flex-direction:column;gap:.25rem">
+        <div style="display:flex;justify-content:space-between"><span>Frais notaire (~7,5%)</span><span style="font-weight:600;color:var(--ink)">${fmt(newNotaire)} €</span></div>
+        <div style="display:flex;justify-content:space-between"><span>Emprunt (hors apport)</span><span style="font-weight:600;color:var(--ink)">${fmt(newEmprunt)} €</span></div>
+        <div style="display:flex;justify-content:space-between"><span>Mensualité estimée</span><span style="font-weight:600;color:var(--ink)">${fmt(newMens)} €/mois</span></div>
+        ${s.pct>0?'<div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:.25rem;margin-top:.1rem"><span>Économie sur le prix</span><span style="font-weight:700;color:'+s.color+'">'+fmt(saving)+' €</span></div>':''}
+      </div>
+    </div>`;
+  });
+  document.getElementById('negoOffreGrid').innerHTML = cards.join('');
+}
+
+// Sync oPrix → negoOffrePrix when go('offre') is called
+const _origGoOffre = window._goOffre;
+document.addEventListener('DOMContentLoaded', ()=>{
+  const origGo = window.go;
+  if(origGo){
+    window.go = function(id){
+      origGo(id);
+      if(id==='offre'){
+        const p=document.getElementById('oPrix');
+        const n=document.getElementById('negoOffrePrix');
+        const tm=window._tauxMarche?.taux||{};
+        if(p&&n&&p.value) n.value=p.value;
+        const tEl=document.getElementById('negoOffreTaux');
+        if(tEl&&tm[20]&&!tEl._userModified) tEl.value=(+tm[20]).toFixed(2);
+      }
+    };
+  }
 });
 
 </script>
