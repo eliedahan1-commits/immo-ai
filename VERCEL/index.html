@@ -1136,10 +1136,10 @@ path.leaflet-interactive:focus{outline:none;}
       <div class="chat-side">
         <div class="card" style="padding:1rem"><div class="ctitle">✦ Taux immo live</div>
           <div style="display:flex;flex-direction:column;gap:.3rem">
-            <div style="display:flex;justify-content:space-between;font-size:.73rem;padding:.28rem 0;border-bottom:1px solid var(--border)"><span style="color:var(--ink">15 ans</span><span style="font-weight:500">~3.15%</span></div>
-            <div style="display:flex;justify-content:space-between;font-size:.73rem;padding:.28rem 0;border-bottom:1px solid var(--border)"><span style="color:var(--ink">20 ans</span><span style="font-weight:500">~3.40%</span></div>
-            <div style="display:flex;justify-content:space-between;font-size:.73rem;padding:.28rem 0;border-bottom:1px solid var(--border)"><span style="color:var(--ink">25 ans</span><span style="font-weight:500">~3.65%</span></div>
-            <div style="display:flex;justify-content:space-between;font-size:.73rem;padding:.28rem 0"><span style="color:var(--muted)">Source</span><span style="color:var(--gold);font-weight:500">BdF 2025</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:.73rem;padding:.28rem 0;border-bottom:1px solid var(--border)"><span style="color:var(--ink)">15 ans</span><span id="tm-15" style="font-weight:500">~3.15%</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:.73rem;padding:.28rem 0;border-bottom:1px solid var(--border)"><span style="color:var(--ink)">20 ans</span><span id="tm-20" style="font-weight:500">~3.40%</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:.73rem;padding:.28rem 0;border-bottom:1px solid var(--border)"><span style="color:var(--ink)">25 ans</span><span id="tm-25" style="font-weight:500">~3.65%</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:.73rem;padding:.28rem 0"><span style="color:var(--muted)">Source</span><span id="tm-src" style="color:var(--gold);font-weight:500">—</span></div>
           </div>
         </div>
         <div class="card" style="padding:1rem"><div class="ctitle">✦ Outils rapides</div>
@@ -1353,8 +1353,8 @@ function go(id){
     if(id === 'services')  { showServicesFromMenu(); return; }
     if(id === 'bruit')     { ouvrirBruit(); return; }
   }
-  _goPage(id);
   if(id === 'recherche') { if(typeof showRecherchePanel==='function') showRecherchePanel(); return; }
+  _goPage(id);
   if(id === 'emprunt')  setTimeout(initEmpruntPage, 100);
   if(id === 'cout') { const tm=window._tauxMarche?.taux; if(tm){ const t20=(tm[20]||3.4).toFixed(2); ['cTaux','lTaux'].forEach(fid=>{const el=document.getElementById(fid);if(el&&!el._userModified)el.value=t20;}); } }
   // Pré-remplissage automatique si une adresse est déjà analysée
@@ -2635,7 +2635,14 @@ window._tauxMarche = null;
 (async function fetchTauxMarche(){
   try {
     const r = await fetch('/api/altitude?type=taux');
-    if(r.ok) window._tauxMarche = await r.json();
+    if(r.ok) {
+      window._tauxMarche = await r.json();
+      const tm = window._tauxMarche?.taux || {};
+      const src = window._tauxMarche?.source || '';
+      const fmt = v => v != null ? '~'+(+v).toFixed(2)+'%' : '—';
+      [15,20,25].forEach(d => { const el=document.getElementById('tm-'+d); if(el) el.textContent=fmt(tm[d]); });
+      const srcEl=document.getElementById('tm-src'); if(srcEl) srcEl.textContent=src||'—';
+    }
   } catch(e){}
 })();
 
@@ -5567,12 +5574,19 @@ async function initEmpruntPage() {
 }
 
 function renderTauxHistChart(data) {
+  data = [...data]; // copie pour permettre ajout du point live
   const chartEl = document.getElementById('emprunt-hist');
   if (!chartEl || !data?.length || !window.Chart) return;
   if (window._tauxHistChart) { window._tauxHistChart.destroy(); window._tauxHistChart = null; }
   const tm = window._tauxMarche?.taux || { 10: 3.10, 15: 3.27, 20: 3.42, 25: 3.50 };
   const base20 = tm[20] || 3.42;
   const spreads = { 10: (tm[10]||3.10)-base20, 15: (tm[15]||3.27)-base20, 20: 0, 25: (tm[25]||3.50)-base20 };
+  // Ajouter point 2026 live depuis _tauxMarche si absent
+  const currentYear = new Date().getFullYear();
+  const tm0 = window._tauxMarche?.taux || {};
+  if (tm0[20] != null && !data.find(d => d.annee === currentYear)) {
+    data = [...data, { annee: currentYear, taux: tm0[20], source: 'Live' }];
+  }
   const labels = data.map(d => d.annee);
   const mirStartYear = data.find(d => d.source === 'BCE MIR')?.annee ?? labels[0];
   const vals = dur => data.map(d => +Math.max(0.1, d.taux + spreads[dur]).toFixed(2));
