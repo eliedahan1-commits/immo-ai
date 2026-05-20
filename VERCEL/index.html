@@ -516,7 +516,7 @@ select.inp{
 /* Modal */
 .overlay{display:none;position:fixed;inset:0;background:rgba(15,15,13,.75);backdrop-filter:blur(6px);z-index:500;align-items:center;justify-content:center;}
 .overlay.open{display:flex;}
-.modal{background:#fff;border-radius:var(--r);padding:2.2rem;width:460px;box-shadow:var(--shadow-lg);animation:rise .3s ease;}
+.modal{background:#fff;border-radius:var(--r);padding:2.2rem;width:460px;max-width:calc(100vw - 2rem);box-shadow:var(--shadow-lg);animation:rise .3s ease;}
 .modal h3{font-family:'Cormorant Garamond',serif;font-size:1.65rem;margin-bottom:.5rem;}
 .modal p{font-size:.8rem;color:var(--muted);line-height:1.65;margin-bottom:.9rem;}
 
@@ -676,6 +676,12 @@ path.leaflet-interactive:focus{outline:none;}
   /* Cards phare */
   .ph                    { margin-bottom:1.2rem; }
   .ptag                  { font-size:.55rem; }
+
+  /* Modal */
+  .modal                 { width:calc(100vw - 2rem) !important; padding:1.5rem 1rem; }
+
+  /* Graphique écoles */
+  #ecolesChartWrap       { display:none; }
 }
 
 @media(max-width:480px){
@@ -6222,7 +6228,7 @@ function calcEmprunt(){
         ['Taux +0,5% → '+pct(taux+0.005)+' (hausse)', fmt(stress1)+' €'+diffStr(stress1,Math.round(empruntMax))],
         ['Taux +1% → '+pct(taux+0.01)+' (hausse)', fmt(stress2)+' €'+diffStr(stress2,Math.round(empruntMax))],
       ].filter(Boolean).map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
-      ${manque20>0?`<div style="margin:.8rem 0 .4rem;font-size:.62rem;color:rgba(255,255,255,.5);letter-spacing:.1em;text-transform:uppercase">🐖 Effort d'épargne pour atteindre 20% d'apport</div>${[['Manque (20% de '+fmt(Math.round(prixMax/1000)*1000)+')',fmt(manque20)],['Épargne sur 2 ans',fmt(epargne2a)+'/mois'],['Épargne sur 3 ans',fmt(epargne3a)+'/mois']].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}`:''}
+      ${manque20>0?`<div style="margin:.8rem 0 .4rem;font-size:.62rem;color:rgba(255,255,255,.5);letter-spacing:.1em;text-transform:uppercase">💡 Il vous manque <strong>${fmt(manque20)} €</strong> pour atteindre 20% d'apport</div><div style="font-size:.62rem;color:rgba(255,255,255,.4);margin-bottom:.4rem">Les banques exigent généralement 20% en apport personnel pour obtenir les meilleures conditions.</div>${[['Pour y arriver en 2 ans',fmt(epargne2a)+' €/mois à épargner'],['Pour y arriver en 3 ans',fmt(epargne3a)+' €/mois à épargner']].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}`:''}
       <div class="result-insight">Budget de <strong>${fmt(Math.round(prixMax/1000)*1000)}</strong> — consultez la page <strong>Prix des dernières transactions</strong> pour voir ce que vous pouvez acheter dans votre ville cible.</div>
     </div>`;
   setCard('emprunt', fmt(Math.round(prixMax/1000)*1000), 'Budget max · emprunt '+fmt(Math.round(empruntMax)), 'good');
