@@ -608,12 +608,79 @@ path.leaflet-interactive:focus{outline:none;}
 
 /* Responsive */
 @media(max-width:768px){
-  aside{transform:translateX(-100%);transition:transform .3s;}
-  aside.open{transform:translateX(0);}
+  aside{transform:translateX(-100%);transition:transform .3s;z-index:500;}
+  aside.open{transform:translateX(0);box-shadow:4px 0 32px rgba(0,0,0,.5);}
   .main-wrap{margin-left:0;}
   .cards-grid{grid-template-columns:1fr 1fr;}
   .chat-wrap{grid-template-columns:1fr;}
+  /* Overlay */
+  #sideOverlay{display:block;}
+  /* Topbar : logo + hamburger */
+  .topbar{padding:.55rem 1rem;}
+  .topbar-logo-mobile{display:flex;}
+  .topbar-right .tb-btn{display:none;}
+  /* Bottom tab bar */
+  #bottomTabBar{display:flex;}
+  .main-wrap{padding-bottom:64px;}
+  /* Hamburger */
+  #hamburgerBtn{display:flex;}
 }
+
+/* ── Hamburger button ── */
+#hamburgerBtn{
+  display:none;
+  flex-direction:column;justify-content:center;align-items:center;
+  gap:5px;width:38px;height:38px;
+  background:none;border:1px solid var(--border);
+  border-radius:4px;cursor:pointer;flex-shrink:0;
+  transition:all .2s;
+}
+#hamburgerBtn:hover{border-color:var(--ink);}
+#hamburgerBtn span{
+  display:block;width:18px;height:2px;
+  background:var(--ink);border-radius:2px;
+  transition:all .25s;
+}
+#hamburgerBtn.open span:nth-child(1){transform:translateY(7px) rotate(45deg);}
+#hamburgerBtn.open span:nth-child(2){opacity:0;}
+#hamburgerBtn.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
+
+/* ── Logo mobile dans topbar ── */
+.topbar-logo-mobile{
+  display:none;
+  font-family:'Cormorant Garamond',serif;font-size:1.1rem;
+  color:var(--ink);letter-spacing:.05em;cursor:pointer;
+}
+.topbar-logo-mobile em{color:var(--gold2);font-style:italic;}
+
+/* ── Sidebar overlay ── */
+#sideOverlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.55);z-index:499;
+  backdrop-filter:blur(2px);
+}
+
+/* ── Bottom tab bar ── */
+#bottomTabBar{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;
+  height:64px;z-index:400;
+  background:var(--ink);
+  border-top:1px solid rgba(255,255,255,.08);
+  align-items:stretch;
+}
+.btab{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:3px;
+  cursor:pointer;color:rgba(255,255,255,.5);
+  font-size:.55rem;letter-spacing:.04em;
+  transition:color .2s;border:none;background:none;
+  padding:.4rem 0;
+}
+.btab:active{background:rgba(255,255,255,.05);}
+.btab.active{color:var(--gold2);}
+.btab-icon{font-size:1.2rem;line-height:1;}
+
 
 /* ══ RESPONSIVE MOBILE — Phase 1 ══════════════════════════════════════════ */
 
@@ -790,10 +857,36 @@ path.leaflet-interactive:focus{outline:none;}
   <div class="sidebar-foot">IMMO·AI © 2026 · France entière · v2.0</div>
 </aside>
 
+<!-- ══ BOTTOM TAB BAR (mobile) ══ -->
+<div id="bottomTabBar">
+  <button class="btab active" id="btab-home" onclick="go('home');setActiveTab('home')">
+    <span class="btab-icon">🏠</span><span>Accueil</span>
+  </button>
+  <button class="btab" id="btab-analyse" onclick="go('analyse');setActiveTab('analyse')">
+    <span class="btab-icon">🔍</span><span>Analyse</span>
+  </button>
+  <button class="btab" id="btab-quartier" onclick="go('ecoles');setActiveTab('quartier')">
+    <span class="btab-icon">📍</span><span>Quartier</span>
+  </button>
+  <button class="btab" id="btab-financement" onclick="go('emprunt');setActiveTab('financement')">
+    <span class="btab-icon">💰</span><span>Financement</span>
+  </button>
+  <button class="btab" id="btab-strategie" onclick="go('offre');setActiveTab('strategie')">
+    <span class="btab-icon">🎯</span><span>Stratégie</span>
+  </button>
+</div>
+
 <!-- MAIN -->
 <div class="main-wrap">
+  <!-- Sidebar overlay (mobile) -->
+  <div id="sideOverlay" onclick="closeSidebar()"></div>
+
   <div class="topbar">
     <div class="topbar-left">
+      <button id="hamburgerBtn" onclick="toggleSidebar()" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="topbar-logo-mobile" onclick="go('home')">IMMO<em>·AI</em></div>
       <div class="topbar-title" id="topTitle">Accueil</div>
       <div class="topbar-addr" id="topAddr"></div>
     </div>
@@ -6356,6 +6449,54 @@ function geolocateUser(){
 
 </script>
 <script src="/pdf-export.js?v=5"></script>
-<script src="/recherche-bien.js?v=2"></script>
+<script src="/recherche-bien.js?v=2">
+/* ══ MOBILE NAV ══════════════════════════════════════════════════════════ */
+function toggleSidebar(){
+  const s=document.getElementById('sidebar');
+  const btn=document.getElementById('hamburgerBtn');
+  const ov=document.getElementById('sideOverlay');
+  const open=s.classList.toggle('open');
+  btn.classList.toggle('open',open);
+  ov.style.display=open?'block':'none';
+  document.body.style.overflow=open?'hidden':'';
+}
+function closeSidebar(){
+  const s=document.getElementById('sidebar');
+  const btn=document.getElementById('hamburgerBtn');
+  const ov=document.getElementById('sideOverlay');
+  s.classList.remove('open');
+  btn.classList.remove('open');
+  ov.style.display='none';
+  document.body.style.overflow='';
+}
+// Map page id → tab id
+const _PAGE_TO_TAB={
+  home:'home',
+  analyse:'analyse',prix:'analyse',risques:'analyse',energie:'analyse',bruit:'analyse',urbanisme:'analyse',
+  ecoles:'quartier',mobilite:'quartier',fibre:'quartier',services:'quartier',soleil:'quartier',
+  emprunt:'financement',cout:'financement',mensualites:'financement',aides:'financement',renov:'financement',location:'financement',
+  offre:'strategie',profil:'strategie',
+};
+function setActiveTab(tabId){
+  document.querySelectorAll('.btab').forEach(b=>b.classList.remove('active'));
+  const el=document.getElementById('btab-'+tabId);
+  if(el) el.classList.add('active');
+}
+// Patch go() to auto-update bottom tab + close sidebar on mobile
+const _goOrig=window._goPage||go;
+const _goPatched=function(id){
+  _goOrig(id);
+  const tab=_PAGE_TO_TAB[id]||null;
+  if(tab) setActiveTab(tab);
+  if(window.innerWidth<=768) closeSidebar();
+};
+// Override nav-item clicks to also close sidebar
+document.addEventListener('DOMContentLoaded',()=>{
+  document.querySelectorAll('.nav-item').forEach(el=>{
+    el.addEventListener('click',()=>{ if(window.innerWidth<=768) closeSidebar(); });
+  });
+});
+
+</script>
 </body>
 </html>
