@@ -801,11 +801,13 @@ path.leaflet-interactive:focus{outline:none;}
         <label class="lbl">Taux (%)</label>
         <input class="inp" id="eTaux" type="number" value="3.4" step="0.1" oninput="this._userModified=true" />
         <div id="eTauxSrc" style="font-size:.62rem;color:var(--muted);margin-bottom:.3rem"></div>
+        <label class="lbl">Assurance emprunteur (%/an) <span style="font-weight:400;color:var(--muted);font-size:.75em">— 0,25% par défaut</span></label>
+        <input class="inp" id="eAssur" type="number" value="0.25" step="0.05" />
         <button class="btn btn-dark btn-full" onclick="calcEmprunt()">✦ Calculer ma capacité</button>
       </div>
       <div id="resEmprunt"><div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez vos revenus pour calculer.</p></div></div>
-    </div>
     <div id="emprunt-hist" style="display:none"></div>
+    </div>
   </div></div>
 
   <!-- ══ VRAI COÛT ══ -->
@@ -827,6 +829,8 @@ path.leaflet-interactive:focus{outline:none;}
           <label class="lbl">Charges copro /mois (€)</label><input class="inp" id="cCharges" type="number" placeholder="250" />
           <label class="lbl">Votre apport (€)</label><input class="inp" id="cApport" type="number" placeholder="150000" />
           <label class="lbl">Durée prêt (ans)</label><input class="inp" id="cDuree" type="number" value="20" />
+          <label class="lbl">Taux (%)</label><input class="inp" id="cTaux" type="number" value="3.4" step="0.1" oninput="this._userModified=true" />
+          <label class="lbl">Assurance emprunteur (%/an)</label><input class="inp" id="cAssur" type="number" value="0.25" step="0.05" />
           <button class="btn btn-dark btn-full" onclick="calcCout()">✦ Calculer le vrai coût</button>
         </div>
         <div id="resCout"><div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez le bien pour voir le coût total réel.</p></div></div>
@@ -846,6 +850,8 @@ path.leaflet-interactive:focus{outline:none;}
           <label class="lbl">Taux de vacance locative (%)</label><input class="inp" id="lVacance" type="number" value="5" />
           <label class="lbl">Apport (€)</label><input class="inp" id="lApport" type="number" placeholder="50000" />
           <label class="lbl">Durée prêt (ans)</label><input class="inp" id="lDuree" type="number" value="20" />
+          <label class="lbl">Taux (%)</label><input class="inp" id="lTaux" type="number" value="3.4" step="0.1" oninput="this._userModified=true" />
+          <label class="lbl">Assurance emprunteur (%/an)</label><input class="inp" id="lAssur" type="number" value="0.25" step="0.05" />
           <button class="btn btn-dark btn-full" onclick="calcLocation()">✦ Calculer le rendement</button>
         </div>
         <div id="resLocation"><div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez votre investissement pour calculer le rendement net.</p></div></div>
@@ -1345,16 +1351,17 @@ function go(id){
     if(id === 'ecoles')    { showEcolesFromMenu(); return; }
     if(id === 'mobilite')  { showMobiliteFromMenu(); return; }
     if(id === 'services')  { showServicesFromMenu(); return; }
-    if(id === 'recherche') { if(typeof showRecherchePanel==='function') showRecherchePanel(); return; }
     if(id === 'bruit')     { ouvrirBruit(); return; }
   }
   _goPage(id);
+  if(id === 'recherche') { if(typeof showRecherchePanel==='function') showRecherchePanel(); return; }
+  if(id === 'emprunt')  setTimeout(initEmpruntPage, 100);
+  if(id === 'cout') { const tm=window._tauxMarche?.taux; if(tm){ const t20=(tm[20]||3.4).toFixed(2); ['cTaux','lTaux'].forEach(fid=>{const el=document.getElementById(fid);if(el&&!el._userModified)el.value=t20;}); } }
   // Pré-remplissage automatique si une adresse est déjà analysée
   if(currentAddress) {
     const set = (id, val) => { const el=document.getElementById(id); if(el && !el.value) el.value=val; };
     const setFirst = (sel, val) => { const el=document.querySelector(sel); if(el && !el.value) el.value=val; };
     const extractVille = addr => { const m=addr.match(/\d{5}\s+(.+)$/); return m?m[1]:addr; };
-    if(id === 'emprunt')  setTimeout(initEmpruntPage, 100);
     if(id === 'prix')     set('dvfAddr', currentAddress);
     if(id === 'offre')    set('oRue',    currentAddress);
     if(id === 'profil')   {
@@ -1701,9 +1708,9 @@ function renderCards(props, coords){
     {
       title: '🎯 Ma stratégie',
       cards: [
+        {id:'recherche', icon:'🏠', label:'Trouver un bien',        value:'Rechercher →', sub:'5 sites pré-filtrés',      source:'ImmoAI', action:"go('recherche')"},
         {id:'offre',    icon:'🤝', label:"Coaching de l'offre",   value:'Consulter →', sub:'Préparer votre offre',     source:'IA', action:"go('offre')"},
         {id:'profil',   icon:'🎯', label:'Compatibilité de vie',  value:'Tester →',    sub:'Match quartier / profil',  source:'IA', action:"go('profil')"},
-        {id:'recherche', icon:'🏠', label:'Trouver un bien',        value:'Rechercher →', sub:'5 sites pré-filtrés',      source:'ImmoAI', action:"go('recherche')"},
       ]
     },
   ];
@@ -5446,14 +5453,18 @@ function calcCout(){
   const travaux={'A':0,'B':0,'C':5000,'D':15000,'E':35000,'F':60000,'G':90000}[dpe]||0;
   const taxe=Math.round(prix*.006);
   const emprunt=prix-apport+notaire;
-  const t=0.034/12,n=duree*12;
-  const mens=emprunt>0?Math.round((emprunt*t)/(1-Math.pow(1+t,-n))):0;
+  const tauxC=(parseFloat(document.getElementById('cTaux').value)||3.4)/100;
+  const assurC=(parseFloat(document.getElementById('cAssur').value)||0.25)/100;
+  const t=tauxC/12,n=duree*12;
+  const factorAmortC=t/(1-Math.pow(1+t,-n));
+  const mensAssurC=emprunt>0?Math.round(emprunt*assurC/12):0;
+  const mens=emprunt>0?Math.round(emprunt*(factorAmortC+assurC/12)):0;
   const total=prix+notaire+travaux+(charges*120)+(taxe*10);
   document.getElementById('resCout').innerHTML=`
     <div class="result-dark">
       <div style="font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem">💰 Coût réel sur 10 ans</div>
       <div class="result-n">${fmt(Math.round(total/1000)*1000)}</div>
-      ${[['Prix affiché',fmt(prix)],['Frais notaire (7.5%)',fmt(notaire)],[`Travaux DPE ${dpe}`,fmt(travaux)],['Charges copro 10 ans',fmt(charges*120)],['Taxe foncière 10 ans',fmt(taxe*10)],['Mensualité estimée',fmt(mens)+'/mois']].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
+      ${[['Prix affiché',fmt(prix)],['Frais notaire (7.5%)',fmt(notaire)],[`Travaux DPE ${dpe}`,fmt(travaux)],['Charges copro 10 ans',fmt(charges*120)],['Taxe foncière 10 ans',fmt(taxe*10)],['Mensualité estimée',fmt(mens)+'/mois'],['dont assurance',fmt(mensAssurC)+'/mois']].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
     </div>`;
   setCard('cout', fmt(Math.round(total/1000)*1000), 'Coût total · '+fmt(mens)+'/mois', '');
 }
@@ -5487,8 +5498,12 @@ function calcLocation(){
   const rendNet  = (revenuNet / investTotal) * 100;
 
   const emprunt = investTotal - apport;
-  const t = 0.034/12, n = duree*12;
-  const mens = emprunt>0 ? Math.round((emprunt*t)/(1-Math.pow(1+t,-n))) : 0;
+  const tauxL=(parseFloat(document.getElementById('lTaux').value)||3.4)/100;
+  const assurL=(parseFloat(document.getElementById('lAssur').value)||0.25)/100;
+  const tL=tauxL/12, n=duree*12;
+  const factorAmortL=tL/(1-Math.pow(1+tL,-n));
+  const mensAssurL=emprunt>0?Math.round(emprunt*assurL/12):0;
+  const mens = emprunt>0 ? Math.round(emprunt*(factorAmortL+assurL/12)) : 0;
   const cashflow = Math.round(revenuNet/12 - mens);
 
   const cfColor = cashflow>=0 ? 'var(--green)' : '#e74c3c';
@@ -5507,6 +5522,7 @@ function calcLocation(){
         ['Charges & gestion /an', '− '+fmt(Math.round(fraisGestion+chargesAn+taxe))],
         ['Revenu net /an', fmt(Math.round(revenuNet))],
         ['Mensualité emprunt', fmt(mens)+'/mois'],
+        ['dont assurance', fmt(mensAssurL)+'/mois'],
       ].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
       <div style="text-align:center;margin-top:.75rem;padding:.5rem;border-radius:6px;background:${cashflow>=0?'rgba(39,174,96,.15)':'rgba(231,76,60,.15)'}">
         <div style="font-size:.8rem;font-weight:600;color:${cfColor}">${cfLabel}</div>
@@ -5535,7 +5551,6 @@ async function initEmpruntPage() {
   }
   const srcEl = document.getElementById('eTauxSrc');
   if (srcEl) srcEl.textContent = src ? 'Taux marché : ' + src + (date ? ' · ' + date : '') : '';
-
   const chartEl = document.getElementById('emprunt-hist');
   if (!chartEl) return;
   if (window._tauxHistData) { renderTauxHistChart(window._tauxHistData); return; }
@@ -5554,43 +5569,25 @@ async function initEmpruntPage() {
 function renderTauxHistChart(data) {
   const chartEl = document.getElementById('emprunt-hist');
   if (!chartEl || !data?.length || !window.Chart) return;
-
-  // Détruire le chart existant si re-render
   if (window._tauxHistChart) { window._tauxHistChart.destroy(); window._tauxHistChart = null; }
-
   const tm = window._tauxMarche?.taux || { 10: 3.10, 15: 3.27, 20: 3.42, 25: 3.50 };
   const base20 = tm[20] || 3.42;
   const spreads = { 10: (tm[10]||3.10)-base20, 15: (tm[15]||3.27)-base20, 20: 0, 25: (tm[25]||3.50)-base20 };
-
   const labels = data.map(d => d.annee);
   const mirStartYear = data.find(d => d.source === 'BCE MIR')?.annee ?? labels[0];
-
-  // Calcule les valeurs par durée (taux de base + écart relatif au taux 20 ans actuel)
   const vals = dur => data.map(d => +Math.max(0.1, d.taux + spreads[dur]).toFixed(2));
-
-  // Durées disponibles selon les données live
   const durs = [10,15,20,25].filter(d => tm[d] != null);
   const CFG = {
-    10: { color:'#4678b4', bg:'rgba(70,120,180,.06)',  w:1.8 },
-    15: { color:'#2a9d8f', bg:'rgba(42,157,143,.06)',  w:1.8 },
-    20: { color:'#e8a020', bg:'rgba(232,160,32,.09)',  w:2.5 },
-    25: { color:'#e63946', bg:'rgba(230,57,70,.06)',   w:1.8 },
+    10: { color:'#4678b4', bg:'rgba(70,120,180,.06)', w:1.8 },
+    15: { color:'#2a9d8f', bg:'rgba(42,157,143,.06)', w:1.8 },
+    20: { color:'#e8a020', bg:'rgba(232,160,32,.09)', w:2.5 },
+    25: { color:'#e63946', bg:'rgba(230,57,70,.06)',  w:1.8 },
   };
-
   const datasets = durs.map(d => ({
-    label: d + ' ans',
-    data: vals(d),
-    borderColor: CFG[d].color,
-    backgroundColor: CFG[d].bg,
-    borderWidth: CFG[d].w,
-    pointRadius: 0,
-    pointHoverRadius: 5,
-    tension: 0.35,
-    fill: d === 20,
-    spanGaps: true,
+    label: d + ' ans', data: vals(d), borderColor: CFG[d].color, backgroundColor: CFG[d].bg,
+    borderWidth: CFG[d].w, pointRadius: 0, pointHoverRadius: 5, tension: 0.35,
+    fill: d === 20, spanGaps: true,
   }));
-
-  // Plugin : ligne verticale pointillée à l'année de début BCE MIR (fin zone proxy)
   const mirIdx = labels.indexOf(mirStartYear);
   const proxyPlugin = {
     id: 'proxyBoundary',
@@ -5601,57 +5598,41 @@ function renderTauxHistChart(data) {
       if (!pt) return;
       const ctx2 = chart.ctx;
       ctx2.save();
-      ctx2.strokeStyle = 'rgba(255,255,255,.18)';
-      ctx2.lineWidth = 1;
-      ctx2.setLineDash([4, 4]);
-      ctx2.beginPath();
-      ctx2.moveTo(pt.x, chart.chartArea.top);
-      ctx2.lineTo(pt.x, chart.chartArea.bottom);
-      ctx2.stroke();
+      ctx2.strokeStyle = 'rgba(255,255,255,.18)'; ctx2.lineWidth = 1; ctx2.setLineDash([4, 4]);
+      ctx2.beginPath(); ctx2.moveTo(pt.x, chart.chartArea.top); ctx2.lineTo(pt.x, chart.chartArea.bottom); ctx2.stroke();
       if (mirIdx > 2) {
-        ctx2.fillStyle = 'rgba(255,255,255,.28)';
-        ctx2.font = '9px Outfit,sans-serif';
+        ctx2.fillStyle = 'rgba(255,255,255,.28)'; ctx2.font = '9px Outfit,sans-serif';
         ctx2.fillText('← proxy', pt.x - 44, chart.chartArea.top + 14);
         ctx2.fillText('réel →', pt.x + 4, chart.chartArea.top + 14);
       }
       ctx2.restore();
     }
   };
-
   const footerNote = mirIdx > 0
     ? 'Avant ' + mirStartYear + ' : proxy OAT 10 ans · Depuis ' + mirStartYear + ' : taux habitat réel (BCE MIR) · Courbes calculées depuis taux marché live'
     : 'Taux habitat réel (BCE MIR) · Courbes calculées depuis taux marché live';
-
   chartEl.style.display = '';
   chartEl.innerHTML =
     '<div id="tauxHistWrap" style="background:var(--card-bg,#12122a);border:1px solid var(--border);border-radius:8px;padding:.9rem 1rem;margin-top:1rem;width:100%;box-sizing:border-box">' +
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">' +
     '<span style="font-size:.74rem;font-weight:600;color:var(--text)">📈 Taux immobiliers · France · ' + labels[0] + '–' + labels[labels.length-1] + '</span>' +
-    '<button onclick="(function(){var w=document.getElementById(\'tauxHistWrap\');if(!document.fullscreenElement){w.requestFullscreen&&w.requestFullscreen();w.style.borderRadius=\'0\';w.style.padding=\'1.5rem\';}else{document.exitFullscreen&&document.exitFullscreen();w.style.borderRadius=\'\';w.style.padding=\'\';}document.onfullscreenchange=function(){if(!document.fullscreenElement&&window._tauxHistChart)window._tauxHistChart.resize();};})()" ' +
+    '<button onclick="(function(){var w=document.getElementById('tauxHistWrap');if(!document.fullscreenElement){w.requestFullscreen&&w.requestFullscreen();w.style.borderRadius='0';w.style.padding='1.5rem';}else{document.exitFullscreen&&document.exitFullscreen();w.style.borderRadius='';w.style.padding='';}document.onfullscreenchange=function(){if(!document.fullscreenElement&&window._tauxHistChart)window._tauxHistChart.resize();};})()" ' +
     'style="font-size:.7rem;padding:.2rem .6rem;border:1px solid var(--border);border-radius:4px;background:transparent;color:var(--muted);cursor:pointer" title="Plein écran">⛶ Plein écran</button>' +
     '</div>' +
     '<div style="position:relative;width:100%;height:360px"><canvas id="tauxHistCanvas"></canvas></div>' +
     '<div style="font-size:.6rem;color:var(--muted);text-align:center;margin-top:.35rem">' + footerNote + '</div>' +
     '</div>';
-
-  // Attendre que le DOM soit rendu avant de créer le chart (évite la zone morte)
   requestAnimationFrame(function() {
     const ctx = document.getElementById('tauxHistCanvas');
     if (!ctx) return;
     window._tauxHistChart = new Chart(ctx, {
-      type: 'line',
-      plugins: [proxyPlugin],
-      data: { labels, datasets },
+      type: 'line', plugins: [proxyPlugin], data: { labels, datasets },
       options: {
-        responsive: true,
-        maintainAspectRatio: false,
+        responsive: true, maintainAspectRatio: false,
         plugins: {
           legend: { display: true, labels: { font: { size: 11, family: 'Outfit,sans-serif' }, color: '#8a7d68', boxWidth: 14, padding: 14 } },
           datalabels: { display: false },
-          tooltip: {
-            mode: 'index', intersect: false,
-            callbacks: { label: c => ' ' + c.dataset.label + ' : ' + (+c.raw).toFixed(2) + '%' }
-          }
+          tooltip: { mode: 'index', intersect: false, callbacks: { label: c => ' ' + c.dataset.label + ' : ' + (+c.raw).toFixed(2) + '%' } }
         },
         scales: {
           x: { ticks: { font: { size: 9 }, color: '#8a7d68', maxTicksLimit: 14, autoSkip: true }, grid: { display: false } },
@@ -5678,14 +5659,27 @@ function calcEmprunt(){
     return;
   }
   const t=taux/12,n=duree*12;
-  const empruntMax=mensMax*(1-Math.pow(1+t,-n))/t;
+  const assur=(parseFloat(document.getElementById('eAssur').value)||0.25)/100;
+  const t=taux/12,n=duree*12;
+  const factorAmort=t/(1-Math.pow(1+t,-n));
+  const empruntMax=mensMax/(factorAmort+assur/12);
+  const mensAssur=Math.round(empruntMax*assur/12);
+  const mensPret=Math.round(empruntMax*factorAmort);
   const prixMax=empruntMax+apport;
+  function stressEmpr(ts){ const fa=ts/12/(1-Math.pow(1+ts/12,-n)); return Math.round(mensMax/(fa+assur/12)); }
+  const stress1=stressEmpr(taux+0.005), stress2=stressEmpr(taux+0.01);
+  const cible20=Math.round(prixMax*0.20);
+  const manque20=Math.max(0,cible20-apport);
+  const epargne2a=manque20>0?Math.round(manque20/24):0, epargne3a=manque20>0?Math.round(manque20/36):0;
   document.getElementById('resEmprunt').innerHTML=`
     <div class="result-dark">
       <div style="font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem">🏦 Votre capacité</div>
       <div class="result-n">${fmt(Math.round(prixMax/1000)*1000)}</div>
       <div style="font-size:.7rem;color:rgba(255,255,255,.7);text-align:center;margin-bottom:1rem">Budget d'achat total estimé</div>
-      ${[['Mensualité max (35%)',fmt(Math.round(mensMax))+'/mois'],['Capacité d\'emprunt',fmt(Math.round(empruntMax))],['Apport',fmt(apport)]].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
+      ${[['Mensualité max (35%)',fmt(Math.round(mensMax))+'/mois'],['dont intérêts',fmt(mensPret)+'/mois'],['dont assurance',fmt(mensAssur)+'/mois'],['Capacité d\'emprunt',fmt(Math.round(empruntMax))],['Apport',fmt(apport)]].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
+      <div style="margin:.8rem 0 .4rem;font-size:.62rem;color:rgba(255,255,255,.5);letter-spacing:.1em;text-transform:uppercase">📉 Stress test taux</div>
+      ${[['Taux actuel ('+((taux)*100).toFixed(2)+'%)',fmt(Math.round(empruntMax))],['Taux +0,5% → '+(((taux+0.005)*100).toFixed(2))+'%',fmt(stress1)],['Taux +1% → '+(((taux+0.01)*100).toFixed(2))+'%',fmt(stress2)]].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
+      ${manque20>0?`<div style="margin:.8rem 0 .4rem;font-size:.62rem;color:rgba(255,255,255,.5);letter-spacing:.1em;text-transform:uppercase">🐖 Effort d'épargne pour atteindre 20% d'apport</div>${[['Manque (20% de '+fmt(Math.round(prixMax/1000)*1000)+')',fmt(manque20)],['Épargne sur 2 ans',fmt(epargne2a)+'/mois'],['Épargne sur 3 ans',fmt(epargne3a)+'/mois']].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}`:''}
       <div class="result-insight">Budget de <strong>${fmt(Math.round(prixMax/1000)*1000)}</strong> — consultez la page <strong>Prix des dernières transactions</strong> pour voir ce que vous pouvez acheter dans votre ville cible.</div>
     </div>`;
   setCard('emprunt', fmt(Math.round(prixMax/1000)*1000), 'Budget max · emprunt '+fmt(Math.round(empruntMax)), 'good');
@@ -5813,6 +5807,5 @@ function geolocateUser(){
 
 </script>
 <script src="/pdf-export.js?v=5"></script>
-<script src="/recherche-bien.js?v=2"></script>
 </body>
 </html>

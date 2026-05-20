@@ -443,22 +443,30 @@
       }
     }
 
-    // Fetch SeLoger/Logic-Immo location ID (best-effort, via proxy INSEE)
-    _ctx.slLocationId = '';
-    if (_ctx.cityName) {
-      try {
-        const slRes = await fetch(
-          `/api/insee?action=seloger-location&q=${encodeURIComponent(_ctx.cityName)}`,
-          { signal: AbortSignal.timeout(4000) }
-        );
-        if (slRes.ok) { const slData = await slRes.json(); _ctx.slLocationId = slData.id || ''; }
-      } catch {}
-    }
+    // SeLoger/Logic-Immo location ID (via proxy Vercel, évite CORS)
+    try {
+      const slR = await fetch(
+        `/api/insee?action=seloger-location&q=${encodeURIComponent(_ctx.cityName)}`,
+        { signal: AbortSignal.timeout(6000) }
+      );
+      if (slR.ok) {
+        const slD = await slR.json();
+        if (slD.id) _ctx.slLocationId = 'AD08FR' + slD.id;
+      }
+    } catch {}
 
-    const html = renderPanel(_ctx.cityName, _ctx.cp, photoUrl);
-    if (typeof showPanel === 'function') {
-      showPanel('🏠 Trouver un bien · ' + (_ctx.cityName || ''), html);
-    }
+    // Injection dans detailContainer (même pattern que showPanel)
+    const container = document.getElementById('detailContainer');
+    if (!container) return;
+    const grid = document.getElementById('cardsGrid');
+    if (grid) grid.style.display = 'none';
+    container.innerHTML =
+      '<button class="back-btn" onclick="closePanel()" style="margin-bottom:.75rem">← Retour aux cartes</button>' +
+      renderPanel(_ctx.cityName, _ctx.cp, photoUrl);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    window._rbSetMode('achat');
+    window._rbSetType('both');
     window._rbUpdateSites();
   };
 
