@@ -2642,6 +2642,17 @@ window._tauxMarche = null;
       const fmt = v => v != null ? '~'+(+v).toFixed(2)+'%' : '—';
       [15,20,25].forEach(d => { const el=document.getElementById('tm-'+d); if(el) el.textContent=fmt(tm[d]); });
       const srcEl=document.getElementById('tm-src'); if(srcEl) srcEl.textContent=src||'—';
+      // Rafraîchir le formulaire emprunt si déjà ouvert
+      if (document.getElementById('p-emprunt')?.style.display !== 'none') {
+        if (typeof initEmpruntPage === 'function') initEmpruntPage();
+      }
+      // Rafraîchir le graphique si déjà chargé
+      if (window._tauxHistData && typeof renderTauxHistChart === 'function') {
+        renderTauxHistChart(window._tauxHistData);
+      }
+      // Rafraîchir taux vrai coût si déjà ouvert
+      const t20 = (tm[20] || 3.42).toFixed(2);
+      ['cTaux','lTaux'].forEach(fid => { const el=document.getElementById(fid); if(el && !el._userModified) el.value=t20; });
     }
   } catch(e){}
 })();
@@ -5820,5 +5831,6 @@ function geolocateUser(){
 
 </script>
 <script src="/pdf-export.js?v=5"></script>
+<script src="/recherche-bien.js?v=2"></script>
 </body>
 </html>
