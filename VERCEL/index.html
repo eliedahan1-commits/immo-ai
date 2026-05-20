@@ -30,7 +30,7 @@
   --shadow-lg:0 16px 48px rgba(15,15,13,.14);
 }
 html{scroll-behavior:smooth;}
-body{background:var(--cream);color:var(--ink);font-family:'Outfit',sans-serif;font-weight:300;display:flex;min-height:100vh;overflow-x:hidden;}
+html{overflow-x:hidden;}body{background:var(--cream);color:var(--ink);font-family:'Outfit',sans-serif;font-weight:300;display:flex;min-height:100vh;overflow-x:hidden;}
 
 /* ══ SCROLLBAR ══ */
 ::-webkit-scrollbar{width:4px;}
@@ -751,7 +751,7 @@ path.leaflet-interactive:focus{outline:none;}
   .hero-sub              { font-size:.8rem; max-width:100%; }
   .hero-search           { padding:.4rem .4rem .4rem 1rem; gap:.4rem; border-radius:12px; }
   .hero-search-btn       { padding:.6rem .9rem; font-size:.75rem; }
-  .hero-stats            { gap:1rem; flex-wrap:wrap; margin-top:1.5rem; padding-top:1.2rem; }
+  .hero-stats            { display:grid; grid-template-columns:1fr 1fr; gap:.6rem 1.5rem; margin-top:1.5rem; padding-top:1.2rem; justify-items:center; }
   .hero-stat-n           { font-size:1.3rem; }
   .hero-stat-l           { font-size:.55rem; }
 }
@@ -1724,7 +1724,11 @@ function go(id){
     if(id === 'ecoles')    { showEcolesFromMenu(); return; }
     if(id === 'mobilite')  { showMobiliteFromMenu(); return; }
     if(id === 'services')  { showServicesFromMenu(); return; }
-    if(id === 'bruit')     { ouvrirBruit(); return; }
+    if(id === 'bruit')     { _goPage('analyse'); setTimeout(()=>showBruitDetail(), 100); return; }
+    if(id === 'risques')   { _goPage('analyse'); setTimeout(()=>showRisquesDetail(), 100); return; }
+    if(id === 'prix')      { _goPage('analyse'); setTimeout(()=>showPrixCommunesDetail(), 100); return; }
+    if(id === 'fibre')     { _goPage('analyse'); setTimeout(()=>showFibreDetail(), 100); return; }
+    if(id === 'soleil')    { _goPage('analyse'); setTimeout(()=>showMeteoDetail(), 100); return; }
   }
   if(id === 'recherche') { if(typeof showRecherchePanel==='function') showRecherchePanel(); return; }
   _goPage(id);
@@ -3452,6 +3456,52 @@ function showDVFDetail(){
     document.querySelectorAll('.dvf-n-btn').forEach(b=>b.classList.toggle('active', b.dataset.n===String(n)));
     document.querySelectorAll('.dvf-type-btn').forEach(b=>b.classList.toggle('active', b.dataset.t===window._dvfFilterType));
     document.querySelectorAll('.dvf-surf-btn').forEach(b=>b.classList.toggle('active', b.dataset.s===String(window._dvfFilterSurf)));
+    // ── Tendance dynamique ──
+    updateDvfTrend(liste);
+  }
+  function updateDvfTrend(liste){
+    const tEl = document.getElementById('dvfTrendVal');
+    const lEl = document.getElementById('dvfTrendLabel');
+    if(!tEl||!lEl) return;
+    // Utiliser toutes les transactions filtrées (sans limite N) pour la tendance
+    let allFiltered = [...(window._dvfRecentes||[])];
+    if(window._dvfFilterType!=='tous') allFiltered = allFiltered.filter(t=>{
+      const tp=(t.type||'').toLowerCase();
+      if(window._dvfFilterType==='appt') return tp.includes('appartement');
+      if(window._dvfFilterType==='maison') return tp.includes('maison');
+      if(window._dvfFilterType==='local') return tp.includes('local');
+      if(window._dvfFilterType==='depend') return tp.includes('dépendance')||tp.includes('dependance');
+      return true;
+    });
+    const s=window._dvfFilterSurf;
+    if(s>0){const T=[[25,0,25],[50,25,50],[75,50,75],[100,75,100],[125,100,125],[150,125,150],[999,150,99999]];const tr=T.find(t=>t[0]===s);if(tr)allFiltered=allFiltered.filter(t=>(t.surf||0)>=tr[1]&&(t.surf||0)<tr[2]);}
+    const withDate = allFiltered.filter(t=>t.date&&t.prixM2>0);
+    if(withDate.length < 4){ tEl.textContent='—'; tEl.style.color=''; lEl.textContent='📈 Tendance 6 mois'; return; }
+    // Trouver la date la plus récente
+    const dates = withDate.map(t=>t.date).sort();
+    const latestDate = new Date(dates[dates.length-1]);
+    // Périodes
+    const ms6 = 6*30*24*3600*1000, ms12 = 12*30*24*3600*1000;
+    const cutoff6  = new Date(latestDate - ms6);
+    const cutoff12 = new Date(latestDate - ms12);
+    const avg = arr => arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : null;
+    const last6  = withDate.filter(t=>new Date(t.date)>=cutoff6).map(t=>t.prixM2);
+    const prev6  = withDate.filter(t=>new Date(t.date)>=cutoff12&&new Date(t.date)<cutoff6).map(t=>t.prixM2);
+    const last12 = withDate.filter(t=>new Date(t.date)>=cutoff12).map(t=>t.prixM2);
+    const prev12 = withDate.filter(t=>new Date(t.date)<cutoff12).map(t=>t.prixM2);
+    const a6=avg(last6), b6=avg(prev6), a12=avg(last12), b12=avg(prev12);
+    // Préférer 6 mois si assez de données, sinon 12 mois
+    let pct=null, label='', usedPeriod='6 mois';
+    if(a6&&b6&&last6.length>=3&&prev6.length>=3){
+      pct=Math.round((a6-b6)/b6*100); label='📈 Tendance 6 mois';
+    } else if(a12&&b12&&last12.length>=3&&prev12.length>=3){
+      pct=Math.round((a12-b12)/b12*100); label='📈 Tendance 1 an'; usedPeriod='1 an';
+    }
+    if(pct===null){ tEl.textContent='N/D'; tEl.style.color='var(--muted)'; lEl.textContent='📈 Données insuffisantes'; return; }
+    const up = pct>=0;
+    tEl.textContent = (up?'↑ +':'↓ ')+pct+'%';
+    tEl.style.color = up?'#2a9d8f':'#e63946';
+    lEl.textContent = label;
   }
   window.filterDVF     = n  => { window._dvfFilterN=n;    renderDVFRows(); refreshDVFChart(); };
   window.filterDVFType = t  => { window._dvfFilterType=t; renderDVFRows(); refreshDVFChart(); };
@@ -3519,7 +3569,7 @@ function showDVFDetail(){
     <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1rem">
       <div class="stat-box"><span class="stat-n" id="dvfStatMedian">${d.stats.medianM2.toLocaleString('fr-FR')}€</span><span class="stat-l">💰 Moyenne /m²</span><span class="stat-l" id="dvfMedianBase" style="font-size:.65rem;opacity:.6">sur ${d.count} val.</span></div>
       <div class="stat-box"><span class="stat-n" id="dvfStatCount">${d.count}</span><span class="stat-l" id="dvfStatCountLabel">🏠 Ventes${d.dateRange?' '+d.dateRange:''}</span></div>
-      <div class="stat-box"><span class="stat-n">${d.rayon}m</span><span class="stat-l">📍 Rayon analysé</span></div>
+      <div class="stat-box" id="dvfTrendBox"><span class="stat-n" id="dvfTrendVal">—</span><span class="stat-l" id="dvfTrendLabel">📈 Tendance 6 mois</span></div>
     </div>
     <p style="font-size:.75rem;color:var(--muted);margin-bottom:.6rem" id="dvfFourchette">Fourchette : ${d.stats.minM2.toLocaleString('fr-FR')} – ${d.stats.maxM2.toLocaleString('fr-FR')} €/m²</p>
     <div style="margin-bottom:.5rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
