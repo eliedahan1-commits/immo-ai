@@ -1250,34 +1250,33 @@ path.leaflet-interactive:focus{outline:none;}
         ⚠️ Conseil indicatif basé sur les données saisies. À croiser impérativement avec les prix de marché réels avant toute offre.
       </div>
     </div>
-  </div>
-  <!-- Simulation négociation -->
-  <div style="margin-top:1.5rem">
-    <div style="font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem">🤝 Simulation impact négociation</div>
-    <div class="card" style="margin-bottom:1rem">
-      <div class="ctitle">Paramètres du financement</div>
-      <div class="g2">
-        <div>
-          <label class="lbl">Prix affiché (€) <span style="font-weight:400;color:var(--muted);font-size:.8em">— reprend le champ ci-dessus</span></label>
-          <input class="inp" id="negoOffrePrix" type="number" placeholder="350000" />
+    <!-- Simulation négociation -->
+    <div style="margin-top:1.5rem">
+      <div style="font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem">🤝 Simulation impact négociation</div>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="ctitle">Paramètres du financement</div>
+        <div class="g2">
+          <div>
+            <label class="lbl">Prix affiché (€) <span style="font-weight:400;color:var(--muted);font-size:.8em">— reprend le champ ci-dessus</span></label>
+            <input class="inp" id="negoOffrePrix" type="number" placeholder="350000" />
+          </div>
+          <div>
+            <label class="lbl">Apport personnel (€)</label>
+            <input class="inp" id="negoOffreApport" type="number" placeholder="50000" />
+          </div>
+          <div>
+            <label class="lbl">Durée prêt (ans)</label>
+            <input class="inp" id="negoOffreDuree" type="number" value="20" />
+          </div>
+          <div>
+            <label class="lbl">Taux (%)</label>
+            <input class="inp" id="negoOffreTaux" type="number" value="3.42" step="0.01" />
+          </div>
         </div>
-        <div>
-          <label class="lbl">Apport personnel (€)</label>
-          <input class="inp" id="negoOffreApport" type="number" placeholder="50000" />
-        </div>
-        <div>
-          <label class="lbl">Durée prêt (ans)</label>
-          <input class="inp" id="negoOffreDuree" type="number" value="20" />
-        </div>
-        <div>
-          <label class="lbl">Taux (%)</label>
-          <input class="inp" id="negoOffreTaux" type="number" value="3.42" step="0.01" />
-        </div>
+        <button class="btn btn-dark btn-full" onclick="calcNegoOffre()" style="margin-top:.75rem">✦ Simuler les scénarios</button>
       </div>
-      <button class="btn btn-dark btn-full" onclick="calcNegoOffre()" style="margin-top:.75rem">✦ Simuler les scénarios</button>
+      <div id="negoOffreGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem"></div>
     </div>
-    <div id="negoOffreGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem"></div>
-  </div>
   </div></div>
 
   <!-- ══ PROFIL DE VIE ══ -->
