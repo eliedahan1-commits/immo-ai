@@ -3479,7 +3479,7 @@ function showDVFDetail(){
     const s=window._dvfFilterSurf;
     if(s>0){const T=[[25,0,25],[50,25,50],[75,50,75],[100,75,100],[125,100,125],[150,125,150],[999,150,99999]];const tr=T.find(t=>t[0]===s);if(tr)allFiltered=allFiltered.filter(t=>(t.surf||0)>=tr[1]&&(t.surf||0)<tr[2]);}
     const withDate = allFiltered.filter(t=>t.date&&t.prixM2>0);
-    if(withDate.length < 4){ tEl.textContent='—'; tEl.style.color=''; lEl.textContent='📈 Tendance 6 mois'; return; }
+    if(withDate.length < 2){ tEl.textContent='—'; tEl.style.color=''; lEl.textContent='📈 Tendance 6 mois'; return; }
     // Trouver la date la plus récente
     const dates = withDate.map(t=>t.date).sort();
     const latestDate = new Date(dates[dates.length-1]);
@@ -3493,16 +3493,16 @@ function showDVFDetail(){
     const last12 = withDate.filter(t=>new Date(t.date)>=cutoff12).map(t=>t.prixM2);
     const prev12 = withDate.filter(t=>new Date(t.date)<cutoff12).map(t=>t.prixM2);
     const a6=avg(last6), b6=avg(prev6), a12=avg(last12), b12=avg(prev12);
-    // Préférer 6 mois si assez de données, sinon 12 mois
+    // Préférer 6 mois si assez de données, sinon 12 mois, sinon moitié/moitié
     let pct=null, label='', usedPeriod='6 mois';
     if(a6&&b6&&last6.length>=2&&prev6.length>=2){
       pct=Math.round((a6-b6)/b6*100); label='📈 Tendance 6 mois';
     } else if(a12&&b12&&last12.length>=2&&prev12.length>=2){
       pct=Math.round((a12-b12)/b12*100); label='📈 Tendance 1 an'; usedPeriod='1 an';
-    } else if(withDate.length>=4){
-      // Fallback : moitié ancienne vs moitié récente
+    } else {
+      // Fallback : moitié ancienne vs moitié récente (fonctionne dès 2 transactions)
       const sorted=withDate.slice().sort((a,b)=>a.date.localeCompare(b.date));
-      const mid=Math.floor(sorted.length/2);
+      const mid=Math.max(1,Math.floor(sorted.length/2));
       const aOld=avg(sorted.slice(0,mid).map(t=>t.prixM2));
       const aNew=avg(sorted.slice(mid).map(t=>t.prixM2));
       if(aOld&&aNew){pct=Math.round((aNew-aOld)/aOld*100);label='📈 Tendance globale';}
@@ -3682,6 +3682,13 @@ function showRisquesDetail(){
   },300);
 }
 
+function toggleAcc(btn){
+  var p=document.getElementById(btn.dataset.target);if(!p)return;
+  var open=p.style.display==='block';
+  p.style.display=open?'none':'block';
+  var a=btn.querySelector('.acc-arrow');if(a)a.textContent=open?'▶':'▼';
+}
+
 function showEcolesDetail(){
   const d = window._ecolesData;
   if(!d){showPanel('🏫 Écoles & IPS','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
@@ -3703,11 +3710,43 @@ function showEcolesDetail(){
     if(window._ecolesFilterType !== 'tous') liste = liste.filter(e => ecoCategorie(e) === window._ecolesFilterType);
     const n = window._ecolesFilterN;
     if(n > 0) liste = liste.slice(0, n);
-    document.getElementById('ecolesListe').innerHTML = liste.map(e=>`
-      <div style="padding:.6rem 0;border-bottom:1px solid var(--border)">
-        <div style="font-size:.82rem;font-weight:500">${e.nom}</div>
-        <div style="font-size:.7rem;color:var(--muted)">${e.type||''} · ${e.statut||''} · ${e.distanceM?e.distanceM+'m':'—'}</div>
-      </div>`).join('') || '<p style="color:var(--muted)">Aucun établissement pour ce filtre.</p>';
+    const _ecoItemHtml=function(e){
+      const adresse=[e.adresse,(e.codePostal&&e.commune?(e.codePostal+' '+e.commune):(e.commune||e.codePostal||''))].filter(Boolean).join(', ');
+      const gmUrl='https://maps.google.com/?q='+encodeURIComponent(e.nom+(adresse?', '+adresse:''));
+      return '<div style="padding:.65rem .5rem;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:.2rem">'+
+        '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:.5rem">'+
+          '<span style="font-size:.82rem;font-weight:600">'+e.nom+'</span>'+
+          '<span style="font-size:.7rem;color:var(--muted);white-space:nowrap;padding:.1rem .4rem;background:var(--surface2);border-radius:8px;flex-shrink:0">'+(e.distanceM?e.distanceM+'m':'—')+'</span>'+
+        '</div>'+
+        '<div style="font-size:.71rem;color:var(--muted)">'+((e.type||'')+' '+(e.statut?'· '+e.statut:'')).trim()+'</div>'+
+        (adresse?'<div style="font-size:.71rem;color:var(--muted)">📍 '+adresse+'</div>':'')+
+        (e.phone?'<div style="font-size:.71rem;color:var(--muted)">📞 '+e.phone+'</div>':'')+
+        '<div style="display:flex;gap:.4rem;margin-top:.25rem">'+
+          '<a href="'+gmUrl+'" target="_blank" rel="noopener" style="flex:1;text-align:center;padding:.3rem .5rem;background:var(--ink);color:var(--gold2);border-radius:4px;font-size:.72rem;font-weight:500;text-decoration:none;display:block">🗺 Y aller</a>'+
+          (e.phone?'<a href="tel:'+e.phone+'" style="flex:1;text-align:center;padding:.3rem .5rem;background:var(--surface2);border:1px solid var(--border);border-radius:4px;font-size:.72rem;font-weight:500;text-decoration:none;color:var(--text);display:block">📞 Appeler</a>':'')+
+        '</div>'+
+      '</div>';
+    };
+    const _ecoFilter=window._ecolesFilterType;
+    let _ecoHtml='';
+    if(_ecoFilter==='tous'){
+      const _ecoCats=[['ecole','🏫 Écoles'],['college','🎓 Collèges'],['lycee','📚 Lycées']];
+      _ecoCats.forEach(function(cv){
+        const cat=cv[0],lbl=cv[1];
+        const items=liste.filter(function(e){return ecoCategorie(e)===cat;});
+        if(!items.length) return;
+        const accId='eco-acc-'+cat;
+        _ecoHtml+='<div style="border:1px solid var(--border);border-radius:6px;margin-bottom:.45rem;overflow:hidden">'+
+          '<button onclick="toggleAcc(this)" data-target="'+accId+'" '+
+          'style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem;background:var(--surface2);border:none;cursor:pointer;font-size:.8rem;font-weight:600;text-align:left">'+
+          '<span>'+lbl+' ('+items.length+')</span><span class="acc-arrow">▶</span></button>'+
+          '<div id="'+accId+'" style="display:none">'+items.map(_ecoItemHtml).join('')+'</div></div>';
+      });
+      if(!_ecoHtml) _ecoHtml='<p style="color:var(--muted)">Aucun établissement.</p>';
+    } else {
+      _ecoHtml=liste.map(_ecoItemHtml).join('')||'<p style="color:var(--muted)">Aucun établissement pour ce filtre.</p>';
+    }
+    document.getElementById('ecolesListe').innerHTML=_ecoHtml;
     document.querySelectorAll('.eco-type-btn').forEach(b=>b.classList.toggle('active', b.dataset.t===window._ecolesFilterType));
     document.querySelectorAll('.eco-n-btn').forEach(b=>b.classList.toggle('active', b.dataset.n===String(window._ecolesFilterN)));
   };
@@ -4081,6 +4120,8 @@ function showServicesMap(filterCat){
       b.style.opacity = on ? '1' : '.4';
       b.style.fontWeight = on ? '600' : '400';
     });
+    // Mettre à jour la liste
+    if(window.renderSvcListe) window.renderSvcListe();
     // Clusters par catégorie
     if(!window._leafletMap) return;
     Object.keys(window._servicesClusters||{}).forEach(k=>{
@@ -4089,6 +4130,42 @@ function showServicesMap(filterCat){
       if(window._servicesActiveFilters.has(k)) window._leafletMap.addLayer(cluster);
       else window._leafletMap.removeLayer(cluster);
     });
+  };
+
+  window.renderSvcListe = function(){
+    const ph=document.getElementById('svcListeSection');
+    if(!ph) return;
+    let html='<div style="font-size:.85rem;font-weight:600;margin-bottom:.6rem;color:var(--text)">📋 Liste des établissements</div>';
+    CAT_INFO.forEach(function(ci){
+      if(!window._servicesActiveFilters.has(ci.key)) return;
+      const items=(d.services||[]).filter(function(s){return s.categorie===ci.key;});
+      if(!items.length) return;
+      const accId='svc-acc-'+ci.key;
+      html+='<div style="border:1px solid '+ci.couleur+'44;border-radius:6px;margin-bottom:.4rem;overflow:hidden">'+
+        '<button onclick="toggleAcc(this)" data-target="'+accId+'" '+
+        'style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem;background:'+ci.couleur+'14;border:none;cursor:pointer;font-size:.78rem;font-weight:600;text-align:left;color:var(--text)">'+
+        '<span>'+ci.emoji+' '+ci.label+' ('+items.length+')</span><span class="acc-arrow">▶</span></button>'+
+        '<div id="'+accId+'" style="display:none">'+
+        items.map(function(s){
+          const gmUrl='https://maps.google.com/?q='+s.lat+','+s.lon;
+          const adresse=(s.tags&&s.tags['addr:street'])?((s.tags['addr:housenumber']?s.tags['addr:housenumber']+' ':'')+s.tags['addr:street']):(s.tags&&s.tags['addr:full']?s.tags['addr:full']:'');
+          return '<div style="padding:.65rem .5rem;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:.2rem">'+
+            '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:.5rem">'+
+              '<span style="font-size:.8rem;font-weight:600">'+s.icone+' '+s.nom+'</span>'+
+              '<span style="font-size:.7rem;color:var(--muted);white-space:nowrap;padding:.1rem .4rem;background:var(--surface2);border-radius:8px;flex-shrink:0">'+s.distanceM+'m</span>'+
+            '</div>'+
+            (adresse?'<div style="font-size:.71rem;color:var(--muted)">📍 '+adresse+'</div>':'')+
+            (s.tags&&s.tags.phone?'<div style="font-size:.71rem;color:var(--muted)">📞 '+s.tags.phone+'</div>':'')+
+            (s.tags&&s.tags.opening_hours?'<div style="font-size:.71rem;color:var(--muted)">🕐 '+s.tags.opening_hours+'</div>':'')+
+            '<div style="display:flex;gap:.4rem;margin-top:.25rem">'+
+              '<a href="'+gmUrl+'" target="_blank" rel="noopener" style="flex:1;text-align:center;padding:.3rem .5rem;background:var(--ink);color:var(--gold2);border-radius:4px;font-size:.72rem;font-weight:500;text-decoration:none;display:block">🗺 Y aller</a>'+
+              (s.tags&&s.tags.phone?'<a href="tel:'+s.tags.phone+'" style="flex:1;text-align:center;padding:.3rem .5rem;background:var(--surface2);border:1px solid var(--border);border-radius:4px;font-size:.72rem;font-weight:500;text-decoration:none;color:var(--text);display:block">📞 Appeler</a>':'')+
+            '</div>'+
+          '</div>';
+        }).join('')+
+        '</div></div>';
+    });
+    ph.innerHTML=html;
   };
 
   window.filterServicesMap = function(cat){
@@ -4145,6 +4222,7 @@ function showServicesMap(filterCat){
     <div style="margin-top:1.2rem;height:220px"><canvas id="servicesChart"></canvas></div>
     <p style="font-size:.62rem;color:var(--muted);margin-top:.4rem">Source : OpenStreetMap · Rayon ${svcDist>=1000?(svcDist/1000)+'km':svcDist+'m'} · ${d.total} établissements trouvés</p>
     <div id="seniors-section-placeholder"></div>
+    <div id="svcListeSection" style="margin-top:1.2rem"></div>
   `);
 
   // Afficher les seniors EHPAD depuis les données aménités
@@ -6675,14 +6753,16 @@ document.addEventListener('DOMContentLoaded', ()=>{
         const p=document.getElementById('oPrix');
         const n=document.getElementById('negoOffrePrix');
         const tm=window._tauxMarche?.taux||{};
-        if(p&&n&&p.value) n.value=p.value;
+        if(p&&p.value&&n) n.value=p.value;
         const tEl=document.getElementById('negoOffreTaux');
-        if(tEl&&tm[20]&&!tEl._userModified) tEl.value=(+tm[20]).toFixed(2);
+        if(tEl&&tm[20]) tEl.value=String(tm[20]);
+        setTimeout(function(){if(typeof calcNegoOffres==='function') calcNegoOffres();},80);
       }
     };
   }
 });
-
 </script>
+<script src="/pdf-export.js?v=5"></script>
+<script src="/recherche-bien.js?v=2"></script>
 </body>
 </html>
