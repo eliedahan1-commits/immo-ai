@@ -325,6 +325,8 @@ aside{
 /* Carte large (2 colonnes) */
 .info-card.wide{grid-column:span 2;}
 .info-card.tall{grid-row:span 2;}
+.info-card{display:flex;flex-direction:column;}
+.card-text-wrap{flex:1;}
 
 /* ══ SPINNER ══ */
 .spin{
@@ -337,11 +339,11 @@ aside{
 
 /* ══ BOUTON RETOUR ══ */
 .back-btn{
-  display:inline-flex;align-items:center;gap:.4rem;
+  display:flex;align-items:center;gap:.4rem;
   background:var(--ink);color:#fff;border:none;
-  padding:.5rem 1rem;border-radius:4px;
+  padding:.5rem 1.2rem;border-radius:4px;
   font-family:'Outfit',sans-serif;font-size:.75rem;
-  cursor:pointer;margin:1rem 2rem 0;
+  cursor:pointer;margin:1rem auto 0;width:fit-content;
   transition:all .2s;
 }
 .back-btn:hover{background:var(--gold);color:var(--ink);}
@@ -759,6 +761,11 @@ path.leaflet-interactive:focus{outline:none;}
 @media(max-width:480px){
   /* 1 seule colonne pour les cartes */
   .cards-grid            { grid-template-columns:1fr; padding:0 .75rem 1.25rem; }
+  /* Cartes en layout horizontal sur mobile */
+  .info-card             { flex-direction:row;align-items:center;gap:.75rem;padding:.75rem .9rem; }
+  .card-icon             { font-size:1.8rem;margin-bottom:0;flex-shrink:0;width:2.2rem;text-align:center; }
+  .card-arrow            { top:.6rem;right:.6rem; }
+  .source-badge          { margin-top:.25rem; }
 
   /* Bandeau adresse ultra-compact */
   .results-addr-icon     { width:30px; height:30px; font-size:.75rem; }
@@ -2103,10 +2110,12 @@ function renderCards(props, coords){
       <div class="info-card${c.wide?' wide':''}" id="card-${c.id}" onclick="if(event.target.closest('.card-retry-btn'))return;${c.action||'showDetail(\''+c.id+'\')'}">
         <span class="card-arrow">↗</span>
         <div class="card-icon">${c.icon}</div>
-        <div class="card-label">${c.label}</div>
-        <div class="card-value" id="val-${c.id}">${c.value}</div>
-        <div class="card-sub" id="sub-${c.id}">${c.sub}</div>
-        <div class="source-badge">📊 ${c.source}</div>
+        <div class="card-text-wrap">
+          <div class="card-label">${c.label}</div>
+          <div class="card-value" id="val-${c.id}">${c.value}</div>
+          <div class="card-sub" id="sub-${c.id}">${c.sub}</div>
+          <div class="source-badge">📊 ${c.source}</div>
+        </div>
       </div>
     `).join('')}
   `).join('');
