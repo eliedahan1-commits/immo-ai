@@ -87,6 +87,8 @@ export default async function handler(req, res) {
           date: m.date_mutation || '—',
           type: m.type_local || '—',
           adresse: `${m.adresse_numero || ''} ${m.adresse_nom_voie || ''}`.trim(),
+          lat: parseFloat(m.latitude) || null,
+          lon: parseFloat(m.longitude) || null,
           idMutation: m.id_mutation || null
         };
       })

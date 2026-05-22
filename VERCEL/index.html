@@ -3451,7 +3451,7 @@ function showDVFDetail(){
     document.getElementById('dvfTbody').innerHTML = liste.map(t=>`
       <tr>
         <td>${t.date||'—'}</td>
-        <td>${t.type||'—'}</td>
+        <td>${t.type||'—'}${t.adresse?'<br><span style="font-size:.62rem;color:var(--muted)">📍 '+t.adresse+' <a href="https://maps.google.com/?q='+(t.lat&&t.lon?t.lat+','+t.lon:encodeURIComponent(t.adresse+(currentAddress?', '+currentAddress:'')))+'" target="_blank" rel="noopener" style="color:#1a73e8;text-decoration:none;margin-left:.3rem">🗺</a></span>':''}</td>
         <td>${t.surf?t.surf+'m²':'—'}</td>
         <td><strong>${t.prixM2?t.prixM2.toLocaleString('fr-FR')+' €/m²':'—'}</strong></td>
         <td>${t.prix?t.prix.toLocaleString('fr-FR')+' €':'—'}</td>
@@ -3466,19 +3466,7 @@ function showDVFDetail(){
     const tEl = document.getElementById('dvfTrendVal');
     const lEl = document.getElementById('dvfTrendLabel');
     if(!tEl||!lEl) return;
-    // Utiliser toutes les transactions filtrées (sans limite N) pour la tendance
-    let allFiltered = [...(window._dvfRecentes||[])];
-    if(window._dvfFilterType!=='tous') allFiltered = allFiltered.filter(t=>{
-      const tp=(t.type||'').toLowerCase();
-      if(window._dvfFilterType==='appt') return tp.includes('appartement');
-      if(window._dvfFilterType==='maison') return tp.includes('maison');
-      if(window._dvfFilterType==='local') return tp.includes('local');
-      if(window._dvfFilterType==='depend') return tp.includes('dépendance')||tp.includes('dependance');
-      return true;
-    });
-    const s=window._dvfFilterSurf;
-    if(s>0){const T=[[25,0,25],[50,25,50],[75,50,75],[100,75,100],[125,100,125],[150,125,150],[999,150,99999]];const tr=T.find(t=>t[0]===s);if(tr)allFiltered=allFiltered.filter(t=>(t.surf||0)>=tr[1]&&(t.surf||0)<tr[2]);}
-    const withDate = allFiltered.filter(t=>t.date&&t.prixM2>0);
+    const withDate = (liste||[]).filter(t=>t.date&&t.prixM2>0);
     if(withDate.length < 2){ tEl.textContent='—'; tEl.style.color=''; lEl.textContent='📈 Tendance 6 mois'; return; }
     // Trouver la date la plus récente
     const dates = withDate.map(t=>t.date).sort();
@@ -3593,14 +3581,17 @@ function showDVFDetail(){
     </div>
     <div style="margin-bottom:1.2rem"><canvas id="dvfHistChart" height="140"></canvas></div>
     <div style="margin-bottom:1.2rem"><canvas id="dvfEvolutionChart" height="160"></canvas></div>
+    <button id="dvfListeToggle" onclick="var w=document.getElementById('dvfListeWrap');var show=w.style.display==='none';w.style.display=show?'block':'none';this.textContent=show?'▲ Masquer la liste':'📋 Afficher la liste';" style="margin-top:.5rem;margin-bottom:.5rem;padding:.4rem 1rem;background:var(--surface2);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:600;color:var(--text)">📋 Afficher la liste</button>
+    <div id="dvfListeWrap" style="display:none">
     <table class="tbl"><thead><tr>
       <th class="dvf-th" data-col="date"  onclick="sortDVF('date')"  style="cursor:pointer;user-select:none">Date<span class="sort-ind"> ▼</span></th>
-      <th class="dvf-th" data-col="type"  onclick="sortDVF('type')"  style="cursor:pointer;user-select:none">Type<span class="sort-ind"> ⇅</span></th>
+      <th class="dvf-th" data-col="type"  onclick="sortDVF('type')"  style="cursor:pointer;user-select:none">Type / Adresse<span class="sort-ind"> ⇅</span></th>
       <th class="dvf-th" data-col="surf"  onclick="sortDVF('surf')"  style="cursor:pointer;user-select:none">Surface<span class="sort-ind"> ⇅</span></th>
       <th class="dvf-th" data-col="prixM2" onclick="sortDVF('prixM2')" style="cursor:pointer;user-select:none">Prix/m²<span class="sort-ind"> ⇅</span></th>
       <th class="dvf-th" data-col="prix"  onclick="sortDVF('prix')"  style="cursor:pointer;user-select:none">Prix total<span class="sort-ind"> ⇅</span></th>
     </tr></thead>
     <tbody id="dvfTbody"></tbody></table>
+    </div>
     <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">${periodeLabel?periodeLabel+' · ':''}Source : ${d.source}</p>`);
   renderDVFRows();
   setTimeout(()=>refreshDVFChart(), 80);
@@ -3746,7 +3737,7 @@ function showEcolesDetail(){
     } else {
       _ecoHtml=liste.map(_ecoItemHtml).join('')||'<p style="color:var(--muted)">Aucun établissement pour ce filtre.</p>';
     }
-    document.getElementById('ecolesListe').innerHTML=_ecoHtml;
+    document.getElementById('ecolesListe').innerHTML='<div style="font-size:.85rem;font-weight:600;margin-bottom:.6rem;color:var(--text)">📋 Liste des établissements</div>'+_ecoHtml;
     document.querySelectorAll('.eco-type-btn').forEach(b=>b.classList.toggle('active', b.dataset.t===window._ecolesFilterType));
     document.querySelectorAll('.eco-n-btn').forEach(b=>b.classList.toggle('active', b.dataset.n===String(window._ecolesFilterN)));
   };
@@ -3918,6 +3909,7 @@ function showMobiliteDetail(){
     <div style="margin-top:1.2rem;height:160px;width:70%"><canvas id="mobiliteChart"></canvas></div>
     ${d.arretsPrincipaux?.length?`<p style="font-size:.75rem;color:var(--muted);margin-top:.5rem">Principaux arrêts : ${d.arretsPrincipaux.join(' · ')}</p>`:''}
     <p style="font-size:.62rem;color:var(--muted);margin-top:.4rem">Source : OpenStreetMap via Overpass API · Rayon ${mobDist}m</p>
+    <div id="mobListeSection" style="margin-top:1.2rem"></div>
   `);
 
   // Initialiser immédiatement pour éviter un crash si toggle avant le setTimeout
@@ -4034,6 +4026,62 @@ function showMobiliteDetail(){
     }
     window._mobiliteMarkersReady = true;
   }, 250);
+  window.renderMobListe = function(){
+    var ph=document.getElementById('mobListeSection');
+    if(!ph||!d.elements) return;
+    var MOB_CATS=[
+      {key:'metro',label:'Métro/RER',emoji:'🚇',couleur:'#1a73e8'},
+      {key:'bus',  label:'Bus/Tram',   emoji:'🚌',couleur:'#e67e22'},
+      {key:'velo', label:'Vélos',    emoji:'🚲',couleur:'#27ae60'},
+      {key:'gare', label:'Gares',      emoji:'🚂',couleur:'#c0392b'},
+      {key:'borne',label:'Bornes/⛽', emoji:'⚡',couleur:'#8e44ad'}
+    ];
+    var byLayer={metro:[],bus:[],velo:[],gare:[],borne:[]};
+    d.elements.forEach(function(e){
+      if(!e.lat||!e.lon) return;
+      var tags=e.tags||{};
+      var lk='bus';
+      if(tags.railway==='subway_entrance'||tags.station==='subway') lk='metro';
+      else if(tags.railway==='station') lk='gare';
+      else if(tags.amenity==='bicycle_rental') lk='velo';
+      else if(tags.amenity==='charging_station'||tags.amenity==='fuel') lk='borne';
+      else if(tags.highway==='bus_stop'||tags.public_transport==='stop_position'||tags.railway==='tram_stop') lk='bus';
+      else return;
+      byLayer[lk].push(e);
+    });
+    var html='<div style="font-size:.85rem;font-weight:600;margin-bottom:.6rem;color:var(--text)">📋 Liste des arrêts & équipements</div>';
+    MOB_CATS.forEach(function(cat){
+      var items=byLayer[cat.key];
+      if(!items.length) return;
+      var accId='mob-acc-'+cat.key;
+      html+='<div style="border:1px solid '+cat.couleur+'44;border-radius:6px;margin-bottom:.4rem;overflow:hidden">'+
+        '<button onclick="toggleAcc(this)" data-target="'+accId+'" '+
+        'style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem;background:'+cat.couleur+'14;border:none;cursor:pointer;font-size:.78rem;font-weight:600;text-align:left;color:var(--text)">'+
+        '<span>'+cat.emoji+' '+cat.label+' ('+items.length+')</span><span class="acc-arrow">▶</span></button>'+
+        '<div id="'+accId+'" style="display:none">'+
+        items.map(function(e){
+          var tags=e.tags||{};
+          var nom=tags.name||tags.railway||tags.amenity||'Arrêt';
+          var adresse=(tags['addr:housenumber']&&tags['addr:street'])?(tags['addr:housenumber']+' '+tags['addr:street']):(tags['addr:street']||'');
+          var ligneRef=tags.ref||tags['ref:FR:STIF']||'';
+          var gmUrl='https://maps.google.com/?q='+e.lat+','+e.lon;
+          return '<div style="padding:.65rem .5rem;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:.2rem">'+
+            '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:.5rem">'+
+              '<span style="font-size:.8rem;font-weight:600">'+cat.emoji+' '+nom+'</span>'+
+            '</div>'+
+            (ligneRef?'<div style="font-size:.71rem;color:var(--muted)">🚌 Ligne '+ligneRef+'</div>':'')+
+            (adresse?'<div style="font-size:.71rem;color:var(--muted)">📍 '+adresse+'</div>':'')+
+            '<div style="margin-top:.25rem">'+
+              '<a href="'+gmUrl+'" target="_blank" rel="noopener" style="display:inline-block;padding:.3rem .9rem;background:var(--ink);color:var(--gold2);border-radius:4px;font-size:.72rem;font-weight:500;text-decoration:none">🗺 Y aller</a>'+
+            '</div>'+
+          '</div>';
+        }).join('')+
+        '</div></div>';
+    });
+    ph.innerHTML=html;
+  };
+  setTimeout(window.renderMobListe, 350);
+
   // Bar chart mobilité
   setTimeout(()=>{
     const ctx=document.getElementById('mobiliteChart');
@@ -4165,6 +4213,39 @@ function showServicesMap(filterCat){
         }).join('')+
         '</div></div>';
     });
+    // Seniors (depuis amenitesData)
+    if(window._servicesActiveFilters.has('senior')){
+      var srData=window._amenitesData&&window._amenitesData.seniors;
+      if(srData&&srData.etablissements&&srData.etablissements.length){
+        var svcD=window._servicesCurrentDist||1000;
+        var srItems=srData.etablissements.filter(function(s){
+          if(!s.lat||!s.lon||!currentCoords) return true;
+          var dLa=(s.lat-currentCoords.lat)*111000,dLo=(s.lon-currentCoords.lng)*111000*Math.cos(currentCoords.lat*Math.PI/180);
+          return Math.sqrt(dLa*dLa+dLo*dLo)<=svcD;
+        });
+        if(srItems.length){
+          var accIdSr='svc-acc-senior';
+          html+='<div style="border:1px solid #9b59b644;border-radius:6px;margin-bottom:.4rem;overflow:hidden">'+
+            '<button onclick="toggleAcc(this)" data-target="'+accIdSr+'" '+
+            'style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem;background:#9b59b614;border:none;cursor:pointer;font-size:.78rem;font-weight:600;text-align:left;color:var(--text)">'+
+            '<span>🏡 Seniors ('+srItems.length+')</span><span class="acc-arrow">▶</span></button>'+
+            '<div id="'+accIdSr+'" style="display:none">'+
+            srItems.map(function(s){
+              var gmUrl='https://maps.google.com/?q='+s.lat+','+s.lon;
+              return '<div style="padding:.65rem .5rem;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:.2rem">'+
+                '<div style="font-size:.8rem;font-weight:600">🏡 '+(s.nom||'Inconnu')+'</div>'+
+                (s.adresse?'<div style="font-size:.71rem;color:var(--muted)">📍 '+s.adresse+'</div>':'')+
+                (s.phone?'<div style="font-size:.71rem;color:var(--muted)">📞 '+s.phone+'</div>':'')+
+                '<div style="display:flex;gap:.4rem;margin-top:.25rem">'+
+                  '<a href="'+gmUrl+'" target="_blank" rel="noopener" style="flex:1;text-align:center;padding:.3rem .5rem;background:var(--ink);color:var(--gold2);border-radius:4px;font-size:.72rem;font-weight:500;text-decoration:none;display:block">🗺 Y aller</a>'+
+                  (s.phone?'<a href="tel:'+s.phone+'" style="flex:1;text-align:center;padding:.3rem .5rem;background:var(--surface2);border:1px solid var(--border);border-radius:4px;font-size:.72rem;font-weight:500;text-decoration:none;color:var(--text);display:block">📞 Appeler</a>':'')+
+                '</div>'+
+              '</div>';
+            }).join('')+
+            '</div></div>';
+        }
+      }
+    }
     ph.innerHTML=html;
   };
 
