@@ -4194,8 +4194,8 @@ function showServicesMap(filterCat){
         '<span>'+ci.emoji+' '+ci.label+' ('+items.length+')</span><span class="acc-arrow">▶</span></button>'+
         '<div id="'+accId+'" style="display:none">'+
         items.map(function(s){
-          const gmUrl='https://maps.google.com/?q='+encodeURIComponent(s.nom+(adresse?', '+adresse:''));
           const adresse=(s.tags&&s.tags['addr:street'])?((s.tags['addr:housenumber']?s.tags['addr:housenumber']+' ':'')+s.tags['addr:street']):(s.tags&&s.tags['addr:full']?s.tags['addr:full']:'');
+          const gmUrl='https://maps.google.com/?q='+encodeURIComponent(s.nom+(adresse?', '+adresse:''));
           return '<div style="padding:.65rem .5rem;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:.2rem">'+
             '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:.5rem">'+
               '<span style="font-size:.8rem;font-weight:600">'+s.icone+' '+s.nom+'</span>'+
