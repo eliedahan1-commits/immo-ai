@@ -3451,7 +3451,7 @@ function showDVFDetail(){
     document.getElementById('dvfTbody').innerHTML = liste.map(t=>`
       <tr>
         <td>${t.date||'—'}</td>
-        <td>${t.type||'—'}${t.adresse?'<br><span style="font-size:.62rem;color:var(--muted)">📍 '+t.adresse+' <a href="https://maps.google.com/?q='+(t.lat&&t.lon?t.lat+','+t.lon:encodeURIComponent(t.adresse+(currentAddress?', '+currentAddress:'')))+'" target="_blank" rel="noopener" style="color:#1a73e8;text-decoration:none;margin-left:.3rem">🗺</a></span>':''}</td>
+        <td>${t.type||'—'}${t.adresse?'<br><span style="font-size:.62rem;color:var(--muted)">📍 '+t.adresse+'</span><br><a href="https://maps.google.com/?q='+encodeURIComponent((t.adresse?t.adresse+(currentAddress?', '+currentAddress:''):(t.lat&&t.lon?t.lat+','+t.lon:'')))+'" target="_blank" rel="noopener" style="display:inline-block;margin-top:.2rem;padding:.2rem .55rem;background:var(--ink);color:var(--gold2);border-radius:4px;font-size:.7rem;font-weight:600;text-decoration:none">🗺 Y aller</a>':''}</td>
         <td>${t.surf?t.surf+'m²':'—'}</td>
         <td><strong>${t.prixM2?t.prixM2.toLocaleString('fr-FR')+' €/m²':'—'}</strong></td>
         <td>${t.prix?t.prix.toLocaleString('fr-FR')+' €':'—'}</td>
@@ -4016,7 +4016,7 @@ function showMobiliteDetail(){
         const ligneRef=tags.ref||tags['ref:FR:STIF']||'';
         const reseauOp=tags.network||tags.operator||'';
         const adresseMob=[tags['addr:housenumber'],tags['addr:street']].filter(Boolean).join(' ');
-        const popMob=`<strong>${icone} ${tags.name||tags.railway||tags.amenity||'Arrêt'}</strong>`+(ligneRef?`<br><span style="font-size:.72rem">🚌 Ligne ${ligneRef}</span>`:'')+(reseauOp?`<br><span style="font-size:.72rem;color:#666">${reseauOp}</span>`:'')+(adresseMob?`<br><span style="font-size:.72rem">📍 ${adresseMob}</span>`:'')+`<br><span style="font-size:.72rem"><a href="https://maps.google.com/?q=${encodeURIComponent((tags.name||tags.railway||"Arrêt")+(adresseMob?", "+adresseMob:""))}" target="_blank" onclick="this.innerHTML='⏳ Ouverture...'" style="color:#1a73e8;text-decoration:none">🗺️ Y aller</a></span>`;
+        const popMob=`<strong>${icone} ${tags.name||tags.railway||tags.amenity||'Arrêt'}</strong>`+(reseauOp?`<br><span style="font-size:.72rem;color:#666">${reseauOp}</span>`:'')+(adresseMob?`<br><span style="font-size:.72rem">📍 ${adresseMob}</span>`:'')+`<br><span style="font-size:.72rem"><a href="https://maps.google.com/?q=${encodeURIComponent((tags.name||tags.railway||"Arrêt")+(adresseMob?", "+adresseMob:""))}" target="_blank" onclick="this.innerHTML='⏳ Ouverture...'" style="color:#1a73e8;text-decoration:none">🗺️ Y aller</a></span>`;
         const marker=L.marker([e.lat,e.lon],{icon}).bindPopup(popMob);
         clusters[layerKey].addLayer(marker);
         window._mobiliteMarkers[layerKey].push(marker);
@@ -4063,13 +4063,12 @@ function showMobiliteDetail(){
           var tags=e.tags||{};
           var nom=tags.name||tags.railway||tags.amenity||'Arrêt';
           var adresse=(tags['addr:housenumber']&&tags['addr:street'])?(tags['addr:housenumber']+' '+tags['addr:street']):(tags['addr:street']||'');
-          var ligneRef=tags.ref||tags['ref:FR:STIF']||'';
-          var gmUrl='https://maps.google.com/?q='+e.lat+','+e.lon;
+          var gmUrl='https://maps.google.com/?q='+encodeURIComponent(nom+(adresse?', '+adresse:''));
           return '<div style="padding:.65rem .5rem;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:.2rem">'+
             '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:.5rem">'+
               '<span style="font-size:.8rem;font-weight:600">'+cat.emoji+' '+nom+'</span>'+
             '</div>'+
-            (ligneRef?'<div style="font-size:.71rem;color:var(--muted)">🚌 Ligne '+ligneRef+'</div>':'')+
+
             (adresse?'<div style="font-size:.71rem;color:var(--muted)">📍 '+adresse+'</div>':'')+
             '<div style="margin-top:.25rem">'+
               '<a href="'+gmUrl+'" target="_blank" rel="noopener" style="display:inline-block;padding:.3rem .9rem;background:var(--ink);color:var(--gold2);border-radius:4px;font-size:.72rem;font-weight:500;text-decoration:none">🗺 Y aller</a>'+
@@ -4195,7 +4194,7 @@ function showServicesMap(filterCat){
         '<span>'+ci.emoji+' '+ci.label+' ('+items.length+')</span><span class="acc-arrow">▶</span></button>'+
         '<div id="'+accId+'" style="display:none">'+
         items.map(function(s){
-          const gmUrl='https://maps.google.com/?q='+s.lat+','+s.lon;
+          const gmUrl='https://maps.google.com/?q='+encodeURIComponent(s.nom+(adresse?', '+adresse:''));
           const adresse=(s.tags&&s.tags['addr:street'])?((s.tags['addr:housenumber']?s.tags['addr:housenumber']+' ':'')+s.tags['addr:street']):(s.tags&&s.tags['addr:full']?s.tags['addr:full']:'');
           return '<div style="padding:.65rem .5rem;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:.2rem">'+
             '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:.5rem">'+
@@ -4231,7 +4230,7 @@ function showServicesMap(filterCat){
             '<span>🏡 Seniors ('+srItems.length+')</span><span class="acc-arrow">▶</span></button>'+
             '<div id="'+accIdSr+'" style="display:none">'+
             srItems.map(function(s){
-              var gmUrl='https://maps.google.com/?q='+s.lat+','+s.lon;
+              var gmUrl='https://maps.google.com/?q='+encodeURIComponent((s.nom||'')+(s.adresse?', '+s.adresse:''));
               return '<div style="padding:.65rem .5rem;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:.2rem">'+
                 '<div style="font-size:.8rem;font-weight:600">🏡 '+(s.nom||'Inconnu')+'</div>'+
                 (s.adresse?'<div style="font-size:.71rem;color:var(--muted)">📍 '+s.adresse+'</div>':'')+
@@ -4341,7 +4340,7 @@ function showServicesMap(filterCat){
     h += '</div>';
     ph.outerHTML = h;
   };
-  setTimeout(_renderSeniors, 200);
+  // seniors now rendered in renderSvcListe accordion
 
   // Synchro immédiate des boutons (sans attendre la carte)
   window._applySvcFilters();
