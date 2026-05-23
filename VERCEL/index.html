@@ -1142,13 +1142,6 @@ path.leaflet-interactive:focus{outline:none;}
         ⚠️ Simulation indicative. Le rendement réel dépend de la fiscalité (régime réel ou micro-foncier, IFI, PFU…), des travaux imprévus et de l'évolution du marché locatif.
         <a href="https://www.service-public.fr/particuliers/vosdroits/F14868" target="_blank" style="color:var(--gold2);margin-left:.5rem">Fiscalité location →</a>
       </div>
-    <!-- Graphique cashflow -->
-    <div id="cashflowSection" style="display:none;margin-top:1.5rem">
-      <div style="font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem">📈 Cash-flow sur la durée du prêt</div>
-      <div style="position:relative;background:var(--ink);border-radius:var(--r);padding:1.25rem 1rem 1rem">
-        <canvas id="cashflowChart" height="220"></canvas>
-      </div>
-    </div>
     <!-- Graphique break-even -->
     <div id="breakEvenSection" style="display:none;margin-top:1.5rem">
       <div style="font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem">📊 À partir de quand gagnez-vous de l&apos;argent ?</div>
@@ -1158,6 +1151,17 @@ path.leaflet-interactive:focus{outline:none;}
       <div id="breakEvenLabel" style="font-size:.75rem;font-weight:600;margin-bottom:.75rem"></div>
       <div style="position:relative;background:var(--ink);border-radius:var(--r);padding:1.25rem 1rem 1rem">
         <canvas id="breakEvenChart" height="220"></canvas>
+      </div>
+    </div>
+    <!-- Graphique cashflow -->
+    <div id="cashflowSection" style="display:none;margin-top:1.5rem">
+      <div style="font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem">📈 Cash-flow mensuel net après impôts</div>
+      <div style="font-size:.68rem;color:var(--muted);margin-bottom:.75rem;line-height:1.5">
+        Chaque barre = loyers encaissés − mensualité crédit − charges − impôts sur le revenu.<br>
+        <span style="color:#27ae60;font-weight:600">Vert</span> = excédent (vous gagnez de l&apos;argent ce mois). <span style="color:#e74c3c;font-weight:600">Rouge</span> = effort (vous complétez de votre poche). Les barres rouges diminuent au fil du temps car les intérêts baissent → base imposable plus élevée au début.
+      </div>
+      <div style="position:relative;background:var(--ink);border-radius:var(--r);padding:1.25rem 1rem 1rem">
+        <canvas id="cashflowChart" height="200"></canvas>
       </div>
     </div>
     </div>
@@ -6670,8 +6674,7 @@ function calcLocation(){
   // ── Graphique cashflow sur la durée ──
   if(window.Chart && emprunt >= 0) {
     let capital = emprunt;
-    const labels = [], cfAnnuel = [], cfCumul = [];
-    let cumul = 0;
+    const labels = [], cfAnnuel = [];
     for(let y = 1; y <= duree; y++) {
       let interetsAn = 0;
       for(let m = 0; m < 12; m++) {
@@ -6681,50 +6684,62 @@ function calcLocation(){
         capital -= km;
         if(capital < 0) capital = 0;
       }
-      // Base IR ajustée aux intérêts réels de l'année
       let baseIRy = 0;
-      if(regime==='micro')        baseIRy = loyerEffectif * 0.70;
-      else if(regime==='reel')    baseIRy = Math.max(0, loyerEffectif - depensesHorsCredit - Math.round(interetsAn) - mensAssurL*12);
-      else if(regime==='lmnp_micro') baseIRy = loyerEffectif * 0.50;
+      if(regime==='micro')           baseIRy = loyerEffectif * (1-(parseFloat(document.getElementById('lAbattMicro')?.value)||30)/100);
+      else if(regime==='reel')       baseIRy = Math.max(0, loyerEffectif - depensesHorsCredit - Math.round(interetsAn) - mensAssurL*12);
+      else if(regime==='lmnp_micro') baseIRy = loyerEffectif * (1-(parseFloat(document.getElementById('lAbattLmnp')?.value)||50)/100);
       else if(regime==='lmnp_reel')  baseIRy = Math.max(0, loyerEffectif - depensesHorsCredit - Math.round(interetsAn) - mensAssurL*12);
       const fiscAn = Math.round(baseIRy * (tmi + PS_RATE));
       const cf = Math.round((loyerEffectif - depensesHorsCredit - fiscAn) / 12 - mens);
-      cumul += cf * 12;
       labels.push('An ' + y);
       cfAnnuel.push(cf);
-      cfCumul.push(Math.round(cumul));
     }
     if(window._cashflowChart) { window._cashflowChart.destroy(); window._cashflowChart = null; }
     const ctx = document.getElementById('cashflowChart').getContext('2d');
     window._cashflowChart = new Chart(ctx, {
+      type: 'bar',
       data: {
         labels,
-        datasets: [
-          {
-            type: 'bar', label: 'Cash-flow mensuel (€)',
-            data: cfAnnuel,
-            backgroundColor: cfAnnuel.map(v => v >= 0 ? 'rgba(39,174,96,.7)' : 'rgba(231,76,60,.7)'),
-            borderColor:     cfAnnuel.map(v => v >= 0 ? '#27ae60' : '#e74c3c'),
-            borderWidth: 1, yAxisID: 'y',
-          },
-          {
-            type: 'line', label: 'Cumul (€)',
-            data: cfCumul,
-            borderColor: '#e8a020', backgroundColor: 'rgba(232,160,32,.08)',
-            borderWidth: 2, pointRadius: 0, tension: 0.4, fill: true, yAxisID: 'y2',
+        datasets: [{
+          label: "Cash-flow mensuel net (€)",
+          data: cfAnnuel,
+          backgroundColor: cfAnnuel.map(v => v >= 0 ? 'rgba(39,174,96,.75)' : 'rgba(231,76,60,.75)'),
+          borderColor:     cfAnnuel.map(v => v >= 0 ? '#27ae60' : '#e74c3c'),
+          borderWidth: 1,
+          borderRadius: 2,
+          datalabels: {
+            display: (ctx) => ctx.dataIndex % 2 === 0,
+            color: (ctx) => ctx.dataset.data[ctx.dataIndex] >= 0 ? '#7ef0c0' : '#ff9999',
+            font: { size: 8 },
+            anchor: (ctx) => ctx.dataset.data[ctx.dataIndex] >= 0 ? 'end' : 'start',
+            align: (ctx) => ctx.dataset.data[ctx.dataIndex] >= 0 ? 'top' : 'bottom',
+            formatter: v => (v > 0 ? '+' : '') + v + ' €',
+            clamp: true,
           }
-        ]
+        }]
       },
       options: {
-        responsive: true, interaction: { mode: 'index', intersect: false },
+        responsive: true,
+        interaction: { mode: 'index', intersect: false },
         plugins: {
-          legend: { labels: { color: 'rgba(255,255,255,.7)', font: { size: 11 } } },
-          tooltip: { callbacks: { label: ctx => ' ' + ctx.dataset.label + ' : ' + fmt(ctx.parsed.y) + ' €' } }
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title: ctx => ctx[0].label,
+              label: ctx => " Cash-flow : " + (ctx.parsed.y > 0 ? "+" : "") + fmt(ctx.parsed.y) + " €/mois"
+            }
+          }
         },
         scales: {
-          x: { ticks: { color: 'rgba(255,255,255,.5)', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,.06)' } },
-          y:  { position: 'left',  ticks: { color: '#27ae60', font: { size: 10 }, callback: v => fmt(v)+' €' }, grid: { color: 'rgba(255,255,255,.06)' } },
-          y2: { position: 'right', ticks: { color: '#e8a020', font: { size: 10 }, callback: v => fmt(v)+' €' }, grid: { drawOnChartArea: false } }
+          x: {
+            ticks: { color: 'rgba(255,255,255,.55)', font: { size: 9 }, maxTicksLimit: 12 },
+            grid: { color: 'rgba(255,255,255,.05)' }
+          },
+          y: {
+            ticks: { color: 'rgba(255,255,255,.6)', font: { size: 9 }, maxTicksLimit: 6, callback: v => v + ' €' },
+            grid: { color: 'rgba(255,255,255,.07)' },
+            border: { dash: [3,3] }
+          }
         }
       }
     });
