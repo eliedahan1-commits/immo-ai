@@ -697,7 +697,7 @@ path.leaflet-interactive:focus{outline:none;}
 
   /* Bandeau adresse */
   .results-header        { padding:1rem 1rem 0; }
-  .results-addr          { gap:.4rem; flex-wrap:wrap; }
+  .results-addr          { gap:.4rem .5rem; flex-wrap:wrap; }
   .results-addr-badge    { display:none; }
   .results-addr-text .results-addr-sub { font-size:.62rem; }
   #btnAnalyseComplete    { display:none; }
@@ -768,9 +768,14 @@ path.leaflet-interactive:focus{outline:none;}
   .source-badge          { margin-top:.25rem; }
 
   /* Bandeau adresse ultra-compact */
-  .results-addr-icon     { width:30px; height:30px; font-size:.75rem; }
-  .results-addr-main     { font-size:.82rem; }
-  .results-addr-sub      { font-size:.6rem; }
+  /* Adresse mobile : 2 lignes — boutons haut, adresse bas pleine largeur */
+  .results-addr          { display:flex; flex-wrap:wrap; align-items:center; gap:.4rem; }
+  .results-addr .back-btn{ order:1; flex:1; justify-content:center; margin:0; min-width:0; }
+  .results-addr > button:last-child { order:2; flex-shrink:0; font-size:.72rem !important; padding:.4rem .7rem !important; }
+  .results-addr-icon     { order:99; display:none; }
+  .results-addr-text     { order:3; width:100%; }
+  .results-addr-main     { font-size:.85rem; }
+  .results-addr-sub      { font-size:.62rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
 
   /* Titres encore plus compacts */
   .ptitle                { font-size:1.25rem; }
@@ -784,6 +789,16 @@ path.leaflet-interactive:focus{outline:none;}
 
   /* Stress test delta : wrap */
   .result-row span:last-child { text-align:right; flex-shrink:0; }
+}
+/* ══ Compatibilité de vie — mobile ══ */
+@media(max-width:768px){
+  #profilGrid               { grid-template-columns:1fr !important; }
+  #profilColRadar           { order:-1; } /* radar en premier */
+  #profilColQuestions       { order:0; }
+  #p-profil .tog            { font-size:.68rem; padding:.3rem .7rem; }
+  #p-profil .lbl            { font-size:.68rem; }
+  #p-profil .ctitle         { font-size:.82rem; }
+  #radarCanvas              { height:260px !important; }
 }
 /* ══ FIN RESPONSIVE ═══════════════════════════════════════════════════════ */
 </style>
@@ -1321,10 +1336,10 @@ path.leaflet-interactive:focus{outline:none;}
     </div>
 
     <!-- Layout 2 colonnes -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:start">
+    <div id="profilGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:start">
 
     <!-- Colonne gauche : questions -->
-    <div>
+    <div id="profilColQuestions">
     <div class="card"><div class="ctitle" style="display:flex;justify-content:space-between;align-items:center">🎯 Votre profil de vie<button onclick="resetProfil()" style="font-size:.68rem;padding:.2rem .5rem;border:1px solid var(--border);border-radius:4px;background:transparent;color:var(--muted);cursor:pointer">↺ Réinitialiser</button></div>
 
       <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Enfants ?</p>
@@ -1432,7 +1447,7 @@ path.leaflet-interactive:focus{outline:none;}
     </div><!-- fin colonne gauche -->
 
     <!-- Colonne droite : radar -->
-    <div>
+    <div id="profilColRadar">
       <div class="card" id="radarCard" style="display:none">
         <div class="ctitle">📊 Score de compatibilité</div>
         <div style="max-width:460px;margin:0 auto"><canvas id="radarCanvas" height="380"></canvas></div>
