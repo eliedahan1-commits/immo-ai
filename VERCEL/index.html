@@ -1149,6 +1149,17 @@ path.leaflet-interactive:focus{outline:none;}
         <canvas id="cashflowChart" height="220"></canvas>
       </div>
     </div>
+    <!-- Graphique break-even -->
+    <div id="breakEvenSection" style="display:none;margin-top:1.5rem">
+      <div style="font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem">📊 À partir de quand gagnez-vous de l&apos;argent ?</div>
+      <div style="font-size:.68rem;color:var(--muted);margin-bottom:.75rem;line-height:1.5">
+        Gain/perte cumulé(e) = cash-flows nets après impôts + capital remboursé − frais initiaux non récupérables (notaire + travaux).
+      </div>
+      <div id="breakEvenLabel" style="font-size:.75rem;font-weight:600;margin-bottom:.75rem"></div>
+      <div style="position:relative;background:var(--ink);border-radius:var(--r);padding:1.25rem 1rem 1rem">
+        <canvas id="breakEvenChart" height="220"></canvas>
+      </div>
+    </div>
     </div>
   </div></div>
 
@@ -1949,7 +1960,8 @@ function addAddrBtn(map, el){
     var addrIcon = L.divIcon({html:'<div style="width:16px;height:16px;background:#b8832a;border:2.5px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>',iconSize:[16,16],iconAnchor:[8,8],className:''});
     map._addrMarker = L.marker([currentCoords.lat, currentCoords.lng], {icon:addrIcon}).addTo(map);
     var addrLabel = currentAddress || (currentCoords.lat.toFixed(5)+', '+currentCoords.lng.toFixed(5));
-    map._addrMarker.bindPopup('<strong>🏠 Adresse analysée</strong><br><span style="font-size:.75rem;color:#666">'+addrLabel+'</span>').openPopup();
+    var addrGmUrl = 'https://maps.google.com/?q='+currentCoords.lat+','+currentCoords.lng;
+    map._addrMarker.bindPopup('<strong>🏠 Adresse analysée</strong><br><span style="font-size:.75rem;color:#666">'+addrLabel+'</span><br><a href="'+addrGmUrl+'" target="_blank" rel="noopener" style="font-size:.72rem;color:#1a73e8;text-decoration:none">🗺️ Y aller</a>').openPopup();
   });
 }
 
@@ -2185,16 +2197,16 @@ function renderCards(props, coords){
       title: '🏘️ Mon quartier',
       cards: [
         {id:'score',     icon:'⭐', label:'Score de quartier',      value:'<span class="spin"></span>', sub:'Synthèse automatique',      source:'Multi-sources'},
-        {id:'ecoles',    icon:'🏫', label:'Écoles & IPS',           value:'<span class="spin"></span>', sub:'IPS & résultats',           source:'Éducation'},
-        {id:'mobilite',  icon:'🚇', label:'Mobilité & transports',  value:'<span class="spin"></span>', sub:'Transports & vélos',        source:'Transport.data'},
-        {id:'fibre',     icon:'📶', label:'Internet & fibre',       value:'<span class="spin"></span>', sub:'Éligibilité fibre',         source:'ARCEP'},
         {id:'services',  icon:'🏥', label:'Services & santé',       value:'<span class="spin"></span>', sub:'Santé, courses, sport',     source:'OSM'},
+        {id:'mobilite',  icon:'🚇', label:'Mobilité & transports',  value:'<span class="spin"></span>', sub:'Transports & vélos',        source:'Transport.data'},
+        {id:'ecoles',    icon:'🏫', label:'Écoles & IPS',           value:'<span class="spin"></span>', sub:'IPS & résultats',           source:'Éducation'},
         {id:'meteo',     icon:'☀️', label:"Météo et qualité de l'air", value:'<span class="spin"></span>', sub:'Moyenne 5 ans',            source:'open-meteo'},
         {id:'insee',     icon:'📊', label:'Profil du quartier',     value:'<span class="spin"></span>', sub:'Population & densité',      source:'INSEE'},
-        {id:'altitude',  icon:'🏔️', label:'Altitude',               value:'<span class="spin"></span>', sub:'Précision 1m · IGN',       source:'IGN RGE Alti'},
         {id:'demographie',icon:'📈',label:'Évolution démographique',value:'<span class="spin"></span>', sub:'Historique population',     source:'Wikidata/INSEE'},
         {id:'risques',   icon:'⚠️', label:'Risques naturels',       value:'<span class="spin"></span>', sub:'Géorisques officiel',       source:'Géorisques'},
+        {id:'altitude',  icon:'🏔️', label:'Altitude & topographie', value:'<span class="spin"></span>', sub:'Précision 1m · IGN',       source:'IGN RGE Alti'},
         {id:'bruit',     icon:'🔇', label:'Bruit & nuisances',      value:'<span class="spin"></span>', sub:'Routes, voies ferrées, aéroports', source:'OSM'},
+        {id:'fibre',     icon:'📶', label:'Internet & fibre',       value:'<span class="spin"></span>', sub:'Éligibilité fibre',         source:'ARCEP'},
         {id:'urbanisme', icon:'📋', label:'Urbanisme, PLU & Énergie', value:'<span class="spin"></span>', sub:'Zonage officiel IGN',       source:'IGN GPU'},
       ]
     },
@@ -2214,7 +2226,7 @@ function renderCards(props, coords){
         {id:'cout',    icon:'📊', label:'Vrai coût du bien',    value:'Simuler →', sub:'Prix total acquisition',  source:'Calcul', action:"go('cout')"},
         {id:'aides',   icon:'🎁', label:'Aides PTZ & État',     value:'Simuler →', sub:'PTZ, Action Logement...', source:'État',   action:"go('aides')"},
         {id:'renov',   icon:'🔨', label:'Rénovation & aides',   value:'Simuler →', sub:"MaPrimeRénov', CEE...",  source:'ANAH',   action:"go('renov')"},
-        {id:'mensualites', icon:'🧮', label:'Simulation mensualités', value:'Calculer →', sub:'Mensualité, coût crédit', source:'Calcul', action:"go('mensualites')"},
+        {id:'mensualites', icon:'🧮', label:'Simulation mensualités', value:'Calculer →', sub:'Mensualités, coût crédit', source:'Calcul', action:"go('mensualites')"},
       ]
     },
     {
@@ -3803,7 +3815,7 @@ function showRisquesDetail(){
   addAddrBtn(map, el);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CartoDB',subdomains:'abcd',maxZoom:19}).addTo(map);
     const icon = L.divIcon({html:'<div style="width:14px;height:14px;background:#b8832a;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.5)"></div>',iconSize:[14,14],iconAnchor:[7,7],className:''});
-    L.marker([d.lat,d.lng],{icon}).addTo(map).bindPopup(`📍 ${currentAddress||'Adresse analysée'}`).openPopup();
+    L.marker([d.lat,d.lng],{icon}).addTo(map).bindPopup(`📍 ${currentAddress||'Adresse analysée'}<br><a href="https://maps.google.com/?q=${d.lat},${d.lng}" target="_blank" style="font-size:.72rem;color:#1a73e8;text-decoration:none">🗺️ Y aller</a>`).openPopup();
   },300);
 }
 
@@ -4515,7 +4527,7 @@ function showServicesMap(filterCat){
     });
     L.marker([lat, lng], {icon: homeIcon})
       .addTo(map)
-      .bindPopup(`<strong>📍 Adresse analysée</strong><br>${currentAddress}`)
+      .bindPopup(`<strong>📍 Adresse analysée</strong><br><span style="font-size:.75rem;color:#666">${currentAddress}</span><br><a href="https://maps.google.com/?q=${lat},${lon}" target="_blank" style="font-size:.72rem;color:#1a73e8;text-decoration:none">🗺️ Y aller</a>`)
       .openPopup();
 
     // Points de services par catégorie avec clustering
@@ -6626,6 +6638,158 @@ function calcLocation(){
       }
     });
     document.getElementById('cashflowSection').style.display = '';
+  }
+
+  // ── Graphique break-even ──
+  if(window.Chart && emprunt >= 0) {
+    let capBE = emprunt;
+    const beLabels = ['Début'];
+    const beCumul = [-(notaire + travaux)];
+    const beCumulNoTax = [-(notaire + travaux)];
+    let cumBE = -(notaire + travaux);
+    let cumBENoTax = -(notaire + travaux);
+    let breakEvenYear = null;
+    let breakEvenYearNoTax = null;
+
+    for(let y = 1; y <= duree; y++){
+      let interetsAnY = 0, capitalAnY = 0;
+      for(let m = 0; m < 12; m++){
+        const im = capBE * tauxL / 12;
+        const km = mens - mensAssurL - im;
+        interetsAnY += im;
+        capitalAnY  += km;
+        capBE -= km;
+        if(capBE < 0) capBE = 0;
+      }
+      capitalAnY = Math.round(capitalAnY);
+
+      // Fiscalité réelle de l'année (intérêts dégressifs)
+      let baseIRy = 0;
+      const abattMicro = parseFloat(document.getElementById('lAbattMicro')?.value)||30;
+      const abattLmnp  = parseFloat(document.getElementById('lAbattLmnp')?.value)||50;
+      if(regime==='micro')        baseIRy = loyerEffectif * (1 - abattMicro/100);
+      else if(regime==='reel')    baseIRy = Math.max(0, loyerEffectif - depensesHorsCredit - Math.round(interetsAnY) - mensAssurL*12);
+      else if(regime==='lmnp_micro') baseIRy = loyerEffectif * (1 - abattLmnp/100);
+      else if(regime==='lmnp_reel')  baseIRy = Math.max(0, loyerEffectif - depensesHorsCredit - Math.round(interetsAnY) - mensAssurL*12);
+      const fiscAnY = Math.round(baseIRy * (tmi + PS_RATE));
+
+      const cfNetAn  = (loyerEffectif - depensesHorsCredit - fiscAnY) - mens*12;
+      const cfBrutAn = (loyerEffectif - depensesHorsCredit) - mens*12;
+
+      cumBE      += cfNetAn  + capitalAnY;
+      cumBENoTax += cfBrutAn + capitalAnY;
+
+      if(breakEvenYear      === null && cumBE      >= 0) breakEvenYear      = y;
+      if(breakEvenYearNoTax === null && cumBENoTax >= 0) breakEvenYearNoTax = y;
+
+      beLabels.push('An ' + y);
+      beCumul.push(Math.round(cumBE));
+      beCumulNoTax.push(Math.round(cumBENoTax));
+    }
+
+    if(window._breakEvenChart){ window._breakEvenChart.destroy(); window._breakEvenChart = null; }
+    const ctx2 = document.getElementById('breakEvenChart').getContext('2d');
+    const zeroData = beLabels.map(() => 0);
+
+    window._breakEvenChart = new Chart(ctx2, {
+      type: 'line',
+      data: {
+        labels: beLabels,
+        datasets: [
+          {
+            label: 'Après impôts',
+            data: beCumul,
+            borderColor: '#e8a020',
+            backgroundColor: 'rgba(232,160,32,.12)',
+            borderWidth: 2.5,
+            pointRadius: 0,
+            pointHoverRadius: 5,
+            tension: 0.4,
+            fill: true,
+          },
+          {
+            label: 'Sans impôts',
+            data: beCumulNoTax,
+            borderColor: 'rgba(39,174,96,.8)',
+            backgroundColor: 'transparent',
+            borderWidth: 1.5,
+            borderDash: [6, 3],
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            tension: 0.4,
+            fill: false,
+          },
+          {
+            label: '__zero__',
+            data: zeroData,
+            borderColor: 'rgba(255,255,255,.2)',
+            backgroundColor: 'transparent',
+            borderWidth: 1,
+            borderDash: [4, 4],
+            pointRadius: 0,
+            fill: false,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: {
+            labels: {
+              color: 'rgba(255,255,255,.7)',
+              font: { size: 10 },
+              filter: item => item.text !== '__zero__'
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                if(ctx.dataset.label === '__zero__') return null;
+                const sign = ctx.parsed.y >= 0 ? '+' : '';
+                return ' ' + ctx.dataset.label + ' : ' + sign + fmt(ctx.parsed.y) + ' €';
+              }
+            }
+          }
+        },
+        scales: {
+          x: { ticks: { color: 'rgba(255,255,255,.5)', font: { size: 10 }, maxTicksLimit: 12 }, grid: { color: 'rgba(255,255,255,.06)' } },
+          y: { ticks: { color: 'rgba(255,255,255,.6)', font: { size: 10 }, callback: v => fmt(v)+' €' }, grid: { color: 'rgba(255,255,255,.08)' } }
+        }
+      },
+      plugins: [{
+        id: 'beAnnotation',
+        afterDraw(chart) {
+          if(!breakEvenYear) return;
+          const {ctx: c, chartArea, scales} = chart;
+          const xPos = scales.x.getPixelForValue(breakEvenYear);
+          c.save();
+          c.setLineDash([5, 3]);
+          c.strokeStyle = '#b8832a';
+          c.lineWidth = 1.5;
+          c.beginPath();
+          c.moveTo(xPos, chartArea.top);
+          c.lineTo(xPos, chartArea.bottom);
+          c.stroke();
+          c.setLineDash([]);
+          c.fillStyle = '#b8832a';
+          c.font = 'bold 10px sans-serif';
+          c.textAlign = xPos > chartArea.right - 60 ? 'right' : 'center';
+          c.fillText('An ' + breakEvenYear, xPos + (xPos > chartArea.right - 60 ? -4 : 0), chartArea.top + 12);
+          c.restore();
+        }
+      }]
+    });
+
+    const beLabel = document.getElementById('breakEvenLabel');
+    if(beLabel){
+      if(breakEvenYear){
+        beLabel.innerHTML = '<span style="color:#4caf50">✅ Rentabilité atteinte à l'an ' + breakEvenYear + '</span> <span style="font-size:.65rem;color:var(--muted);font-weight:400">(cash-flows nets + capital remboursé couvrent les frais initiaux)</span>';
+      } else {
+        beLabel.innerHTML = '<span style="color:#f39c12">⚠️ L'investissement ne devient pas rentable sur la durée du prêt</span>';
+      }
+    }
+    document.getElementById('breakEvenSection').style.display = '';
   }
 }
 
