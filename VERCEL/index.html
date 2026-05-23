@@ -559,7 +559,7 @@ select.inp{
 .map-container{
   height:420px;border-radius:var(--r);overflow:hidden;
   border:1px solid var(--border);margin-bottom:1rem;
-  position:relative;
+  position:relative;z-index:1;
 }
 .map-container.fullscreen{
   position:fixed;top:0;left:0;width:100vw;height:100vh;
@@ -572,6 +572,19 @@ select.inp{
   display:flex;align-items:center;justify-content:center;
   box-shadow:0 1px 5px rgba(0,0,0,.25);
 }
+.map-geo-btn{
+  position:absolute;bottom:42px;right:10px;z-index:1000;
+  background:var(--ink);border:2px solid rgba(255,255,255,.15);border-radius:50%;
+  width:34px;height:34px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 6px rgba(0,0,0,.35);
+  transition:background .2s,transform .15s;
+}
+.map-geo-btn:hover{background:var(--gold);transform:scale(1.08);}
+.map-geo-btn svg{width:16px;height:16px;fill:var(--gold2);}
+.map-geo-btn:hover svg{fill:var(--ink);}
+.map-geo-btn.locating svg{animation:spin360 1s linear infinite;}
+@keyframes spin360{to{transform:rotate(360deg);}}
 .leaflet-prix-tooltip{
   background:#fff;border:none;border-radius:8px;
   box-shadow:0 4px 16px rgba(0,0,0,.18);
@@ -646,7 +659,7 @@ path.leaflet-interactive:focus{outline:none;}
 #bottomTabBar{
   display:none;
   position:fixed;bottom:0;left:0;right:0;
-  height:64px;z-index:400;
+  height:64px;z-index:900;
   background:var(--ink);
   border-top:1px solid rgba(255,255,255,.08);
   align-items:stretch;
@@ -668,6 +681,7 @@ path.leaflet-interactive:focus{outline:none;}
   aside{transform:translateX(-100%);transition:transform .3s;z-index:1100;}
   aside.open{transform:translateX(0);box-shadow:4px 0 32px rgba(0,0,0,.5);}
   .main-wrap{margin-left:0;padding-bottom:64px;}
+  .map-container{height:min(380px,calc(55vh - 64px))!important;}
   .cards-grid{grid-template-columns:1fr 1fr;}
   .chat-wrap{grid-template-columns:1fr;}
   .topbar{padding:.55rem 1rem;}
@@ -857,13 +871,13 @@ path.leaflet-interactive:focus{outline:none;}
     <div class="nav-item" onclick="go('mobilite')"><span class="nav-icon">🚇</span>Mobilité & transports</div>
     <div class="nav-item" onclick="go('fibre')"><span class="nav-icon">📶</span>Internet & fibre</div>
     <div class="nav-item" onclick="go('services')"><span class="nav-icon">🏥</span>Services & santé</div>
-    <div class="nav-item" onclick="go('soleil')"><span class="nav-icon">☀️</span>Météo & ensoleillement</div>
+    <div class="nav-item" onclick="go('soleil')"><span class="nav-icon">☀️</span>Météo et qualité de l'air</div>
   </div>
 
   <div class="nav-section">Mon financement</div>
   <div class="nav-sub">
     <div class="nav-item" onclick="go('emprunt')"><span class="nav-icon">🏦</span>Capacité d'emprunt</div>
-    <div class="nav-item" onclick="go('cout')"><span class="nav-icon">📊</span>Vrai coût du bien</div>
+    <div class="nav-item" onclick="go('cout')"><span class="nav-icon">📊</span>Prix des biens</div>
     <div class="nav-item" onclick="go('aides')"><span class="nav-icon">🎁</span>Aides PTZ & État</div>
     <div class="nav-item" onclick="go('renov')"><span class="nav-icon">🔨</span>Rénovation & aides</div>
   </div>
@@ -934,12 +948,16 @@ path.leaflet-interactive:focus{outline:none;}
       <div class="hero-search">
         <span class="hero-search-icon">📍</span>
         <input type="text" id="heroSearch" placeholder="Ex: 24 rue de la Paix, Paris 75002…" autocomplete="off" />
-        <button id="geoBtn" title="Utiliser ma position" onclick="geolocateUser()" style="background:none;border:none;cursor:pointer;padding:.3rem .5rem;color:rgba(255,255,255,.5);font-size:1.1rem;flex-shrink:0;border-radius:50px;transition:color .2s" onmouseover="this.style.color='rgba(184,131,42,.9)'" onmouseout="this.style.color='rgba(255,255,255,.5)'" title="Me localiser">🎯</button>
         <button class="hero-search-btn" onclick="analyzeAddress()">Analyser ✦</button>
         <div class="hero-suggestions" id="heroSugs"></div>
       </div>
 
-      <p style="font-size:.72rem;color:rgba(255,255,255,.4);margin:.8rem 0 .5rem;letter-spacing:.04em">— ou cliquez directement sur la carte —</p>
+      <div style="display:flex;align-items:center;justify-content:center;gap:1.2rem;margin:.75rem 0 .4rem;flex-wrap:wrap">
+        <button id="geoBtn" onclick="geolocateUser()" style="display:inline-flex;align-items:center;gap:.35rem;background:none;border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:.3rem .85rem;cursor:pointer;color:rgba(255,255,255,.65);font-family:'Outfit',sans-serif;font-size:.75rem;transition:all .2s" onmouseover="this.style.borderColor='rgba(184,131,42,.7)';this.style.color='rgba(184,131,42,.9)'" onmouseout="this.style.borderColor='rgba(255,255,255,.2)';this.style.color='rgba(255,255,255,.65)'">
+          <span id="geoBtnIcon">📍</span> <span id="geoBtnTxt">Me géolocaliser</span>
+        </button>
+        <span style="font-size:.72rem;color:rgba(255,255,255,.3);letter-spacing:.04em">— ou cliquez sur la carte —</span>
+      </div>
       <div style="max-width:680px;margin:0 auto 1.2rem;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.1)">
         <div id="mapFrance" class="map-container" style="height:clamp(280px,40vw,420px);width:100%;margin-bottom:0"></div>
       </div>
@@ -1037,7 +1055,7 @@ path.leaflet-interactive:focus{outline:none;}
       <button class="back-btn" onclick="go('analyse')">← Retour aux cartes</button>
       <button class="detail-close" onclick="go('analyse')" style="color:var(--muted);font-size:.9rem;padding:.3rem .5rem;border:1px solid var(--border);border-radius:var(--r)">✕ Fermer</button>
     </div>
-    <div class="ph"><div class="ptag">✦ Financement</div><h2 class="ptitle">Le <em>vrai coût</em> du bien</h2></div>
+    <div class="ph"><div class="ptag">✦ Financement</div><h2 class="ptitle">Le <em>prix</em> des biens</h2></div>
     <div class="toggles" id="tCoutMode" style="margin-bottom:1.5rem">
       <button class="tog on" onclick="tog('tCoutMode',this);switchCoutMode('achat')">🏠 Achat</button>
       <button class="tog" onclick="tog('tCoutMode',this);switchCoutMode('location')">🔑 Investissement locatif</button>
@@ -1055,7 +1073,7 @@ path.leaflet-interactive:focus{outline:none;}
           <label class="lbl">Durée prêt (ans)</label><input class="inp" id="cDuree" type="number" value="20" />
           <label class="lbl">Taux (%)</label><input class="inp" id="cTaux" type="number" value="3.4" step="0.1" oninput="this._userModified=true" />
           <label class="lbl">Assurance emprunteur (%/an)</label><input class="inp" id="cAssur" type="number" value="0.25" step="0.05" />
-          <button class="btn btn-dark btn-full" onclick="calcCout()">✦ Calculer le vrai coût</button>
+          <button class="btn btn-dark btn-full" onclick="calcCout()">✦ Calculer le prix total</button>
         </div>
         <div id="resCout"><div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez le bien pour voir le coût total réel.</p></div></div>
       </div>
@@ -1066,7 +1084,10 @@ path.leaflet-interactive:focus{outline:none;}
       <div class="g2" style="align-items:start">
         <div class="card"><div class="ctitle">🔑 Votre investissement</div>
           <label class="lbl">Prix d'achat (€)</label><input class="inp" id="lPrix" type="number" placeholder="250000" />
-          <label class="lbl">Frais de notaire (€) <span style="font-weight:400;font-size:.8em;color:var(--muted)">ou laisser vide → 7,5%</span></label><input class="inp" id="lNotaire" type="number" placeholder="" />
+          <label class="lbl">Frais de notaire (%)</label>
+          <input class="inp" id="lNotaire" type="number" placeholder="7.5" step="0.1" min="0" max="15"
+            oninput="(function(){var p=parseFloat(document.getElementById('lPrix').value)||0;var pct=parseFloat(document.getElementById('lNotaire').value)||7.5;var el=document.getElementById('lNotaireHint');if(el&&p)el.textContent='≈ '+(Math.round(p*pct/100)).toLocaleString('fr-FR')+' €';else if(el)el.textContent='';})()"/>
+          <div id="lNotaireHint" style="font-size:.68rem;color:var(--muted);margin-top:-.3rem;margin-bottom:.5rem"></div>
           <label class="lbl">Travaux initiaux (€)</label><input class="inp" id="lTravaux" type="number" placeholder="0" />
           <label class="lbl">Loyer mensuel charges comprises (€)</label><input class="inp" id="lLoyer" type="number" placeholder="1200" />
           <label class="lbl">Charges non récupérables /mois (€) <span style="font-weight:400;font-size:.8em;color:var(--muted)">copro, entretien</span></label><input class="inp" id="lCharges" type="number" placeholder="150" />
@@ -1697,8 +1718,8 @@ const PAGES = {
   home:'Accueil', analyse:'Analyse complète', prix:'Prix des dernières transactions',
   risques:'Risques naturels', energie:'Énergie & DPE', bruit:'Bruit & nuisances',
   urbanisme:'Urbanisme, PLU & Énergie', ecoles:'Écoles & IPS', mobilite:'Mobilité & transports',
-  fibre:'Internet & fibre', services:'Services & santé', soleil:'Météo & ensoleillement',
-  emprunt:'Capacité d\'emprunt', cout:'Vrai coût du bien', aides:'Aides de l\'État',
+  fibre:'Internet & fibre', services:'Services & santé', soleil:'Météo et qualité de l'air',
+  emprunt:'Capacité d\'emprunt', cout:'Prix des biens', aides:'Aides de l\'État',
   renov:'Rénovation & MaPrimeRénov\'', mensualites:'Simulation mensualités', offre:'Coaching de l\'offre',
   profil:'Compatibilité de vie',
   conseil:'Conseiller IA 24h/24', annonces:'Annonces', alertes:'Alertes intelligentes',
@@ -1847,6 +1868,36 @@ function addFsBtn(map, el) {
   });
 }
 
+// ══ BOUTON RECENTRAGE POSITION ══
+function addGeoBtn(map, el){
+  const existing = el.querySelector('.map-geo-btn');
+  if(existing) existing.remove();
+  const btn = document.createElement('button');
+  btn.className = 'map-geo-btn';
+  btn.title = 'Ma position';
+  // SVG crosshair style (Google Maps-like)
+  const svgIcon = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>';
+  btn.innerHTML = svgIcon;
+  el.appendChild(btn);
+  btn.addEventListener('click', function(e){
+    e.stopPropagation();
+    if(!navigator.geolocation){ toast('Géolocalisation non supportée','err'); return; }
+    btn.classList.add('locating');
+    navigator.geolocation.getCurrentPosition(
+      function(pos){
+        btn.classList.remove('locating');
+        var zoom = map.getZoom() < 14 ? 15 : map.getZoom();
+        map.setView([pos.coords.latitude, pos.coords.longitude], zoom, {animate:true});
+      },
+      function(){
+        btn.classList.remove('locating');
+        toast('Position non disponible','err');
+      },
+      {timeout:10000, maximumAge:60000, enableHighAccuracy:true}
+    );
+  });
+}
+
 // ══ CARTE FRANCE — CHOIX DE L'EMPLACEMENT ══
 function initFranceMap(){
   const el = document.getElementById('mapFrance');
@@ -1863,6 +1914,7 @@ function initFranceMap(){
   // Vue initiale France
   map.setView([46.5, 2.3], 5);
   addFsBtn(map, el);
+  addGeoBtn(map, el);
 
   window._franceMarker = null;
 
@@ -2081,7 +2133,7 @@ function renderCards(props, coords){
         {id:'mobilite',  icon:'🚇', label:'Mobilité & transports',  value:'<span class="spin"></span>', sub:'Transports & vélos',        source:'Transport.data'},
         {id:'fibre',     icon:'📶', label:'Internet & fibre',       value:'<span class="spin"></span>', sub:'Éligibilité fibre',         source:'ARCEP'},
         {id:'services',  icon:'🏥', label:'Services & santé',       value:'<span class="spin"></span>', sub:'Santé, courses, sport',     source:'OSM'},
-        {id:'meteo',     icon:'☀️', label:'Météo & ensoleillement', value:'<span class="spin"></span>', sub:'Moyenne 5 ans',            source:'open-meteo'},
+        {id:'meteo',     icon:'☀️', label:'Météo et qualité de l'air', value:'<span class="spin"></span>', sub:'Moyenne 5 ans',            source:'open-meteo'},
         {id:'insee',     icon:'📊', label:'Profil du quartier',     value:'<span class="spin"></span>', sub:'Population & densité',      source:'INSEE'},
         {id:'altitude',  icon:'🏔️', label:'Altitude',               value:'<span class="spin"></span>', sub:'Précision 1m · IGN',       source:'IGN RGE Alti'},
         {id:'demographie',icon:'📈',label:'Évolution démographique',value:'<span class="spin"></span>', sub:'Historique population',     source:'Wikidata/INSEE'},
@@ -2103,7 +2155,7 @@ function renderCards(props, coords){
       title: '💰 Mon financement',
       cards: [
         {id:'emprunt', icon:'🏦', label:"Capacité d'emprunt",   value:'Simuler →', sub:'Revenus, apport, durée',  source:'Calcul', action:"go('emprunt')"},
-        {id:'cout',    icon:'📊', label:'Vrai coût du bien',    value:'Simuler →', sub:'Coût total acquisition',  source:'Calcul', action:"go('cout')"},
+        {id:'cout',    icon:'📊', label:'Prix des biens',    value:'Simuler →', sub:'Prix total acquisition',  source:'Calcul', action:"go('cout')"},
         {id:'aides',   icon:'🎁', label:'Aides PTZ & État',     value:'Simuler →', sub:'PTZ, Action Logement...', source:'État',   action:"go('aides')"},
         {id:'renov',   icon:'🔨', label:'Rénovation & aides',   value:'Simuler →', sub:"MaPrimeRénov', CEE...",  source:'ANAH',   action:"go('renov')"},
         {id:'mensualites', icon:'🧮', label:'Simulation mensualités', value:'Calculer →', sub:'Mensualité, coût crédit', source:'Calcul', action:"go('mensualites')"},
@@ -3691,6 +3743,7 @@ function showRisquesDetail(){
     const map = L.map('mapRisques',{zoomControl:true,attributionControl:true}).setView([d.lat,d.lng],12);
     window._leafletMapRisques = map;
     addFsBtn(map, el);
+    addGeoBtn(map, el);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CartoDB',subdomains:'abcd',maxZoom:19}).addTo(map);
     const icon = L.divIcon({html:'<div style="width:14px;height:14px;background:#b8832a;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.5)"></div>',iconSize:[14,14],iconAnchor:[7,7],className:''});
     L.marker([d.lat,d.lng],{icon}).addTo(map).bindPopup(`📍 ${currentAddress||'Adresse analysée'}`).openPopup();
@@ -3878,6 +3931,7 @@ function showEcolesDetail(){
     window._leafletMapEcoles=map;
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'© OSM © CartoDB',maxZoom:19}).addTo(map);
     addFsBtn(map, document.getElementById('mapEcoles'));
+    addGeoBtn(map, document.getElementById('mapEcoles'));
     const dist=window._ecolesCurrentDist||500;
     L.circle([lat,lng],{radius:dist,color:'#b8832a',fillColor:'rgba(184,131,42,.08)',fillOpacity:1,weight:2.5,dashArray:'6 4',opacity:.85}).addTo(map);
     const homeIcon=L.divIcon({html:`<div style="background:#c09030;border:3px solid #fff;border-radius:50%;width:16px;height:16px;box-shadow:0 2px 6px rgba(0,0,0,.3)"></div>`,iconSize:[16,16],iconAnchor:[8,8],className:''});
@@ -4009,6 +4063,7 @@ function showMobiliteDetail(){
       attribution:'© OpenStreetMap © CartoDB', maxZoom:19
     }).addTo(map);
     addFsBtn(map, document.getElementById('mapMobilite'));
+    addGeoBtn(map, document.getElementById('mapMobilite'));
 
     // Cercle dynamique selon le rayon sélectionné
     L.circle([lat,lng],{radius:mobDist,color:'#b8832a',fillColor:'rgba(184,131,42,.08)',fillOpacity:1,weight:2.5,dashArray:'6 4',opacity:.85}).addTo(map);
@@ -4387,6 +4442,7 @@ function showServicesMap(filterCat){
       maxZoom: 19
     }).addTo(map);
     addFsBtn(map, document.getElementById('mapServices'));
+    addGeoBtn(map, document.getElementById('mapServices'));
 
     // Cercle dynamique selon le rayon sélectionné
     L.circle([lat, lng], {radius:svcDist, color:'#b8832a', fillColor:'rgba(184,131,42,.08)', fillOpacity:1, weight:2.5, dashArray:'6 4', opacity:.85}).addTo(map);
@@ -4560,6 +4616,7 @@ async function showPrixCommunesDetail(){
     map.setView([lat, lon], 11);
 
     addFsBtn(map, el);
+    addGeoBtn(map, el);
 
     const goldIcon = L.divIcon({ html:'<div style="width:14px;height:14px;background:#b8832a;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>', iconSize:[14,14], iconAnchor:[7,7], className:'' });
     L.marker([lat, lon], { icon:goldIcon }).addTo(map).bindTooltip(`📍 ${currentAddress||'Adresse analysée'}`, { permanent:false });
@@ -4829,7 +4886,7 @@ function showUrbanismeDetail(){
 
 function showMeteoDetail(){
   const d = window._meteoData;
-  if(!d){showPanel('☀️ Météo & ensoleillement','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
+  if(!d){showPanel('☀️ Météo et qualité de l'air','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
   const hAn = d.ensoleillement?.heuresAnnuelles || 0;
   const hJour = hAn ? (hAn/365).toFixed(1) : null;
   const tMax = d.temperatures?.maxMoyenne; const tMin = d.temperatures?.minMoyenne;
@@ -4838,7 +4895,7 @@ function showMeteoDetail(){
   const pluieLbl = pluieMm>1200?'Très pluvieux':pluieMm>800?'Pluvieux':pluieMm>500?'Modérément pluvieux':pluieMm?'Peu pluvieux':'';
   const climDesc = [tempLbl,pluieLbl].filter(Boolean).join(' · ');
 
-  showPanel(`☀️ Météo & ensoleillement · ${d.periode||'2019-2023'}`, `
+  showPanel(`☀️ Météo et qualité de l'air · ${d.periode||'2019-2023'}`, `
     <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:.5rem">
       <div class="stat-box"><span class="stat-n">${hAn?hAn.toLocaleString('fr-FR')+' h':'—'}</span><span class="stat-l">☀️ Heures soleil/an</span></div>
       <div class="stat-box"><span class="stat-n">${hJour||'—'} h</span><span class="stat-l">🌤️ Soleil/jour moy.</span></div>
@@ -4862,11 +4919,31 @@ function showMeteoDetail(){
       const pm10Str = aq.pm10!=null?`PM10 : ${Math.round(aq.pm10)} µg/m³`:'';
       const pm25Str = aq.pm25!=null?`PM2.5 : ${Math.round(aq.pm25)} µg/m³`:'';
       const subs = [pm10Str,pm25Str].filter(Boolean).join(' · ');
-      return `<div style="margin-bottom:.6rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
-        <span style="font-size:.78rem;color:var(--muted);font-weight:500">🌬️ Qualité de l\'air :</span>
-        <span style="background:${aq.color};color:#fff;font-size:.78rem;font-weight:700;padding:.25rem .7rem;border-radius:20px">${aq.label}</span>
-        <span style="font-size:.72rem;color:var(--muted)">IQA européen : ${aq.aqi}/100${subs?' · '+subs:''}</span>
-        <button onclick="showDetail('qualiteAir')" style="margin-left:auto;font-size:.72rem;background:none;border:1px solid var(--gold);color:var(--gold);border-radius:12px;padding:.2rem .65rem;cursor:pointer;white-space:nowrap">💨 Détail →</button>
+      const bars = [
+        {name:'PM2.5', val:aq.pm25, max:75,  seuil:15,  unit:'µg/m³'},
+        {name:'PM10',  val:aq.pm10, max:150, seuil:45,  unit:'µg/m³'},
+        {name:'NO2',   val:aq.no2,  max:200, seuil:25,  unit:'µg/m³'},
+        {name:'O3',    val:aq.o3,   max:200, seuil:100, unit:'µg/m³'}
+      ].filter(b=>b.val!=null);
+      const barHtml = bars.map(b=>{
+        const pct = Math.min(100, Math.round(b.val/b.max*100));
+        const barColor = b.val<=b.seuil?'#4caf50':b.val<=b.seuil*2?'#ff9800':'#f44336';
+        return `<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.2rem">
+          <span style="font-size:.68rem;color:var(--muted);width:3rem;flex-shrink:0">${b.name}</span>
+          <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden">
+            <div style="width:${pct}%;height:100%;background:${barColor};border-radius:3px"></div>
+          </div>
+          <span style="font-size:.68rem;color:var(--text);width:5rem;text-align:right;flex-shrink:0">${Math.round(b.val)} ${b.unit}</span>
+        </div>`;
+      }).join('');
+      return `<div style="margin-bottom:.6rem">
+        <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.35rem">
+          <span style="font-size:.78rem;color:var(--muted);font-weight:500">🌬️ Qualité de l\'air :</span>
+          <span style="background:${aq.color};color:#fff;font-size:.78rem;font-weight:700;padding:.25rem .7rem;border-radius:20px">${aq.label}</span>
+          <span style="font-size:.72rem;color:var(--muted)">IQA ${aq.aqi}/100</span>
+        </div>
+        <div style="font-size:.65rem;color:var(--muted);margin-bottom:.3rem">Seuils OMS · vert = OK · orange = modéré · rouge = élevé</div>
+        ${barHtml}
       </div>`;
     })()}
     <p style="font-size:.62rem;color:var(--muted)">Source : ${d.source} · Qualité air : Open-Meteo Air Quality</p>`);
@@ -5044,6 +5121,7 @@ function showINSEEDetail(){
     window._leafletMapInsee=map;
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CartoDB',maxZoom:19}).addTo(map);
     addFsBtn(map, document.getElementById('mapInsee'));
+    addGeoBtn(map, document.getElementById('mapInsee'));
 
     // Fetch superficie si manquante (champ pas toujours dispo dans geo.api)
     if(!supKm2 && c?.codeInsee){
@@ -5200,6 +5278,7 @@ function showAltitudeDetail(){
     const map=L.map('mapAltitude').setView([lat,lng],13);
     window._leafletMapAlt=map;
     addFsBtn(map, document.getElementById('mapAltitude'));
+    addGeoBtn(map, document.getElementById('mapAltitude'));
     L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{
       attribution:'© OpenTopoMap (CC-BY-SA) · © OpenStreetMap',
       maxZoom:17
@@ -6308,7 +6387,11 @@ function switchCoutMode(mode){
 function calcLocation(){
   const prix    = parseFloat(document.getElementById('lPrix').value)||0;
   if(!prix){toast('Veuillez saisir le prix d\'achat.','err');return;}
-  const notaire = parseFloat(document.getElementById('lNotaire').value)||Math.round(prix*0.075);
+  const notairePct = parseFloat(document.getElementById('lNotaire').value)||7.5;
+  const notaire = Math.round(prix * notairePct / 100);
+  // Mettre à jour le hint si le champ est vide
+  const hintEl = document.getElementById('lNotaireHint');
+  if(hintEl) hintEl.textContent = '≈ '+notaire.toLocaleString('fr-FR')+' €';
   const travaux = parseFloat(document.getElementById('lTravaux').value)||0;
   const loyer   = parseFloat(document.getElementById('lLoyer').value)||0;
   if(!loyer){toast('Veuillez saisir le loyer mensuel.','err');return;}
@@ -6368,19 +6451,41 @@ function calcLocation(){
       <div style="font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem">🔑 Rendement net annuel</div>
       <div class="result-n">${rendNet.toFixed(2).replace('.',',')} %</div>
       <div style="font-size:.72rem;color:rgba(255,255,255,.6);text-align:center;margin-bottom:1rem">Rendement brut : ${rendBrut.toFixed(2).replace('.',',')} %</div>
+      <div class="result-row" style="font-weight:600;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:.4rem;margin-bottom:.1rem">
+        <span>💰 Investissement total</span><span>${fmt(Math.round(investTotal))}</span>
+      </div>
+      <div class="result-row" style="font-size:.72rem;opacity:.7;padding-left:.5rem"><span>└ Prix d'achat</span><span>${fmt(prix)}</span></div>
+      <div class="result-row" style="font-size:.72rem;opacity:.7;padding-left:.5rem"><span>└ Frais de notaire</span><span>${fmt(Math.round(notaire))}</span></div>
+      ${travaux>0?`<div class="result-row" style="font-size:.72rem;opacity:.7;padding-left:.5rem"><span>└ Travaux</span><span>${fmt(travaux)}</span></div>`:''}
       ${[
-        ['Investissement total', fmt(Math.round(investTotal))],
         ['Loyer brut /an', fmt(Math.round(loyer*12))],
         ['Loyer net vacance', fmt(Math.round(loyerEffectif))],
         ['Charges & gestion /an', '− '+fmt(Math.round(fraisGestion+chargesAn+taxe))],
         gliPct>0 ? ['GLI /an', '− '+fmt(Math.round(gliAn))] : null,
         ['Revenu net /an', fmt(Math.round(revenuNet))],
-        ['Mensualité emprunt', fmt(mens)+'/mois'],
-        ['Cash-flow avant impôts', (cashflowAvantFisc>=0?'+':'')+fmt(cashflowAvantFisc)+'/mois'],
-        ['─── Fiscalité ('+regimeLabel+')', ''],
+      ].filter(Boolean).map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
+      <div class="result-row" style="border-top:1px solid rgba(255,255,255,.1);margin-top:.3rem;padding-top:.4rem">
+        <span>Mensualité emprunt</span><span>${fmt(mens)}/mois</span>
+      </div>
+      <div class="result-row" style="font-weight:600">
+        <span>Cash-flow mensuel brut</span>
+        <span style="color:${cashflowAvantFisc>=0?'#4caf50':'#f39c12'}">${cashflowAvantFisc>=0?'+':''}${fmt(cashflowAvantFisc)}/mois</span>
+      </div>
+      <div style="font-size:.66rem;opacity:.55;text-align:right;margin-top:-.3rem;margin-bottom:.4rem">= revenu net mensuel − mensualité, avant impôts</div>
+      <div style="font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.5);border-top:1px solid rgba(255,255,255,.1);padding-top:.5rem;margin-top:.2rem">
+        🧾 Fiscalité — ${regimeLabel}
+      </div>
+      <div style="font-size:.66rem;opacity:.55;margin-bottom:.35rem;line-height:1.4">
+        ${regime==='reel'||regime==='lmnp_reel'
+          ? 'Base = loyer encaissé − frais − charges − taxe foncière − GLI − intérêts d'emprunt − assurance'
+          : regime==='micro' ? 'Base = 70 % du loyer encaissé (abattement 30 % micro-foncier)'
+          : 'Base = 50 % du loyer encaissé (abattement 50 % micro-BIC LMNP)'}
+      </div>
+      ${[
         ['Base imposable /an', fmt(Math.round(baseIR))],
         ['IR (TMI '+Math.round(tmi*100)+'%) /an', '− '+fmt(irAn)],
-        isLMNP ? null : ['PS 17.2% /an', '− '+fmt(psAn)],
+        isLMNP ? null : ['PS 17,2% /an', '− '+fmt(psAn)],
+        ['Impôts total /an', '− '+fmt(fiscalAn)],
       ].filter(Boolean).map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
       <div style="text-align:center;margin-top:.75rem;padding:.5rem;border-radius:6px;background:${cashflowApresFisc>=0?'rgba(39,174,96,.15)':'rgba(231,76,60,.15)'}">
         <div style="font-size:.8rem;font-weight:600;color:${cfColor}">${cfLabel}</div>
@@ -6698,7 +6803,9 @@ function geolocateUser(){
     toast('Géolocalisation non supportée par ce navigateur.','err'); return;
     return;
   }
-  if(btn){ btn.textContent='⏳'; btn.style.color='rgba(184,131,42,.9)'; btn.disabled=true; }
+  const icon = document.getElementById('geoBtnIcon');
+  const txt  = document.getElementById('geoBtnTxt');
+  if(btn){ btn.disabled=true; if(icon) icon.textContent='⏳'; if(txt) txt.textContent='Localisation…'; }
 
   navigator.geolocation.getCurrentPosition(
     async (pos) => {
@@ -6735,17 +6842,24 @@ function geolocateUser(){
       } catch(e) {
         toast('Adresse introuvable, saisissez-la manuellement.','err');
       } finally {
-        if(btn){ btn.textContent='🎯'; btn.style.color='rgba(255,255,255,.5)'; btn.disabled=false; }
+        if(btn){ btn.disabled=false; if(icon)icon.textContent='📍'; if(txt)txt.textContent='Me géolocaliser'; }
       }
     },
     (err) => {
-      if(btn){ btn.textContent='🎯'; btn.style.color='rgba(255,255,255,.5)'; btn.disabled=false; }
+      if(btn){ btn.disabled=false; if(icon)icon.textContent='📍'; if(txt)txt.textContent='Me géolocaliser'; }
       if(err.code !== 1) toast('Géolocalisation échouée : ' + err.message,'err');
     },
     { timeout: 30000, maximumAge: 300000, enableHighAccuracy: false }
   );
 }
 
+
+// ── Auto-géolocalisation si permission déjà accordée ──
+if(navigator.permissions){
+  navigator.permissions.query({name:'geolocation'}).then(function(p){
+    if(p.state==='granted') setTimeout(geolocateUser, 800);
+  }).catch(function(){});
+}
 </script>
 <script src="/pdf-export.js?v=5"></script>
 <script src="/recherche-bien.js?v=2"></script>
