@@ -6784,9 +6784,9 @@ function calcLocation(){
     const beLabel = document.getElementById('breakEvenLabel');
     if(beLabel){
       if(breakEvenYear){
-        beLabel.innerHTML = '<span style="color:#4caf50">✅ Rentabilité atteinte à l'an ' + breakEvenYear + '</span> <span style="font-size:.65rem;color:var(--muted);font-weight:400">(cash-flows nets + capital remboursé couvrent les frais initiaux)</span>';
+        beLabel.innerHTML = "<span style=\"color:#4caf50\">✅ Rentabilité atteinte à l'an " + breakEvenYear + "</span> <span style=\"font-size:.65rem;color:var(--muted);font-weight:400\">(cash-flows nets + capital remboursé couvrent les frais initiaux)</span>";
       } else {
-        beLabel.innerHTML = '<span style="color:#f39c12">⚠️ L'investissement ne devient pas rentable sur la durée du prêt</span>';
+        beLabel.innerHTML = "<span style=\"color:#f39c12\">⚠️ L'investissement ne devient pas rentable sur la durée du prêt</span>";
       }
     }
     document.getElementById('breakEvenSection').style.display = '';
