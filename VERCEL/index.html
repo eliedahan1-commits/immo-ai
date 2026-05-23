@@ -1086,8 +1086,7 @@ path.leaflet-interactive:focus{outline:none;}
           <label class="lbl">Prix d'achat (€)</label><input class="inp" id="lPrix" type="number" placeholder="250000" />
           <label class="lbl">Frais de notaire (%)</label>
           <input class="inp" id="lNotaire" type="number" placeholder="7.5" step="0.1" min="0" max="15"
-            oninput="(function(){var p=parseFloat(document.getElementById('lPrix').value)||0;var pct=parseFloat(document.getElementById('lNotaire').value)||7.5;var el=document.getElementById('lNotaireHint');if(el&&p)el.textContent='≈ '+(Math.round(p*pct/100)).toLocaleString('fr-FR')+' €';else if(el)el.textContent='';})()"/>
-          <div id="lNotaireHint" style="font-size:.68rem;color:var(--muted);margin-top:-.3rem;margin-bottom:.5rem"></div>
+            />
           <label class="lbl">Travaux initiaux (€)</label><input class="inp" id="lTravaux" type="number" placeholder="0" />
           <label class="lbl">Loyer mensuel charges comprises (€)</label><input class="inp" id="lLoyer" type="number" placeholder="1200" />
           <label class="lbl">Charges non récupérables /mois (€) <span style="font-weight:400;font-size:.8em;color:var(--muted)">copro, entretien</span></label><input class="inp" id="lCharges" type="number" placeholder="150" />
@@ -1115,6 +1114,15 @@ path.leaflet-interactive:focus{outline:none;}
             <option value="41">41 %</option>
             <option value="45">45 %</option>
           </select>
+          <div style="margin-top:.8rem;padding:.6rem .8rem;border:1px solid var(--border);border-radius:var(--r);background:rgba(0,0,0,.02)">
+            <div style="font-size:.68rem;font-weight:600;letter-spacing:.07em;color:var(--muted);margin-bottom:.5rem">⚖️ TAUX LÉGAUX (modifiables si évolution de la loi)</div>
+            <label class="lbl">Prélèvements Sociaux — PS (%)</label>
+            <input class="inp" id="lPsRate" type="number" value="17.2" step="0.1" min="0" max="30" />
+            <label class="lbl">Abattement micro-foncier (%)</label>
+            <input class="inp" id="lAbattMicro" type="number" value="30" step="1" min="0" max="100" />
+            <label class="lbl">Abattement micro-BIC LMNP (%)</label>
+            <input class="inp" id="lAbattLmnp" type="number" value="50" step="1" min="0" max="100" />
+          </div>
           <button class="btn btn-dark btn-full" onclick="calcLocation()">✦ Calculer le rendement</button>
         </div>
         <div id="resLocation"><div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez votre investissement pour calculer le rendement net.</p></div></div>
@@ -4981,7 +4989,7 @@ function showMeteoDetail(){
             {label:'Min',data:avgMin,borderColor:'#3498db',backgroundColor:'rgba(52,152,219,.1)',fill:false,tension:.4,pointRadius:3,borderWidth:2}
           ]},
           options:{responsive:true,maintainAspectRatio:false,
-            plugins:{legend:{display:true,labels:{color:'#ccc',font:{size:10},boxWidth:12}},tooltip:{callbacks:{label:c2=>`${c2.dataset.label} : ${c2.raw}°C`}},datalabels:{display:false}},
+            plugins:{legend:{display:true,labels:{color:'#ccc',font:{size:10},boxWidth:12}},tooltip:{callbacks:{label:c2=>`${c2.dataset.label} : ${c2.raw}°C`}},datalabels:{display:true,color:ctx=>ctx.dataset.borderColor,font:{size:9,weight:'600'},formatter:v=>v+'°',anchor:'end',align:'top',offset:2}},
             scales:{
               x:{ticks:{color:'#999',font:{size:10}},grid:{color:'rgba(255,255,255,.05)'}},
               y:{ticks:{color:'#999',font:{size:10},callback:v=>v+'°'},grid:{color:'rgba(255,255,255,.05)'}}
@@ -6430,10 +6438,10 @@ function calcLocation(){
   // ── Fiscalité ──
   let baseIR = 0;
   const isLMNP = regime.startsWith('lmnp');
-  const PS_RATE = isLMNP ? 0 : 0.172; // PS uniquement sur revenus fonciers
-  if(regime === 'micro')       baseIR = loyerEffectif * 0.70;
+  const PS_RATE = isLMNP ? 0 : (parseFloat(document.getElementById('lPsRate')?.value)||17.2)/100;
+  if(regime === 'micro')       baseIR = loyerEffectif * (1-(parseFloat(document.getElementById('lAbattMicro')?.value)||30)/100);
   else if(regime === 'reel')   baseIR = Math.max(0, loyerEffectif - fraisGestion - chargesAn - taxe - gliAn - interetsAn1 - (mensAssurL*12));
-  else if(regime === 'lmnp_micro') baseIR = loyerEffectif * 0.50;
+  else if(regime === 'lmnp_micro') baseIR = loyerEffectif * (1-(parseFloat(document.getElementById('lAbattLmnp')?.value)||50)/100);
   else if(regime === 'lmnp_reel')  baseIR = Math.max(0, loyerEffectif - fraisGestion - chargesAn - taxe - gliAn - interetsAn1 - (mensAssurL*12));
   const irAn  = Math.round(baseIR * tmi);
   const psAn  = Math.round(baseIR * PS_RATE);
@@ -6478,18 +6486,25 @@ function calcLocation(){
       <div style="font-size:.66rem;opacity:.55;margin-bottom:.35rem;line-height:1.4">
         ${regime==='reel'||regime==='lmnp_reel'
           ? "Base = loyer encaissé − frais − charges − taxe foncière − GLI − intérêts d'emprunt − assurance"
-          : regime==='micro' ? 'Base = 70 % du loyer encaissé (abattement 30 % micro-foncier)'
-          : 'Base = 50 % du loyer encaissé (abattement 50 % micro-BIC LMNP)'}
+          : regime==='micro' ? `Base = ${100-(parseFloat(document.getElementById('lAbattMicro')?.value)||30)} % du loyer encaissé (abattement ${parseFloat(document.getElementById('lAbattMicro')?.value)||30} % micro-foncier)`
+          : `Base = ${100-(parseFloat(document.getElementById('lAbattLmnp')?.value)||50)} % du loyer encaissé (abattement ${parseFloat(document.getElementById('lAbattLmnp')?.value)||50} % micro-BIC LMNP)`}
       </div>
-      ${[
-        ['Base imposable /an', fmt(Math.round(baseIR))],
-        ['IR (TMI '+Math.round(tmi*100)+'%) /an', '− '+fmt(irAn)],
-        isLMNP ? null : ['PS 17,2% /an', '− '+fmt(psAn)],
-        ['Impôts total /an', '− '+fmt(fiscalAn)],
-      ].filter(Boolean).map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
+      ${`
+      <div class="result-row"><span>Base imposable /an</span><span>${fmt(Math.round(baseIR))}</span></div>
+      <div style="font-size:.63rem;opacity:.5;text-align:right;margin-top:-.25rem;margin-bottom:.2rem">${
+        regime==='reel'||regime==='lmnp_reel'
+          ? 'loyer − frais − charges − taxe − GLI − intérêts − assurance'
+          : regime==='micro' ? `loyer × ${100-(parseFloat(document.getElementById('lAbattMicro')?.value)||30)} % (abattement micro-foncier ${parseFloat(document.getElementById('lAbattMicro')?.value)||30} %)`
+          : `loyer × ${100-(parseFloat(document.getElementById('lAbattLmnp')?.value)||50)} % (abattement micro-BIC LMNP ${parseFloat(document.getElementById('lAbattLmnp')?.value)||50} %)`
+      }</div>
+      <div class="result-row"><span>IR (TMI ${Math.round(tmi*100)} %) /an</span><span>− ${fmt(irAn)}</span></div>
+      <div style="font-size:.63rem;opacity:.5;text-align:right;margin-top:-.25rem;margin-bottom:.2rem">Impôt sur le Revenu · base × ${Math.round(tmi*100)} %</div>
+      ${!isLMNP ? `<div class="result-row"><span>PS 17,2 % /an</span><span>− ${fmt(psAn)}</span></div><div style="font-size:.63rem;opacity:.5;text-align:right;margin-top:-.25rem;margin-bottom:.2rem">Prélèvements Sociaux (CSG/CRDS) · base × 17,2 %</div>` : ''}
+      <div class="result-row"><span>Impôts total /an</span><span>− ${fmt(fiscalAn)}</span></div>`}
       <div style="text-align:center;margin-top:.75rem;padding:.5rem;border-radius:6px;background:${cashflowApresFisc>=0?'rgba(39,174,96,.15)':'rgba(231,76,60,.15)'}">
         <div style="font-size:.8rem;font-weight:600;color:${cfColor}">${cfLabel}</div>
         <div style="font-size:1.2rem;font-weight:700;color:${cfColor}">${cashflowApresFisc>=0?'+':''}${fmt(cashflowApresFisc)} €/mois</div>
+        <div style="font-size:.63rem;opacity:.6;margin-top:.2rem">= cash-flow brut (${cashflowAvantFisc>=0?'+':''}${fmt(cashflowAvantFisc)}/mois) − impôts (${fmt(Math.round(fiscalAn/12))}/mois)</div>
       </div>
     </div>`;
   setCard('cout', rendNet.toFixed(1).replace('.',',')+' % net', 'Cash-flow net : '+(cashflowApresFisc>=0?'+':'')+fmt(cashflowApresFisc)+'/mois', rendNet>=5?'good':rendNet>=3?'':'warn');
