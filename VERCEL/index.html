@@ -871,7 +871,7 @@ path.leaflet-interactive:focus{outline:none;}
   <div class="nav-sub">
     <div class="nav-item" onclick="go('prix')"><span class="nav-icon">💰</span>Prix des dernières transactions</div>
     <div class="nav-item" onclick="go('risques')"><span class="nav-icon">⚠️</span>Risques naturels</div>
-    <div class="nav-item" onclick="go('energie')"><span class="nav-icon">⚡</span>Énergie & DPE</div>
+    <div class="nav-item" onclick="go('urbanisme')"><span class="nav-icon">⚡</span>Énergie & DPE</div>
     <div class="nav-item" onclick="go('bruit')"><span class="nav-icon">🔇</span>Bruit & nuisances</div>
     <div class="nav-item" onclick="go('urbanisme')"><span class="nav-icon">📋</span>Urbanisme, PLU & Énergie</div>
   </div>
@@ -1163,25 +1163,7 @@ path.leaflet-interactive:focus{outline:none;}
     </div>
   </div></div>
 
-  <!-- ══ DPE ══ -->
-  <div class="page" id="p-energie"><div class="inner"><div style="max-width:860px;margin:0 auto">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 1rem 0">
-      <button class="back-btn" onclick="go('analyse')">← Retour aux cartes</button>
-      <button class="detail-close" onclick="go('analyse')" style="color:var(--muted);font-size:.9rem;padding:.3rem .5rem;border:1px solid var(--border);border-radius:var(--r)">✕ Fermer</button>
-    </div>
-    <div class="ph"><div class="ptag">✦ Énergie · Source ADEME</div><h2 class="ptitle">Simulateur <em>DPE</em></h2></div>
-    <div class="g2" style="align-items:start">
-      <div class="card"><div class="ctitle">⚡ Calculer la facture énergétique</div>
-        <label class="lbl">DPE du bien</label>
-        <select class="inp" id="dDpe"><option value="A">A — ≤ 70 kWh/m²/an</option><option value="B">B — 71-110</option><option value="C" selected>C — 111-180</option><option value="D">D — 181-250</option><option value="E">E — 251-330</option><option value="F">F — 331-420</option><option value="G">G — &gt;420</option></select>
-        <label class="lbl">Surface (m²)</label><input class="inp" id="dSurf" type="number" placeholder="75" />
-        <label class="lbl">Type de chauffage</label>
-        <select class="inp" id="dChauff"><option value="gaz">Gaz</option><option value="elec">Électrique</option><option value="fioul">Fioul</option><option value="pompe">Pompe à chaleur</option></select>
-        <button class="btn btn-dark btn-full" onclick="calcDpe()">✦ Estimer la facture</button>
-      </div>
-      <div id="resDpe"><div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez le DPE et la surface.</p></div></div>
-    </div>
-  </div></div></div>
+
 
   <!-- ══ AIDES ══ -->
   <div class="page" id="p-aides"><div class="inner">
@@ -1548,7 +1530,7 @@ path.leaflet-interactive:focus{outline:none;}
           <div style="display:flex;flex-direction:column;gap:.38rem">
             <span class="csug" style="border-radius:3px;display:block;text-align:left" onclick="go('emprunt')">🏦 Simuler mon emprunt</span>
             <span class="csug" style="border-radius:3px;display:block;text-align:left" onclick="go('offre')">🤝 Coacher mon offre</span>
-            <span class="csug" style="border-radius:3px;display:block;text-align:left" onclick="go('energie')">⚡ Analyser le DPE</span>
+            <span class="csug" style="border-radius:3px;display:block;text-align:left" onclick="go('urbanisme')">⚡ Analyser le DPE</span>
             <span class="csug" style="border-radius:3px;display:block;text-align:left" onclick="go('juridique')">📜 Guide juridique</span>
           </div>
         </div>
@@ -1614,6 +1596,20 @@ path.leaflet-interactive:focus{outline:none;}
     <div class="ph"><div class="ptag">✦ Source GPU Géoportail</div><h2 class="ptitle">Urbanisme & <em>PLU</em></h2><p class="psub">Zonage PLU, droits à construire — données officielles IGN.</p></div>
     <div id="urbanisme-panel-container">
       <div class="card"><p style="font-size:.83rem;color:var(--muted)">Analysez d'abord une adresse via la barre de recherche pour voir le zonage PLU.</p></div>
+    </div>
+    <div style="margin-top:2rem;border-top:1px solid var(--border);padding-top:1.5rem">
+      <div class="ph" style="margin-bottom:1rem"><div class="ptag">✦ Énergie · Source ADEME</div><h2 class="ptitle">Simulateur <em>DPE</em></h2><p class="psub">Estimez la facture énergétique et les travaux associés.</p></div>
+          <div class="g2" style="align-items:start">
+      <div class="card"><div class="ctitle">⚡ Calculer la facture énergétique</div>
+        <label class="lbl">DPE du bien</label>
+        <select class="inp" id="dDpe"><option value="A">A — ≤ 70 kWh/m²/an</option><option value="B">B — 71-110</option><option value="C" selected>C — 111-180</option><option value="D">D — 181-250</option><option value="E">E — 251-330</option><option value="F">F — 331-420</option><option value="G">G — &gt;420</option></select>
+        <label class="lbl">Surface (m²)</label><input class="inp" id="dSurf" type="number" placeholder="75" />
+        <label class="lbl">Type de chauffage</label>
+        <select class="inp" id="dChauff"><option value="gaz">Gaz</option><option value="elec">Électrique</option><option value="fioul">Fioul</option><option value="pompe">Pompe à chaleur</option></select>
+        <button class="btn btn-dark btn-full" onclick="calcDpe()">✦ Estimer la facture</button>
+      </div>
+      <div id="resDpe"><div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez le DPE et la surface.</p></div></div>
+    </div>
     </div>
   </div></div>
 
@@ -2216,7 +2212,6 @@ function renderCards(props, coords){
         {id:'dvf',           icon:'💰', label:'Prix des dernières transactions', value:'<span class="spin"></span>', sub:'Transactions réelles',      source:'DVF DGFiP'},
         {id:'loyers',        icon:'🏠', label:'Loyers estimés',                  value:'<span class="spin"></span>', sub:'Estimation DVF × rendement', source:'DVF + calcul'},
         {id:'prixCommunes',  icon:'🗺️', label:'Prix au m² par commune',          value:'<span class="spin"></span>', sub:'Carte choroplèthe commune',  source:'DVF + geo.api.gouv.fr'},
-        {id:'dpe',       icon:'⚡', label:'Énergie & DPE',          value:'Simuler →',                  sub:'Cliquez pour simuler',      source:'ADEME'},
       ]
     },
     {
@@ -2713,7 +2708,7 @@ async function loadMeteo(lat, lng){
   window._meteoData = null;
   try{
     const _endY = new Date().getFullYear()-1, _startY = _endY-4;
-    const r = await apiCall(`/api/meteo?lat=${lat}&lon=${lng}&_v=${_endY}`, `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${_startY}-01-01&end_date=${_endY}-12-31&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Europe%2FParis`);
+    const r = await apiCall(`/api/meteo?lat=${lat}&lon=${lng}&_v=${_endY}`, `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${_startY}-01-01&end_date=${_endY}-12-31&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Europe%2FParis`, {signal:AbortSignal.timeout(18000)});
     if(!r.ok) throw new Error();
     const d = await r.json();
     if(!d.success) throw new Error();
@@ -3474,7 +3469,7 @@ function showDetail(cardId){
     altitude:   () => showAltitudeDetail(),
     fibre:      () => showFibreDetail(),
     services:      () => showServicesMap(),
-    dpe:           () => go('energie'),
+    dpe:           () => go('urbanisme'),
     qualiteAir:    () => showQualiteAirDetail(),
     dpeSecteur:    () => showDPESecteurDetail(),
     bruit:         () => showBruitDetail(),
@@ -5001,12 +4996,14 @@ function showMeteoDetail(){
       const barHtml = bars.map(b=>{
         const pct = Math.min(100, Math.round(b.val/b.max*100));
         const barColor = b.val<=b.seuil?'#4caf50':b.val<=b.seuil*2?'#ff9800':'#f44336';
+        const omsBadgeColor = b.val<=b.seuil?'#4caf50':b.val<=b.seuil*2?'#ff9800':'#f44336';
         return `<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.2rem">
           <span style="font-size:.68rem;color:var(--muted);width:3rem;flex-shrink:0">${b.name}</span>
           <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden">
             <div style="width:${pct}%;height:100%;background:${barColor};border-radius:3px"></div>
           </div>
-          <span style="font-size:.68rem;color:var(--text);width:5rem;text-align:right;flex-shrink:0">${Math.round(b.val)} ${b.unit}</span>
+          <span style="font-size:.68rem;color:var(--text);width:3.5rem;text-align:right;flex-shrink:0">${Math.round(b.val)} ${b.unit}</span>
+          <span style="font-size:.6rem;color:${omsBadgeColor};width:4rem;text-align:right;flex-shrink:0;opacity:.85">OMS &lt;${b.seuil}</span>
         </div>`;
       }).join('');
       return `<div style="margin-bottom:.6rem">
@@ -6697,7 +6694,7 @@ function calcLocation(){
         labels: beLabels,
         datasets: [
           {
-            label: 'Après impôts',
+            label: "Après impôts",
             data: beCumul,
             borderColor: '#e8a020',
             backgroundColor: 'rgba(232,160,32,.12)',
@@ -6706,9 +6703,18 @@ function calcLocation(){
             pointHoverRadius: 5,
             tension: 0.4,
             fill: true,
+            datalabels: {
+              display: ctx => ctx.dataIndex % 2 === 0 && ctx.dataIndex > 0,
+              color: 'rgba(255,255,255,.55)',
+              font: { size: 8 },
+              anchor: 'end',
+              align: 'top',
+              formatter: v => v === 0 ? '' : (v > 0 ? '+' : '') + Math.round(v/1000) + 'k',
+              clamp: true,
+            }
           },
           {
-            label: 'Sans impôts',
+            label: "Sans impôts",
             data: beCumulNoTax,
             borderColor: 'rgba(39,174,96,.8)',
             backgroundColor: 'transparent',
@@ -6718,6 +6724,7 @@ function calcLocation(){
             pointHoverRadius: 4,
             tension: 0.4,
             fill: false,
+            datalabels: { display: false }
           },
           {
             label: '__zero__',
@@ -6728,6 +6735,7 @@ function calcLocation(){
             borderDash: [4, 4],
             pointRadius: 0,
             fill: false,
+            datalabels: { display: false }
           }
         ]
       },
@@ -6753,8 +6761,8 @@ function calcLocation(){
           }
         },
         scales: {
-          x: { ticks: { color: 'rgba(255,255,255,.5)', font: { size: 10 }, maxTicksLimit: 12 }, grid: { color: 'rgba(255,255,255,.06)' } },
-          y: { ticks: { color: 'rgba(255,255,255,.6)', font: { size: 10 }, callback: v => fmt(v)+' €' }, grid: { color: 'rgba(255,255,255,.08)' } }
+          x: { ticks: { color: 'rgba(255,255,255,.5)', font: { size: 9 }, maxTicksLimit: 10 }, grid: { color: 'rgba(255,255,255,.06)' } },
+          y: { ticks: { color: 'rgba(255,255,255,.6)', font: { size: 9 }, maxTicksLimit: 6, callback: v => Math.round(v/1000)+'k €' }, grid: { color: 'rgba(255,255,255,.08)' } }
         }
       },
       plugins: [{
@@ -6784,7 +6792,7 @@ function calcLocation(){
     const beLabel = document.getElementById('breakEvenLabel');
     if(beLabel){
       if(breakEvenYear){
-        beLabel.innerHTML = "<span style=\"color:#4caf50\">✅ Rentabilité atteinte à l'an " + breakEvenYear + "</span> <span style=\"font-size:.65rem;color:var(--muted);font-weight:400\">(cash-flows nets + capital remboursé couvrent les frais initiaux)</span>";
+        beLabel.innerHTML = "<span style=\"color:#4caf50\">✅ Rentabilité atteinte à l'an " + breakEvenYear + " (après impôts)</span> <span style=\"font-size:.65rem;color:var(--muted);font-weight:400\"> — cash-flows nets + capital remboursé ≥ frais initiaux</span>";
       } else {
         beLabel.innerHTML = "<span style=\"color:#f39c12\">⚠️ L'investissement ne devient pas rentable sur la durée du prêt</span>";
       }
