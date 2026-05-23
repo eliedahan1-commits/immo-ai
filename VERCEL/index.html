@@ -586,7 +586,7 @@ select.inp{
 .map-geo-btn.locating svg{animation:spin360 1s linear infinite;}
 @keyframes spin360{to{transform:rotate(360deg);}}
 .map-addr-btn{
-  position:absolute;bottom:80px;right:10px;z-index:1000;
+  position:absolute;bottom:86px;right:10px;z-index:1000;
   background:var(--ink);border:2px solid rgba(255,255,255,.15);border-radius:50%;
   width:34px;height:34px;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
@@ -1931,13 +1931,13 @@ function addAddrBtn(map, el){
   const btn = document.createElement('button');
   btn.className = 'map-addr-btn';
   btn.title = "Recentrer sur l'adresse analysée";
-  btn.innerHTML = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z" fill="currentColor"/></svg>';
+  btn.innerHTML = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/></svg>';
   el.appendChild(btn);
   btn.addEventListener('click', function(e){
     e.stopPropagation();
-    if(!window.currentCoords){ toast("Aucune adresse analysée",'err'); return; }
+    if(!currentCoords){ toast("Aucune adresse analysée",'err'); return; }
     var zoom = map.getZoom() < 14 ? 15 : map.getZoom();
-    map.setView([window.currentCoords.lat, window.currentCoords.lng], zoom, {animate:true});
+    map.setView([currentCoords.lat, currentCoords.lng], zoom, {animate:true});
   });
 }
 
