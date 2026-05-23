@@ -200,7 +200,7 @@ aside{
   background:rgba(255,255,255,.09);
   box-shadow:0 0 0 4px rgba(184,131,42,.1);
 }
-.hero-search-icon{font-size:1rem;color:rgba(255,255,255,.4);flex-shrink:0;}
+.hero-search-icon{font-size:1rem;color:rgba(255,255,255,.4);flex-shrink:0;cursor:pointer;transition:color .2s,transform .15s;}.hero-search-icon:hover{color:var(--gold);transform:scale(1.15);}
 .hero-search input{
   flex:1;background:none;border:none;outline:none;
   font-family:'Outfit',sans-serif;font-size:.95rem;
@@ -855,7 +855,7 @@ path.leaflet-interactive:focus{outline:none;}
     <span class="ai-lbl" id="aiLbl">Configurer l'IA</span>
   </div>
 
-  <div class="nav-section">Coûts du bien</div>
+  <div class="nav-section">Prix des biens</div>
   <div class="nav-item" onclick="go('analyse')"><span class="nav-icon">🏠</span>Analyse complète</div>
   <div class="nav-sub">
     <div class="nav-item" onclick="go('prix')"><span class="nav-icon">💰</span>Prix des dernières transactions</div>
@@ -877,7 +877,7 @@ path.leaflet-interactive:focus{outline:none;}
   <div class="nav-section">Mon financement</div>
   <div class="nav-sub">
     <div class="nav-item" onclick="go('emprunt')"><span class="nav-icon">🏦</span>Capacité d'emprunt</div>
-    <div class="nav-item" onclick="go('cout')"><span class="nav-icon">📊</span>Prix des biens</div>
+    <div class="nav-item" onclick="go('cout')"><span class="nav-icon">📊</span>Vrai coût du bien</div>
     <div class="nav-item" onclick="go('aides')"><span class="nav-icon">🎁</span>Aides PTZ & État</div>
     <div class="nav-item" onclick="go('renov')"><span class="nav-icon">🔨</span>Rénovation & aides</div>
   </div>
@@ -1055,7 +1055,7 @@ path.leaflet-interactive:focus{outline:none;}
       <button class="back-btn" onclick="go('analyse')">← Retour aux cartes</button>
       <button class="detail-close" onclick="go('analyse')" style="color:var(--muted);font-size:.9rem;padding:.3rem .5rem;border:1px solid var(--border);border-radius:var(--r)">✕ Fermer</button>
     </div>
-    <div class="ph"><div class="ptag">✦ Financement</div><h2 class="ptitle">Le <em>prix</em> des biens</h2></div>
+    <div class="ph"><div class="ptag">✦ Financement</div><h2 class="ptitle">Le <em>vrai coût</em> du bien</h2></div>
     <div class="toggles" id="tCoutMode" style="margin-bottom:1.5rem">
       <button class="tog on" onclick="tog('tCoutMode',this);switchCoutMode('achat')">🏠 Achat</button>
       <button class="tog" onclick="tog('tCoutMode',this);switchCoutMode('location')">🔑 Investissement locatif</button>
@@ -1719,7 +1719,7 @@ const PAGES = {
   risques:'Risques naturels', energie:'Énergie & DPE', bruit:'Bruit & nuisances',
   urbanisme:'Urbanisme, PLU & Énergie', ecoles:'Écoles & IPS', mobilite:'Mobilité & transports',
   fibre:'Internet & fibre', services:'Services & santé', soleil:"Météo et qualité de l'air",
-  emprunt:'Capacité d\'emprunt', cout:'Prix des biens', aides:'Aides de l\'État',
+  emprunt:'Capacité d\'emprunt', cout:'Vrai coût du bien', aides:'Aides de l\'État',
   renov:'Rénovation & MaPrimeRénov\'', mensualites:'Simulation mensualités', offre:'Coaching de l\'offre',
   profil:'Compatibilité de vie',
   conseil:'Conseiller IA 24h/24', annonces:'Annonces', alertes:'Alertes intelligentes',
@@ -2143,7 +2143,7 @@ function renderCards(props, coords){
       ]
     },
     {
-      title: '🏠 Coûts du bien',
+      title: '🏠 Prix des biens',
       cards: [
         {id:'dvf',           icon:'💰', label:'Prix des dernières transactions', value:'<span class="spin"></span>', sub:'Transactions réelles',      source:'DVF DGFiP'},
         {id:'loyers',        icon:'🏠', label:'Loyers estimés',                  value:'<span class="spin"></span>', sub:'Estimation DVF × rendement', source:'DVF + calcul'},
@@ -2155,7 +2155,7 @@ function renderCards(props, coords){
       title: '💰 Mon financement',
       cards: [
         {id:'emprunt', icon:'🏦', label:"Capacité d'emprunt",   value:'Simuler →', sub:'Revenus, apport, durée',  source:'Calcul', action:"go('emprunt')"},
-        {id:'cout',    icon:'📊', label:'Prix des biens',    value:'Simuler →', sub:'Prix total acquisition',  source:'Calcul', action:"go('cout')"},
+        {id:'cout',    icon:'📊', label:'Vrai coût du bien',    value:'Simuler →', sub:'Prix total acquisition',  source:'Calcul', action:"go('cout')"},
         {id:'aides',   icon:'🎁', label:'Aides PTZ & État',     value:'Simuler →', sub:'PTZ, Action Logement...', source:'État',   action:"go('aides')"},
         {id:'renov',   icon:'🔨', label:'Rénovation & aides',   value:'Simuler →', sub:"MaPrimeRénov', CEE...",  source:'ANAH',   action:"go('renov')"},
         {id:'mensualites', icon:'🧮', label:'Simulation mensualités', value:'Calculer →', sub:'Mensualité, coût crédit', source:'Calcul', action:"go('mensualites')"},
@@ -6797,7 +6797,7 @@ async function sendMsg(){
 }
 function ask(q){document.getElementById('chatIn').value=q;sendMsg();}
 // ══ GÉOLOCALISATION ══
-function geolocateUser(){
+function geolocateUser(silent){
   const btn = document.getElementById('geoBtn');
   if(!navigator.geolocation){
     toast('Géolocalisation non supportée par ce navigateur.','err'); return;
@@ -6805,7 +6805,7 @@ function geolocateUser(){
   }
   const icon = document.getElementById('geoBtnIcon');
   const txt  = document.getElementById('geoBtnTxt');
-  if(btn){ btn.disabled=true; if(icon) icon.textContent='⏳'; if(txt) txt.textContent='Localisation…'; }
+  if(btn&&!silent){ btn.disabled=true; if(icon) icon.textContent='⏳'; if(txt) txt.textContent='Localisation…'; }
 
   navigator.geolocation.getCurrentPosition(
     async (pos) => {
@@ -6849,7 +6849,7 @@ function geolocateUser(){
       if(btn){ btn.disabled=false; if(icon)icon.textContent='📍'; if(txt)txt.textContent='Me géolocaliser'; }
       if(err.code !== 1) toast('Géolocalisation échouée : ' + err.message,'err');
     },
-    { timeout: 30000, maximumAge: 300000, enableHighAccuracy: false }
+    { timeout: 10000, maximumAge: 300000, enableHighAccuracy: false }
   );
 }
 
@@ -6857,7 +6857,7 @@ function geolocateUser(){
 // ── Auto-géolocalisation si permission déjà accordée ──
 if(navigator.permissions){
   navigator.permissions.query({name:'geolocation'}).then(function(p){
-    if(p.state==='granted') setTimeout(geolocateUser, 800);
+    if(p.state==='granted') setTimeout(()=>geolocateUser(true), 800);
   }).catch(function(){});
 }
 </script>
