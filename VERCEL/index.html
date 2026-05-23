@@ -1718,7 +1718,7 @@ const PAGES = {
   home:'Accueil', analyse:'Analyse complète', prix:'Prix des dernières transactions',
   risques:'Risques naturels', energie:'Énergie & DPE', bruit:'Bruit & nuisances',
   urbanisme:'Urbanisme, PLU & Énergie', ecoles:'Écoles & IPS', mobilite:'Mobilité & transports',
-  fibre:'Internet & fibre', services:'Services & santé', soleil:'Météo et qualité de l'air',
+  fibre:'Internet & fibre', services:'Services & santé', soleil:"Météo et qualité de l'air",
   emprunt:'Capacité d\'emprunt', cout:'Prix des biens', aides:'Aides de l\'État',
   renov:'Rénovation & MaPrimeRénov\'', mensualites:'Simulation mensualités', offre:'Coaching de l\'offre',
   profil:'Compatibilité de vie',
@@ -2133,7 +2133,7 @@ function renderCards(props, coords){
         {id:'mobilite',  icon:'🚇', label:'Mobilité & transports',  value:'<span class="spin"></span>', sub:'Transports & vélos',        source:'Transport.data'},
         {id:'fibre',     icon:'📶', label:'Internet & fibre',       value:'<span class="spin"></span>', sub:'Éligibilité fibre',         source:'ARCEP'},
         {id:'services',  icon:'🏥', label:'Services & santé',       value:'<span class="spin"></span>', sub:'Santé, courses, sport',     source:'OSM'},
-        {id:'meteo',     icon:'☀️', label:'Météo et qualité de l'air', value:'<span class="spin"></span>', sub:'Moyenne 5 ans',            source:'open-meteo'},
+        {id:'meteo',     icon:'☀️', label:"Météo et qualité de l'air", value:'<span class="spin"></span>', sub:'Moyenne 5 ans',            source:'open-meteo'},
         {id:'insee',     icon:'📊', label:'Profil du quartier',     value:'<span class="spin"></span>', sub:'Population & densité',      source:'INSEE'},
         {id:'altitude',  icon:'🏔️', label:'Altitude',               value:'<span class="spin"></span>', sub:'Précision 1m · IGN',       source:'IGN RGE Alti'},
         {id:'demographie',icon:'📈',label:'Évolution démographique',value:'<span class="spin"></span>', sub:'Historique population',     source:'Wikidata/INSEE'},
@@ -4886,7 +4886,7 @@ function showUrbanismeDetail(){
 
 function showMeteoDetail(){
   const d = window._meteoData;
-  if(!d){showPanel('☀️ Météo et qualité de l'air','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
+  if(!d){showPanel("☀️ Météo et qualité de l'air",'<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
   const hAn = d.ensoleillement?.heuresAnnuelles || 0;
   const hJour = hAn ? (hAn/365).toFixed(1) : null;
   const tMax = d.temperatures?.maxMoyenne; const tMin = d.temperatures?.minMoyenne;
@@ -6477,7 +6477,7 @@ function calcLocation(){
       </div>
       <div style="font-size:.66rem;opacity:.55;margin-bottom:.35rem;line-height:1.4">
         ${regime==='reel'||regime==='lmnp_reel'
-          ? 'Base = loyer encaissé − frais − charges − taxe foncière − GLI − intérêts d'emprunt − assurance'
+          ? "Base = loyer encaissé − frais − charges − taxe foncière − GLI − intérêts d'emprunt − assurance"
           : regime==='micro' ? 'Base = 70 % du loyer encaissé (abattement 30 % micro-foncier)'
           : 'Base = 50 % du loyer encaissé (abattement 50 % micro-BIC LMNP)'}
       </div>
