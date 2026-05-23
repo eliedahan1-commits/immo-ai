@@ -1158,7 +1158,7 @@ path.leaflet-interactive:focus{outline:none;}
       <div style="font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem">📈 Cash-flow mensuel net après impôts</div>
       <div style="font-size:.68rem;color:var(--muted);margin-bottom:.75rem;line-height:1.5">
         Chaque barre = loyers encaissés − mensualité crédit − charges − impôts sur le revenu.<br>
-        <span style="color:#27ae60;font-weight:600">Vert</span> = excédent (vous gagnez de l&apos;argent ce mois). <span style="color:#e74c3c;font-weight:600">Rouge</span> = effort (vous complétez de votre poche). Les barres rouges diminuent au fil du temps car les intérêts baissent → base imposable plus élevée au début.
+        <span style="color:#27ae60;font-weight:600">Vert</span> = excédent (vous gagnez de l'argent ce mois). <span style="color:#e74c3c;font-weight:600">Rouge</span> = effort (vous complétez de votre poche). Le cash-flow se dégrade progressivement : les intérêts d'emprunt baissent chaque année → moins de déductions fiscales → impôts croissants.
       </div>
       <div style="position:relative;background:var(--ink);border-radius:var(--r);padding:1.25rem 1rem 1rem">
         <canvas id="cashflowChart" height="200"></canvas>
@@ -2513,19 +2513,21 @@ async function fetchEducationGouv(lat, lng, dist=500){
 async function fetchIPS(codeInsee){
   if(!codeInsee) return {};
   try{
-    const ds = ['fr-en-ips_ecoles_apres_covid','fr-en-ips_colleges_apres_covid','fr-en-ips_lycees_apres_covid'];
-    const results = await Promise.allSettled(ds.map(d =>
-      fetch("https://data.education.gouv.fr/api/records/1.0/search/?dataset="+d+"&refine.code_commune_insee="+codeInsee+"&rows=200&fields=numero_uai,ips,ips_voie_gt,nom_etablissement",
-        {signal:AbortSignal.timeout(6000)}).then(r=>r.ok?r.json():null)
-    ));
+    // Datasets et champs vérifiés en production (mai 2026)
+    const ds = ['fr-en-ips_ecoles_v2','fr-en-ips_colleges','fr-en-ips_lycees'];
+    const tryFetch = (d) =>
+      fetch("https://data.education.gouv.fr/api/records/1.0/search/?dataset="+d+"&refine.code_insee_de_la_commune="+codeInsee+"&rows=200&fields=uai,ips,ips_voie_gt,nom_de_l_etablissment",
+        {signal:AbortSignal.timeout(7000)}).then(r=>r.ok?r.json():null).catch(()=>null);
+    const results = await Promise.allSettled(ds.map(d => tryFetch(d)));
     const map = {};
+    let totalFound = 0;
     results.forEach(res=>{
       if(res.status!=='fulfilled'||!res.value) return;
       (res.value.records||[]).forEach(rec=>{
         const f=rec.fields||{};
-        const uai=(f.numero_uai||'').toUpperCase();
-        const ips = f.ips!=null ? f.ips : (f.ips_voie_gt!=null ? f.ips_voie_gt : (f.ips_ensemble!=null ? f.ips_ensemble : null));
-        if(uai && ips!=null) map[uai]=Math.round(Number(ips));
+        const uai=(f.uai||'').toString().toUpperCase().trim();
+        const ips = f.ips!=null ? f.ips : (f.ips_voie_gt!=null ? f.ips_voie_gt : null);
+        if(uai && ips!=null){ map[uai]=Math.round(Number(ips)); totalFound++; }
       });
     });
     return map;
@@ -2624,9 +2626,13 @@ async function loadEcoles(lat, lng, codeInsee, dist=500){
     // Exclure les crèches (elles apparaissent dans Services > Petite enfance)
     const etablissements = merged.filter(e => !isCreche(e));
     // Enrichir avec IPS
+    const ipsKeys = Object.keys(ipsMap).length;
+    console.log('[IPS] map size:', ipsKeys, '| codeInsee:', codeInsee);
+    let ipsMatched = 0;
     etablissements.forEach(e => {
-      if(e.uai && ipsMap[e.uai]) e.ips = ipsMap[e.uai];
+      if(e.uai && ipsMap[e.uai]){ e.ips = ipsMap[e.uai]; ipsMatched++; }
     });
+    console.log('[IPS] uai matched:', ipsMatched, '/', etablissements.length, '| sample uai:', etablissements.slice(0,3).map(e=>e.uai));
     const types = {
       ecoles:      etablissements.filter(e => e.type.includes('cole')).length,
       maternelle:  etablissements.filter(e => e.type.includes('maternelle')).length,
@@ -4037,8 +4043,7 @@ function showEcolesDetail(){
 
   window.reloadEcolesWithDist = async function(dist){
     window._ecolesCurrentDist = dist;
-    // Ne pas passer codeInsee pour que le rayon géographique soit respecté
-    await loadEcoles(currentCoords.lat, currentCoords.lng, null, dist);
+    await loadEcoles(currentCoords.lat, currentCoords.lng, window._ecolesCodeInsee||null, dist);
     showEcolesDetail();
   };
 
