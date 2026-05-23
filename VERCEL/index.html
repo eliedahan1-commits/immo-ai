@@ -946,7 +946,7 @@ path.leaflet-interactive:focus{outline:none;}
       <p class="hero-sub">Prix DVF réels, risques, énergie, écoles, mobilité, fibre — toutes les données publiques françaises en un clic.</p>
 
       <div class="hero-search">
-        <span class="hero-search-icon">📍</span>
+        <span class="hero-search-icon" onclick="geolocateUser()" title="Me géolocaliser" style="cursor:pointer">📍</span>
         <input type="text" id="heroSearch" placeholder="Ex: 24 rue de la Paix, Paris 75002…" autocomplete="off" />
         <button class="hero-search-btn" onclick="analyzeAddress()">Analyser ✦</button>
         <div class="hero-suggestions" id="heroSugs"></div>
@@ -3945,7 +3945,7 @@ function showEcolesDetail(){
       const emoji=cat==='lycee'?'📚':cat==='college'?'🎓':'🏫';
       const icon=L.divIcon({html:`<div style="background:${couleur};border:2px solid #fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 2px 6px rgba(0,0,0,.25)">${emoji}</div>`,iconSize:[26,26],iconAnchor:[13,13],className:''});
       const adresseEco=[e.adresse,e.commune&&e.codePostal?e.codePostal+' '+e.commune:e.commune||e.codePostal].filter(Boolean).join(', ');
-      const popEco=`<strong>${emoji} ${e.nom}</strong><br><span style="font-size:.75rem;color:#666">${e.type||''} · ${e.distanceM||'?'}m</span>`+(adresseEco?`<br><span style="font-size:.72rem">📍 ${adresseEco}</span>`:'')+((e.phone)?`<br><span style="font-size:.72rem">📞 ${e.phone}</span>`:'')+`<br><span style="font-size:.72rem"><a href="https://maps.google.com/?q=${encodeURIComponent(e.nom+(adresseEco?", "+adresseEco:""))}" target="_blank" onclick="this.innerHTML='⏳ Ouverture...'" style="color:#1a73e8;text-decoration:none">🗺️ Y aller</a>`+((e.phone)?` · <a href="tel:${e.phone}" style="color:#1a73e8;text-decoration:none">📞 Appeler</a>`:'')+`</span>`;
+      const popEco=`<strong>${emoji} ${e.nom}</strong><br><span style="font-size:.75rem;color:#666">${e.type||''} · ${e.distanceM||'?'}m</span>`+(adresseEco?`<br><span style="font-size:.72rem">📍 ${adresseEco}</span>`:'')+((e.phone)?`<br><span style="font-size:.72rem">📞 ${e.phone}</span>`:'')+`<br><span style="font-size:.72rem"><a href="https://maps.google.com/?q=${e.lat&&e.lon?e.lat+','+e.lon:encodeURIComponent(e.nom+(adresseEco?', '+adresseEco:''))}" target="_blank" onclick="this.innerHTML='⏳ Ouverture...'" style="color:#1a73e8;text-decoration:none">🗺️ Y aller</a>`+((e.phone)?` · <a href="tel:${e.phone}" style="color:#1a73e8;text-decoration:none">📞 Appeler</a>`:'')+`</span>`;
       const marker=L.marker([e.lat, e.lon],{icon}).addTo(map).bindPopup(popEco);
       window._ecolesMarkersMap[cat].push(marker);
     });
@@ -4095,7 +4095,7 @@ function showMobiliteDetail(){
         const ligneRef=tags.ref||tags['ref:FR:STIF']||'';
         const reseauOp=tags.network||tags.operator||'';
         const adresseMob=[tags['addr:housenumber'],tags['addr:street']].filter(Boolean).join(' ');
-        const popMob=`<strong>${icone} ${tags.name||tags.railway||tags.amenity||'Arrêt'}</strong>`+(reseauOp?`<br><span style="font-size:.72rem;color:#666">${reseauOp}</span>`:'')+(adresseMob?`<br><span style="font-size:.72rem">📍 ${adresseMob}</span>`:'')+`<br><span style="font-size:.72rem"><a href="https://maps.google.com/?q=${encodeURIComponent((tags.name||tags.railway||"Arrêt")+(adresseMob?", "+adresseMob:""))}" target="_blank" onclick="this.innerHTML='⏳ Ouverture...'" style="color:#1a73e8;text-decoration:none">🗺️ Y aller</a></span>`;
+        const popMob=`<strong>${icone} ${tags.name||tags.railway||tags.amenity||'Arrêt'}</strong>`+(reseauOp?`<br><span style="font-size:.72rem;color:#666">${reseauOp}</span>`:'')+(adresseMob?`<br><span style="font-size:.72rem">📍 ${adresseMob}</span>`:'')+`<br><span style="font-size:.72rem"><a href="https://maps.google.com/?q=${e.lat},${e.lon}" target="_blank" onclick="this.innerHTML='⏳ Ouverture...'" style="color:#1a73e8;text-decoration:none">🗺️ Y aller</a></span>`;
         const marker=L.marker([e.lat,e.lon],{icon}).bindPopup(popMob);
         clusters[layerKey].addLayer(marker);
         window._mobiliteMarkers[layerKey].push(marker);
@@ -4472,7 +4472,7 @@ function showServicesMap(filterCat){
         html: `<div style="background:${s.couleur};border:2px solid #fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 2px 5px rgba(0,0,0,.25);cursor:pointer">${s.icone}</div>`,
         iconSize: [26,26], iconAnchor: [13,13], className:''
       });
-      const popupContent = `<strong>${s.icone} ${s.nom}</strong><br><span style="font-size:.78rem;color:#666">${s.categorie} · ${s.distanceM}m</span>${s.tags?.opening_hours?`<br><span style="font-size:.72rem">🕐 ${s.tags.opening_hours}</span>`:''}${s.tags?.phone?`<br><span style="font-size:.72rem">📞 ${s.tags.phone}</span>`:''}<br><span style="font-size:.72rem"><a href="https://maps.google.com/?q=${encodeURIComponent(s.nom)}" target="_blank" onclick="this.innerHTML='⏳ Ouverture...'" style="color:#1a73e8;text-decoration:none">🗺️ Y aller</a>${s.tags?.phone?` · <a href=\"tel:${s.tags.phone}\" style=\"color:#1a73e8;text-decoration:none\">📞 Appeler</a>`:''}</span>`;
+      const popupContent = `<strong>${s.icone} ${s.nom}</strong><br><span style="font-size:.78rem;color:#666">${s.categorie} · ${s.distanceM}m</span>${s.tags?.opening_hours?`<br><span style="font-size:.72rem">🕐 ${s.tags.opening_hours}</span>`:''}${s.tags?.phone?`<br><span style="font-size:.72rem">📞 ${s.tags.phone}</span>`:''}<br><span style="font-size:.72rem"><a href="https://maps.google.com/?q=${s.lat},${s.lon}" target="_blank" onclick="this.innerHTML='⏳ Ouverture...'" style="color:#1a73e8;text-decoration:none">🗺️ Y aller</a>${s.tags?.phone?` · <a href=\"tel:${s.tags.phone}\" style=\"color:#1a73e8;text-decoration:none\">📞 Appeler</a>`:''}</span>`;
       const marker = L.marker([s.lat, s.lon], {icon}).bindPopup(popupContent);
       const cat = s.categorie||'service';
       if(window._servicesClusters[cat]) window._servicesClusters[cat].addLayer(marker);
@@ -6861,7 +6861,7 @@ if(navigator.permissions){
   }).catch(function(){});
 }
 </script>
-<script src="/pdf-export.js?v=5"></script>
+
 <script src="/recherche-bien.js?v=2"></script>
 <script>
 /* ══ MOBILE NAV ══════════════════════════════════════════════════════════ */
