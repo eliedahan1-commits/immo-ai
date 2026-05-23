@@ -585,6 +585,17 @@ select.inp{
 .map-geo-btn:hover svg{fill:var(--ink);}
 .map-geo-btn.locating svg{animation:spin360 1s linear infinite;}
 @keyframes spin360{to{transform:rotate(360deg);}}
+.map-addr-btn{
+  position:absolute;bottom:80px;right:10px;z-index:1000;
+  background:var(--ink);border:2px solid rgba(255,255,255,.15);border-radius:50%;
+  width:34px;height:34px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 6px rgba(0,0,0,.35);
+  transition:background .2s,transform .15s;
+}
+.map-addr-btn:hover{background:var(--gold);transform:scale(1.08);}
+.map-addr-btn svg{width:16px;height:16px;fill:var(--gold2);}
+.map-addr-btn:hover svg{fill:var(--ink);}
 .leaflet-prix-tooltip{
   background:#fff;border:none;border-radius:8px;
   box-shadow:0 4px 16px rgba(0,0,0,.18);
@@ -1807,6 +1818,8 @@ function go(id){
 }
 
 function _goPage(id){
+  // Sauvegarder la position scroll quand on quitte la page analyse
+  if(id !== 'analyse') window._analyseScrollY = window.scrollY;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   const p=document.getElementById('p-'+id);if(p)p.classList.add('on');
@@ -1814,7 +1827,12 @@ function _goPage(id){
   document.querySelectorAll('.nav-item').forEach(n=>{
     if(n.getAttribute('onclick')?.includes("'"+id+"'"))n.classList.add('active');
   });
-  window.scrollTo({top:0,behavior:'smooth'});
+  if(id === 'analyse' && window._analyseScrollY > 0){
+    // Restaurer la position au retour sur la page des cartes
+    setTimeout(()=>window.scrollTo({top:window._analyseScrollY, behavior:'smooth'}), 50);
+  } else {
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
 }
 
 // Fonctions pour afficher les panels depuis le menu (avec adresse déjà analysée)
@@ -1906,6 +1924,23 @@ function addGeoBtn(map, el){
   });
 }
 
+// ══ BOUTON RECENTRAGE ADRESSE ANALYSÉE ══
+function addAddrBtn(map, el){
+  const existing = el.querySelector('.map-addr-btn');
+  if(existing) existing.remove();
+  const btn = document.createElement('button');
+  btn.className = 'map-addr-btn';
+  btn.title = "Recentrer sur l'adresse analysée";
+  btn.innerHTML = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z" fill="currentColor"/></svg>';
+  el.appendChild(btn);
+  btn.addEventListener('click', function(e){
+    e.stopPropagation();
+    if(!window.currentCoords){ toast("Aucune adresse analysée",'err'); return; }
+    var zoom = map.getZoom() < 14 ? 15 : map.getZoom();
+    map.setView([window.currentCoords.lat, window.currentCoords.lng], zoom, {animate:true});
+  });
+}
+
 // ══ CARTE FRANCE — CHOIX DE L'EMPLACEMENT ══
 function initFranceMap(){
   const el = document.getElementById('mapFrance');
@@ -1923,6 +1958,7 @@ function initFranceMap(){
   map.setView([46.5, 2.3], 5);
   addFsBtn(map, el);
   addGeoBtn(map, el);
+  addAddrBtn(map, el);
 
   window._franceMarker = null;
 
@@ -3752,6 +3788,7 @@ function showRisquesDetail(){
     window._leafletMapRisques = map;
     addFsBtn(map, el);
     addGeoBtn(map, el);
+  addAddrBtn(map, el);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CartoDB',subdomains:'abcd',maxZoom:19}).addTo(map);
     const icon = L.divIcon({html:'<div style="width:14px;height:14px;background:#b8832a;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.5)"></div>',iconSize:[14,14],iconAnchor:[7,7],className:''});
     L.marker([d.lat,d.lng],{icon}).addTo(map).bindPopup(`📍 ${currentAddress||'Adresse analysée'}`).openPopup();
@@ -3940,6 +3977,7 @@ function showEcolesDetail(){
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'© OSM © CartoDB',maxZoom:19}).addTo(map);
     addFsBtn(map, document.getElementById('mapEcoles'));
     addGeoBtn(map, document.getElementById('mapEcoles'));
+    addAddrBtn(map, document.getElementById('mapEcoles'));
     const dist=window._ecolesCurrentDist||500;
     L.circle([lat,lng],{radius:dist,color:'#b8832a',fillColor:'rgba(184,131,42,.08)',fillOpacity:1,weight:2.5,dashArray:'6 4',opacity:.85}).addTo(map);
     const homeIcon=L.divIcon({html:`<div style="background:#c09030;border:3px solid #fff;border-radius:50%;width:16px;height:16px;box-shadow:0 2px 6px rgba(0,0,0,.3)"></div>`,iconSize:[16,16],iconAnchor:[8,8],className:''});
@@ -4072,6 +4110,7 @@ function showMobiliteDetail(){
     }).addTo(map);
     addFsBtn(map, document.getElementById('mapMobilite'));
     addGeoBtn(map, document.getElementById('mapMobilite'));
+    addAddrBtn(map, document.getElementById('mapMobilite'));
 
     // Cercle dynamique selon le rayon sélectionné
     L.circle([lat,lng],{radius:mobDist,color:'#b8832a',fillColor:'rgba(184,131,42,.08)',fillOpacity:1,weight:2.5,dashArray:'6 4',opacity:.85}).addTo(map);
@@ -4451,6 +4490,7 @@ function showServicesMap(filterCat){
     }).addTo(map);
     addFsBtn(map, document.getElementById('mapServices'));
     addGeoBtn(map, document.getElementById('mapServices'));
+    addAddrBtn(map, document.getElementById('mapServices'));
 
     // Cercle dynamique selon le rayon sélectionné
     L.circle([lat, lng], {radius:svcDist, color:'#b8832a', fillColor:'rgba(184,131,42,.08)', fillOpacity:1, weight:2.5, dashArray:'6 4', opacity:.85}).addTo(map);
@@ -4625,6 +4665,7 @@ async function showPrixCommunesDetail(){
 
     addFsBtn(map, el);
     addGeoBtn(map, el);
+  addAddrBtn(map, el);
 
     const goldIcon = L.divIcon({ html:'<div style="width:14px;height:14px;background:#b8832a;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>', iconSize:[14,14], iconAnchor:[7,7], className:'' });
     L.marker([lat, lon], { icon:goldIcon }).addTo(map).bindTooltip(`📍 ${currentAddress||'Adresse analysée'}`, { permanent:false });
@@ -5130,6 +5171,7 @@ function showINSEEDetail(){
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CartoDB',maxZoom:19}).addTo(map);
     addFsBtn(map, document.getElementById('mapInsee'));
     addGeoBtn(map, document.getElementById('mapInsee'));
+    addAddrBtn(map, document.getElementById('mapInsee'));
 
     // Fetch superficie si manquante (champ pas toujours dispo dans geo.api)
     if(!supKm2 && c?.codeInsee){
@@ -5287,6 +5329,7 @@ function showAltitudeDetail(){
     window._leafletMapAlt=map;
     addFsBtn(map, document.getElementById('mapAltitude'));
     addGeoBtn(map, document.getElementById('mapAltitude'));
+    addAddrBtn(map, document.getElementById('mapAltitude'));
     L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{
       attribution:'© OpenTopoMap (CC-BY-SA) · © OpenStreetMap',
       maxZoom:17
