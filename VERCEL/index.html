@@ -1912,8 +1912,14 @@ function addGeoBtn(map, el){
     navigator.geolocation.getCurrentPosition(
       function(pos){
         btn.classList.remove('locating');
+        var lat = pos.coords.latitude, lng = pos.coords.longitude;
         var zoom = map.getZoom() < 14 ? 15 : map.getZoom();
-        map.setView([pos.coords.latitude, pos.coords.longitude], zoom, {animate:true});
+        map.setView([lat, lng], zoom, {animate:true});
+        // Marqueur position utilisateur
+        if(map._geoMarker) map._geoMarker.remove();
+        var geoIcon = L.divIcon({html:'<div style="width:14px;height:14px;background:#4a90e2;border:2.5px solid #fff;border-radius:50%;box-shadow:0 0 0 4px rgba(74,144,226,.25)"></div>',iconSize:[14,14],iconAnchor:[7,7],className:''});
+        map._geoMarker = L.marker([lat, lng], {icon:geoIcon}).addTo(map);
+        map._geoMarker.bindPopup('<strong>📍 Votre position</strong><br><span style="font-size:.75rem;color:#666">'+(pos.coords.accuracy?'Précision ≈ '+Math.round(pos.coords.accuracy)+' m':'')+'</span>').openPopup();
       },
       function(){
         btn.classList.remove('locating');
@@ -1938,6 +1944,12 @@ function addAddrBtn(map, el){
     if(!currentCoords){ toast("Aucune adresse analysée",'err'); return; }
     var zoom = map.getZoom() < 14 ? 15 : map.getZoom();
     map.setView([currentCoords.lat, currentCoords.lng], zoom, {animate:true});
+    // Marqueur adresse analysée
+    if(map._addrMarker) map._addrMarker.remove();
+    var addrIcon = L.divIcon({html:'<div style="width:16px;height:16px;background:#b8832a;border:2.5px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>',iconSize:[16,16],iconAnchor:[8,8],className:''});
+    map._addrMarker = L.marker([currentCoords.lat, currentCoords.lng], {icon:addrIcon}).addTo(map);
+    var addrLabel = currentAddress || (currentCoords.lat.toFixed(5)+', '+currentCoords.lng.toFixed(5));
+    map._addrMarker.bindPopup('<strong>🏠 Adresse analysée</strong><br><span style="font-size:.75rem;color:#666">'+addrLabel+'</span>').openPopup();
   });
 }
 
