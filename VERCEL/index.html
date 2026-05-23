@@ -2520,7 +2520,7 @@ async function fetchIPS(codeInsee){
       (res.value.records||[]).forEach(rec=>{
         const f=rec.fields||{};
         const uai=(f.numero_uai||'').toUpperCase();
-        const ips = f.ips!=null ? f.ips : (f.ips_voie_gt!=null ? f.ips_voie_gt : null);
+        const ips = f.ips!=null ? f.ips : (f.ips_voie_gt!=null ? f.ips_voie_gt : (f.ips_ensemble!=null ? f.ips_ensemble : null));
         if(uai && ips!=null) map[uai]=Math.round(Number(ips));
       });
     });
@@ -2565,6 +2565,7 @@ function mergeEtablissements(osmList, eduList){
       if(typeLevel(edu.type) > typeLevel(result[matchIdx].type)) result[matchIdx].type = edu.type;
       result[matchIdx].nom    = edu.nom || result[matchIdx].nom;
       result[matchIdx].statut = edu.statut || result[matchIdx].statut;
+      result[matchIdx].uai    = edu.uai   || result[matchIdx].uai;
     } else {
       // Pas de correspondance nom+distance → établissement distinct, on l'ajoute
       result.push(edu);
@@ -3926,6 +3927,38 @@ function showEcolesDetail(){
     document.getElementById('ecolesListe').innerHTML='<div style="font-size:.85rem;font-weight:600;margin-bottom:.6rem;color:var(--text)">📋 Liste des établissements</div>'+_ecoHtml;
     document.querySelectorAll('.eco-type-btn').forEach(b=>b.classList.toggle('active', b.dataset.t===window._ecolesFilterType));
     document.querySelectorAll('.eco-n-btn').forEach(b=>b.classList.toggle('active', b.dataset.n===String(window._ecolesFilterN)));
+    // Résumé IPS
+    (function(){
+      var ipsEl=document.getElementById('ipsResume'); if(!ipsEl) return;
+      var cats=[['ecole','🏫 Écoles',107],['college','🎓 Collèges',104],['lycee','📚 Lycées',106]];
+      var blocks='';
+      cats.forEach(function(cv){
+        var cat=cv[0],lbl=cv[1],natAvg=cv[2];
+        var items=window._ecolesAll.filter(function(e){return ecoCategorie(e)===cat && e.ips;});
+        if(!items.length) return;
+        var avg=Math.round(items.reduce(function(s,e){return s+e.ips;},0)/items.length);
+        var diff=avg-natAvg;
+        var col=avg>=natAvg+5?'#4caf50':avg>=natAvg-5?'#ff9800':'#f44336';
+        var pct=Math.min(100,Math.max(0,Math.round((avg-50)/120*100)));
+        blocks+='<div style="flex:1;min-width:140px;background:var(--warm);border-radius:6px;padding:.6rem .8rem">'+
+          '<div style="font-size:.7rem;font-weight:600;margin-bottom:.4rem">'+lbl+'</div>'+
+          '<div style="display:flex;align-items:center;gap:.5rem">'+
+            '<div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden">'+
+              '<div style="width:'+pct+'%;height:100%;background:'+col+';border-radius:3px"></div>'+
+            '</div>'+
+            '<span style="font-size:.82rem;font-weight:700;color:'+col+'">'+avg+'</span>'+
+          '</div>'+
+          '<div style="font-size:.63rem;color:var(--muted);margin-top:.2rem">'+(diff>=0?'+':'')+diff+' vs moy. nationale · '+items.length+' établ.</div>'+
+        '</div>';
+      });
+      if(blocks){
+        ipsEl.innerHTML='<div style="margin-bottom:.3rem;font-size:.7rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em">📊 IPS moyen du secteur</div>'+
+          '<div style="display:flex;gap:.5rem;flex-wrap:wrap">'+blocks+'</div>'+
+          '<div style="font-size:.6rem;color:var(--muted);margin-top:.35rem">IPS = Indice de Position Sociale · vert &gt; moy. nationale · rouge &lt; moy. · Source : data.education.gouv.fr</div>';
+      } else {
+        ipsEl.innerHTML='<div style="font-size:.7rem;color:var(--muted);padding:.4rem 0">IPS non disponible pour cette commune (données data.education.gouv.fr).</div>';
+      }
+    })();
   };
   window._applyEcoMapFilter = function(t){
     const map = window._ecolesLeafletMap;
@@ -3989,6 +4022,7 @@ function showEcolesDetail(){
       </div>
     </div>
     <div class="map-container" id="mapEcoles" style="margin-bottom:.8rem"></div>
+    <div id="ipsResume" style="margin-bottom:.8rem"></div>
     <div id="ecolesListe"></div>
     <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : OpenStreetMap · Rayon ${(window._ecolesCurrentDist||500)>=1000?((window._ecolesCurrentDist||500)/1000)+'km':(window._ecolesCurrentDist||500)+'m'}</p>
     <div style="margin-top:.8rem;padding:.75rem 1rem;background:linear-gradient(135deg,rgba(184,131,42,.08),rgba(184,131,42,.03));border:1px solid var(--goldborder);border-radius:8px;display:flex;align-items:center;gap:.8rem;flex-wrap:wrap">
@@ -4994,7 +5028,22 @@ function showUrbanismeDetail(){
         </div>
         <p style="font-size:.61rem;color:var(--muted);margin-top:.4rem">Source : ADEME · DPE logements existants depuis juillet 2021</p>
       </div>`;
-    })()}`);
+    })()}
+    <div style="margin-top:1.5rem;padding-top:1.2rem;border-top:1px solid var(--border)">
+      <div style="font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem">⚡ Simulateur DPE — Facture énergétique de votre bien</div>
+      <div class="g2" style="align-items:start;gap:1rem">
+        <div class="card" style="padding:.9rem">
+          <label class="lbl">DPE du bien</label>
+          <select class="inp" id="dDpe"><option value="A">A — ≤ 70 kWh/m²/an</option><option value="B">B — 71-110</option><option value="C" selected>C — 111-180</option><option value="D">D — 181-250</option><option value="E">E — 251-330</option><option value="F">F — 331-420</option><option value="G">G — &gt;420</option></select>
+          <label class="lbl">Surface (m²)</label>
+          <input class="inp" id="dSurf" type="number" placeholder="75" />
+          <label class="lbl">Type de chauffage</label>
+          <select class="inp" id="dChauff"><option value="gaz">Gaz</option><option value="elec">Électrique</option><option value="fioul">Fioul</option><option value="pompe">Pompe à chaleur</option></select>
+          <button class="btn btn-dark btn-full" style="margin-top:.5rem" onclick="calcDpe()">✦ Estimer la facture</button>
+        </div>
+        <div id="resDpe"><div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez le DPE et la surface.</p></div></div>
+      </div>
+    </div>`);
 }
 
 function showMeteoDetail(){
