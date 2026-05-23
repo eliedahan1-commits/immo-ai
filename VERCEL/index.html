@@ -529,6 +529,7 @@ select.inp{
 
 /* Stat boxes */
 .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.85rem;margin-bottom:1.5rem;}
+.stat-grid-4{grid-template-columns:repeat(4,1fr);}
 .stat-box{background:var(--ink);border-radius:var(--r);padding:1.1rem;text-align:center;}
 .stat-n{font-family:'DM Serif Display',serif;font-size:1.65rem;color:var(--gold2);display:block;}
 .stat-l{font-size:.7rem;color:rgba(255,255,255,.65);letter-spacing:.1em;text-transform:uppercase;margin-top:.15rem;}
@@ -811,6 +812,11 @@ path.leaflet-interactive:focus{outline:none;}
 
   /* Graphique cashflow plus petit */
   #cashflowChart         { height:160px !important; }
+
+  /* stat-grid : 2 colonnes au lieu de 4 sur petit écran */
+  .stat-grid,.stat-grid-4{ grid-template-columns:repeat(2,1fr) !important; gap:.5rem; }
+  .stat-n                { font-size:1.25rem; }
+  .stat-l                { font-size:.6rem; }
 
   /* Stress test delta : wrap */
   .result-row span:last-child { text-align:right; flex-shrink:0; }
@@ -4610,7 +4616,7 @@ function showServicesMap(filterCat){
     });
     L.marker([lat, lng], {icon: homeIcon})
       .addTo(map)
-      .bindPopup(`<strong>📍 Adresse analysée</strong><br><span style="font-size:.75rem;color:#666">${currentAddress}</span><br><a href="https://maps.google.com/?q=${lat},${lon}" target="_blank" style="font-size:.72rem;color:#1a73e8;text-decoration:none">🗺️ Y aller</a>`)
+      .bindPopup(`<strong>📍 Adresse analysée</strong><br><span style="font-size:.75rem;color:#666">${currentAddress}</span><br><a href="https://maps.google.com/?q=${lat},${lng}" target="_blank" style="font-size:.72rem;color:#1a73e8;text-decoration:none">🗺️ Y aller</a>`)
       .openPopup();
 
     // Points de services par catégorie avec clustering
@@ -5071,7 +5077,7 @@ function showMeteoDetail(){
       <div class="stat-box"><span class="stat-n">${hAn?hAn.toLocaleString('fr-FR')+' h':'—'}</span><span class="stat-l">☀️ Heures soleil/an</span></div>
       <div class="stat-box"><span class="stat-n">${hJour||'—'} h</span><span class="stat-l">🌤️ Soleil/jour moy.</span></div>
     </div>
-    <div class="stat-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:1rem">
+    <div class="stat-grid stat-grid-4" style="margin-bottom:1rem">
       <div class="stat-box"><span class="stat-n">${tMin||'—'}°</span><span class="stat-l">🥶 Temp. min. moy.</span></div>
       <div class="stat-box"><span class="stat-n">${tMax||'—'}°</span><span class="stat-l">🌡️ Temp. max. moy.</span></div>
       <div class="stat-box"><span class="stat-n">${pluieMm||'—'} mm</span><span class="stat-l">🌧️ Précip./an</span></div>
