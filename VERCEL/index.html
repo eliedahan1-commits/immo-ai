@@ -1299,6 +1299,54 @@ path.leaflet-interactive:focus{outline:none;}
         </table>
       </div>
     </div>
+
+    <!-- ══ VRAI COÛT TOTAL DE PROPRIÉTÉ ══ -->
+    <div style="margin-top:2rem">
+      <div class="ph" style="margin-bottom:1rem">
+        <div class="ptag">✦ Coût de propriété</div>
+        <h2 class="ptitle" style="font-size:1.4rem">Vrai coût total <em>de propriété</em></h2>
+        <p class="psub">Tout ce que ce bien vous coûtera réellement sur la durée du prêt, frais compris.</p>
+      </div>
+      <div class="g2" style="align-items:start">
+        <div class="card">
+          <div class="ctitle">🏠 Votre bien</div>
+          <label class="lbl">Prix d'achat (€) <span style="font-weight:400;color:var(--muted);font-size:.75em">— repris depuis le montant emprunté + apport</span></label>
+          <input class="inp" id="vcPrix" type="number" placeholder="350000" oninput="this._userModified=true" />
+          <label class="lbl">Frais de notaire (%) <span style="font-weight:400;color:var(--muted);font-size:.75em">— 7,5% neuf / 2–3% neuf</span></label>
+          <input class="inp" id="vcNotaire" type="number" value="7.5" step="0.1" />
+          <label class="lbl">Surface (m²) <span style="font-weight:400;color:var(--muted);font-size:.75em">— optionnel, pour le coût au m²</span></label>
+          <input class="inp" id="vcSurf" type="number" placeholder="70" />
+          <div style="border-top:1px solid var(--border);margin:.8rem 0 .6rem"></div>
+          <div class="ctitle" style="margin-bottom:.5rem">🔧 Travaux</div>
+          <label class="lbl">DPE actuel <span style="font-weight:400;color:var(--muted);font-size:.75em">— optionnel, pré-remplit une estimation</span></label>
+          <select class="inp" id="vcDpe" onchange="vcDpeChange()">
+            <option value="">— Non renseigné</option>
+            <option value="A">A — Aucun travaux nécessaires</option>
+            <option value="B">B — Très performant</option>
+            <option value="C">C — Performant</option>
+            <option value="D">D — Peu performant</option>
+            <option value="E">E — Énergivore</option>
+            <option value="F">F — Très énergivore</option>
+            <option value="G">G — Passoire thermique</option>
+          </select>
+          <div id="vcDpeHint" style="font-size:.62rem;color:var(--muted);margin-top:-.4rem;margin-bottom:.4rem;display:none"></div>
+          <label class="lbl">Travaux estimés (€) <span style="font-weight:400;color:var(--muted);font-size:.75em">— modifiable</span></label>
+          <input class="inp" id="vcTravaux" type="number" placeholder="0" oninput="this._userModifiedVC=true" />
+          <div style="border-top:1px solid var(--border);margin:.8rem 0 .6rem"></div>
+          <div class="ctitle" style="margin-bottom:.5rem">📅 Charges annuelles</div>
+          <label class="lbl">Charges copro /mois (€)</label>
+          <input class="inp" id="vcCharges" type="number" placeholder="150" />
+          <label class="lbl">Taxe foncière /an (€)</label>
+          <input class="inp" id="vcTaxe" type="number" placeholder="1200" />
+          <button class="btn btn-dark btn-full" onclick="calcVraiCout()" style="margin-top:.8rem">✦ Calculer le vrai coût total</button>
+        </div>
+        <div id="resVraiCout">
+          <div style="background:var(--warm);border:1px solid var(--border);border-radius:var(--r);padding:1.2rem">
+            <p style="color:var(--muted);font-size:.82rem">Renseignez les informations de votre bien, puis cliquez sur Calculer.<br><br>💡 Le montant emprunté et la durée sont repris automatiquement depuis la simulation ci-dessus.</p>
+          </div>
+        </div>
+      </div>
+    </div>
   </div></div>
 
   <!-- ══ COACHING OFFRE ══ -->
@@ -6464,6 +6512,84 @@ function initMensualitesPage(){
   if(srcEl && src) srcEl.textContent = 'Taux marché : '+src+(date?' · '+date:'');
 }
 
+// ══ DPE → estimation travaux ══
+const VC_DPE_TRAVAUX = {A:0, B:5000, C:15000, D:30000, E:50000, F:70000, G:100000};
+const VC_DPE_LABEL   = {A:'Aucun travaux', B:'Travaux légers (~5 000 €)', C:'Rénovation partielle (~15 000 €)', D:'Rénovation moyenne (~30 000 €)', E:'Rénovation importante (~50 000 €)', F:'Rénovation lourde (~70 000 €)', G:'Rénovation complète (~100 000 €)'};
+
+function vcDpeChange(){
+  const dpe = document.getElementById('vcDpe').value;
+  const hint = document.getElementById('vcDpeHint');
+  const travEl = document.getElementById('vcTravaux');
+  if(!dpe){ hint.style.display='none'; return; }
+  const estim = VC_DPE_TRAVAUX[dpe];
+  hint.textContent = "Estimation : " + VC_DPE_LABEL[dpe] + " — modifiable ci-dessous";
+  hint.style.display = '';
+  if(travEl && !travEl._userModifiedVC) travEl.value = estim || '';
+}
+
+function calcVraiCout(){
+  const prix    = parseFloat(document.getElementById('vcPrix').value)||0;
+  const notPct  = parseFloat(document.getElementById('vcNotaire').value)||7.5;
+  const surf    = parseFloat(document.getElementById('vcSurf').value)||0;
+  const travaux = parseFloat(document.getElementById('vcTravaux').value)||0;
+  const charges = parseFloat(document.getElementById('vcCharges').value)||0;
+  const taxe    = parseFloat(document.getElementById('vcTaxe').value)||0;
+
+  if(!prix){ toast("Renseignez d'abord le prix d'achat.",'err'); return; }
+
+  // Récupérer les données crédit depuis la simulation mensualités
+  const montant  = parseFloat(document.getElementById('mMontant').value)||0;
+  const duree    = parseFloat(document.getElementById('mDuree').value)||20;
+  const taux     = (parseFloat(document.getElementById('mTaux').value)||3.42)/100;
+  const assurPct = (parseFloat(document.getElementById('mAssur').value)||0.25)/100;
+
+  const n = duree * 12;
+  const t = taux / 12;
+  let coutCredit = 0, coutAssur = 0;
+  if(montant > 0 && t > 0){
+    const factor = t / (1 - Math.pow(1+t, -n));
+    const mensCredit = montant * factor;
+    coutCredit = Math.round(mensCredit * n - montant);
+    coutAssur  = Math.round(montant * assurPct / 12 * n);
+  }
+
+  const notaire       = Math.round(prix * notPct / 100);
+  const chargesTotal  = Math.round(charges * 12 * duree);
+  const taxeTotal     = Math.round(taxe * duree);
+  const totalBanque   = montant + coutCredit + coutAssur;
+  const grandTotal    = prix + notaire + travaux + chargesTotal + taxeTotal + coutCredit + coutAssur;
+  const coutAuM2      = surf > 0 ? Math.round(grandTotal / surf) : null;
+
+  const rows = [
+    ["Prix d'achat", fmt(prix) + " €"],
+    ["Frais de notaire (" + notPct + "%)", fmt(notaire) + " €"],
+    travaux > 0 ? ["Travaux", fmt(travaux) + " €"] : null,
+    charges > 0 ? ["Charges copro sur " + duree + " ans", fmt(chargesTotal) + " €"] : null,
+    taxe    > 0 ? ["Taxe foncière sur " + duree + " ans", fmt(taxeTotal) + " €"] : null,
+    montant > 0 ? ["Intérêts du crédit", fmt(coutCredit) + " €"] : null,
+    montant > 0 ? ["Assurance emprunteur", fmt(coutAssur) + " €"] : null,
+  ].filter(Boolean);
+
+  const rowsHtml = rows.map(function(r){
+    return '<div class="result-row"><span>'+r[0]+'</span><span>'+r[1]+'</span></div>';
+  }).join('');
+  const m2Html = coutAuM2 ? '<div style="font-size:.75rem;color:rgba(255,255,255,.55);margin-bottom:1rem">'+fmt(coutAuM2)+' €/m²</div>' : '<div style="margin-bottom:1rem"></div>';
+  const m2Footer = coutAuM2 ? '<div style="font-size:.68rem;color:rgba(255,255,255,.5);text-align:right;margin-top:-.2rem">soit '+fmt(coutAuM2)+' €/m²</div>' : '';
+  const creditHint = montant===0 ? '<div style="margin-top:.75rem;font-size:.68rem;color:rgba(255,255,255,.45)">💡 Renseignez le montant emprunté dans la simulation ci-dessus pour inclure les intérêts et l\u2019assurance.</div>' : '';
+  document.getElementById('resVraiCout').innerHTML =
+    '<div class="result-dark">'+
+    '<div style="font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem">🏠 Coût réel sur '+duree+' ans</div>'+
+    '<div class="result-n">'+fmt(grandTotal)+' <span style="font-size:1rem;font-weight:400">€</span></div>'+
+    m2Html+
+    rowsHtml+
+    '<div style="margin-top:.75rem;border-top:1px solid rgba(255,255,255,.15);padding-top:.75rem">'+
+    '<div class="result-row" style="font-weight:700"><span>Total — vrai coût de propriété</span><span>'+fmt(grandTotal)+' €</span></div>'+
+    m2Footer+
+    '</div>'+
+    creditHint+
+    '</div>';
+}
+
 function calcMensualites(){
   const montant = parseFloat(document.getElementById('mMontant').value)||0;
   if(!montant){toast('Veuillez saisir le montant emprunté.','err');return;}
@@ -6518,6 +6644,9 @@ function calcMensualites(){
       ${[['Prix du bien estimé',fmt(montant+apport)+' €'],['dont apport',fmt(apport)+' €'],['dont emprunt',fmt(montant)+' €']].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}`:''}
     </div>`;
   setCard('mensualites', fmt(mensTotal)+' €/mois', 'Coût crédit : '+fmt(Math.round(coutCredit))+' €', '');
+  // Auto-remplir le prix dans la section vrai coût
+  const vcPrixEl = document.getElementById('vcPrix');
+  if(vcPrixEl && !vcPrixEl._userModified) vcPrixEl.value = Math.round(montant + apport) || '';
 
   // ── Tableau d'amortissement ──
   const tbody = document.getElementById('mAmortBody');
