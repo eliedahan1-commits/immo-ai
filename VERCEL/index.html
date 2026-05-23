@@ -2196,25 +2196,25 @@ function renderCards(props, coords){
     {
       title: '🏘️ Mon quartier',
       cards: [
-        {id:'score',     icon:'⭐', label:'Score de quartier',      value:'<span class="spin"></span>', sub:'Synthèse automatique',      source:'Multi-sources'},
-        {id:'services',  icon:'🏥', label:'Services & santé',       value:'<span class="spin"></span>', sub:'Santé, courses, sport',     source:'OSM'},
-        {id:'mobilite',  icon:'🚇', label:'Mobilité & transports',  value:'<span class="spin"></span>', sub:'Transports & vélos',        source:'Transport.data'},
-        {id:'ecoles',    icon:'🏫', label:'Écoles & IPS',           value:'<span class="spin"></span>', sub:'IPS & résultats',           source:'Éducation'},
+        {id:'score',     icon:'⭐', label:'Score global du quartier',      value:'<span class="spin"></span>', sub:'Synthèse automatique',      source:'Multi-sources'},
+        {id:'services',  icon:'🏥', label:'Commerces, services & santé',       value:'<span class="spin"></span>', sub:'Santé, courses, sport',     source:'OSM'},
+        {id:'mobilite',  icon:'🚇', label:'Transports & mobilité douce',  value:'<span class="spin"></span>', sub:'Transports & vélos',        source:'Transport.data'},
+        {id:'ecoles',    icon:'🏫', label:'Écoles & niveau scolaire',           value:'<span class="spin"></span>', sub:'IPS & résultats',           source:'Éducation'},
         {id:'meteo',     icon:'☀️', label:"Météo et qualité de l'air", value:'<span class="spin"></span>', sub:'Moyenne 5 ans',            source:'open-meteo'},
-        {id:'insee',     icon:'📊', label:'Profil du quartier',     value:'<span class="spin"></span>', sub:'Population & densité',      source:'INSEE'},
-        {id:'demographie',icon:'📈',label:'Évolution démographique',value:'<span class="spin"></span>', sub:'Historique population',     source:'Wikidata/INSEE'},
-        {id:'risques',   icon:'⚠️', label:'Risques naturels',       value:'<span class="spin"></span>', sub:'Géorisques officiel',       source:'Géorisques'},
+        {id:'insee',     icon:'📊', label:'Population & densité',     value:'<span class="spin"></span>', sub:'Population & densité',      source:'INSEE'},
+        {id:'demographie',icon:'📈',label:'Croissance de la population',value:'<span class="spin"></span>', sub:'Historique population',     source:'Wikidata/INSEE'},
+        {id:'risques',   icon:'⚠️', label:'Risques naturels & industriels',       value:'<span class="spin"></span>', sub:'Géorisques officiel',       source:'Géorisques'},
         {id:'altitude',  icon:'🏔️', label:'Altitude & topographie', value:'<span class="spin"></span>', sub:'Précision 1m · IGN',       source:'IGN RGE Alti'},
-        {id:'bruit',     icon:'🔇', label:'Bruit & nuisances',      value:'<span class="spin"></span>', sub:'Routes, voies ferrées, aéroports', source:'OSM'},
-        {id:'fibre',     icon:'📶', label:'Internet & fibre',       value:'<span class="spin"></span>', sub:'Éligibilité fibre',         source:'ARCEP'},
-        {id:'urbanisme', icon:'📋', label:'Urbanisme, PLU & Énergie', value:'<span class="spin"></span>', sub:'Zonage officiel IGN',       source:'IGN GPU'},
+        {id:'bruit',     icon:'🔇', label:'Carte du bruit',      value:'<span class="spin"></span>', sub:'Routes, voies ferrées, aéroports', source:'OSM'},
+        {id:'fibre',     icon:'📶', label:'Connexion internet & fibre',       value:'<span class="spin"></span>', sub:'Éligibilité fibre',         source:'ARCEP'},
+        {id:'urbanisme', icon:'📋', label:'Zonage, PLU & réglementation', value:'<span class="spin"></span>', sub:'Zonage officiel IGN',       source:'IGN GPU'},
       ]
     },
     {
       title: '🏠 Prix des biens',
       cards: [
         {id:'dvf',           icon:'💰', label:'Prix des dernières transactions', value:'<span class="spin"></span>', sub:'Transactions réelles',      source:'DVF DGFiP'},
-        {id:'loyers',        icon:'🏠', label:'Loyers estimés',                  value:'<span class="spin"></span>', sub:'Estimation DVF × rendement', source:'DVF + calcul'},
+        {id:'loyers',        icon:'🏠', label:'Estimation des loyers',                  value:'<span class="spin"></span>', sub:'Estimation DVF × rendement', source:'DVF + calcul'},
         {id:'prixCommunes',  icon:'🗺️', label:'Prix au m² par commune',          value:'<span class="spin"></span>', sub:'Carte choroplèthe commune',  source:'DVF + geo.api.gouv.fr'},
       ]
     },
@@ -2223,9 +2223,9 @@ function renderCards(props, coords){
       cards: [
         {id:'emprunt', icon:'🏦', label:"Capacité d'emprunt",   value:'Simuler →', sub:'Revenus, apport, durée',  source:'Calcul', action:"go('emprunt')"},
         {id:'cout',    icon:'📊', label:'Vrai coût du bien',    value:'Simuler →', sub:'Prix total acquisition',  source:'Calcul', action:"go('cout')"},
-        {id:'aides',   icon:'🎁', label:'Aides PTZ & État',     value:'Simuler →', sub:'PTZ, Action Logement...', source:'État',   action:"go('aides')"},
-        {id:'renov',   icon:'🔨', label:'Rénovation & aides',   value:'Simuler →', sub:"MaPrimeRénov', CEE...",  source:'ANAH',   action:"go('renov')"},
-        {id:'mensualites', icon:'🧮', label:'Simulation mensualités', value:'Calculer →', sub:'Mensualités, coût crédit', source:'Calcul', action:"go('mensualites')"},
+        {id:'aides',   icon:'🎁', label:"Aides à l'achat (PTZ, APL…)",     value:'Simuler →', sub:'PTZ, Action Logement...', source:'État',   action:"go('aides')"},
+        {id:'renov',   icon:'🔨', label:"MaPrimeRénov' & aides travaux",   value:'Simuler →', sub:"MaPrimeRénov', CEE...",  source:'ANAH',   action:"go('renov')"},
+        {id:'mensualites', icon:'🧮', label:'Mensualités & coût total du crédit', value:'Calculer →', sub:'Mensualités, coût crédit', source:'Calcul', action:"go('mensualites')"},
       ]
     },
     {
@@ -2462,7 +2462,7 @@ async function loadRisques(lat, lng, citycode){
 async function fetchEducationGouv(lat, lng, dist=500){
   try{
     // API v1 : geofilter.distance est la méthode fiable quelle que soit la structure interne du dataset
-    const fields = 'nom_etablissement,type_etablissement,statut_public_prive,adresse_1,commune,code_postal,coordonnees,latitude,longitude,telephone,numero_uai';
+    const fields = 'nom_etablissement,type_etablissement,statut_public_prive,adresse_1,nom_commune,code_postal,coordonnees,latitude,longitude,telephone,identifiant_de_l_etablissement';
     const url = `https://data.education.gouv.fr/api/records/1.0/search/?dataset=fr-en-annuaire-education&geofilter.distance=${lat},${lng},${dist}&rows=100&fields=${fields}`;
     const r = await fetch(url, {signal: AbortSignal.timeout(12000)});
     if(!r.ok){ console.warn('[EN API] HTTP', r.status, url); return []; }
@@ -2500,10 +2500,10 @@ async function fetchEducationGouv(lat, lng, dist=500){
       return { nom, type,
         statut: f.statut_public_prive || '',
         adresse: f.adresse_1 || '',
-        commune: f.commune || '',
+        commune: f.nom_commune || '',
         codePostal: f.code_postal || '',
         phone: f.telephone || null,
-        uai: (f.numero_uai || '').toUpperCase() || null,
+        uai: (f.identifiant_de_l_etablissement || '').toString().toUpperCase().trim() || null,
         distanceM, lat: elLat, lon: elLon, source: 'education.gouv.fr' };
     }).filter(Boolean);
   }catch(e){ return []; }
