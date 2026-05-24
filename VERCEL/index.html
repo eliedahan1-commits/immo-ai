@@ -897,6 +897,7 @@ path.leaflet-interactive:focus{outline:none;}
     <div class="nav-item" onclick="go('emprunt')"><span class="nav-icon">🏦</span>Capacité d'emprunt</div>
     <div class="nav-item" onclick="go('mensualites')"><span class="nav-icon">🧮</span>Achat : Mensualités & crédit</div>
     <div class="nav-item" onclick="go('cout')"><span class="nav-icon">🔑</span>Investissement locatif</div>
+    <div class="nav-item" onclick="go('location')"><span class="nav-icon">🏠</span>Location : budget & comparaison</div>
     <div class="nav-item" onclick="go('aides')"><span class="nav-icon">🎁</span>Aides PTZ & État</div>
     <div class="nav-item" onclick="go('renov')"><span class="nav-icon">🔨</span>Rénovation & aides</div>
   </div>
@@ -1081,8 +1082,11 @@ path.leaflet-interactive:focus{outline:none;}
         <div class="card"><div class="ctitle">🔑 Votre investissement</div>
           <label class="lbl">Prix d'achat (€)</label><input class="inp" id="lPrix" type="number" placeholder="250000" />
           <label class="lbl">Frais de notaire (%)</label>
-          <input class="inp" id="lNotaire" type="number" placeholder="7.5" step="0.1" min="0" max="15"
-            />
+          <input class="inp" id="lNotaire" type="number" placeholder="7.5" step="0.1" min="0" max="15" />
+          <label style="display:flex;align-items:center;gap:.6rem;font-size:.78rem;color:var(--text);margin-top:.3rem;margin-bottom:.6rem;cursor:pointer;padding:.5rem .6rem;background:var(--warm);border-radius:var(--r);border:1px solid var(--border)">
+            <input type="checkbox" id="lNotaireFin" style="width:15px;height:15px;accent-color:var(--gold);flex-shrink:0" />
+            <span>Financés par la banque <span style="color:var(--muted);font-size:.72rem">(augmente le crédit — rare en investissement locatif)</span></span>
+          </label>
           <label class="lbl">Travaux initiaux (€)</label><input class="inp" id="lTravaux" type="number" placeholder="0" />
           <label class="lbl">Loyer mensuel charges comprises (€)</label><input class="inp" id="lLoyer" type="number" placeholder="1200" />
           <label class="lbl">Charges non récupérables /mois (€) <span style="font-weight:400;font-size:.8em;color:var(--muted)">copro, entretien</span></label><input class="inp" id="lCharges" type="number" placeholder="150" />
@@ -1336,6 +1340,124 @@ path.leaflet-interactive:focus{outline:none;}
         </div>
       </div>
     </div>
+  </div></div>
+
+  <!-- ══ LOCATION ══ -->
+  <div class="page" id="p-location"><div class="inner">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 1rem 0">
+      <button class="back-btn" onclick="go('analyse')">← Retour aux cartes</button>
+      <button class="detail-close" onclick="go('analyse')" style="color:var(--muted);font-size:.9rem;padding:.3rem .5rem;border:1px solid var(--border);border-radius:var(--r)">✕ Fermer</button>
+    </div>
+    <div class="ph">
+      <div class="ptag">✦ Financement · Location</div>
+      <h2 class="ptitle">Location : <em>Budget & comparaison</em></h2>
+      <p class="psub">Budget loyer, louer vs acheter, encadrement des loyers et checklist locataire.</p>
+    </div>
+
+    <!-- ── Budget loyer ── -->
+    <div class="g2" style="align-items:start;margin-bottom:2rem">
+      <div class="card">
+        <div class="ctitle">💶 Votre budget loyer</div>
+        <label class="lbl">Revenus nets /mois (€) <span style="font-weight:400;color:var(--muted);font-size:.75em">— foyer</span></label>
+        <input class="inp" id="locRevenu" type="number" placeholder="3500" />
+        <label class="lbl">Charges copropriété estimées /mois (€)</label>
+        <input class="inp" id="locCharges" type="number" placeholder="100" value="0" />
+        <label class="lbl">Assurance habitation /mois (€)</label>
+        <input class="inp" id="locAssurHab" type="number" placeholder="20" value="15" />
+        <label class="lbl">Parking /mois (€) <span style="font-weight:400;color:var(--muted);font-size:.75em">— optionnel</span></label>
+        <input class="inp" id="locParking" type="number" placeholder="0" value="0" />
+        <button class="btn btn-dark btn-full" onclick="calcLocBudget()" style="margin-top:.5rem">✦ Calculer mon budget</button>
+      </div>
+      <div id="resLocBudget">
+        <div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez vos revenus pour voir votre budget loyer recommandé.</p></div>
+      </div>
+    </div>
+
+    <!-- ── Louer vs Acheter ── -->
+    <div style="border-top:1px solid var(--border);padding-top:1.5rem;margin-bottom:2rem">
+      <div class="ptag" style="margin-bottom:.5rem">✦ Comparaison</div>
+      <h3 style="font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:300;margin:0 0 1rem">Louer ou <em style="font-style:italic;color:var(--gold)">acheter</em> ?</h3>
+      <div class="g2" style="align-items:start">
+        <div class="card">
+          <div class="ctitle">📊 Paramètres de comparaison</div>
+          <label class="lbl">Loyer mensuel CC (€)</label>
+          <input class="inp" id="locLoyerMens" type="number" placeholder="1200" />
+          <label class="lbl">Prix d'achat équivalent (€)</label>
+          <input class="inp" id="locPrixAchat" type="number" placeholder="300000" />
+          <label class="lbl">Apport (€)</label>
+          <input class="inp" id="locApport" type="number" placeholder="30000" value="0" />
+          <label class="lbl">Taux crédit (%)</label>
+          <input class="inp" id="locTaux" type="number" value="3.42" step="0.01" />
+          <label class="lbl">Durée prêt (ans)</label>
+          <input class="inp" id="locDuree" type="number" value="20" />
+          <label class="lbl">Frais de notaire (%)</label>
+          <input class="inp" id="locNotaire" type="number" value="7.5" step="0.1" />
+          <label class="lbl">Charges & taxe foncière /an (€) <span style="font-weight:400;color:var(--muted);font-size:.75em">— si achat</span></label>
+          <input class="inp" id="locChargesAchat" type="number" placeholder="3000" value="3000" />
+          <div style="border-top:1px solid var(--border);margin:.75rem 0 .5rem"></div>
+          <div class="ctitle" style="font-size:.7rem;margin-bottom:.4rem">⚙️ Hypothèses</div>
+          <label class="lbl">Revalorisation du bien (%/an)</label>
+          <input class="inp" id="locRevaloBien" type="number" value="2" step="0.5" />
+          <label class="lbl">Inflation des loyers (%/an)</label>
+          <input class="inp" id="locInflatLoyer" type="number" value="1.5" step="0.5" />
+          <button class="btn btn-dark btn-full" onclick="calcLocVsAchat()" style="margin-top:.5rem">✦ Comparer</button>
+        </div>
+        <div id="resLocVsAchat">
+          <div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez les paramètres pour comparer louer et acheter.</p></div>
+        </div>
+      </div>
+      <div id="locCompChartWrap" style="display:none;margin-top:1.5rem;position:relative;background:var(--ink);border-radius:var(--r);padding:1rem .75rem .75rem;height:320px">
+        <canvas id="locVsAchatChart"></canvas>
+      </div>
+    </div>
+
+    <!-- ── Encadrement des loyers ── -->
+    <div style="border-top:1px solid var(--border);padding-top:1.5rem;margin-bottom:2rem">
+      <div class="ptag" style="margin-bottom:.5rem">✦ Réglementation</div>
+      <h3 style="font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:300;margin:0 0 1rem">Encadrement <em style="font-style:italic;color:var(--gold)">des loyers</em></h3>
+      <div class="g2" style="align-items:start">
+        <div class="card">
+          <div class="ctitle">🏛️ Votre bien loué</div>
+          <label class="lbl">Commune <span style="font-weight:400;color:var(--muted);font-size:.75em">— pré-remplie depuis votre adresse</span></label>
+          <input class="inp" id="locCommune" type="text" placeholder="Paris" />
+          <input type="hidden" id="locCodeInsee" />
+          <label class="lbl">Surface (m²)</label>
+          <input class="inp" id="locSurf" type="number" placeholder="50" />
+          <label class="lbl">Type de location</label>
+          <select class="inp" id="locType">
+            <option value="vide">Vide</option>
+            <option value="meuble">Meublé</option>
+          </select>
+          <label class="lbl">Époque de construction</label>
+          <select class="inp" id="locEpoque">
+            <option value="avant1946">Avant 1946</option>
+            <option value="1946-1970">1946 — 1970</option>
+            <option value="1971-1990" selected>1971 — 1990</option>
+            <option value="apres1990">Après 1990</option>
+          </select>
+          <label class="lbl">Nombre de pièces</label>
+          <select class="inp" id="locPieces">
+            <option value="1">1 pièce (studio)</option>
+            <option value="2">2 pièces</option>
+            <option value="3" selected>3 pièces</option>
+            <option value="4">4 pièces</option>
+            <option value="5">5 pièces et +</option>
+          </select>
+          <button class="btn btn-dark btn-full" onclick="checkEncadrement()" style="margin-top:.5rem">✦ Vérifier l'encadrement</button>
+        </div>
+        <div id="resEncadrement">
+          <div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez la commune pour vérifier l'encadrement des loyers.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Checklist locataire ── -->
+    <div style="border-top:1px solid var(--border);padding-top:1.5rem">
+      <div class="ptag" style="margin-bottom:.5rem">✦ Avant de signer</div>
+      <h3 style="font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:300;margin:0 0 1rem"><em style="font-style:italic;color:var(--gold)">Checklist</em> locataire</h3>
+      <div id="locChecklist" style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem"></div>
+    </div>
+
   </div></div>
 
   <!-- ══ COACHING OFFRE ══ -->
@@ -1793,7 +1915,7 @@ const PAGES = {
   urbanisme:'Urbanisme, PLU & Énergie', ecoles:'Écoles & IPS', mobilite:'Mobilité & transports',
   fibre:'Internet & fibre', services:'Services & santé', soleil:"Météo et qualité de l'air",
   emprunt:'Capacité d\'emprunt', cout:'Vrai coût du bien', aides:'Aides de l\'État',
-  renov:'Rénovation & MaPrimeRénov\'', mensualites:'Achat : Mensualités & crédit', cout:'Investissement locatif', offre:'Coaching de l\'offre',
+  renov:'Rénovation & MaPrimeRénov\'', mensualites:'Achat : Mensualités & crédit', cout:'Investissement locatif', location:'Location : budget & comparaison', offre:'Coaching de l\'offre',
   profil:'Compatibilité de vie',
   conseil:'Conseiller IA 24h/24', annonces:'Annonces', alertes:'Alertes intelligentes',
   pros:'Annuaire pros', juridique:'Guide juridique'
@@ -1853,6 +1975,7 @@ function go(id){
   _goPage(id);
   if(id === 'emprunt')     setTimeout(initEmpruntPage, 100);
   if(id === 'mensualites') setTimeout(initMensualitesPage, 100);
+  if(id === 'location')   setTimeout(initLocationPage, 100);
   if(id === 'cout') { const tm=window._tauxMarche?.taux; if(tm){ const t20=(tm[20]||3.4).toFixed(2); ['cTaux','lTaux'].forEach(fid=>{const el=document.getElementById(fid);if(el&&!el._userModified)el.value=t20;}); } }
   // Pré-remplissage automatique si une adresse est déjà analysée
   if(currentAddress) {
@@ -2267,6 +2390,7 @@ function renderCards(props, coords){
         {id:'emprunt',     icon:'🏦', label:"Capacité d'emprunt",                        value:'Simuler →',  sub:'Revenus, apport, durée',       source:'Calcul', action:"go('emprunt')"},
         {id:'mensualites', icon:'🧮', label:'Achat : Mensualités & coût total du crédit', value:'Calculer →', sub:'Mensualités, crédit, vrai coût', source:'Calcul', action:"go('mensualites')"},
         {id:'cout',        icon:'🔑', label:'Investissement locatif',                     value:'Simuler →',  sub:'Rendement, cashflow, fiscalité', source:'Calcul', action:"go('cout')"},
+        {id:'location',    icon:'🏠', label:'Location : budget & comparaison',            value:'Simuler →',  sub:'Budget loyer, louer vs acheter', source:'Calcul', action:"go('location')"},
         {id:'aides',       icon:'🎁', label:"Aides à l'achat (PTZ, APL…)",               value:'Simuler →',  sub:'PTZ, Action Logement...',        source:'État',   action:"go('aides')"},
         {id:'renov',       icon:'🔨', label:"MaPrimeRénov' & aides travaux",              value:'Simuler →',  sub:"MaPrimeRénov', CEE...",           source:'ANAH',   action:"go('renov')"},
       ]
@@ -6693,8 +6817,297 @@ function calcMensualites(){
 
 
 function switchCoutMode(mode){
-  document.getElementById('coutAchat').style.display   = mode==='achat'   ? '' : 'none';
-  document.getElementById('coutLocation').style.display = mode==='location' ? '' : 'none';
+  const a = document.getElementById('coutAchat');
+  const l = document.getElementById('coutLocation');
+  if(a) a.style.display = mode==='achat' ? '' : 'none';
+  if(l) l.style.display = mode==='location' ? '' : 'none';
+}
+
+// ══ LOCATION : Budget & comparaison ══════════════════════════════════════════
+
+// Villes avec encadrement des loyers (2025)
+const LOC_ENCADREMENT_VILLES = {
+  "75056":"Paris","59350":"Lille","59002":"Hellemmes","59553":"Lomme",
+  "69123":"Lyon","69029":"Villeurbanne","33063":"Bordeaux",
+  "34172":"Montpellier","38185":"Grenoble","76351":"Le Havre",
+  "93048":"Montreuil","93063":"Saint-Denis","93008":"Aubervilliers",
+  "93066":"Saint-Ouen","93011":"Bagnolet","93005":"Bobigny",
+  "93050":"Noisy-le-Sec","93051":"Pantin","93070":"Villemomble",
+  "94028":"Créteil","94037":"Ivry-sur-Seine","94041":"Joinville-le-Pont",
+  "64102":"Bayonne","64024":"Anglet","64122":"Biarritz"
+};
+
+// Départements entièrement en zone tendue (Île-de-France + DOM)
+const LOC_DEPT_ZONE_TENDUE = new Set(["75","92","93","94","971","972","973","974"]);
+
+// Autres grandes villes zone tendue
+const LOC_VILLES_ZONE_TENDUE = new Set([
+  "69123","13055","31555","06088","44109","67482","38185","59350",
+  "33063","34172","76351","35238","21231","49007","51454","76540",
+  "06029","06152","13004","13007","83137","06027","63113","25056",
+  "37261","45234","72181","60057","14118","50588","76116","74010",
+  "74218","73065","04070","06088","06027","83137","30189","34070",
+  "66136","11069","81065","46042","47091","32013","40192","65440",
+  "64445","79191","17300","16015","87085","23096","19031","46227"
+]);
+
+function initLocationPage(){
+  // Pré-remplir depuis la session courante
+  const city = window._currentCity || window._searchCity || "";
+  const insee = window._currentCodeInsee || window._ecolesCodeInsee || "";
+  if(city){ const el = document.getElementById("locCommune"); if(el) el.value = city; }
+  if(insee){ const el = document.getElementById("locCodeInsee"); if(el) el.value = insee; }
+
+  // Revenus depuis capacité d'emprunt
+  const rev1 = parseFloat(document.getElementById("eRev")?.value)||0;
+  const rev2 = parseFloat(document.getElementById("eRev2")?.value)||0;
+  if(rev1+rev2 > 0){
+    const el = document.getElementById("locRevenu"); if(el) el.value = rev1+rev2;
+  }
+
+  // Taux/durée depuis mensualités
+  const taux = parseFloat(document.getElementById("mTaux")?.value)||3.42;
+  const duree = parseFloat(document.getElementById("mDuree")?.value)||20;
+  const notPct = parseFloat(document.getElementById("mNotairePct")?.value)||7.5;
+  const apport = parseFloat(document.getElementById("mApport")?.value)||0;
+  if(taux){ const el = document.getElementById("locTaux"); if(el) el.value = taux; }
+  if(duree){ const el = document.getElementById("locDuree"); if(el) el.value = duree; }
+  if(notPct){ const el = document.getElementById("locNotaire"); if(el) el.value = notPct; }
+  if(apport){ const el = document.getElementById("locApport"); if(el) el.value = apport; }
+
+  // Prix du marché (si dispo)
+  const prixM2 = window._lvaPrixM2 || 0;
+  if(prixM2 > 0){
+    const surf = 50; // surface par défaut
+    const prixEstime = Math.round(prixM2 * surf);
+    const elP = document.getElementById("locPrixAchat"); if(elP && !elP._userModified) elP.value = prixEstime;
+    const elS = document.getElementById("locSurf"); if(elS) elS.value = surf;
+  }
+
+  // Checklist
+  renderLocChecklist();
+}
+
+function calcLocBudget(){
+  const rev = parseFloat(document.getElementById("locRevenu").value)||0;
+  if(!rev){ toast("Renseignez vos revenus.","err"); return; }
+  const charges   = parseFloat(document.getElementById("locCharges").value)||0;
+  const assur     = parseFloat(document.getElementById("locAssurHab").value)||15;
+  const parking   = parseFloat(document.getElementById("locParking").value)||0;
+  const loyerMax33  = Math.round(rev * 0.33);
+  const loyerReel   = Math.max(0, loyerMax33 - charges - assur - parking);
+  const budgetTotal = loyerReel + charges + assur + parking;
+  const pct = Math.round(budgetTotal / rev * 100);
+  const rows = [
+    ["Revenus nets /mois", fmt(rev)+" €"],
+    ["Loyer max recommandé (33%)", fmt(loyerMax33)+" €"],
+    ["─── Déductions fixes", ""],
+    charges>0 ? ["Charges copropriété", "− "+fmt(charges)+" €"] : null,
+    assur>0   ? ["Assurance habitation", "− "+fmt(assur)+" €"] : null,
+    parking>0 ? ["Parking", "− "+fmt(parking)+" €"] : null,
+    ["Loyer pur max", fmt(loyerReel)+" €"],
+    ["Budget logement total", fmt(budgetTotal)+" € ("+pct+"% revenus)"],
+  ].filter(Boolean);
+  const qual = loyerReel < 500 ? "⚠️ Budget serré" : loyerReel < 900 ? "✅ Budget raisonnable" : "✅ Budget confortable";
+  document.getElementById("resLocBudget").innerHTML =
+    "<div class=\"result-dark\">"+
+    "<div style=\"font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem\">💶 Votre budget loyer</div>"+
+    "<div class=\"result-n\">"+fmt(loyerReel)+" <span style=\"font-size:1rem;font-weight:400\">€/mois</span></div>"+
+    "<div style=\"font-size:.75rem;color:#7ef0c0;margin-bottom:1rem\">"+qual+"</div>"+
+    rows.map(function(r){ return "<div class=\"result-row\"><span>"+r[0]+"</span><span>"+r[1]+"</span></div>"; }).join("")+
+    "<div style=\"margin-top:.75rem;font-size:.65rem;color:rgba(255,255,255,.45)\">Règle des 33% : le logement ne doit pas dépasser 33% des revenus.</div>"+
+    "</div>";
+}
+
+function calcLocVsAchat(){
+  const loyer0   = parseFloat(document.getElementById("locLoyerMens").value)||0;
+  const prix     = parseFloat(document.getElementById("locPrixAchat").value)||0;
+  if(!loyer0 || !prix){ toast("Renseignez le loyer et le prix d\'achat.","err"); return; }
+  const apport   = parseFloat(document.getElementById("locApport").value)||0;
+  const taux     = (parseFloat(document.getElementById("locTaux").value)||3.42)/100;
+  const duree    = parseFloat(document.getElementById("locDuree").value)||20;
+  const notPct   = (parseFloat(document.getElementById("locNotaire").value)||7.5)/100;
+  const chargesAchatAn = parseFloat(document.getElementById("locChargesAchat").value)||3000;
+  const revaloBien = (parseFloat(document.getElementById("locRevaloBien").value)||2)/100;
+  const inflatLoyer= (parseFloat(document.getElementById("locInflatLoyer").value)||1.5)/100;
+
+  const montant  = prix - apport;
+  const notaire  = Math.round(prix * notPct);
+  const n = duree * 12;
+  const t = taux / 12;
+  const factor = t > 0 ? t / (1 - Math.pow(1+t,-n)) : 1/n;
+  const mens   = Math.round(montant * factor);
+  const assurMens = Math.round(montant * 0.0025 / 12);
+  const mensTot = mens + assurMens;
+
+  const labelsYr = [], cumLoc = [], cumAch = [];
+  let totalLoc = 0, totalAch = apport + notaire, restant = montant;
+  let crossoverYr = null;
+
+  for(let yr = 1; yr <= duree; yr++){
+    // Location : loyers cumulés + inflation
+    const loyerAn = Math.round(loyer0 * 12 * Math.pow(1+inflatLoyer, yr-1));
+    totalLoc += loyerAn;
+    // Achat : mensualités + charges - equity
+    totalAch += mensTot * 12 + chargesAchatAn;
+    // Capital remboursé cette année
+    let capAn = 0;
+    for(let m=0; m<12; m++){
+      const intM = restant * t;
+      const capM = mens - intM;
+      capAn += capM; restant = Math.max(0, restant - capM);
+    }
+    // Valorisation bien
+    const valBien = Math.round(prix * Math.pow(1+revaloBien, yr));
+    // Equity = valeur bien - restant à rembourser
+    const equity = valBien - Math.max(0, restant);
+    // Coût net achat = total payé - equity récupérée
+    const coutNetAch = totalAch - equity;
+
+    labelsYr.push("An "+yr);
+    cumLoc.push(Math.round(totalLoc));
+    cumAch.push(Math.round(coutNetAch));
+    if(!crossoverYr && coutNetAch < totalLoc) crossoverYr = yr;
+  }
+
+  const lastLoc = cumLoc[cumLoc.length-1];
+  const lastAch = cumAch[cumAch.length-1];
+  const gain = lastLoc - lastAch;
+  const gainSign = gain >= 0 ? "+" : "";
+  const crossoverTxt = crossoverYr
+    ? "<span style=\"color:#7ef0c0\">✅ Acheter devient plus intéressant à partir de l’an <strong>"+crossoverYr+"</strong></span>"
+    : "<span style=\"color:#f39c12\">⚠️ Sur "+duree+" ans, louer reste moins coûteux en coût net</span>";
+
+  document.getElementById("resLocVsAchat").innerHTML =
+    "<div class=\"result-dark\">"+
+    "<div style=\"font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem\">⚖️ Sur "+duree+" ans</div>"+
+    "<div class=\"result-n\" style=\"font-size:1.6rem\">"+gainSign+fmt(Math.abs(gain))+" <span style=\"font-size:.9rem;font-weight:400\">€ "+( gain>=0?"en faveur de l’achat":"en faveur de la location")+"</span></div>"+
+    "<div style=\"margin:.6rem 0 1rem;font-size:.78rem\">"+crossoverTxt+"</div>"+
+    [
+      ["Loyer mensuel (an 1)", fmt(loyer0)+" €/mois"],
+      ["Mensualité crédit + assurance", fmt(mensTot)+" €/mois"],
+      ["Notaire", fmt(notaire)+" €"],
+      ["Total loyers cumulés sur "+duree+" ans", fmt(lastLoc)+" €"],
+      ["Coût net achat (après equity)", fmt(lastAch)+" €"],
+    ].map(function(r){ return "<div class=\"result-row\"><span>"+r[0]+"</span><span>"+r[1]+"</span></div>"; }).join("")+
+    "<div style=\"margin-top:.6rem;font-size:.62rem;color:rgba(255,255,255,.4)\">Hypothèses : revalorisation +"+Math.round(revaloBien*100)+"% / an, inflation loyer +"+Math.round(inflatLoyer*100)+"% / an</div>"+
+    "</div>";
+
+  // Graphique
+  const wrap = document.getElementById("locCompChartWrap");
+  wrap.style.display = "block";
+  if(window._locVsAchatChart){ window._locVsAchatChart.destroy(); window._locVsAchatChart = null; }
+  const ctx = document.getElementById("locVsAchatChart").getContext("2d");
+  window._locVsAchatChart = new Chart(ctx, {
+    type:"line",
+    data:{ labels:labelsYr, datasets:[
+      { label:"Loyer cumulé", data:cumLoc, borderColor:"#e74c3c", backgroundColor:"rgba(231,76,60,.1)", borderWidth:2.5, pointRadius:0, fill:true, tension:.4, datalabels:{display:false} },
+      { label:"Coût net achat", data:cumAch, borderColor:"#2a9d8f", backgroundColor:"rgba(42,157,143,.1)", borderWidth:2.5, pointRadius:0, fill:true, tension:.4, datalabels:{display:false} }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      interaction:{ mode:"index", intersect:false },
+      plugins:{ legend:{ labels:{ color:"rgba(255,255,255,.7)", font:{ size:11 } } },
+        tooltip:{ callbacks:{ label:ctx2 => " "+ctx2.dataset.label+" : "+fmt(ctx2.parsed.y)+" €" } }
+      },
+      scales:{
+        x:{ ticks:{ color:"rgba(255,255,255,.5)", font:{ size:9 }, maxTicksLimit:12 }, grid:{ color:"rgba(255,255,255,.06)" } },
+        y:{ ticks:{ color:"rgba(255,255,255,.6)", font:{ size:9 }, callback:v => Math.round(v/1000)+"k €" }, grid:{ color:"rgba(255,255,255,.08)" } }
+      }
+    }
+  });
+}
+
+async function checkEncadrement(){
+  const commune = (document.getElementById("locCommune").value||"").trim();
+  const insee   = (document.getElementById("locCodeInsee").value||"").trim();
+  const surf    = parseFloat(document.getElementById("locSurf").value)||0;
+  const type    = document.getElementById("locType").value;
+  const epoque  = document.getElementById("locEpoque").value;
+  const pieces  = document.getElementById("locPieces").value;
+  if(!commune){ toast("Renseignez la commune.","err"); return; }
+
+  const dept = insee.slice(0,2);
+  const isZoneTendue = LOC_DEPT_ZONE_TENDUE.has(dept) || LOC_VILLES_ZONE_TENDUE.has(insee);
+  const isEncadree   = !!LOC_ENCADREMENT_VILLES[insee];
+  const nomEncadree  = LOC_ENCADREMENT_VILLES[insee]||"";
+
+  let loyerRefHtml = "";
+  if(isEncadree && surf > 0){
+    // Tentative API data.gouv encadrement des loyers
+    try {
+      const ds = "encadrement_des_loyers";
+      const apiUrl = "https://data.gouv.fr/api/1/datasets/?q=encadrement+loyers+"+encodeURIComponent(commune)+"&page_size=1";
+      // Affichage basé sur les barèmes connus (moyennes 2025 indicatives)
+      const BAREME = {
+        "75056": { vide:{1:24.8,2:20.3,3:16.6,4:14.2,5:13.1}, meuble:{1:28.1,2:23.0,3:18.8,4:16.1,5:14.8} },
+        "59350": { vide:{1:12.5,2:10.1,3:8.6,4:7.7,5:7.2}, meuble:{1:14.1,2:11.4,3:9.7,4:8.7,5:8.1} },
+        "69123": { vide:{1:15.3,2:12.8,3:10.4,4:9.1,5:8.3}, meuble:{1:17.3,2:14.5,3:11.8,4:10.3,5:9.4} },
+        "33063": { vide:{1:13.2,2:11.0,3:9.1,4:8.1,5:7.5}, meuble:{1:14.9,2:12.4,3:10.3,4:9.2,5:8.5} },
+        "34172": { vide:{1:13.8,2:11.5,3:9.6,4:8.5,5:7.9}, meuble:{1:15.6,2:13.0,3:10.9,4:9.6,5:8.9} },
+      };
+      const b = BAREME[insee];
+      if(b){
+        const refM2 = (b[type]||b.vide)[pieces] || (b[type]||b.vide)[3];
+        const refMin = Math.round(refM2 * 0.7 * (surf||50));
+        const refMed = Math.round(refM2 * (surf||50));
+        const refMax = Math.round(refM2 * 1.2 * (surf||50));
+        loyerRefHtml = "<div style=\"margin-top:.8rem;padding:.75rem;background:rgba(255,255,255,.06);border-radius:8px\">"+
+          "<div style=\"font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold2);margin-bottom:.4rem\">📋 Loyer de référence (indicatif 2025)</div>"+
+          "<div style=\"font-size:.72rem;color:rgba(255,255,255,.7);margin-bottom:.3rem\">Type : "+type+" · "+pieces+" pièce(s) · "+epoque+"</div>"+
+          (surf>0 ? "<div class=\"result-row\"><span>Loyer de référence minoré</span><span>"+fmt(refMin)+" €/mois</span></div>"+
+          "<div class=\"result-row\" style=\"font-weight:700\"><span>Loyer de référence</span><span>"+fmt(refMed)+" €/mois</span></div>"+
+          "<div class=\"result-row\"><span>Loyer de référence majoré</span><span>"+fmt(refMax)+" €/mois</span></div>" : "")+
+          "<div style=\"margin-top:.5rem;font-size:.62rem;color:rgba(255,255,255,.4)\">Valeurs indicatives moyennes. Consultez <a href=\"https://www.anil.org/outils/encadrement-des-loyers/\" target=\"_blank\" style=\"color:var(--gold)\">ANIL.org</a> pour le barème officiel.</div>"+
+          "</div>";
+      }
+    } catch(e){ /* silencieux */ }
+  }
+
+  const zoneBadge = isZoneTendue
+    ? "<span style=\"background:#e74c3c;color:#fff;padding:.2rem .5rem;border-radius:4px;font-size:.72rem;font-weight:600\">🔴 Zone tendue</span>"
+    : "<span style=\"background:#2a9d8f;color:#fff;padding:.2rem .5rem;border-radius:4px;font-size:.72rem;font-weight:600\">🟢 Hors zone tendue</span>";
+  const encBadge = isEncadree
+    ? "<span style=\"background:#e8a020;color:#fff;padding:.2rem .5rem;border-radius:4px;font-size:.72rem;font-weight:600;margin-left:.4rem\">📋 Loyers encadrés</span>"
+    : "";
+
+  const zoneTxt = isZoneTendue
+    ? "<div style=\"font-size:.72rem;color:rgba(255,255,255,.7);margin-top:.5rem\">📌 Préavis réduit à <strong>1 mois</strong> · Frais d'agence plafonnés · Dépôt de garantie : 1 mois (vide) ou 2 mois (meublé)</div>"
+    : "<div style=\"font-size:.72rem;color:rgba(255,255,255,.7);margin-top:.5rem\">📌 Préavis 3 mois (vide) ou 1 mois (meublé) · Dépôt de garantie : 1 mois (vide) ou 2 mois (meublé)</div>";
+
+  document.getElementById("resEncadrement").innerHTML =
+    "<div class=\"result-dark\">"+
+    "<div style=\"font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.6rem\">🏛️ "+commune+"</div>"+
+    "<div style=\"margin-bottom:.5rem\">"+zoneBadge+encBadge+"</div>"+
+    zoneTxt+
+    loyerRefHtml+
+    "<div style=\"margin-top:.75rem;font-size:.65rem;color:rgba(255,255,255,.35)\">"+
+    "Sources : <a href=\"https://www.service-public.fr/simulateur/calcul/zone-tendue\" target=\"_blank\" style=\"color:var(--gold)\">service-public.fr zone tendue</a> · "+
+    "<a href=\"https://www.anil.org/outils/encadrement-des-loyers/\" target=\"_blank\" style=\"color:var(--gold)\">ANIL encadrement des loyers</a>"+
+    "</div></div>";
+}
+
+function renderLocChecklist(){
+  const ITEMS = [
+    { label:"Dépôt de garantie", detail:"1 mois (vide) · 2 mois (meublé)" },
+    { label:"Frais d'agence", detail:"Plafonnés en zone tendue (selon surface)" },
+    { label:"État des lieux d'entrée", detail:"Obligatoire, conservez-le précieusement" },
+    { label:"Assurance habitation", detail:"Obligatoire dès l'entrée dans les lieux" },
+    { label:"Quittances de loyer", detail:"Demandez-les chaque mois, elles prouvent vos paiements" },
+    { label:"Diagnostic DPE du logement", detail:"Obligatoire dans l'annonce depuis 2021" },
+    { label:"Préavis de départ", detail:"3 mois (vide) · 1 mois (meublé ou zone tendue)" },
+    { label:"Révision annuelle (IRL)", detail:"Indexation sur l'Indice de Référence des Loyers" },
+    { label:"Garantie loyers impayés (GLI)", detail:"Le bailleur peut vous demander une caution ou GLI" },
+    { label:"Inventaire mobilier (meublé)", detail:"Obligatoire, signez-le avec le propriétaire" },
+  ];
+  const el = document.getElementById("locChecklist");
+  if(!el) return;
+  el.innerHTML = ITEMS.map(function(item, i){
+    return "<label style=\"display:flex;gap:.6rem;padding:.65rem .75rem;background:var(--white);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;align-items:flex-start\">"+
+      "<input type=\"checkbox\" id=\"locChk"+i+"\" style=\"margin-top:.1rem;accent-color:var(--gold);flex-shrink:0\">"+
+      "<div><div style=\"font-size:.78rem;font-weight:600;color:var(--text)\">"+item.label+"</div>"+
+      "<div style=\"font-size:.66rem;color:var(--muted);margin-top:.1rem\">"+item.detail+"</div></div>"+
+      "</label>";
+  }).join("");
 }
 
 function calcLocation(){
@@ -6718,7 +7131,11 @@ function calcLocation(){
   const regime  = document.getElementById('lRegime').value;
   const tmi     = (parseFloat(document.getElementById('lTmi').value)||30)/100;
 
-  const investTotal   = prix + notaire + travaux;
+  const notaireFin  = document.getElementById('lNotaireFin')?.checked || false;
+  const investTotal = prix + notaire + travaux;
+  // Emprunt : notaire comptant par défaut (cas courant investissement locatif)
+  const empruntBase = notaireFin ? (investTotal - apport) : (prix + travaux - apport);
+  const emprunt_notaireComptant = notaireFin ? 0 : notaire; // cash sorti en plus de l'apport
   const loyerEffectif = loyer * 12 * (1 - vacance);
   const fraisGestion  = loyerEffectif * gestion;
   const chargesAn     = charges * 12;
@@ -6729,7 +7146,7 @@ function calcLocation(){
   const revenuNet = loyerEffectif - depensesHorsCredit;
   const rendNet   = (revenuNet / investTotal) * 100;
 
-  const emprunt = investTotal - apport;
+  const emprunt = Math.max(0, empruntBase);
   const tauxL   = (parseFloat(document.getElementById('lTaux').value)||3.4)/100;
   const assurL  = (parseFloat(document.getElementById('lAssur').value)||0.25)/100;
   const tL = tauxL/12, nL = duree*12;
@@ -6768,8 +7185,13 @@ function calcLocation(){
         <span>💰 Investissement total</span><span>${fmt(Math.round(investTotal))}</span>
       </div>
       <div class="result-row" style="font-size:.72rem;opacity:.7;padding-left:.5rem"><span>└ Prix d'achat</span><span>${fmt(prix)}</span></div>
-      <div class="result-row" style="font-size:.72rem;opacity:.7;padding-left:.5rem"><span>└ Frais de notaire</span><span>${fmt(Math.round(notaire))}</span></div>
+      <div class="result-row" style="font-size:.72rem;opacity:.7;padding-left:.5rem"><span>└ Frais de notaire ${notaireFin?'(financés par banque)':'(payés comptant)'}</span><span>${fmt(Math.round(notaire))}</span></div>
       ${travaux>0?`<div class="result-row" style="font-size:.72rem;opacity:.7;padding-left:.5rem"><span>└ Travaux</span><span>${fmt(travaux)}</span></div>`:''}
+      <div style="margin:.5rem 0 .3rem;font-size:.62rem;color:rgba(255,255,255,.5);letter-spacing:.1em;text-transform:uppercase">🏦 Financement</div>
+      ${apport>0?`<div class="result-row" style="font-size:.72rem"><span>Apport personnel</span><span>${fmt(apport)}</span></div>`:''}
+      ${!notaireFin&&notaire>0?`<div class="result-row" style="font-size:.72rem"><span>Notaire (comptant)</span><span>${fmt(Math.round(notaire))}</span></div>`:''}
+      ${apport>0||(!notaireFin&&notaire>0)?`<div class="result-row" style="font-size:.72rem;color:rgba(255,255,255,.5)"><span>Cash sorti total</span><span>${fmt(apport + (notaireFin?0:Math.round(notaire)))}</span></div>`:''}
+      <div class="result-row" style="font-weight:700;font-size:.78rem;border-top:1px solid rgba(255,255,255,.12);padding-top:.35rem"><span>Montant emprunté</span><span>${fmt(emprunt)}</span></div>
       ${[
         ['Loyer brut /an', fmt(Math.round(loyer*12))],
         ['Loyer net vacance', fmt(Math.round(loyerEffectif))],
