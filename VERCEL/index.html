@@ -1375,7 +1375,7 @@ path.leaflet-interactive:focus{outline:none;}
     <div class="ph">
       <div class="ptag">✦ Financement · Location</div>
       <h2 class="ptitle">Location : <em>Budget & comparaison</em></h2>
-      <p class="psub">Budget loyer, louer vs acheter, encadrement des loyers et checklist locataire.</p>
+      <p class="psub">Budget loyer, capacité d'achat, louer vs acheter et checklist locataire.</p>
     </div>
 
     <!-- ── Budget loyer ── -->
@@ -1424,54 +1424,32 @@ path.leaflet-interactive:focus{outline:none;}
           <input class="inp" id="locRevaloBien" type="number" value="2" step="0.5" />
           <label class="lbl">Inflation des loyers (%/an)</label>
           <input class="inp" id="locInflatLoyer" type="number" value="1.5" step="0.5" />
+          <div style="border-top:1px solid var(--border);margin:.75rem 0 .5rem"></div>
+          <div class="ctitle" style="font-size:.7rem;margin-bottom:.4rem">🏷️ Fiscalité à la revente</div>
+          <label class="lbl">Situation</label>
+          <select class="inp" id="locSituation" onchange="toggleLocFiscalite()">
+            <option value="rp">Résidence principale</option>
+            <option value="invest">Investissement locatif</option>
+          </select>
+          <label class="lbl">Frais de revente — agence, diagnostics (%) <span style="font-weight:400;color:var(--muted);font-size:.75em">— ~5%</span></label>
+          <input class="inp" id="locFraisRevente" type="number" value="5" step="0.5" min="0" max="15" />
+          <div id="locFiscaliteInvest" style="display:none">
+            <div style="font-size:.68rem;color:var(--muted);margin:.3rem 0 .5rem;padding:.5rem .6rem;background:var(--warm);border-radius:var(--r);border:1px solid var(--border)">
+              💡 En investissement locatif, la plus-value est taxée à <strong>36,2%</strong> (19% IR + 17,2% prélèvements sociaux), avec des abattements progressifs dès la 6ème année de détention — automatiquement calculés selon la durée saisie.
+            </div>
+          </div>
+          <div id="locFiscaliteRP" style="font-size:.68rem;color:var(--muted);margin:.3rem 0 .5rem;padding:.5rem .6rem;background:var(--warm);border-radius:var(--r);border:1px solid var(--border)">
+            ✅ Résidence principale : exonération totale d'impôt sur la plus-value en France.
+          </div>
           <button class="btn btn-dark btn-full" onclick="calcLocVsAchat()" style="margin-top:.5rem">✦ Comparer</button>
         </div>
         <div id="resLocVsAchat">
           <div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez les paramètres pour comparer louer et acheter.</p></div>
         </div>
       </div>
-      <div id="locCompChartWrap" style="display:none;margin-top:1.5rem;position:relative;background:var(--ink);border-radius:var(--r);padding:1rem .75rem .75rem;height:320px">
+      <div id="locChartExplain" style="display:none;margin-top:1.5rem"></div>
+      <div id="locCompChartWrap" style="display:none;margin-top:.75rem;position:relative;background:var(--ink);border-radius:var(--r);padding:1rem .75rem .75rem;height:320px">
         <canvas id="locVsAchatChart"></canvas>
-      </div>
-    </div>
-
-    <!-- ── Encadrement des loyers ── -->
-    <div style="border-top:1px solid var(--border);padding-top:1.5rem;margin-bottom:2rem">
-      <div class="ptag" style="margin-bottom:.5rem">✦ Réglementation</div>
-      <h3 style="font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:300;margin:0 0 1rem">Encadrement <em style="font-style:italic;color:var(--gold)">des loyers</em></h3>
-      <div class="g2" style="align-items:start">
-        <div class="card">
-          <div class="ctitle">🏛️ Votre bien loué</div>
-          <label class="lbl">Commune <span style="font-weight:400;color:var(--muted);font-size:.75em">— pré-remplie depuis votre adresse</span></label>
-          <input class="inp" id="locCommune" type="text" placeholder="Paris" />
-          <input type="hidden" id="locCodeInsee" />
-          <label class="lbl">Surface (m²)</label>
-          <input class="inp" id="locSurf" type="number" placeholder="50" />
-          <label class="lbl">Type de location</label>
-          <select class="inp" id="locType">
-            <option value="vide">Vide</option>
-            <option value="meuble">Meublé</option>
-          </select>
-          <label class="lbl">Époque de construction</label>
-          <select class="inp" id="locEpoque">
-            <option value="avant1946">Avant 1946</option>
-            <option value="1946-1970">1946 — 1970</option>
-            <option value="1971-1990" selected>1971 — 1990</option>
-            <option value="apres1990">Après 1990</option>
-          </select>
-          <label class="lbl">Nombre de pièces</label>
-          <select class="inp" id="locPieces">
-            <option value="1">1 pièce (studio)</option>
-            <option value="2">2 pièces</option>
-            <option value="3" selected>3 pièces</option>
-            <option value="4">4 pièces</option>
-            <option value="5">5 pièces et +</option>
-          </select>
-          <button class="btn btn-dark btn-full" onclick="checkEncadrement()" style="margin-top:.5rem">✦ Vérifier l'encadrement</button>
-        </div>
-        <div id="resEncadrement">
-          <div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez la commune pour vérifier l'encadrement des loyers.</p></div>
-        </div>
       </div>
     </div>
 
@@ -6851,39 +6829,15 @@ function switchCoutMode(mode){
 
 // ══ LOCATION : Budget & comparaison ══════════════════════════════════════════
 
-// Villes avec encadrement des loyers (2025)
-const LOC_ENCADREMENT_VILLES = {
-  "75056":"Paris","59350":"Lille","59002":"Hellemmes","59553":"Lomme",
-  "69123":"Lyon","69029":"Villeurbanne","33063":"Bordeaux",
-  "34172":"Montpellier","38185":"Grenoble","76351":"Le Havre",
-  "93048":"Montreuil","93063":"Saint-Denis","93008":"Aubervilliers",
-  "93066":"Saint-Ouen","93011":"Bagnolet","93005":"Bobigny",
-  "93050":"Noisy-le-Sec","93051":"Pantin","93070":"Villemomble",
-  "94028":"Créteil","94037":"Ivry-sur-Seine","94041":"Joinville-le-Pont",
-  "64102":"Bayonne","64024":"Anglet","64122":"Biarritz"
-};
-
-// Départements entièrement en zone tendue (Île-de-France + DOM)
-const LOC_DEPT_ZONE_TENDUE = new Set(["75","92","93","94","971","972","973","974"]);
-
-// Autres grandes villes zone tendue
-const LOC_VILLES_ZONE_TENDUE = new Set([
-  "69123","13055","31555","06088","44109","67482","38185","59350",
-  "33063","34172","76351","35238","21231","49007","51454","76540",
-  "06029","06152","13004","13007","83137","06027","63113","25056",
-  "37261","45234","72181","60057","14118","50588","76116","74010",
-  "74218","73065","04070","06088","06027","83137","30189","34070",
-  "66136","11069","81065","46042","47091","32013","40192","65440",
-  "64445","79191","17300","16015","87085","23096","19031","46227"
-]);
+function toggleLocFiscalite(){
+  const sit = document.getElementById("locSituation").value;
+  const inv = document.getElementById("locFiscaliteInvest");
+  const rp  = document.getElementById("locFiscaliteRP");
+  if(inv) inv.style.display = sit === "invest" ? "" : "none";
+  if(rp)  rp.style.display  = sit === "rp"     ? "" : "none";
+}
 
 function initLocationPage(){
-  // Pré-remplir depuis la session courante
-  const city = window._currentCity || window._searchCity || "";
-  const insee = window._currentCodeInsee || window._ecolesCodeInsee || "";
-  if(city){ const el = document.getElementById("locCommune"); if(el) el.value = city; }
-  if(insee){ const el = document.getElementById("locCodeInsee"); if(el) el.value = insee; }
-
   // Revenus depuis capacité d'emprunt
   const rev1 = parseFloat(document.getElementById("eRev")?.value)||0;
   const rev2 = parseFloat(document.getElementById("eRev2")?.value)||0;
@@ -6904,10 +6858,8 @@ function initLocationPage(){
   // Prix du marché (si dispo)
   const prixM2 = window._lvaPrixM2 || 0;
   if(prixM2 > 0){
-    const surf = 50; // surface par défaut
-    const prixEstime = Math.round(prixM2 * surf);
+    const prixEstime = Math.round(prixM2 * 50);
     const elP = document.getElementById("locPrixAchat"); if(elP && !elP._userModified) elP.value = prixEstime;
-    const elS = document.getElementById("locSurf"); if(elS) elS.value = surf;
   }
 
   // Checklist
@@ -6935,6 +6887,30 @@ function calcLocBudget(){
     ["Budget logement total", fmt(budgetTotal)+" ("+pct+"% revenus)"],
   ].filter(Boolean);
   const qual = loyerReel < 500 ? "⚠️ Budget serré" : loyerReel < 900 ? "✅ Budget raisonnable" : "✅ Budget confortable";
+
+  // Capacité d'achat : mensualité max = loyerMax33 (33% revenus, comme la banque l'évalue)
+  const tauxAchat  = (parseFloat(document.getElementById("locTaux").value)||3.42)/100;
+  const apportAchat= parseFloat(document.getElementById("locApport").value)||0;
+  const mensMax    = loyerMax33; // la banque utilise le budget logement total à 33%
+  const DUREES     = [15, 20, 25];
+  const capacites  = DUREES.map(function(d){
+    const nm = d * 12, tm = tauxAchat / 12;
+    const factor = tm > 0 ? tm / (1 - Math.pow(1+tm,-nm)) : 1/nm;
+    const emprunt = Math.round(mensMax / factor);
+    const prix    = emprunt + apportAchat;
+    return { d:d, emprunt:emprunt, prix:prix };
+  });
+  // Pré-remplir locPrixAchat avec la valeur 20 ans
+  const cap20 = capacites.find(function(c){ return c.d===20; });
+  const elPrix = document.getElementById("locPrixAchat");
+  if(elPrix && cap20) { elPrix.value = cap20.prix; elPrix._userModified = false; }
+
+  const capRows = capacites.map(function(c){
+    const highlight = c.d===20 ? " style=\"font-weight:700;color:var(--gold2)\"" : "";
+    return "<div class=\"result-row\""+highlight+"><span>Sur "+c.d+" ans</span>"+
+      "<span>"+fmt(c.prix)+(c.d===20?" ⬅":"")+"</span></div>";
+  }).join("");
+
   document.getElementById("resLocBudget").innerHTML =
     "<div class=\"result-dark\">"+
     "<div style=\"font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem\">💶 Votre budget loyer</div>"+
@@ -6942,6 +6918,10 @@ function calcLocBudget(){
     "<div style=\"font-size:.75rem;color:#7ef0c0;margin-bottom:1rem\">"+qual+"</div>"+
     rows.map(function(r){ return "<div class=\"result-row\"><span>"+r[0]+"</span><span>"+r[1]+"</span></div>"; }).join("")+
     "<div style=\"margin-top:.75rem;font-size:.65rem;color:rgba(255,255,255,.45)\">Règle des 33% : le logement ne doit pas dépasser 33% des revenus.</div>"+
+    "<div style=\"font-size:.63rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.45);margin:.9rem 0 .3rem;border-top:1px solid rgba(255,255,255,.1);padding-top:.6rem\">🏡 Capacité d'achat équivalente</div>"+
+    "<div style=\"font-size:.68rem;color:rgba(255,255,255,.55);margin-bottom:.4rem\">Avec "+tauxAchat*100+"% d'intérêts"+(apportAchat>0?" · apport "+fmt(apportAchat):"")+" · mensualité max "+loyerMax33.toLocaleString("fr-FR")+" €/mois</div>"+
+    capRows+
+    "<div style=\"margin-top:.5rem;font-size:.62rem;color:rgba(255,255,255,.35)\">Prix d'achat = emprunt + apport. Pré-rempli sur 20 ans dans la comparaison ci-dessous.</div>"+
     "</div>";
 }
 
@@ -6954,8 +6934,26 @@ function calcLocVsAchat(){
   const duree    = parseFloat(document.getElementById("locDuree").value)||20;
   const notPct   = (parseFloat(document.getElementById("locNotaire").value)||7.5)/100;
   const chargesAchatAn = parseFloat(document.getElementById("locChargesAchat").value)||3000;
-  const revaloBien = (parseFloat(document.getElementById("locRevaloBien").value)||2)/100;
-  const inflatLoyer= (parseFloat(document.getElementById("locInflatLoyer").value)||1.5)/100;
+  const revaloBien  = (parseFloat(document.getElementById("locRevaloBien").value)||2)/100;
+  const inflatLoyer = (parseFloat(document.getElementById("locInflatLoyer").value)||1.5)/100;
+  const situation   = document.getElementById("locSituation").value; // "rp" ou "invest"
+  const fraisRevPct = (parseFloat(document.getElementById("locFraisRevente").value)||5)/100;
+
+  // Calcul de l'impôt sur plus-value investissement (abattements progressifs français)
+  function calcTaxePV(pvBrute, annees){
+    if(situation === "rp" || pvBrute <= 0) return 0;
+    // Abattement IR (19%) : 6%/an à partir de la 6e année, exonération à 22 ans
+    const irAbat = annees >= 22 ? 1 : annees <= 5 ? 0 : Math.min(1, (annees-5)*0.06);
+    // Abattement prélèvements sociaux (17.2%) : exonération à 30 ans
+    let psAbat = 0;
+    if(annees > 5 && annees <= 11) psAbat = (annees-5)*0.0165;
+    else if(annees === 12) psAbat = 0.099+0.016;
+    else if(annees > 12 && annees <= 22) psAbat = 0.099+0.016+(annees-12)*0.09;
+    else if(annees > 22 && annees < 30) psAbat = 0.099+0.016+0.09*10+(annees-22)*0.02;
+    else if(annees >= 30) psAbat = 1;
+    psAbat = Math.min(1, psAbat);
+    return Math.round(pvBrute * (0.19*(1-irAbat) + 0.172*(1-psAbat)));
+  }
 
   const emprunt  = Math.max(0, prix - apport);
   const notaire  = Math.round(prix * notPct);
@@ -6979,9 +6977,12 @@ function calcLocVsAchat(){
       const capM = mensCredit - intM;
       restant = Math.max(0, restant - capM);
     }
-    const valBien = Math.round(prix * Math.pow(1+revaloBien, yr));
-    const equity = valBien - Math.max(0, restant);
-    const coutNetAch = totalAch - equity;
+    const valBien     = Math.round(prix * Math.pow(1+revaloBien, yr));
+    const valApresFrais = Math.round(valBien * (1 - fraisRevPct));
+    const pvBrute     = Math.max(0, valApresFrais - prix);
+    const taxePV      = calcTaxePV(pvBrute, yr);
+    const netRevente  = valApresFrais - taxePV - Math.max(0, restant);
+    const coutNetAch  = totalAch - Math.max(0, netRevente);
     labelsYr.push("An "+yr);
     cumLoc.push(Math.round(totalLoc));
     cumAch.push(Math.round(totalAch));
@@ -6989,11 +6990,15 @@ function calcLocVsAchat(){
     if(!crossoverYr && coutNetAch < totalLoc) crossoverYr = yr;
   }
 
-  const lastLoc        = cumLoc[cumLoc.length-1];
-  const lastAch        = cumAch[cumAch.length-1];
-  const lastValBien    = valBienArr[valBienArr.length-1];
-  const patrimoineNet  = Math.round(lastValBien - restant);
-  const coutNetAchat   = Math.round(lastAch - patrimoineNet);
+  const lastLoc           = cumLoc[cumLoc.length-1];
+  const lastAch           = cumAch[cumAch.length-1];
+  const lastValBien       = valBienArr[valBienArr.length-1];
+  const lastValApresFrais = Math.round(lastValBien * (1 - fraisRevPct));
+  const lastPvBrute       = Math.max(0, lastValApresFrais - prix);
+  const lastTaxePV        = calcTaxePV(lastPvBrute, duree);
+  const lastNetRevente    = Math.max(0, lastValApresFrais - lastTaxePV - restant);
+  const patrimoineNet     = lastNetRevente;
+  const coutNetAchat      = Math.round(lastAch - patrimoineNet);
   const gain           = lastLoc - coutNetAchat;
   const gainSign       = gain >= 0 ? "+" : "";
   const miseDep        = apport + notaire;
@@ -7032,22 +7037,65 @@ function calcLocVsAchat(){
     row("Charges & taxes annuelles estimées", chargesAchatAn.toLocaleString("fr-FR")+" €/an")+
     row("Total charges sur "+duree+" ans", fmt(totalCharges))+
     row("Total déboursé (apport + mensualités + charges)", fmt(lastAch), true)+
-    row("Valeur du bien à l’an "+duree+" (+"+Math.round(revaloBien*100)+"% / an)", fmt(lastValBien))+
-    (restant > 100 ? row("Capital restant dû", "− "+fmt(Math.round(restant))) : "")+
-    row("Patrimoine net récupéré à la revente", fmt(patrimoineNet), true)+
+    row("Valeur du bien à l'an "+duree+" (+"+Math.round(revaloBien*100)+"% / an)", fmt(lastValBien))+
+    row("− Frais de revente ("+Math.round(fraisRevPct*100)+"%)", "− "+fmt(Math.round(lastValBien*fraisRevPct)))+
+    (lastTaxePV > 0 ? row("− Impôt sur plus-value (après abattements)", "− "+fmt(lastTaxePV)) : "")+
+    (restant > 100 ? row("− Capital restant dû", "− "+fmt(Math.round(restant))) : "")+
+    row("Patrimoine net récupéré", fmt(patrimoineNet), true)+
     row("Coût net achat (déboursé − patrimoine)", fmt(coutNetAchat), true)+
 
     sep("📊 BILAN FINAL")+
     "<div style=\"margin:.4rem 0 .6rem;font-size:.78rem\">"+crossoverTxt+"</div>"+
     row("Coût net location sur "+duree+" ans", fmt(lastLoc))+
     row("Coût net achat sur "+duree+" ans", fmt(coutNetAchat))+
-    "<div class=\"result-row\" style=\"margin-top:.4rem;font-weight:700;font-size:.9rem;color:"+(gain>=0?"#7ef0c0":"#f39c12")+"\"><span>Avantage "+(gain>=0?"achat":"location")+" →</span><span>"+gainSign+fmt(Math.abs(gain))+"</span></div>"+
+    "<div class=\"result-row\" style=\"margin-top:.4rem;font-weight:700;font-size:.9rem;color:"+(gain>=0?"#7ef0c0":"#f39c12")+\"\"><span>Avantage "+(gain>=0?"achat":"location")+" →</span><span>"+gainSign+fmt(Math.abs(gain))+"</span></div>"+
 
-    "<div style=\"margin-top:.8rem;font-size:.62rem;color:rgba(255,255,255,.4)\">"+
-    "Le « coût net achat » = total déboursé − patrimoine net récupéré à la revente. "+
-    "Non inclus : coût d’opportunité du capital placé, frais de revente (~3%), fiscalité sur plus-value."+
+    "<div style=\"margin-top:.8rem;font-size:.62rem;color:rgba(255,255,255,.4)\">"+ 
+    "Patrimoine net = valeur du bien − frais de revente"+(situation==="invest"?" − impôt sur plus-value (abattements progressifs dès 6 ans)":"")+" − capital restant dû. Non inclus : coût d'opportunité du capital placé."+ 
     "</div>"+
     "</div>";
+
+  // Explication contextuelle du graphique
+  const explainEl = document.getElementById("locChartExplain");
+  if(explainEl){
+    const conclusionColor = gain >= 0 ? "#2a9d8f" : "#e74c3c";
+    const conclusionIcon  = gain >= 0 ? "✅" : "⚠️";
+    const conclusionTxt   = gain >= 0
+      ? "Sur "+duree+" ans, acheter est plus avantageux de "+fmt(Math.abs(gain))+" — soit un écart de "+fmt(Math.round(Math.abs(gain)/duree))+" par an en moyenne."
+      : "Sur "+duree+" ans, louer reste moins coûteux de "+fmt(Math.abs(gain))+" en coût net.";
+    const crossTxt = crossoverYr
+      ? "Les courbes se croisent à l'an <strong>"+crossoverYr+"</strong> : c'est à partir de ce moment que la valeur du bien dépasse les versements cumulés."
+      : "Sur la durée analysée, la valeur du bien ne rattrape pas encore les versements achat cumulés.";
+    explainEl.style.display = "block";
+    explainEl.innerHTML =
+      "<div style=\"background:var(--warm);border:1px solid var(--border);border-radius:var(--r);padding:1rem 1.1rem;font-size:.76rem;color:var(--text);line-height:1.6\">"+
+      "<div style=\"font-weight:700;font-size:.8rem;margin-bottom:.6rem\">📈 Comment lire ce graphique ?</div>"+
+      "<div style=\"margin-bottom:.5rem\">"+
+        "<span style=\"display:inline-block;width:12px;height:3px;background:#e74c3c;border-radius:2px;vertical-align:middle;margin-right:.4rem\"></span>"+
+        "<strong>Loyers cumulés</strong> — tout l'argent versé en loyer depuis l'an 1, sans rien récupérer à la fin. "+
+        "Au bout de "+duree+" ans : <strong>"+fmt(lastLoc)+"</strong>."+
+      "</div>"+
+      "<div style=\"margin-bottom:.5rem\">"+
+        "<span style=\"display:inline-block;width:12px;height:3px;background:#f39c12;border-radius:2px;vertical-align:middle;margin-right:.4rem\"></span>"+
+        "<strong>Versements achat cumulés</strong> — apport ("+fmt(apport)+") + notaire ("+fmt(notaire)+") + mensualités + charges, tout ce qui sort de votre poche. "+
+        "Au bout de "+duree+" ans : <strong>"+fmt(lastAch)+"</strong>."+
+      "</div>"+
+      "<div style=\"margin-bottom:.8rem\">"+
+        "<span style=\"display:inline-block;width:12px;height:3px;background:#2a9d8f;border-radius:2px;vertical-align:middle;margin-right:.4rem\"></span>"+
+        "<strong>Valeur du bien</strong> — ce que vaut votre bien chaque année avec une revalorisation de +"+Math.round(revaloBien*100)+"% / an. "+
+        "À l'an "+duree+" : <strong>"+fmt(lastValBien)+"</strong>. "+
+        "La différence entre cette courbe et les versements = votre patrimoine net."+
+      "</div>"+
+      "<div style=\"padding:.6rem .8rem;background:rgba(0,0,0,.06);border-radius:6px;margin-bottom:.5rem\">"+
+        "🔍 <em>"+crossTxt+"</em>"+
+      "</div>"+
+      "<div style=\"font-weight:700;color:"+conclusionColor+"\">"+conclusionIcon+" "+conclusionTxt+"</div>"+
+      "<div style=\"margin-top:.5rem;font-size:.67rem;color:var(--muted)\">"+
+        "Hypothèses : taux "+taux*100+"% · revalorisation bien +"+Math.round(revaloBien*100)+"% / an · inflation loyer +"+Math.round(inflatLoyer*100)+"% / an · charges achat "+chargesAchatAn.toLocaleString("fr-FR")+" €/an · frais de revente "+Math.round(fraisRevPct*100)+"%"+(situation==="invest" ? " · fiscalité plus-value appliquée (abattements progressifs)" : " · pas d'impôt sur plus-value (résidence principale)")+". "+
+        "Ces paramètres sont modifiables dans le formulaire ci-dessus."+
+      "</div>"+
+      "</div>";
+  }
 
   // Graphique — 3 courbes lisibles
   const wrap = document.getElementById("locCompChartWrap");
@@ -7073,75 +7121,6 @@ function calcLocVsAchat(){
       }
     }
   });
-}
-
-async function checkEncadrement(){
-  const commune = (document.getElementById("locCommune").value||"").trim();
-  const insee   = (document.getElementById("locCodeInsee").value||"").trim();
-  const surf    = parseFloat(document.getElementById("locSurf").value)||0;
-  const type    = document.getElementById("locType").value;
-  const epoque  = document.getElementById("locEpoque").value;
-  const pieces  = document.getElementById("locPieces").value;
-  if(!commune){ toast("Renseignez la commune.","err"); return; }
-
-  const dept = insee.slice(0,2);
-  const isZoneTendue = LOC_DEPT_ZONE_TENDUE.has(dept) || LOC_VILLES_ZONE_TENDUE.has(insee);
-  const isEncadree   = !!LOC_ENCADREMENT_VILLES[insee];
-  const nomEncadree  = LOC_ENCADREMENT_VILLES[insee]||"";
-
-  let loyerRefHtml = "";
-  if(isEncadree && surf > 0){
-    // Tentative API data.gouv encadrement des loyers
-    try {
-      const ds = "encadrement_des_loyers";
-      const apiUrl = "https://data.gouv.fr/api/1/datasets/?q=encadrement+loyers+"+encodeURIComponent(commune)+"&page_size=1";
-      // Affichage basé sur les barèmes connus (moyennes 2025 indicatives)
-      const BAREME = {
-        "75056": { vide:{1:24.8,2:20.3,3:16.6,4:14.2,5:13.1}, meuble:{1:28.1,2:23.0,3:18.8,4:16.1,5:14.8} },
-        "59350": { vide:{1:12.5,2:10.1,3:8.6,4:7.7,5:7.2}, meuble:{1:14.1,2:11.4,3:9.7,4:8.7,5:8.1} },
-        "69123": { vide:{1:15.3,2:12.8,3:10.4,4:9.1,5:8.3}, meuble:{1:17.3,2:14.5,3:11.8,4:10.3,5:9.4} },
-        "33063": { vide:{1:13.2,2:11.0,3:9.1,4:8.1,5:7.5}, meuble:{1:14.9,2:12.4,3:10.3,4:9.2,5:8.5} },
-        "34172": { vide:{1:13.8,2:11.5,3:9.6,4:8.5,5:7.9}, meuble:{1:15.6,2:13.0,3:10.9,4:9.6,5:8.9} },
-      };
-      const b = BAREME[insee];
-      if(b){
-        const refM2 = (b[type]||b.vide)[pieces] || (b[type]||b.vide)[3];
-        const refMin = Math.round(refM2 * 0.7 * (surf||50));
-        const refMed = Math.round(refM2 * (surf||50));
-        const refMax = Math.round(refM2 * 1.2 * (surf||50));
-        loyerRefHtml = "<div style=\"margin-top:.8rem;padding:.75rem;background:rgba(255,255,255,.06);border-radius:8px\">"+
-          "<div style=\"font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold2);margin-bottom:.4rem\">📋 Loyer de référence (indicatif 2025)</div>"+
-          "<div style=\"font-size:.72rem;color:rgba(255,255,255,.7);margin-bottom:.3rem\">Type : "+type+" · "+pieces+" pièce(s) · "+epoque+"</div>"+
-          (surf>0 ? "<div class=\"result-row\"><span>Loyer de référence minoré</span><span>"+refMin.toLocaleString("fr-FR")+" €/mois</span></div>"+
-          "<div class=\"result-row\" style=\"font-weight:700\"><span>Loyer de référence</span><span>"+refMed.toLocaleString("fr-FR")+" €/mois</span></div>"+
-          "<div class=\"result-row\"><span>Loyer de référence majoré</span><span>"+refMax.toLocaleString("fr-FR")+" €/mois</span></div>" : "")+
-          "<div style=\"margin-top:.5rem;font-size:.62rem;color:rgba(255,255,255,.4)\">Valeurs indicatives moyennes. Consultez <a href=\"https://www.anil.org/outils/encadrement-des-loyers/\" target=\"_blank\" style=\"color:var(--gold)\">ANIL.org</a> pour le barème officiel.</div>"+
-          "</div>";
-      }
-    } catch(e){ /* silencieux */ }
-  }
-
-  const zoneBadge = isZoneTendue
-    ? "<span style=\"background:#e74c3c;color:#fff;padding:.2rem .5rem;border-radius:4px;font-size:.72rem;font-weight:600\">🔴 Zone tendue</span>"
-    : "<span style=\"background:#2a9d8f;color:#fff;padding:.2rem .5rem;border-radius:4px;font-size:.72rem;font-weight:600\">🟢 Hors zone tendue</span>";
-  const encBadge = isEncadree
-    ? "<span style=\"background:#e8a020;color:#fff;padding:.2rem .5rem;border-radius:4px;font-size:.72rem;font-weight:600;margin-left:.4rem\">📋 Loyers encadrés</span>"
-    : "";
-
-  const zoneTxt = isZoneTendue
-    ? "<div style=\"font-size:.72rem;color:rgba(255,255,255,.7);margin-top:.5rem\">📌 Préavis réduit à <strong>1 mois</strong> · Frais d'agence plafonnés · Dépôt de garantie : 1 mois (vide) ou 2 mois (meublé)</div>"
-    : "<div style=\"font-size:.72rem;color:rgba(255,255,255,.7);margin-top:.5rem\">📌 Préavis 3 mois (vide) ou 1 mois (meublé) · Dépôt de garantie : 1 mois (vide) ou 2 mois (meublé)</div>";
-
-  document.getElementById("resEncadrement").innerHTML =
-    "<div class=\"result-dark\">"+
-    "<div style=\"font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.6rem\">🏛️ "+commune+"</div>"+
-    "<div style=\"margin-bottom:.5rem\">"+zoneBadge+encBadge+"</div>"+
-    zoneTxt+
-    loyerRefHtml+
-    "<div style=\"margin-top:.75rem;font-size:.65rem;color:rgba(255,255,255,.35)\">"+
-    "Sources : <a href=\"https://www.service-public.fr/simulateur/calcul/zone-tendue\" target=\"_blank\" style=\"color:var(--gold)\">service-public.fr zone tendue</a> · "+
-    "<a href=\"https://www.anil.org/outils/encadrement-des-loyers/\" target=\"_blank\" style=\"color:var(--gold)\">ANIL encadrement des loyers</a>"+
-    "</div></div>";
 }
 
 function renderLocChecklist(){
@@ -7283,737 +7262,4 @@ function calcLocation(){
           : regime==='micro' ? `loyer × ${100-(parseFloat(document.getElementById('lAbattMicro')?.value)||30)} % (abattement micro-foncier ${parseFloat(document.getElementById('lAbattMicro')?.value)||30} %)`
           : `loyer × ${100-(parseFloat(document.getElementById('lAbattLmnp')?.value)||50)} % (abattement micro-BIC LMNP ${parseFloat(document.getElementById('lAbattLmnp')?.value)||50} %)`
       }</div>
-      <div class="result-row"><span>IR (TMI ${Math.round(tmi*100)} %) /an</span><span>− ${fmt(irAn)}</span></div>
-      <div style="font-size:.63rem;opacity:.5;text-align:right;margin-top:-.25rem;margin-bottom:.2rem">Impôt sur le Revenu · base × ${Math.round(tmi*100)} %</div>
-      ${!isLMNP ? `<div class="result-row"><span>PS 17,2 % /an</span><span>− ${fmt(psAn)}</span></div><div style="font-size:.63rem;opacity:.5;text-align:right;margin-top:-.25rem;margin-bottom:.2rem">Prélèvements Sociaux (CSG/CRDS) · base × 17,2 %</div>` : ''}
-      <div class="result-row"><span>Impôts total /an</span><span>− ${fmt(fiscalAn)}</span></div>`}
-      <div style="text-align:center;margin-top:.75rem;padding:.5rem;border-radius:6px;background:${cashflowApresFisc>=0?'rgba(39,174,96,.15)':'rgba(231,76,60,.15)'}">
-        <div style="font-size:.8rem;font-weight:600;color:${cfColor}">${cfLabel}</div>
-        <div style="font-size:1.2rem;font-weight:700;color:${cfColor}">${cashflowApresFisc>=0?'+':''}${fmt(cashflowApresFisc)} €/mois</div>
-        <div style="font-size:.63rem;opacity:.6;margin-top:.2rem">= cash-flow brut (${cashflowAvantFisc>=0?'+':''}${fmt(cashflowAvantFisc)}/mois) − impôts (${fmt(Math.round(fiscalAn/12))}/mois)</div>
-      </div>
-    </div>`;
-  setCard('cout', rendNet.toFixed(1).replace('.',',')+' % net', 'Cash-flow net : '+(cashflowApresFisc>=0?'+':'')+fmt(cashflowApresFisc)+'/mois', rendNet>=5?'good':rendNet>=3?'':'warn');
-
-  // ── Graphique cashflow sur la durée ──
-  if(window.Chart && emprunt >= 0) {
-    let capital = emprunt;
-    const labels = [], cfAnnuel = [];
-    for(let y = 1; y <= duree; y++) {
-      let interetsAn = 0;
-      for(let m = 0; m < 12; m++) {
-        const im = capital * tauxL / 12;
-        const km = mens - mensAssurL - im;
-        interetsAn += im;
-        capital -= km;
-        if(capital < 0) capital = 0;
-      }
-      let baseIRy = 0;
-      if(regime==='micro')           baseIRy = loyerEffectif * (1-(parseFloat(document.getElementById('lAbattMicro')?.value)||30)/100);
-      else if(regime==='reel')       baseIRy = Math.max(0, loyerEffectif - depensesHorsCredit - Math.round(interetsAn) - mensAssurL*12);
-      else if(regime==='lmnp_micro') baseIRy = loyerEffectif * (1-(parseFloat(document.getElementById('lAbattLmnp')?.value)||50)/100);
-      else if(regime==='lmnp_reel')  baseIRy = Math.max(0, loyerEffectif - depensesHorsCredit - Math.round(interetsAn) - mensAssurL*12);
-      const fiscAn = Math.round(baseIRy * (tmi + PS_RATE));
-      const cf = Math.round((loyerEffectif - depensesHorsCredit - fiscAn) / 12 - mens);
-      labels.push('An ' + y);
-      cfAnnuel.push(cf);
-    }
-    if(window._cashflowChart) { window._cashflowChart.destroy(); window._cashflowChart = null; }
-    const ctx = document.getElementById('cashflowChart').getContext('2d');
-    window._cashflowChart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [{
-          label: "Cash-flow mensuel net (€)",
-          data: cfAnnuel,
-          backgroundColor: cfAnnuel.map(v => v >= 0 ? 'rgba(39,174,96,.75)' : 'rgba(231,76,60,.75)'),
-          borderColor:     cfAnnuel.map(v => v >= 0 ? '#27ae60' : '#e74c3c'),
-          borderWidth: 1,
-          borderRadius: 2,
-          datalabels: {
-            display: (ctx) => ctx.dataIndex % 2 === 0,
-            color: (ctx) => ctx.dataset.data[ctx.dataIndex] >= 0 ? '#7ef0c0' : '#ff9999',
-            font: { size: 8 },
-            anchor: (ctx) => ctx.dataset.data[ctx.dataIndex] >= 0 ? 'end' : 'start',
-            align: (ctx) => ctx.dataset.data[ctx.dataIndex] >= 0 ? 'top' : 'bottom',
-            formatter: v => (v > 0 ? '+' : '') + v + ' €',
-            clamp: true,
-          }
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              title: ctx => ctx[0].label,
-              label: ctx => " Cash-flow : " + (ctx.parsed.y > 0 ? "+" : "") + fmt(ctx.parsed.y) + " €/mois"
-            }
-          }
-        },
-        scales: {
-          x: {
-            ticks: { color: 'rgba(255,255,255,.55)', font: { size: 9 }, maxTicksLimit: 12 },
-            grid: { color: 'rgba(255,255,255,.05)' }
-          },
-          y: {
-            ticks: { color: 'rgba(255,255,255,.6)', font: { size: 9 }, maxTicksLimit: 6, callback: v => v + ' €' },
-            grid: { color: 'rgba(255,255,255,.07)' },
-            border: { dash: [3,3] }
-          }
-        }
-      }
-    });
-    document.getElementById('cashflowSection').style.display = '';
-    document.getElementById('chartsWrapper').style.display = 'block';
-  }
-
-  // ── Graphique break-even ──
-  if(window.Chart && emprunt >= 0) {
-    let capBE = emprunt;
-    const beLabels = ['Début'];
-    const beCumul = [-(notaire + travaux)];
-    const beCumulNoTax = [-(notaire + travaux)];
-    let cumBE = -(notaire + travaux);
-    let cumBENoTax = -(notaire + travaux);
-    let breakEvenYear = null;
-    let breakEvenYearNoTax = null;
-
-    for(let y = 1; y <= duree; y++){
-      let interetsAnY = 0, capitalAnY = 0;
-      for(let m = 0; m < 12; m++){
-        const im = capBE * tauxL / 12;
-        const km = mens - mensAssurL - im;
-        interetsAnY += im;
-        capitalAnY  += km;
-        capBE -= km;
-        if(capBE < 0) capBE = 0;
-      }
-      capitalAnY = Math.round(capitalAnY);
-
-      // Fiscalité réelle de l'année (intérêts dégressifs)
-      let baseIRy = 0;
-      const abattMicro = parseFloat(document.getElementById('lAbattMicro')?.value)||30;
-      const abattLmnp  = parseFloat(document.getElementById('lAbattLmnp')?.value)||50;
-      if(regime==='micro')        baseIRy = loyerEffectif * (1 - abattMicro/100);
-      else if(regime==='reel')    baseIRy = Math.max(0, loyerEffectif - depensesHorsCredit - Math.round(interetsAnY) - mensAssurL*12);
-      else if(regime==='lmnp_micro') baseIRy = loyerEffectif * (1 - abattLmnp/100);
-      else if(regime==='lmnp_reel')  baseIRy = Math.max(0, loyerEffectif - depensesHorsCredit - Math.round(interetsAnY) - mensAssurL*12);
-      const fiscAnY = Math.round(baseIRy * (tmi + PS_RATE));
-
-      const cfNetAn  = (loyerEffectif - depensesHorsCredit - fiscAnY) - mens*12;
-      const cfBrutAn = (loyerEffectif - depensesHorsCredit) - mens*12;
-
-      cumBE      += cfNetAn  + capitalAnY;
-      cumBENoTax += cfBrutAn + capitalAnY;
-
-      if(breakEvenYear      === null && cumBE      >= 0) breakEvenYear      = y;
-      if(breakEvenYearNoTax === null && cumBENoTax >= 0) breakEvenYearNoTax = y;
-
-      beLabels.push('An ' + y);
-      beCumul.push(Math.round(cumBE));
-      beCumulNoTax.push(Math.round(cumBENoTax));
-    }
-
-    if(window._breakEvenChart){ window._breakEvenChart.destroy(); window._breakEvenChart = null; }
-    const ctx2 = document.getElementById('breakEvenChart').getContext('2d');
-    const zeroData = beLabels.map(() => 0);
-
-    window._breakEvenChart = new Chart(ctx2, {
-      type: 'line',
-      data: {
-        labels: beLabels,
-        datasets: [
-          {
-            label: "Après impôts",
-            data: beCumul,
-            borderColor: '#e8a020',
-            backgroundColor: 'rgba(232,160,32,.12)',
-            borderWidth: 2.5,
-            pointRadius: 0,
-            pointHoverRadius: 5,
-            tension: 0.4,
-            fill: true,
-            datalabels: {
-              display: ctx => ctx.dataIndex % 2 === 0 && ctx.dataIndex > 0,
-              color: 'rgba(255,255,255,.55)',
-              font: { size: 8 },
-              anchor: 'end',
-              align: 'top',
-              formatter: v => v === 0 ? '' : (v > 0 ? '+' : '') + Math.round(v/1000) + 'k',
-              clamp: true,
-            }
-          },
-          {
-            label: "Sans impôts",
-            data: beCumulNoTax,
-            borderColor: 'rgba(39,174,96,.8)',
-            backgroundColor: 'transparent',
-            borderWidth: 1.5,
-            borderDash: [6, 3],
-            pointRadius: 0,
-            pointHoverRadius: 4,
-            tension: 0.4,
-            fill: false,
-            datalabels: { display: false }
-          },
-          {
-            label: '__zero__',
-            data: zeroData,
-            borderColor: 'rgba(255,255,255,.2)',
-            backgroundColor: 'transparent',
-            borderWidth: 1,
-            borderDash: [4, 4],
-            pointRadius: 0,
-            fill: false,
-            datalabels: { display: false }
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-          legend: {
-            labels: {
-              color: 'rgba(255,255,255,.7)',
-              font: { size: 10 },
-              filter: item => item.text !== '__zero__'
-            }
-          },
-          tooltip: {
-            callbacks: {
-              label: ctx => {
-                if(ctx.dataset.label === '__zero__') return null;
-                const sign = ctx.parsed.y >= 0 ? '+' : '';
-                return ' ' + ctx.dataset.label + ' : ' + sign + fmt(ctx.parsed.y) + ' €';
-              }
-            }
-          }
-        },
-        scales: {
-          x: { ticks: { color: 'rgba(255,255,255,.5)', font: { size: 9 }, maxTicksLimit: 10 }, grid: { color: 'rgba(255,255,255,.06)' } },
-          y: { ticks: { color: 'rgba(255,255,255,.6)', font: { size: 9 }, maxTicksLimit: 6, callback: v => Math.round(v/1000)+'k €' }, grid: { color: 'rgba(255,255,255,.08)' } }
-        }
-      },
-      plugins: [{
-        id: 'beAnnotation',
-        afterDraw(chart) {
-          if(!breakEvenYear) return;
-          const {ctx: c, chartArea, scales} = chart;
-          const xPos = scales.x.getPixelForValue(breakEvenYear);
-          c.save();
-          c.setLineDash([5, 3]);
-          c.strokeStyle = '#b8832a';
-          c.lineWidth = 1.5;
-          c.beginPath();
-          c.moveTo(xPos, chartArea.top);
-          c.lineTo(xPos, chartArea.bottom);
-          c.stroke();
-          c.setLineDash([]);
-          c.fillStyle = '#b8832a';
-          c.font = 'bold 10px sans-serif';
-          c.textAlign = xPos > chartArea.right - 60 ? 'right' : 'center';
-          c.fillText('An ' + breakEvenYear, xPos + (xPos > chartArea.right - 60 ? -4 : 0), chartArea.top + 12);
-          c.restore();
-        }
-      }]
-    });
-
-    const beLabel = document.getElementById('breakEvenLabel');
-    if(beLabel){
-      if(breakEvenYear){
-        beLabel.innerHTML = "<span style=\"color:#4caf50\">✅ Rentabilité atteinte à l'an " + breakEvenYear + " (après impôts)</span> <span style=\"font-size:.65rem;color:var(--muted);font-weight:400\"> — cash-flows nets + capital remboursé ≥ frais initiaux</span>";
-      } else {
-        beLabel.innerHTML = "<span style=\"color:#f39c12\">⚠️ L'investissement ne devient pas rentable sur la durée du prêt</span>";
-      }
-    }
-    document.getElementById('breakEvenSection').style.display = '';
-    document.getElementById('chartsWrapper').style.display = 'block';
-  }
-
-  // ── Tableau d'amortissement investissement locatif ──
-  const lBody = document.getElementById('lAmortBody');
-  const lFoot = document.getElementById('lAmortFoot');
-  if(lBody && emprunt > 0) {
-    let restantL = emprunt, rowsL = [], totCapL=0, totIntL=0, totAssL=0;
-    for(let yr=1; yr<=duree; yr++){
-      let capAn=0, intAn=0;
-      for(let m=0; m<12; m++){
-        const intM = restantL * tL;
-        const capM = mens/1 - mensAssurL - intM;
-        intAn += intM; capAn += capM; restantL -= capM;
-      }
-      capAn=Math.round(capAn); intAn=Math.round(intAn);
-      const assAn = mensAssurL*12;
-      totCapL+=capAn; totIntL+=intAn; totAssL+=assAn;
-      rowsL.push('<tr style="border-bottom:1px solid var(--border)">'
-        +'<td style="padding:.4rem .75rem">Année '+yr+'</td>'
-        +'<td style="padding:.4rem .75rem;text-align:right">'+fmt(mens)+' €</td>'
-        +'<td style="padding:.4rem .75rem;text-align:right;color:#2a9d8f">'+fmt(capAn)+' €</td>'
-        +'<td style="padding:.4rem .75rem;text-align:right;color:#e63946">'+fmt(intAn)+' €</td>'
-        +'<td style="padding:.4rem .75rem;text-align:right;color:var(--muted)">'+fmt(assAn)+' €</td>'
-        +'<td style="padding:.4rem .75rem;text-align:right">'+fmt(Math.max(0,Math.round(restantL)))+' €</td>'
-        +'</tr>');
-    }
-    lBody.innerHTML = rowsL.join('');
-    lFoot.innerHTML = '<tr style="background:var(--warm);font-weight:600">'
-      +'<td style="padding:.5rem .75rem">Total</td>'
-      +'<td style="padding:.5rem .75rem;text-align:right">—</td>'
-      +'<td style="padding:.5rem .75rem;text-align:right;color:#2a9d8f">'+fmt(totCapL)+' €</td>'
-      +'<td style="padding:.5rem .75rem;text-align:right;color:#e63946">'+fmt(totIntL)+' €</td>'
-      +'<td style="padding:.5rem .75rem;text-align:right;color:var(--muted)">'+fmt(totAssL)+' €</td>'
-      +'<td style="padding:.5rem .75rem;text-align:right">0 €</td>'
-      +'</tr>';
-    document.getElementById('lAmortSection').style.display = '';
-    document.getElementById('lAmortTableWrap').style.display = 'none';
-    document.getElementById('lAmortToggleBtn').textContent = 'Afficher';
-  }
-}
-
-function toggleMAmort(){
-  const w = document.getElementById('mAmortTableWrap');
-  const b = document.getElementById('mAmortToggleBtn');
-  const open = w.style.display !== 'none';
-  w.style.display = open ? 'none' : '';
-  b.textContent   = open ? 'Afficher' : 'Masquer';
-}
-
-function toggleLAmort(){
-  const w = document.getElementById('lAmortTableWrap');
-  const b = document.getElementById('lAmortToggleBtn');
-  const open = w.style.display !== 'none';
-  w.style.display = open ? 'none' : '';
-  b.textContent   = open ? 'Afficher' : 'Masquer';
-}
-
-// ── Capacité d'emprunt : init page + graphique historique ──────────────────
-window._tauxHistData = null;
-async function initEmpruntPage() {
-  const tm = window._tauxMarche?.taux || { 10: 3.10, 15: 3.27, 20: 3.42, 25: 3.50 };
-  const src = window._tauxMarche?.source || '';
-  const date = window._tauxMarche?.date || '';
-  const sel = document.getElementById('eDuree');
-  if (sel && sel.tagName === 'SELECT') {
-    const cur = sel.value || '20';
-    sel.innerHTML = [10,15,20,25].map(d =>
-      '<option value="' + d + '" data-taux="' + (tm[d]??'') + '"' + (String(d)===String(cur)?' selected':'') + '>' + d + ' ans — ' + (tm[d]!=null?(+tm[d]).toFixed(2)+'%':'?') + '</option>'
-    ).join('');
-    const opt = sel.options[sel.selectedIndex];
-    const t = opt?.dataset?.taux;
-    const et = document.getElementById('eTaux');
-    if (t && et && !et._userModified) et.value = t;
-  }
-  const srcEl = document.getElementById('eTauxSrc');
-  if (srcEl) srcEl.textContent = src ? 'Taux marché : ' + src + (date ? ' · ' + date : '') : '';
-  const chartEl = document.getElementById('emprunt-hist');
-  if (!chartEl) return;
-  if (window._tauxHistData) { renderTauxHistChart(window._tauxHistData); return; }
-  chartEl.style.display = '';
-  chartEl.innerHTML = '<p style="color:var(--muted);font-size:.8rem;text-align:center;padding:1.2rem">⏳ Chargement des données historiques…</p>';
-  try {
-    const r = await fetch('/api/altitude?type=taux-historique', { signal: AbortSignal.timeout(18000) });
-    if (r.ok) {
-      const d = await r.json();
-      if (d.success && d.data?.length) { window._tauxHistData = d.data; renderTauxHistChart(d.data); return; }
-    }
-  } catch(e) {}
-  chartEl.style.display = 'none';
-}
-
-function renderTauxHistChart(data) {
-  data = [...data]; // copie pour permettre ajout du point live
-  const chartEl = document.getElementById('emprunt-hist');
-  if (!chartEl || !data?.length || !window.Chart) return;
-  if (window._tauxHistChart) { window._tauxHistChart.destroy(); window._tauxHistChart = null; }
-  const tm = window._tauxMarche?.taux || { 10: 3.10, 15: 3.27, 20: 3.42, 25: 3.50 };
-  const base20 = tm[20] || 3.42;
-  const spreads = { 10: (tm[10]||3.10)-base20, 15: (tm[15]||3.27)-base20, 20: 0, 25: (tm[25]||3.50)-base20 };
-  // Ajouter point 2026 live depuis _tauxMarche si absent
-  const currentYear = new Date().getFullYear();
-  const tm0 = window._tauxMarche?.taux || {};
-  if (tm0[20] != null) {
-    // Toujours remplacer/ajouter le point année courante avec le taux live pretto
-    data = data.filter(d => d.annee !== currentYear);
-    data = [...data, { annee: currentYear, taux: tm0[20], source: 'Live' }];
-  }
-  const labels = data.map(d => d.annee);
-  const mirStartYear = data.find(d => d.source === 'BCE MIR')?.annee ?? labels[0];
-  const vals = dur => data.map(d => +Math.max(0.1, d.taux + spreads[dur]).toFixed(2));
-  const durs = [10,15,20,25].filter(d => tm[d] != null);
-  const CFG = {
-    10: { color:'#4678b4', bg:'rgba(70,120,180,.06)', w:1.8 },
-    15: { color:'#2a9d8f', bg:'rgba(42,157,143,.06)', w:1.8 },
-    20: { color:'#e8a020', bg:'rgba(232,160,32,.09)', w:2.5 },
-    25: { color:'#e63946', bg:'rgba(230,57,70,.06)',  w:1.8 },
-  };
-  const datasets = durs.map(d => ({
-    label: d + ' ans', data: vals(d), borderColor: CFG[d].color, backgroundColor: CFG[d].bg,
-    borderWidth: CFG[d].w, pointRadius: 0, pointHoverRadius: 5, tension: 0.35,
-    fill: d === 20, spanGaps: true,
-  }));
-  const mirIdx = labels.indexOf(mirStartYear);
-  const proxyPlugin = {
-    id: 'proxyBoundary',
-    afterDraw(chart) {
-      if (mirIdx <= 0) return;
-      const meta = chart.getDatasetMeta(0);
-      const pt = meta.data[mirIdx];
-      if (!pt) return;
-      const ctx2 = chart.ctx;
-      ctx2.save();
-      ctx2.strokeStyle = 'rgba(255,255,255,.18)'; ctx2.lineWidth = 1; ctx2.setLineDash([4, 4]);
-      ctx2.beginPath(); ctx2.moveTo(pt.x, chart.chartArea.top); ctx2.lineTo(pt.x, chart.chartArea.bottom); ctx2.stroke();
-      if (mirIdx > 2) {
-        ctx2.fillStyle = 'rgba(255,255,255,.28)'; ctx2.font = '9px Outfit,sans-serif';
-        ctx2.fillText('← proxy', pt.x - 44, chart.chartArea.top + 14);
-        ctx2.fillText('réel →', pt.x + 4, chart.chartArea.top + 14);
-      }
-      ctx2.restore();
-    }
-  };
-  const footerNote = mirIdx > 0
-    ? 'Avant ' + mirStartYear + ' : proxy OAT 10 ans · Depuis ' + mirStartYear + ' : taux habitat réel (BCE MIR) · Courbes calculées depuis taux marché live'
-    : 'Taux habitat réel (BCE MIR) · Courbes calculées depuis taux marché live';
-  chartEl.style.display = '';
-  chartEl.innerHTML =
-    '<div id="tauxHistWrap" style="background:var(--card-bg,#12122a);border:1px solid var(--border);border-radius:8px;padding:.9rem 1rem;margin-top:1rem;width:100%;box-sizing:border-box">' +
-    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">' +
-    '<span style="font-size:.74rem;font-weight:600;color:var(--text)">📈 Taux immobiliers · France · ' + labels[0] + '–' + labels[labels.length-1] + '</span>' +
-    '<button onclick="(function(){var w=document.getElementById(\'tauxHistWrap\');if(!document.fullscreenElement){w.requestFullscreen&&w.requestFullscreen();w.style.borderRadius=\'0\';w.style.padding=\'1.5rem\';}else{document.exitFullscreen&&document.exitFullscreen();w.style.borderRadius=\'\';w.style.padding=\'\';}document.onfullscreenchange=function(){if(!document.fullscreenElement&&window._tauxHistChart)window._tauxHistChart.resize();};})()" ' +
-    'style="font-size:.7rem;padding:.2rem .6rem;border:1px solid var(--border);border-radius:4px;background:transparent;color:var(--muted);cursor:pointer" title="Plein écran">⛶ Plein écran</button>' +
-    '</div>' +
-    '<div style="position:relative;width:100%;height:360px"><canvas id="tauxHistCanvas"></canvas></div>' +
-    '<div style="font-size:.6rem;color:var(--muted);text-align:center;margin-top:.35rem">' + footerNote + '</div>' +
-    '</div>';
-  requestAnimationFrame(function() {
-    const ctx = document.getElementById('tauxHistCanvas');
-    if (!ctx) return;
-    window._tauxHistChart = new Chart(ctx, {
-      type: 'line', plugins: [proxyPlugin], data: { labels, datasets },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend: { display: true, labels: { font: { size: 11, family: 'Outfit,sans-serif' }, color: '#8a7d68', boxWidth: 14, padding: 14 } },
-          datalabels: { display: false },
-          tooltip: { mode: 'index', intersect: false, callbacks: { label: c => ' ' + c.dataset.label + ' : ' + (+c.raw).toFixed(2) + '%' } }
-        },
-        scales: {
-          x: { ticks: { font: { size: 9 }, color: '#8a7d68', maxTicksLimit: 14, autoSkip: true }, grid: { display: false } },
-          y: { min: 0, ticks: { font: { size: 10 }, color: '#8a7d68', callback: v => v.toFixed(1) + '%' }, grid: { color: 'rgba(0,0,0,.06)' } }
-        },
-        interaction: { mode: 'index', intersect: false },
-        animation: { duration: 600 },
-      }
-    });
-  });
-}
-
-function calcEmprunt(){
-  const rev=(parseFloat(document.getElementById('eRev').value)||0)+(parseFloat(document.getElementById('eRev2').value)||0);
-  if(!rev){toast('Renseignez vos revenus.','err');return;}
-  const charges=parseFloat(document.getElementById('eCharges').value)||0;
-  const apport=parseFloat(document.getElementById('eApport').value)||0;
-  const duree=parseFloat(document.getElementById('eDuree').value)||20;
-  const taux=(parseFloat(String(document.getElementById('eTaux').value).replace(',','.'))||3.4)/100;
-  const mensMax=rev*.35-charges;
-  if(mensMax<=0){
-    document.getElementById('resEmprunt').innerHTML=`<div class="result-dark"><p style="color:#e63946;font-size:.85rem">⚠️ <strong>Capacité nulle.</strong><br><br>Vos crédits en cours (${fmt(charges)} €/mois) dépassent déjà 35% de vos revenus (${fmt(Math.round(rev*.35))} €/mois max autorisé par les banques).<br><br>Si vous n'avez pas de crédits en cours, laissez ce champ à 0.</p></div>`;
-    setCard('emprunt','Capacité nulle','Charges > 35% des revenus','bad');
-    return;
-  }
-  const assur=(parseFloat(document.getElementById('eAssur').value)||0.25)/100;
-  const t=taux/12,n=duree*12;
-  const factorAmort=t/(1-Math.pow(1+t,-n));
-  const empruntMax=mensMax/(factorAmort+assur/12);
-  const mensAssur=Math.round(empruntMax*assur/12);
-  const mensPret=Math.round(empruntMax*factorAmort);
-  const prixMax=empruntMax+apport;
-  function stressEmpr(ts){ const fa=ts/12/(1-Math.pow(1+ts/12,-n)); return Math.round(mensMax/(fa+assur/12)); }
-  const stress_m2=taux>=0.01?stressEmpr(taux-0.01):null;
-  const stress_m1=taux>=0.005?stressEmpr(taux-0.005):null;
-  const stress1=stressEmpr(taux+0.005), stress2=stressEmpr(taux+0.01);
-  const pct = v => (v*100).toFixed(2)+'%';
-  const diffStr = (v, ref) => { const d=v-ref; return d>0 ? ' <span style="color:#27ae60">↑ +'+fmt(d)+'</span>' : ' <span style="color:#e63946">↓ −'+fmt(Math.abs(d))+'</span>'; };
-  const cible20=Math.round(prixMax*0.20);
-  const manque20=Math.max(0,cible20-apport);
-  const epargne2a=manque20>0?Math.round(manque20/24):0, epargne3a=manque20>0?Math.round(manque20/36):0;
-  document.getElementById('resEmprunt').innerHTML=`
-    <div class="result-dark">
-      <div style="font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem">🏦 Votre capacité</div>
-      <div class="result-n">${fmt(Math.round(prixMax/1000)*1000)}</div>
-      <div style="font-size:.7rem;color:rgba(255,255,255,.7);text-align:center;margin-bottom:1rem">Budget d'achat total estimé (emprunt + apport)</div>
-      ${[['Mensualité max (35%)',fmt(Math.round(mensMax))+'/mois'],['dont capital + intérêts',fmt(mensPret)+' €/mois'],['dont assurance emprunteur',fmt(mensAssur)+' €/mois'],['Capacité d\'emprunt (hors apport)',fmt(Math.round(empruntMax))+' €'],['Apport personnel',fmt(apport)+' €']].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
-      <div style="margin:.8rem 0 .2rem;font-size:.62rem;color:rgba(255,255,255,.5);letter-spacing:.1em;text-transform:uppercase">📊 Stress test — capacité d'emprunt selon le taux</div>
-      <div style="font-size:.67rem;color:rgba(255,255,255,.38);margin-bottom:.45rem">À mensualité identique, combien pouvez-vous emprunter si les taux bougent ?</div>
-      ${[
-        stress_m2!=null ? ['Taux −1% → '+pct(taux-0.01)+' (baisse)', fmt(stress_m2)+' €'+diffStr(stress_m2,Math.round(empruntMax))] : null,
-        stress_m1!=null ? ['Taux −0,5% → '+pct(taux-0.005)+' (baisse)', fmt(stress_m1)+' €'+diffStr(stress_m1,Math.round(empruntMax))] : null,
-        ['✦ Taux actuel '+pct(taux)+' (référence)', fmt(Math.round(empruntMax))+' €'],
-        ['Taux +0,5% → '+pct(taux+0.005)+' (hausse)', fmt(stress1)+' €'+diffStr(stress1,Math.round(empruntMax))],
-        ['Taux +1% → '+pct(taux+0.01)+' (hausse)', fmt(stress2)+' €'+diffStr(stress2,Math.round(empruntMax))],
-      ].filter(Boolean).map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
-      ${manque20>0?`<div style="margin:.8rem 0 .4rem;font-size:.62rem;color:rgba(255,255,255,.5);letter-spacing:.1em;text-transform:uppercase">💡 Il vous manque <strong>${fmt(manque20)} €</strong> pour atteindre 20% d'apport</div><div style="font-size:.62rem;color:rgba(255,255,255,.4);margin-bottom:.4rem">Les banques exigent généralement 20% en apport personnel pour obtenir les meilleures conditions.</div>${[['Pour y arriver en 2 ans',fmt(epargne2a)+' €/mois à épargner'],['Pour y arriver en 3 ans',fmt(epargne3a)+' €/mois à épargner']].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}`:''}
-      <div class="result-insight">Budget de <strong>${fmt(Math.round(prixMax/1000)*1000)}</strong> — consultez la page <strong>Prix des dernières transactions</strong> pour voir ce que vous pouvez acheter dans votre ville cible.</div>
-    </div>`;
-  setCard('emprunt', fmt(Math.round(prixMax/1000)*1000), 'Budget max · emprunt '+fmt(Math.round(empruntMax)), 'good');
-}
-
-function calcDpe(){
-  const dpe=document.getElementById('dDpe').value;
-  const surf=parseFloat(document.getElementById('dSurf').value)||75;
-  const chauff=document.getElementById('dChauff').value;
-  const kwh={'A':50,'B':90,'C':145,'D':215,'E':290,'F':375,'G':500}[dpe];
-  const prix={'gaz':0.13,'elec':0.25,'fioul':0.15,'pompe':0.09}[chauff];
-  const facture=Math.round(kwh*surf*prix);
-  const vignette={'A':'🟢','B':'🟢','C':'🟡','D':'🟠','E':'🟠','F':'🔴','G':'🔴'}[dpe];
-  // Mettre à jour la carte DPE avec le dernier résultat
-  window._dpeResult = {dpe, facture, surf, vignette};
-  setCard('dpe', vignette+' DPE '+dpe, Math.round(facture/12).toLocaleString('fr-FR')+' €/mois · '+surf+'m²', dpe<='C'?'good':dpe<='D'?'':'bad');
-  document.getElementById('resDpe').innerHTML=`
-    <div class="result-dark">
-      <div style="text-align:center;font-size:2.5rem;margin:.5rem 0">${vignette} DPE ${dpe}</div>
-      <div class="result-n">${facture.toLocaleString('fr-FR')} €/an</div>
-      ${[['Consommation',kwh+' kWh/m²/an'],['Surface',surf+'m²'],['Facture mensuelle',Math.round(facture/12).toLocaleString('fr-FR')+' €/mois']].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
-      ${dpe>='E'?`<div class="result-insight">⚠️ <strong>Passoire énergétique.</strong> Des travaux peuvent diviser la facture par 2-3. Voir <strong>Rénovation & aides</strong>.</div>`:''}
-    </div>`;
-}
-
-// ══ CHAT ══
-function addMsg(role,text){
-  const msgs=document.getElementById('msgs');
-  const d=document.createElement('div');d.className='msg'+(role==='u'?' u':'');
-  d.innerHTML=`<div class="mav ${role}">${role==='ai'?'IA':'V'}</div><div class="bub ${role}">${role==='ai'?'<p>'+md(text)+'</p>':text}</div>`;
-  msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;
-}
-function addTyping(){
-  const msgs=document.getElementById('msgs');
-  const d=document.createElement('div');d.className='msg';d.id='typing';
-  d.innerHTML=`<div class="mav ai">IA</div><div class="bub ai"><div class="typing"><span></span><span></span><span></span></div></div>`;
-  msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;
-}
-async function sendMsg(){
-  const inp=document.getElementById('chatIn'),msg=inp.value.trim();if(!msg)return;
-  inp.value='';addMsg('u',msg);chatHistory.push({role:'user',content:msg});
-  document.getElementById('chatGo').disabled=true;
-  document.getElementById('chatSt').textContent='● En train d\'écrire…';
-  addTyping();
-  const addrCtx=currentAddress?` L'utilisateur analyse actuellement: "${currentAddress}".`:'';
-  try{
-    const SYS=`Tu es un conseiller immobilier expert France entière.${addrCtx} Connais les marchés locaux, la fiscalité française (PTZ, Pinel, LMNP), le financement, les stratégies achat/investissement. Réponds en français, direct, **gras** pour chiffres clés, 6-7 lignes max.`;
-    if(!groqKey)throw new Error('no_key');
-    const msgs=[{role:'system',content:SYS},...chatHistory.slice(-10)];
-    let candidates=GROQ_MODELS.complex.filter(m=>!exhausted.includes(m));
-    if(!candidates.length)candidates=[...GROQ_MODELS.complex];
-    let res,done=false;
-    for(const model of candidates){
-      const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+groqKey},body:JSON.stringify({model,messages:msgs,max_tokens:700,temperature:0.7})});
-      if(r.status===429){markEx(model);continue;}
-      if(!r.ok)throw new Error('Erreur Groq');
-      res=(await r.json()).choices[0].message.content;done=true;break;
-    }
-    if(!done)throw new Error('Tous les modèles épuisés.');
-    document.getElementById('typing')?.remove();addMsg('ai',res);
-    chatHistory.push({role:'assistant',content:res});
-  }catch(e){
-    document.getElementById('typing')?.remove();
-    if(e.message==='no_key'){addMsg('ai','Configurez votre clé Groq pour activer le conseiller.');openModal();}
-    else addMsg('ai','\u26a0\ufe0f '+e.message);
-  }
-  document.getElementById('chatGo').disabled=false;
-  document.getElementById('chatSt').textContent='\u25cf Prêt · France entière';
-}
-function ask(q){document.getElementById('chatIn').value=q;sendMsg();}
-// ══ GÉOLOCALISATION ══
-function geolocateUser(silent){
-  const btn = document.getElementById('geoBtn');
-  if(!navigator.geolocation){
-    toast('Géolocalisation non supportée par ce navigateur.','err'); return;
-    return;
-  }
-  const icon = document.getElementById('geoBtnIcon');
-  const txt  = document.getElementById('geoBtnTxt');
-  if(btn&&!silent){ btn.disabled=true; if(icon) icon.textContent='⏳'; if(txt) txt.textContent='Localisation…'; }
-
-  navigator.geolocation.getCurrentPosition(
-    async (pos) => {
-      const { latitude: lat, longitude: lon } = pos.coords;
-      try {
-        const r = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`,
-          { headers: { 'Accept-Language': 'fr' } }
-        );
-        const data = await r.json();
-        // Reformater l'adresse Nominatim en format lisible
-        const a = data.address || {};
-        const num    = a.house_number || '';
-        const rue    = a.road || a.pedestrian || a.path || '';
-        const ville  = a.city || a.town || a.village || a.municipality || '';
-        const cp     = a.postcode || '';
-        const ligne1 = [num, rue].filter(Boolean).join(' ');
-        const ligne2 = [cp, ville].filter(Boolean).join(' ');
-        const addr   = [ligne1, ligne2].filter(Boolean).join(', ') || data.display_name || `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
-        // Préremplir le champ héro
-        const heroInp = document.getElementById('heroSearch');
-        if(heroInp){ heroInp.value = addr; heroInp.focus(); }
-        // Préremplir aussi sideSearch si visible
-        const sideInp = document.getElementById('sideSearch');
-        if(sideInp) sideInp.value = addr;
-        // Synchroniser la carte France avec la position geolocalisee
-        if(window._franceMap) {
-          window._franceMap.setView([lat, lon], 14, {animate: true});
-          if(window._franceMarker) window._franceMarker.remove();
-          const geoIcon = L.divIcon({ html:'<div style="width:14px;height:14px;background:#b8832a;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.5)"></div>', iconSize:[14,14], iconAnchor:[7,7], className:'' });
-          window._franceMarker = L.marker([lat, lon], { icon: geoIcon }).addTo(window._franceMap);
-          window._franceMarker.bindTooltip(addr).openTooltip();
-        }
-      } catch(e) {
-        toast('Adresse introuvable, saisissez-la manuellement.','err');
-      } finally {
-        if(btn){ btn.disabled=false; if(icon)icon.textContent='📍'; if(txt)txt.textContent='Me géolocaliser'; }
-      }
-    },
-    (err) => {
-      if(btn){ btn.disabled=false; if(icon)icon.textContent='📍'; if(txt)txt.textContent='Me géolocaliser'; }
-      if(err.code !== 1) toast('Géolocalisation échouée : ' + err.message,'err');
-    },
-    { timeout: 10000, maximumAge: 300000, enableHighAccuracy: false }
-  );
-}
-
-
-// ── Auto-géolocalisation si permission déjà accordée ──
-if(navigator.permissions){
-  navigator.permissions.query({name:'geolocation'}).then(function(p){
-    if(p.state==='granted') setTimeout(()=>geolocateUser(true), 800);
-  }).catch(function(){});
-}
-</script>
-
-<script src="/recherche-bien.js?v=2"></script>
-<script>
-/* ══ MOBILE NAV ══════════════════════════════════════════════════════════ */
-function toggleSidebar(){
-  const s=document.getElementById('sidebar');
-  const btn=document.getElementById('hamburgerBtn');
-  const ov=document.getElementById('sideOverlay');
-  const open=s.classList.toggle('open');
-  btn.classList.toggle('open',open);
-  ov.style.display=open?'block':'none';
-  document.body.style.overflow=open?'hidden':'';
-}
-function closeSidebar(){
-  const s=document.getElementById('sidebar');
-  const btn=document.getElementById('hamburgerBtn');
-  const ov=document.getElementById('sideOverlay');
-  s.classList.remove('open');
-  btn.classList.remove('open');
-  ov.style.display='none';
-  document.body.style.overflow='';
-}
-// Map page id → tab id
-const _PAGE_TO_TAB={
-  home:'home',
-  analyse:'analyse',prix:'analyse',risques:'analyse',energie:'analyse',bruit:'analyse',urbanisme:'analyse',
-  ecoles:'quartier',mobilite:'quartier',fibre:'quartier',services:'quartier',soleil:'quartier',
-  emprunt:'financement',cout:'financement',mensualites:'financement',aides:'financement',renov:'financement',location:'financement',
-  offre:'strategie',profil:'strategie',
-};
-function setActiveTab(tabId){
-  document.querySelectorAll('.btab').forEach(b=>b.classList.remove('active'));
-  const el=document.getElementById('btab-'+tabId);
-  if(el) el.classList.add('active');
-}
-// Patch go() to auto-update bottom tab + close sidebar on mobile
-const _goOrig=window._goPage||go;
-const _goPatched=function(id){
-  _goOrig(id);
-  const tab=_PAGE_TO_TAB[id]||null;
-  if(tab) setActiveTab(tab);
-  if(window.innerWidth<=768) closeSidebar();
-};
-// Override nav-item clicks to also close sidebar
-document.addEventListener('DOMContentLoaded',()=>{
-  document.querySelectorAll('.nav-item').forEach(el=>{
-    el.addEventListener('click',()=>{ if(window.innerWidth<=768) closeSidebar(); });
-  });
-});
-
-
-function toggleMAmort(){
-  const wrap = document.getElementById('mAmortTableWrap');
-  const btn  = document.getElementById('mAmortToggleBtn');
-  const hidden = wrap.style.display==='none';
-  wrap.style.display = hidden ? '' : 'none';
-  btn.textContent = hidden ? 'Masquer' : 'Afficher';
-}
-
-function calcNegoOffre(){
-  const prix   = parseFloat(document.getElementById('negoOffrePrix').value)||0;
-  const apport = parseFloat(document.getElementById('negoOffreApport').value)||0;
-  const duree  = parseFloat(document.getElementById('negoOffreDuree').value)||20;
-  const taux   = (parseFloat(document.getElementById('negoOffreTaux').value)||3.42)/100;
-  if(!prix){ toast('Veuillez saisir le prix affiché.','err'); return; }
-  const t = taux/12, n = duree*12;
-  const factor = t/(1-Math.pow(1+t,-n));
-  const notaire = prix*0.075;
-  const scenarios = [
-    {label:'Prix affiché',pct:0,color:'var(--muted)',badge:''},
-    {label:'Négociation −5%',pct:0.05,color:'#2a9d8f',badge:'−5%'},
-    {label:'Négociation −10%',pct:0.10,color:'#e8a020',badge:'−10%'},
-  ];
-  const cards = scenarios.map(s => {
-    const newPrix    = Math.round(prix*(1-s.pct));
-    const saving     = prix-newPrix;
-    const newNotaire = Math.round(newPrix*0.075);
-    const newEmprunt = Math.max(0, newPrix+newNotaire-apport);
-    const newMens    = newEmprunt>0 ? Math.round(newEmprunt*factor) : 0;
-    const newTotal   = newPrix+newNotaire;
-    const accent = s.pct===0?'var(--border)':s.color;
-    return `<div style="border:2px solid ${accent};border-radius:var(--r);padding:1rem;background:var(--white)">
-      <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.6rem">
-        ${s.badge?'<span style="background:'+s.color+';color:#fff;border-radius:99px;font-size:.65rem;font-weight:700;padding:.15rem .5rem">'+s.badge+'</span>':'<span style="font-size:.65rem;color:var(--muted);font-weight:600">REF</span>'}
-        <span style="font-size:.72rem;font-weight:600;color:var(--ink)">${s.label}</span>
-      </div>
-      <div style="font-size:1.1rem;font-weight:700;color:${s.pct===0?'var(--ink)':s.color};margin-bottom:.1rem">${fmt(newPrix)} €</div>
-      ${s.pct>0?'<div style="font-size:.7rem;color:'+s.color+';font-weight:600;margin-bottom:.6rem">économie '+fmt(saving)+' €</div>':'<div style="margin-bottom:.6rem"></div>'}
-      <div style="font-size:.72rem;color:var(--muted);display:flex;flex-direction:column;gap:.25rem">
-        <div style="display:flex;justify-content:space-between"><span>Frais notaire (~7,5%)</span><span style="font-weight:600;color:var(--ink)">${fmt(newNotaire)} €</span></div>
-        <div style="display:flex;justify-content:space-between"><span>Emprunt (hors apport)</span><span style="font-weight:600;color:var(--ink)">${fmt(newEmprunt)} €</span></div>
-        <div style="display:flex;justify-content:space-between"><span>Mensualité estimée</span><span style="font-weight:600;color:var(--ink)">${fmt(newMens)} €/mois</span></div>
-        ${s.pct>0?'<div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:.25rem;margin-top:.1rem"><span>Économie sur le prix</span><span style="font-weight:700;color:'+s.color+'">'+fmt(saving)+' €</span></div>':''}
-      </div>
-    </div>`;
-  });
-  document.getElementById('negoOffreGrid').innerHTML = cards.join('');
-}
-
-// Sync oPrix → negoOffrePrix when go('offre') is called
-const _origGoOffre = window._goOffre;
-document.addEventListener('DOMContentLoaded', ()=>{
-  const origGo = window.go;
-  if(origGo){
-    window.go = function(id){
-      origGo(id);
-      if(id==='offre'){
-        const p=document.getElementById('oPrix');
-        const n=document.getElementById('negoOffrePrix');
-        const tm=window._tauxMarche?.taux||{};
-        if(p&&p.value&&n) n.value=p.value;
-        const tEl=document.getElementById('negoOffreTaux');
-        if(tEl&&tm[20]) tEl.value=String(tm[20]);
-        setTimeout(function(){if(typeof calcNegoOffres==='function') calcNegoOffres();},80);
-      }
-    };
-  }
-});
-</script>
-<script src="/pdf-export.js?v=5"></script>
-<script src="/recherche-bien.js?v=2"></script>
-</body>
-</html>
+      <div class="result-row"><span>IR (TMI ${Math.round(tmi*100)} %) /an</span><span>− ${fmt(irAn)}</span></d
