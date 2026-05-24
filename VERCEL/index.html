@@ -1277,9 +1277,9 @@ path.leaflet-interactive:focus{outline:none;}
         <input class="inp" id="mApport" type="number" placeholder="0" />
         <label class="lbl">Frais de notaire (%) <span style="font-weight:400;color:var(--muted);font-size:.75em">— 7,5% ancien / 2–3% neuf</span></label>
         <input class="inp" id="mNotairePct" type="number" value="7.5" step="0.1" min="0" max="15" />
-        <label style="display:flex;align-items:center;gap:.5rem;font-size:.75rem;color:var(--muted);margin-top:-.2rem;margin-bottom:.6rem;cursor:pointer">
-          <input type="checkbox" id="mNotaireFin" style="width:14px;height:14px;accent-color:var(--gold)" />
-          Financés par la banque (augmente le crédit)
+        <label style="display:flex;align-items:center;gap:.6rem;font-size:.78rem;color:var(--text);margin-top:.3rem;margin-bottom:.8rem;cursor:pointer;padding:.5rem .6rem;background:var(--warm);border-radius:var(--r);border:1px solid var(--border)">
+          <input type="checkbox" id="mNotaireFin" style="width:15px;height:15px;accent-color:var(--gold);flex-shrink:0" />
+          <span>Financés par la banque <span style="color:var(--muted);font-size:.72rem">(augmente le crédit)</span></span>
         </label>
         <button class="btn btn-dark btn-full" onclick="calcMensualites()">✦ Calculer ma mensualité</button>
         <div style="margin-top:1rem;text-align:center;font-size:.72rem;color:var(--muted)">
@@ -1343,11 +1343,11 @@ path.leaflet-interactive:focus{outline:none;}
             <option value="F">F — Très énergivore</option>
             <option value="G">G — Passoire thermique</option>
           </select>
-          <div id="vcDpeHint" style="font-size:.62rem;color:var(--muted);margin-top:-.4rem;margin-bottom:.4rem;display:none"></div>
+          <div id="vcDpeHint" style="font-size:.62rem;color:var(--muted);margin-top:.3rem;margin-bottom:.7rem;display:none"></div>
           <label class="lbl">Travaux estimés (€) <span style="font-weight:400;color:var(--muted);font-size:.75em">— modifiable</span></label>
           <input class="inp" id="vcTravaux" type="number" placeholder="0" oninput="this._userModifiedVC=true" />
           <div style="border-top:1px solid var(--border);margin:.8rem 0 .6rem"></div>
-          <div class="ctitle" style="margin-bottom:.5rem">📅 Charges annuelles</div>
+          <div class="ctitle" style="margin-bottom:.5rem">📅 Charges mensuelles</div>
           <label class="lbl">Charges copro /mois (€)</label>
           <input class="inp" id="vcCharges" type="number" placeholder="150" />
           <label class="lbl">Taxe foncière /an (€)</label>
