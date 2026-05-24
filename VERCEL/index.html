@@ -810,9 +810,6 @@ path.leaflet-interactive:focus{outline:none;}
   /* Négociation : toujours 1 col */
   #negoGrid              { grid-template-columns:1fr !important; }
 
-  /* Graphique cashflow plus petit */
-  #cashflowChart         { height:160px !important; }
-
   /* stat-grid : 2 colonnes au lieu de 4 sur petit écran */
   .stat-grid,.stat-grid-4{ grid-template-columns:repeat(2,1fr) !important; gap:.5rem; }
   /* Écoles : masquer le chart sur mobile, boutons filtres plus grands */
@@ -898,7 +895,8 @@ path.leaflet-interactive:focus{outline:none;}
   <div class="nav-section">Mon financement</div>
   <div class="nav-sub">
     <div class="nav-item" onclick="go('emprunt')"><span class="nav-icon">🏦</span>Capacité d'emprunt</div>
-    <div class="nav-item" onclick="go('cout')"><span class="nav-icon">📊</span>Vrai coût du bien</div>
+    <div class="nav-item" onclick="go('mensualites')"><span class="nav-icon">🧮</span>Achat : Mensualités & crédit</div>
+    <div class="nav-item" onclick="go('cout')"><span class="nav-icon">🔑</span>Investissement locatif</div>
     <div class="nav-item" onclick="go('aides')"><span class="nav-icon">🎁</span>Aides PTZ & État</div>
     <div class="nav-item" onclick="go('renov')"><span class="nav-icon">🔨</span>Rénovation & aides</div>
   </div>
@@ -1076,32 +1074,9 @@ path.leaflet-interactive:focus{outline:none;}
       <button class="back-btn" onclick="go('analyse')">← Retour aux cartes</button>
       <button class="detail-close" onclick="go('analyse')" style="color:var(--muted);font-size:.9rem;padding:.3rem .5rem;border:1px solid var(--border);border-radius:var(--r)">✕ Fermer</button>
     </div>
-    <div class="ph"><div class="ptag">✦ Financement</div><h2 class="ptitle">Le <em>vrai coût</em> du bien</h2></div>
-    <div class="toggles" id="tCoutMode" style="margin-bottom:1.5rem">
-      <button class="tog on" onclick="tog('tCoutMode',this);switchCoutMode('achat')">🏠 Achat</button>
-      <button class="tog" onclick="tog('tCoutMode',this);switchCoutMode('location')">🔑 Investissement locatif</button>
-    </div>
-    <!-- Onglet Achat -->
-    <div id="coutAchat">
-      <div class="g2" style="align-items:start">
-        <div class="card"><div class="ctitle">🏠 Caractéristiques du bien</div>
-          <label class="lbl">Prix affiché (€)</label><input class="inp" id="cPrix" type="number" placeholder="650000" />
-          <label class="lbl">Surface (m²)</label><input class="inp" id="cSurf" type="number" placeholder="80" />
-          <label class="lbl">DPE</label>
-          <select class="inp" id="cDpe"><option value="A">A</option><option value="B">B</option><option value="C" selected>C</option><option value="D">D</option><option value="E">E</option><option value="F">F</option><option value="G">G</option></select>
-          <label class="lbl">Charges copro /mois (€)</label><input class="inp" id="cCharges" type="number" placeholder="250" />
-          <label class="lbl">Votre apport (€)</label><input class="inp" id="cApport" type="number" placeholder="150000" />
-          <label class="lbl">Durée prêt (ans)</label><input class="inp" id="cDuree" type="number" value="20" />
-          <label class="lbl">Taux (%)</label><input class="inp" id="cTaux" type="number" value="3.4" step="0.1" oninput="this._userModified=true" />
-          <label class="lbl">Assurance emprunteur (%/an)</label><input class="inp" id="cAssur" type="number" value="0.25" step="0.05" />
-          <button class="btn btn-dark btn-full" onclick="calcCout()">✦ Calculer le prix total</button>
-        </div>
-        <div id="resCout"><div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez le bien pour voir le coût total réel.</p></div></div>
-      </div>
-    </div>
+    <div class="ph"><div class="ptag">✦ Financement</div><h2 class="ptitle"><em>Investissement</em> locatif</h2></div>
 
-    <!-- Onglet Investissement locatif -->
-    <div id="coutLocation" style="display:none">
+    <div id="coutLocation">
       <div class="g2" style="align-items:start">
         <div class="card"><div class="ctitle">🔑 Votre investissement</div>
           <label class="lbl">Prix d'achat (€)</label><input class="inp" id="lPrix" type="number" placeholder="250000" />
@@ -1161,7 +1136,7 @@ path.leaflet-interactive:focus{outline:none;}
           <div style="font-size:.72rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem">📊 À partir de quand gagnez-vous de l'argent ?</div>
           <div style="font-size:.63rem;color:var(--muted);margin-bottom:.4rem;line-height:1.4">Gain cumulé = cash-flows nets + capital remboursé − frais initiaux</div>
           <div id="breakEvenLabel" style="font-size:.72rem;font-weight:600;margin-bottom:.4rem"></div>
-          <div style="position:relative;background:var(--ink);border-radius:var(--r);padding:1rem .75rem .75rem;height:200px">
+          <div style="position:relative;background:var(--ink);border-radius:var(--r);padding:1rem .75rem .75rem;height:400px">
             <canvas id="breakEvenChart"></canvas>
           </div>
         </div>
@@ -1172,7 +1147,7 @@ path.leaflet-interactive:focus{outline:none;}
             Chaque barre = loyers − mensualité − charges − impôts.<br>
             <span style="color:#27ae60;font-weight:600">Vert</span> = excédent. <span style="color:#e74c3c;font-weight:600">Rouge</span> = effort de poche. Le cash-flow se dégrade car les intérêts baissent → moins de déductions → impôts croissants.
           </div>
-          <div style="position:relative;background:var(--ink);border-radius:var(--r);padding:1rem .75rem .75rem;height:200px">
+          <div style="position:relative;background:var(--ink);border-radius:var(--r);padding:1rem .75rem .75rem;height:400px">
             <canvas id="cashflowChart"></canvas>
           </div>
         </div>
@@ -1258,7 +1233,7 @@ path.leaflet-interactive:focus{outline:none;}
       <button class="back-btn" onclick="go('analyse')">← Retour aux cartes</button>
       <button class="detail-close" onclick="go('analyse')" style="color:var(--muted);font-size:.9rem;padding:.3rem .5rem;border:1px solid var(--border);border-radius:var(--r)">✕ Fermer</button>
     </div>
-    <div class="ph"><div class="ptag">✦ Financement</div><h2 class="ptitle">Simulation <em>mensualités</em></h2><p class="psub">Calculez votre mensualité exacte et le coût total de votre crédit.</p></div>
+    <div class="ph"><div class="ptag">✦ Financement · Achat</div><h2 class="ptitle">Mensualités & <em>coût total du crédit</em></h2><p class="psub">Calculez votre mensualité exacte et le coût total de votre crédit.</p></div>
     <div class="g2" style="align-items:start">
       <div class="card">
         <div class="ctitle">🧮 Votre prêt</div>
@@ -1818,7 +1793,7 @@ const PAGES = {
   urbanisme:'Urbanisme, PLU & Énergie', ecoles:'Écoles & IPS', mobilite:'Mobilité & transports',
   fibre:'Internet & fibre', services:'Services & santé', soleil:"Météo et qualité de l'air",
   emprunt:'Capacité d\'emprunt', cout:'Vrai coût du bien', aides:'Aides de l\'État',
-  renov:'Rénovation & MaPrimeRénov\'', mensualites:'Simulation mensualités', offre:'Coaching de l\'offre',
+  renov:'Rénovation & MaPrimeRénov\'', mensualites:'Achat : Mensualités & crédit', cout:'Investissement locatif', offre:'Coaching de l\'offre',
   profil:'Compatibilité de vie',
   conseil:'Conseiller IA 24h/24', annonces:'Annonces', alertes:'Alertes intelligentes',
   pros:'Annuaire pros', juridique:'Guide juridique'
@@ -2289,11 +2264,11 @@ function renderCards(props, coords){
     {
       title: '💰 Mon financement',
       cards: [
-        {id:'emprunt', icon:'🏦', label:"Capacité d'emprunt",   value:'Simuler →', sub:'Revenus, apport, durée',  source:'Calcul', action:"go('emprunt')"},
-        {id:'cout',    icon:'📊', label:'Vrai coût du bien',    value:'Simuler →', sub:'Prix total acquisition',  source:'Calcul', action:"go('cout')"},
-        {id:'aides',   icon:'🎁', label:"Aides à l'achat (PTZ, APL…)",     value:'Simuler →', sub:'PTZ, Action Logement...', source:'État',   action:"go('aides')"},
-        {id:'renov',   icon:'🔨', label:"MaPrimeRénov' & aides travaux",   value:'Simuler →', sub:"MaPrimeRénov', CEE...",  source:'ANAH',   action:"go('renov')"},
-        {id:'mensualites', icon:'🧮', label:'Mensualités & coût total du crédit', value:'Calculer →', sub:'Mensualités, coût crédit', source:'Calcul', action:"go('mensualites')"},
+        {id:'emprunt',     icon:'🏦', label:"Capacité d'emprunt",                        value:'Simuler →',  sub:'Revenus, apport, durée',       source:'Calcul', action:"go('emprunt')"},
+        {id:'mensualites', icon:'🧮', label:'Achat : Mensualités & coût total du crédit', value:'Calculer →', sub:'Mensualités, crédit, vrai coût', source:'Calcul', action:"go('mensualites')"},
+        {id:'cout',        icon:'🔑', label:'Investissement locatif',                     value:'Simuler →',  sub:'Rendement, cashflow, fiscalité', source:'Calcul', action:"go('cout')"},
+        {id:'aides',       icon:'🎁', label:"Aides à l'achat (PTZ, APL…)",               value:'Simuler →',  sub:'PTZ, Action Logement...',        source:'État',   action:"go('aides')"},
+        {id:'renov',       icon:'🔨', label:"MaPrimeRénov' & aides travaux",              value:'Simuler →',  sub:"MaPrimeRénov', CEE...",           source:'ANAH',   action:"go('renov')"},
       ]
     },
     {
