@@ -815,6 +815,9 @@ path.leaflet-interactive:focus{outline:none;}
 
   /* stat-grid : 2 colonnes au lieu de 4 sur petit écran */
   .stat-grid,.stat-grid-4{ grid-template-columns:repeat(2,1fr) !important; gap:.5rem; }
+  /* Écoles : masquer le chart sur mobile, boutons filtres plus grands */
+  .eco-chart-wrap         { display:none !important; }
+  .eco-type-btn,.eco-n-btn,.eco-rayon-btn { font-size:.75rem !important; padding:.35rem .6rem !important; }
   .stat-n                { font-size:1.25rem; }
   .stat-l                { font-size:.6rem; }
 
@@ -830,6 +833,7 @@ path.leaflet-interactive:focus{outline:none;}
   #p-profil .lbl            { font-size:.68rem; }
   #p-profil .ctitle         { font-size:.82rem; }
   #radarCanvas              { height:260px !important; }
+  .charts-grid-2col         { grid-template-columns:1fr !important; }
 }
 /* ══ FIN RESPONSIVE ═══════════════════════════════════════════════════════ */
 </style>
@@ -1149,25 +1153,29 @@ path.leaflet-interactive:focus{outline:none;}
         <a href="https://www.service-public.fr/particuliers/vosdroits/F14868" target="_blank" style="color:var(--gold2);margin-left:.5rem">Fiscalité location →</a>
       </div>
     <!-- Graphique break-even -->
-    <div id="breakEvenSection" style="display:none;margin-top:1.5rem">
-      <div style="font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem">📊 À partir de quand gagnez-vous de l&apos;argent ?</div>
-      <div style="font-size:.68rem;color:var(--muted);margin-bottom:.75rem;line-height:1.5">
-        Gain/perte cumulé(e) = cash-flows nets après impôts + capital remboursé − frais initiaux non récupérables (notaire + travaux).
-      </div>
-      <div id="breakEvenLabel" style="font-size:.75rem;font-weight:600;margin-bottom:.75rem"></div>
-      <div style="position:relative;background:var(--ink);border-radius:var(--r);padding:1.25rem 1rem 1rem">
-        <canvas id="breakEvenChart" height="220"></canvas>
-      </div>
-    </div>
-    <!-- Graphique cashflow -->
-    <div id="cashflowSection" style="display:none;margin-top:1.5rem">
-      <div style="font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem">📈 Cash-flow mensuel net après impôts</div>
-      <div style="font-size:.68rem;color:var(--muted);margin-bottom:.75rem;line-height:1.5">
-        Chaque barre = loyers encaissés − mensualité crédit − charges − impôts sur le revenu.<br>
-        <span style="color:#27ae60;font-weight:600">Vert</span> = excédent (vous gagnez de l'argent ce mois). <span style="color:#e74c3c;font-weight:600">Rouge</span> = effort (vous complétez de votre poche). Le cash-flow se dégrade progressivement : les intérêts d'emprunt baissent chaque année → moins de déductions fiscales → impôts croissants.
-      </div>
-      <div style="position:relative;background:var(--ink);border-radius:var(--r);padding:1.25rem 1rem 1rem">
-        <canvas id="cashflowChart" height="200"></canvas>
+    <!-- Graphiques côte à côte desktop, empilés mobile -->
+    <div id="chartsWrapper" style="display:none;margin-top:1.5rem;display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem" class="charts-grid-2col">
+        <!-- Break-even -->
+        <div id="breakEvenSection">
+          <div style="font-size:.72rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem">📊 À partir de quand gagnez-vous de l'argent ?</div>
+          <div style="font-size:.63rem;color:var(--muted);margin-bottom:.4rem;line-height:1.4">Gain cumulé = cash-flows nets + capital remboursé − frais initiaux</div>
+          <div id="breakEvenLabel" style="font-size:.72rem;font-weight:600;margin-bottom:.4rem"></div>
+          <div style="position:relative;background:var(--ink);border-radius:var(--r);padding:1rem .75rem .75rem;height:200px">
+            <canvas id="breakEvenChart"></canvas>
+          </div>
+        </div>
+        <!-- Cashflow -->
+        <div id="cashflowSection">
+          <div style="font-size:.72rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem">📈 Cash-flow mensuel net après impôts</div>
+          <div style="font-size:.63rem;color:var(--muted);margin-bottom:.4rem;line-height:1.4">
+            Chaque barre = loyers − mensualité − charges − impôts.<br>
+            <span style="color:#27ae60;font-weight:600">Vert</span> = excédent. <span style="color:#e74c3c;font-weight:600">Rouge</span> = effort de poche. Le cash-flow se dégrade car les intérêts baissent → moins de déductions → impôts croissants.
+          </div>
+          <div style="position:relative;background:var(--ink);border-radius:var(--r);padding:1rem .75rem .75rem;height:200px">
+            <canvas id="cashflowChart"></canvas>
+          </div>
+        </div>
       </div>
     </div>
     </div>
@@ -1267,6 +1275,12 @@ path.leaflet-interactive:focus{outline:none;}
         <input class="inp" id="mAssur" type="number" value="0.25" step="0.05" />
         <label class="lbl">Apport personnel (€) <span style="font-weight:400;color:var(--muted);font-size:.75em">— optionnel</span></label>
         <input class="inp" id="mApport" type="number" placeholder="0" />
+        <label class="lbl">Frais de notaire (%) <span style="font-weight:400;color:var(--muted);font-size:.75em">— 7,5% ancien / 2–3% neuf</span></label>
+        <input class="inp" id="mNotairePct" type="number" value="7.5" step="0.1" min="0" max="15" />
+        <label style="display:flex;align-items:center;gap:.5rem;font-size:.75rem;color:var(--muted);margin-top:-.2rem;margin-bottom:.6rem;cursor:pointer">
+          <input type="checkbox" id="mNotaireFin" style="width:14px;height:14px;accent-color:var(--gold)" />
+          Financés par la banque (augmente le crédit)
+        </label>
         <button class="btn btn-dark btn-full" onclick="calcMensualites()">✦ Calculer ma mensualité</button>
         <div style="margin-top:1rem;text-align:center;font-size:.72rem;color:var(--muted)">
           Simulation détaillée par <a href="https://www.meilleurtaux.com/credit-immobilier/simulation-de-pret-immobilier/calcul-des-mensualites.html" target="_blank" style="color:var(--gold)">meilleurtaux.com →</a>
@@ -1314,10 +1328,6 @@ path.leaflet-interactive:focus{outline:none;}
           <input class="inp" id="vcPrix" type="number" placeholder="350000" oninput="this._userModified=true" />
           <label class="lbl">Frais de notaire (%) <span style="font-weight:400;color:var(--muted);font-size:.75em">— 7,5% neuf / 2–3% neuf</span></label>
           <input class="inp" id="vcNotaire" type="number" value="7.5" step="0.1" />
-          <label style="display:flex;align-items:center;gap:.5rem;font-size:.75rem;color:var(--muted);margin-top:-.2rem;margin-bottom:.5rem;cursor:pointer">
-            <input type="checkbox" id="vcNotaireFin" style="width:14px;height:14px;accent-color:var(--gold)" />
-            Frais de notaire financés par la banque (augmente le crédit)
-          </label>
           <label class="lbl">Surface (m²) <span style="font-weight:400;color:var(--muted);font-size:.75em">— optionnel, pour le coût au m²</span></label>
           <input class="inp" id="vcSurf" type="number" placeholder="70" />
           <div style="border-top:1px solid var(--border);margin:.8rem 0 .6rem"></div>
@@ -4055,38 +4065,43 @@ function showEcolesDetail(){
   const total=d.total||0;
 
   showPanel('🏫 Établissements scolaires à proximité', `
-    <div style="display:flex;gap:1.2rem;align-items:flex-start;margin-bottom:.8rem">
-      <div style="flex:1;min-width:180px">
-        <div style="display:flex;gap:.7rem;flex-wrap:wrap;margin-bottom:.7rem">
-          <div style="background:var(--ink);border-radius:var(--r);padding:.8rem 1rem;text-align:center;min-width:64px">
-            <div style="font-family:'Cormorant Garamond',serif;font-size:1.9rem;color:var(--gold2)">${ecoles}</div>
+    <!-- Stats + chart : côte à côte desktop, stats seules mobile -->
+    <div style="display:flex;gap:1.2rem;align-items:flex-start;margin-bottom:.8rem;flex-wrap:wrap">
+      <div style="flex:1;min-width:0">
+        <!-- Grille 2×2 stats -->
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem;margin-bottom:.8rem">
+          <div style="background:var(--ink);border-radius:var(--r);padding:.7rem .8rem;text-align:center">
+            <div style="font-family:'Cormorant Garamond',serif;font-size:1.8rem;color:var(--gold2)">${ecoles}</div>
             <div style="font-size:.57rem;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.08em">Écoles</div>
           </div>
-          <div style="background:var(--ink);border-radius:var(--r);padding:.8rem 1rem;text-align:center;min-width:64px">
-            <div style="font-family:'Cormorant Garamond',serif;font-size:1.9rem;color:var(--gold2)">${college}</div>
+          <div style="background:var(--ink);border-radius:var(--r);padding:.7rem .8rem;text-align:center">
+            <div style="font-family:'Cormorant Garamond',serif;font-size:1.8rem;color:var(--gold2)">${college}</div>
             <div style="font-size:.57rem;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.08em">Collèges</div>
           </div>
-          <div style="background:var(--ink);border-radius:var(--r);padding:.8rem 1rem;text-align:center;min-width:64px">
-            <div style="font-family:'Cormorant Garamond',serif;font-size:1.9rem;color:var(--gold2)">${lycee}</div>
+          <div style="background:var(--ink);border-radius:var(--r);padding:.7rem .8rem;text-align:center">
+            <div style="font-family:'Cormorant Garamond',serif;font-size:1.8rem;color:var(--gold2)">${lycee}</div>
             <div style="font-size:.57rem;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.08em">Lycées</div>
           </div>
-          <div style="background:rgba(184,131,42,.1);border:1px solid var(--goldborder);border-radius:var(--r);padding:.8rem 1rem;text-align:center;min-width:64px">
-            <div style="font-family:'Cormorant Garamond',serif;font-size:1.9rem;color:var(--accent)">${total}</div>
+          <div style="background:rgba(184,131,42,.1);border:1px solid var(--goldborder);border-radius:var(--r);padding:.7rem .8rem;text-align:center">
+            <div style="font-family:'Cormorant Garamond',serif;font-size:1.8rem;color:var(--accent)">${total}</div>
             <div style="font-size:.57rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Total</div>
           </div>
         </div>
-        <div style="margin-bottom:.45rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
-          <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Type :</span>${btnsType}
+        <!-- Filtres compacts : Type + Rayon sur 2 lignes -->
+        <div style="display:flex;align-items:center;gap:.35rem;flex-wrap:wrap;margin-bottom:.35rem">
+          <span style="font-size:.68rem;color:var(--muted);flex-shrink:0">Type :</span>${btnsType}
         </div>
-        <div style="margin-bottom:.45rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
-          <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Afficher :</span>${btnsN}
+        <div style="display:flex;align-items:center;gap:.35rem;flex-wrap:wrap;margin-bottom:.35rem">
+          <span style="font-size:.68rem;color:var(--muted);flex-shrink:0">Afficher :</span>${btnsN}
         </div>
-        <div style="margin-bottom:.4rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
-          <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Rayon :</span>${btnsRayon}
+        <div style="display:flex;align-items:center;gap:.35rem;flex-wrap:wrap;margin-bottom:.4rem">
+          <span style="font-size:.68rem;color:var(--muted);flex-shrink:0">Rayon :</span>${btnsRayon}
         </div>
       </div>
-      <div style="width:280px;flex-shrink:0;display:flex;align-items:center;justify-content:center">
-        <canvas id="ecolesChart" width="280" height="280"></canvas>
+      <!-- Chart : visible seulement si suffisamment de place -->
+      <div class="eco-chart-wrap" style="flex-shrink:0;display:flex;align-items:center;justify-content:center">
+        <div style="font-size:.65rem;color:var(--muted);text-align:center;margin-bottom:.2rem">Répartition</div>
+        <canvas id="ecolesChart" width="220" height="220"></canvas>
       </div>
     </div>
     <div class="map-container" id="mapEcoles" style="margin-bottom:.8rem"></div>
@@ -6539,7 +6554,8 @@ function calcVraiCout(){
   const chargesMois = parseFloat(document.getElementById('vcCharges').value)||0;
   const chargesAn = chargesMois * 12;
   const taxe      = parseFloat(document.getElementById('vcTaxe').value)||0;
-  const notFin    = document.getElementById('vcNotaireFin')?.checked;
+  // Récupérer le financement notaire depuis la simulation mensualités
+  const notFin    = window._mNotaireFin || false;
 
   if(!prix){ toast("Renseignez le prix d'achat.",'err'); return; }
 
@@ -6549,7 +6565,8 @@ function calcVraiCout(){
   const duree      = window._mDuree || parseFloat(document.getElementById('mDuree').value)||20;
   const montant    = parseFloat(document.getElementById('mMontant').value)||0;
 
-  const notaire      = Math.round(prix * notPct / 100);
+  // Notaire : si financé par banque, utilise le montant exact calculé dans mensualités
+  const notaire      = notFin ? (window._mNotaireMontant||Math.round(prix * notPct / 100)) : Math.round(prix * notPct / 100);
   const chargesTotal = Math.round(chargesAn * duree);
   const taxeTotal    = Math.round(taxe * duree);
   const grandTotal   = prix + notaire + travaux + chargesTotal + taxeTotal + coutCredit + coutAssur;
@@ -6593,20 +6610,24 @@ function calcMensualites(){
   const taux   = (parseFloat(document.getElementById('mTaux').value)||3.42)/100;
   const assur  = (parseFloat(document.getElementById('mAssur').value)||0.25)/100;
   const apport = parseFloat(document.getElementById('mApport').value)||0;
+  const notairePct = parseFloat(document.getElementById('mNotairePct').value)||7.5;
+  const notaireFin = document.getElementById('mNotaireFin')?.checked||false;
+  const notaireMontant = notaireFin ? Math.round((montant+apport)*notairePct/100) : 0;
+  const montantEff = montant + notaireMontant;
   const n = duree * 12;
   const t = taux / 12;
   const factor = t / (1 - Math.pow(1+t, -n));
-  const mensAssur  = Math.round(montant * assur / 12);
-  const mensCredit = Math.round(montant * factor);
+  const mensAssur  = Math.round(montantEff * assur / 12);
+  const mensCredit = Math.round(montantEff * factor);
   const mensTotal  = mensCredit + mensAssur;
-  const coutCredit = mensCredit * n - montant;
+  const coutCredit = mensCredit * n - montantEff;
   const coutAssur  = mensAssur * n;
-  const coutTotal  = montant + coutCredit + coutAssur;
+  const coutTotal  = montantEff + coutCredit + coutAssur;
   // Intérêts mois 1
-  const interetM1  = Math.round(montant * t);
+  const interetM1  = Math.round(montantEff * t);
   const capitalM1  = mensCredit - interetM1;
   // Proportions pour la barre visuelle
-  const pCap  = Math.round(montant / coutTotal * 100);
+  const pCap  = Math.round(montantEff / coutTotal * 100);
   const pInt  = Math.round(coutCredit / coutTotal * 100);
   const pAss  = 100 - pCap - pInt;
 
@@ -6630,7 +6651,8 @@ function calcMensualites(){
         ['dont capital (1ʳᵉ mensualité)', fmt(capitalM1)+' €'],
         ['Assurance /mois', fmt(mensAssur)+' €'],
         ['─── Coût total du crédit', ''],
-        ['Capital emprunté', fmt(montant)+' €'],
+        ['Capital emprunté', fmt(montantEff)+' €'],
+        ...(notaireFin ? [['dont frais de notaire ('+notairePct+'%)', fmt(notaireMontant)+' €']] : []),
         ['Coût des intérêts', fmt(Math.round(coutCredit))+' €'],
         ['Coût assurance', fmt(coutAssur)+' €'],
         ['Coût total (capital + intérêts + assurance)', fmt(Math.round(coutTotal))+' €'],
@@ -6641,9 +6663,15 @@ function calcMensualites(){
     </div>`;
   setCard('mensualites', fmt(mensTotal)+'/mois', 'Coût crédit : '+fmt(Math.round(coutCredit)), '');
   // Stocker pour calcVraiCout
-  window._mCoutCredit = Math.round(coutCredit);
-  window._mCoutAssur  = coutAssur;
-  window._mDuree      = duree;
+  window._mCoutCredit    = Math.round(coutCredit);
+  window._mCoutAssur     = coutAssur;
+  window._mDuree         = duree;
+  window._mNotaireFin    = notaireFin;
+  window._mNotaireMontant= notaireMontant;
+  window._mNotairePct    = notairePct;
+  // Sync notaire % dans vrai coût
+  const vcNotEl = document.getElementById('vcNotaire');
+  if(vcNotEl) vcNotEl.value = notairePct;
   // Auto-remplir le prix dans la section vrai coût
   const vcPrixEl = document.getElementById('vcPrix');
   if(vcPrixEl && !vcPrixEl._userModified) vcPrixEl.value = Math.round(montant + apport) || '';
@@ -6652,7 +6680,7 @@ function calcMensualites(){
   const tbody = document.getElementById('mAmortBody');
   const tfoot = document.getElementById('mAmortFoot');
   if(tbody) {
-    let restant = montant, rows = [], totCap=0, totInt=0, totAss=0;
+    let restant = montantEff, rows = [], totCap=0, totInt=0, totAss=0;
     for(let yr=1; yr<=duree; yr++){
       let capAn=0, intAn=0;
       for(let m=0; m<12; m++){
@@ -6860,6 +6888,7 @@ function calcLocation(){
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
         interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: { display: false },
@@ -6884,6 +6913,7 @@ function calcLocation(){
       }
     });
     document.getElementById('cashflowSection').style.display = '';
+    document.getElementById('chartsWrapper').style.display = 'block';
   }
 
   // ── Graphique break-even ──
@@ -6990,6 +7020,7 @@ function calcLocation(){
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
         interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: {
@@ -7047,6 +7078,7 @@ function calcLocation(){
       }
     }
     document.getElementById('breakEvenSection').style.display = '';
+    document.getElementById('chartsWrapper').style.display = 'block';
   }
 }
 
