@@ -1092,13 +1092,13 @@ path.leaflet-interactive:focus{outline:none;}
           <label class="lbl">Charges non récupérables /mois (€) <span style="font-weight:400;font-size:.8em;color:var(--muted)">copro, entretien</span></label><input class="inp" id="lCharges" type="number" placeholder="150" />
           <label class="lbl">Taxe foncière /an (€)</label><input class="inp" id="lTaxe" type="number" placeholder="1200" />
           <label class="lbl">Frais de gestion (%)</label><input class="inp" id="lGestion" type="number" value="0" placeholder="8" />
+          <label class="lbl">GLI — Garantie loyers impayés (%/an) <span style="font-weight:400;color:var(--muted);font-size:.75em">— 0 = sans</span></label>
+          <input class="inp" id="lGli" type="number" value="0" step="0.1" placeholder="2.5" />
           <label class="lbl">Taux de vacance locative (%)</label><input class="inp" id="lVacance" type="number" value="5" />
           <label class="lbl">Apport (€)</label><input class="inp" id="lApport" type="number" placeholder="50000" />
           <label class="lbl">Durée prêt (ans)</label><input class="inp" id="lDuree" type="number" value="20" />
           <label class="lbl">Taux (%)</label><input class="inp" id="lTaux" type="number" value="3.4" step="0.1" oninput="this._userModified=true" />
           <label class="lbl">Assurance emprunteur (%/an)</label><input class="inp" id="lAssur" type="number" value="0.25" step="0.05" />
-          <label class="lbl">GLI — Garantie loyers impayés (%/an) <span style="font-weight:400;color:var(--muted);font-size:.75em">— 0 = sans</span></label>
-          <input class="inp" id="lGli" type="number" value="0" step="0.1" placeholder="2.5" />
           <label class="lbl">Régime fiscal</label>
           <select class="inp" id="lRegime">
             <option value="micro">Micro-foncier (abatt. 30%)</option>
