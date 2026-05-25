@@ -771,7 +771,6 @@ path.leaflet-interactive:focus{outline:none;}
   .modal                 { width:calc(100vw - 2rem) !important; padding:1.5rem 1rem; }
 
   /* Graphique écoles */
-  #ecolesChartWrap       { display:none; }
 
   /* Hero — évite le débordement horizontal */
   .hero                  { padding:2.5rem 1rem 2rem; }
@@ -813,7 +812,6 @@ path.leaflet-interactive:focus{outline:none;}
   /* stat-grid : 2 colonnes au lieu de 4 sur petit écran */
   .stat-grid,.stat-grid-4{ grid-template-columns:repeat(2,1fr) !important; gap:.5rem; }
   /* Écoles : masquer le chart sur mobile, boutons filtres plus grands */
-  .eco-chart-wrap         { display:none !important; }
   .eco-type-btn,.eco-n-btn,.eco-rayon-btn { font-size:.75rem !important; padding:.35rem .6rem !important; }
   .stat-n                { font-size:1.25rem; }
   .stat-l                { font-size:.6rem; }
@@ -3716,7 +3714,7 @@ function showPanel(title, html){
 
 function closePanel(){
   window._demographiePanelOpen = false;
-  ['_dvfChart','_dvfEvoChart','_risquesChart','_ecolesChart','_mobiliteChart','_radarChart','_radarProfilChart','_servicesChart','_inseeNeighborChart','_meteoMensuelChart','_demographieChart'].forEach(k=>{if(window[k]){window[k].destroy();window[k]=null;}});
+  ['_dvfChart','_dvfEvoChart','_risquesChart','_mobiliteChart','_radarChart','_radarProfilChart','_servicesChart','_inseeNeighborChart','_meteoMensuelChart','_demographieChart'].forEach(k=>{if(window[k]){window[k].destroy();window[k]=null;}});
   document.getElementById('detailContainer').innerHTML = '';
   document.getElementById('cardsGrid').style.display = 'grid';
   if(window._leafletMap){window._leafletMap.remove();window._leafletMap=null;}
@@ -4204,11 +4202,7 @@ function showEcolesDetail(){
           <span style="font-size:.68rem;color:var(--muted);flex-shrink:0">Rayon :</span>${btnsRayon}
         </div>
       </div>
-      <!-- Chart : visible seulement si suffisamment de place -->
-      <div class="eco-chart-wrap" style="flex-shrink:0;display:flex;align-items:center;justify-content:center">
-        <div style="font-size:.65rem;color:var(--muted);text-align:center;margin-bottom:.2rem">Répartition</div>
-        <canvas id="ecolesChart" width="220" height="220"></canvas>
-      </div>
+
     </div>
     <div class="map-container" id="mapEcoles" style="margin-bottom:.8rem"></div>
     <div id="ipsResume" style="margin-bottom:.8rem"></div>
@@ -4227,31 +4221,6 @@ function showEcolesDetail(){
   };
 
   window.renderEcoles();
-  setTimeout(()=>{
-    const ctx=document.getElementById('ecolesChart');
-    if(!ctx||!window.Chart) return;
-    ctx.width=280; ctx.height=280;
-    const ecoles=d.types?.ecoles||0, college=d.types?.college||0, lycee=d.types?.lycee||0;
-    if(ecoles+college+lycee===0) return;
-    if(window._ecolesChart){window._ecolesChart.destroy();}
-    const total=ecoles+college+lycee;
-    window._ecolesChart=new Chart(ctx,{
-      type:'doughnut',
-      plugins:[ChartDataLabels],
-      data:{
-        labels:['🏫 Écoles','🎓 Collèges','📚 Lycées'],
-        datasets:[{data:[ecoles,college,lycee],backgroundColor:['rgba(184,131,42,.8)','rgba(45,106,79,.8)','rgba(26,26,22,.7)'],borderWidth:2,borderColor:'#f5efe4'}]
-      },
-      options:{
-        plugins:{
-          legend:{position:'bottom',labels:{font:{size:13,family:'Outfit,sans-serif'},color:'#8a7d68',padding:10,boxWidth:14}},
-          title:{display:true,text:'Répartition',font:{size:10,family:'Outfit,sans-serif'},color:'#8a7d68'},
-          datalabels:{color:'#fff',font:{size:10,weight:'600'},formatter:(v)=>v>0?v+'\n'+Math.round(v/total*100)+'%':'',textAlign:'center'}
-        },
-        animation:{duration:500},cutout:'55%'
-      }
-    });
-  },80);
 
   // Carte Leaflet établissements
   setTimeout(()=>{
