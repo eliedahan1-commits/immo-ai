@@ -1375,7 +1375,7 @@ path.leaflet-interactive:focus{outline:none;}
     <div class="ph">
       <div class="ptag">✦ Financement · Location</div>
       <h2 class="ptitle">Location : <em>Budget & comparaison</em></h2>
-      <p class="psub">Budget loyer, louer vs acheter, encadrement des loyers et checklist locataire.</p>
+      <p class="psub">Budget loyer, louer vs acheter et checklist locataire.</p>
     </div>
 
     <!-- ── Budget loyer ── -->
@@ -1424,56 +1424,35 @@ path.leaflet-interactive:focus{outline:none;}
           <input class="inp" id="locRevaloBien" type="number" value="2" step="0.5" />
           <label class="lbl">Inflation des loyers (%/an)</label>
           <input class="inp" id="locInflatLoyer" type="number" value="1.5" step="0.5" />
+          <div style="border-top:1px solid var(--border);margin:.75rem 0 .5rem"></div>
+          <div class="ctitle" style="font-size:.7rem;margin-bottom:.4rem">🏷️ Fiscalité à la revente</div>
+          <label class="lbl">Situation</label>
+          <select class="inp" id="locSituation" onchange="toggleLocFiscalite()">
+            <option value="rp">Résidence principale</option>
+            <option value="invest">Investissement locatif</option>
+          </select>
+          <label class="lbl">Frais de revente — agence, diagnostics (%) <span style="font-weight:400;color:var(--muted);font-size:.75em">— ~5%</span></label>
+          <input class="inp" id="locFraisRevente" type="number" value="5" step="0.5" min="0" max="15" />
+          <div id="locFiscaliteInvest" style="display:none">
+            <div style="font-size:.68rem;color:var(--muted);margin:.3rem 0 .5rem;padding:.5rem .6rem;background:var(--warm);border-radius:var(--r);border:1px solid var(--border)">
+              💡 En investissement locatif, la plus-value est taxée à <strong>36,2%</strong> (19% IR + 17,2% prélèvements sociaux), avec des abattements progressifs dès la 6ème année de détention.
+            </div>
+          </div>
+          <div id="locFiscaliteRP" style="font-size:.68rem;color:var(--muted);margin:.3rem 0 .5rem;padding:.5rem .6rem;background:var(--warm);border-radius:var(--r);border:1px solid var(--border)">
+            ✅ Résidence principale : exonération totale d'impôt sur la plus-value en France.
+          </div>
           <button class="btn btn-dark btn-full" onclick="calcLocVsAchat()" style="margin-top:.5rem">✦ Comparer</button>
         </div>
         <div id="resLocVsAchat">
           <div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez les paramètres pour comparer louer et acheter.</p></div>
         </div>
       </div>
+      <div id="locChartExplain" style="display:none;margin-top:1.5rem"></div>
       <div id="locCompChartWrap" style="display:none;margin-top:1.5rem;position:relative;background:var(--ink);border-radius:var(--r);padding:1rem .75rem .75rem;height:320px">
         <canvas id="locVsAchatChart"></canvas>
       </div>
     </div>
 
-    <!-- ── Encadrement des loyers ── -->
-    <div style="border-top:1px solid var(--border);padding-top:1.5rem;margin-bottom:2rem">
-      <div class="ptag" style="margin-bottom:.5rem">✦ Réglementation</div>
-      <h3 style="font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:300;margin:0 0 1rem">Encadrement <em style="font-style:italic;color:var(--gold)">des loyers</em></h3>
-      <div class="g2" style="align-items:start">
-        <div class="card">
-          <div class="ctitle">🏛️ Votre bien loué</div>
-          <label class="lbl">Commune <span style="font-weight:400;color:var(--muted);font-size:.75em">— pré-remplie depuis votre adresse</span></label>
-          <input class="inp" id="locCommune" type="text" placeholder="Paris" />
-          <input type="hidden" id="locCodeInsee" />
-          <label class="lbl">Surface (m²)</label>
-          <input class="inp" id="locSurf" type="number" placeholder="50" />
-          <label class="lbl">Type de location</label>
-          <select class="inp" id="locType">
-            <option value="vide">Vide</option>
-            <option value="meuble">Meublé</option>
-          </select>
-          <label class="lbl">Époque de construction</label>
-          <select class="inp" id="locEpoque">
-            <option value="avant1946">Avant 1946</option>
-            <option value="1946-1970">1946 — 1970</option>
-            <option value="1971-1990" selected>1971 — 1990</option>
-            <option value="apres1990">Après 1990</option>
-          </select>
-          <label class="lbl">Nombre de pièces</label>
-          <select class="inp" id="locPieces">
-            <option value="1">1 pièce (studio)</option>
-            <option value="2">2 pièces</option>
-            <option value="3" selected>3 pièces</option>
-            <option value="4">4 pièces</option>
-            <option value="5">5 pièces et +</option>
-          </select>
-          <button class="btn btn-dark btn-full" onclick="checkEncadrement()" style="margin-top:.5rem">✦ Vérifier l'encadrement</button>
-        </div>
-        <div id="resEncadrement">
-          <div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez la commune pour vérifier l'encadrement des loyers.</p></div>
-        </div>
-      </div>
-    </div>
 
     <!-- ── Checklist locataire ── -->
     <div style="border-top:1px solid var(--border);padding-top:1.5rem">
@@ -2358,6 +2337,8 @@ async function analyzeAddressWithFeature(feature){
   const coords=feature.geometry.coordinates;
   currentAddress=props.label;
   currentCoords={lng:coords[0],lat:coords[1]};
+  window._currentCity = props.city || '';
+  window._currentCodeInsee = props.citycode || '';
   window._prixCommunesData = null;    // invalider le cache prix communes
   window._deptContoursCache = {};     // invalider le cache des contours (nouvelle adresse)
 
@@ -6849,65 +6830,29 @@ function switchCoutMode(mode){
 
 // ══ LOCATION : Budget & comparaison ══════════════════════════════════════════
 
-// Villes avec encadrement des loyers (2025)
-const LOC_ENCADREMENT_VILLES = {
-  "75056":"Paris","59350":"Lille","59002":"Hellemmes","59553":"Lomme",
-  "69123":"Lyon","69029":"Villeurbanne","33063":"Bordeaux",
-  "34172":"Montpellier","38185":"Grenoble","76351":"Le Havre",
-  "93048":"Montreuil","93063":"Saint-Denis","93008":"Aubervilliers",
-  "93066":"Saint-Ouen","93011":"Bagnolet","93005":"Bobigny",
-  "93050":"Noisy-le-Sec","93051":"Pantin","93070":"Villemomble",
-  "94028":"Créteil","94037":"Ivry-sur-Seine","94041":"Joinville-le-Pont",
-  "64102":"Bayonne","64024":"Anglet","64122":"Biarritz"
-};
-
-// Départements entièrement en zone tendue (Île-de-France + DOM)
-const LOC_DEPT_ZONE_TENDUE = new Set(["75","92","93","94","971","972","973","974"]);
-
-// Autres grandes villes zone tendue
-const LOC_VILLES_ZONE_TENDUE = new Set([
-  "69123","13055","31555","06088","44109","67482","38185","59350",
-  "33063","34172","76351","35238","21231","49007","51454","76540",
-  "06029","06152","13004","13007","83137","06027","63113","25056",
-  "37261","45234","72181","60057","14118","50588","76116","74010",
-  "74218","73065","04070","06088","06027","83137","30189","34070",
-  "66136","11069","81065","46042","47091","32013","40192","65440",
-  "64445","79191","17300","16015","87085","23096","19031","46227"
-]);
-
 function initLocationPage(){
-  // Pré-remplir depuis la session courante
-  const city = window._currentCity || window._searchCity || "";
-  const insee = window._currentCodeInsee || window._ecolesCodeInsee || "";
-  if(city){ const el = document.getElementById("locCommune"); if(el) el.value = city; }
-  if(insee){ const el = document.getElementById("locCodeInsee"); if(el) el.value = insee; }
-
   // Revenus depuis capacité d'emprunt
   const rev1 = parseFloat(document.getElementById("eRev")?.value)||0;
   const rev2 = parseFloat(document.getElementById("eRev2")?.value)||0;
   if(rev1+rev2 > 0){
     const el = document.getElementById("locRevenu"); if(el) el.value = rev1+rev2;
   }
-
   // Taux/durée depuis mensualités
-  const taux = parseFloat(document.getElementById("mTaux")?.value)||3.42;
+  const taux  = parseFloat(document.getElementById("mTaux")?.value)||3.42;
   const duree = parseFloat(document.getElementById("mDuree")?.value)||20;
-  const notPct = parseFloat(document.getElementById("mNotairePct")?.value)||7.5;
-  const apport = parseFloat(document.getElementById("mApport")?.value)||0;
-  if(taux){ const el = document.getElementById("locTaux"); if(el) el.value = taux; }
-  if(duree){ const el = document.getElementById("locDuree"); if(el) el.value = duree; }
+  const notPct= parseFloat(document.getElementById("mNotairePct")?.value)||7.5;
+  const apport= parseFloat(document.getElementById("mApport")?.value)||0;
+  if(taux){   const el = document.getElementById("locTaux");    if(el) el.value = taux; }
+  if(duree){  const el = document.getElementById("locDuree");   if(el) el.value = duree; }
   if(notPct){ const el = document.getElementById("locNotaire"); if(el) el.value = notPct; }
-  if(apport){ const el = document.getElementById("locApport"); if(el) el.value = apport; }
-
+  if(apport){ const el = document.getElementById("locApport");  if(el) el.value = apport; }
   // Prix du marché (si dispo)
   const prixM2 = window._lvaPrixM2 || 0;
   if(prixM2 > 0){
-    const surf = 50; // surface par défaut
+    const surf = 50;
     const prixEstime = Math.round(prixM2 * surf);
     const elP = document.getElementById("locPrixAchat"); if(elP && !elP._userModified) elP.value = prixEstime;
-    const elS = document.getElementById("locSurf"); if(elS) elS.value = surf;
   }
-
   // Checklist
   renderLocChecklist();
 }
@@ -6923,30 +6868,65 @@ function calcLocBudget(){
   const budgetTotal = loyerReel + charges + assur + parking;
   const pct = Math.round(budgetTotal / rev * 100);
   const rows = [
-    ["Revenus nets /mois", fmt(rev)+" €"],
-    ["Loyer max recommandé (33%)", fmt(loyerMax33)+" €"],
+    ["Revenus nets /mois", fmt(rev)],
+    ["Loyer max recommandé (33%)", fmt(loyerMax33)],
     ["─── Déductions fixes", ""],
-    charges>0 ? ["Charges copropriété", "− "+fmt(charges)+" €"] : null,
-    assur>0   ? ["Assurance habitation", "− "+fmt(assur)+" €"] : null,
-    parking>0 ? ["Parking", "− "+fmt(parking)+" €"] : null,
-    ["Loyer pur max", fmt(loyerReel)+" €"],
-    ["Budget logement total", fmt(budgetTotal)+" € ("+pct+"% revenus)"],
+    charges>0 ? ["Charges copropriété", "− "+fmt(charges)] : null,
+    assur>0   ? ["Assurance habitation", "− "+fmt(assur)] : null,
+    parking>0 ? ["Parking", "− "+fmt(parking)] : null,
+    ["Loyer pur max", fmt(loyerReel)],
+    ["Budget logement total", fmt(budgetTotal)+" ("+pct+"% revenus)"],
   ].filter(Boolean);
   const qual = loyerReel < 500 ? "⚠️ Budget serré" : loyerReel < 900 ? "✅ Budget raisonnable" : "✅ Budget confortable";
+
+  // Capacité d'achat basée sur le loyer max comme mensualité
+  const tauxAchat   = (parseFloat(document.getElementById("locTaux").value)||3.42)/100;
+  const apportAchat = parseFloat(document.getElementById("locApport").value)||0;
+  const mensMax     = loyerMax33;
+  const DUREES      = [15, 20, 25];
+  const capacites   = DUREES.map(function(d){
+    const nm = d * 12, tm = tauxAchat / 12;
+    const factor = tm > 0 ? tm / (1 - Math.pow(1+tm,-nm)) : 1/nm;
+    const emprunt = Math.round(mensMax / factor);
+    const prix    = emprunt + apportAchat;
+    return { d:d, emprunt:emprunt, prix:prix };
+  });
+  const cap20 = capacites.find(function(c){ return c.d===20; });
+  const elPrix = document.getElementById("locPrixAchat");
+  if(elPrix && cap20 && !elPrix._userModified){ elPrix.value = cap20.prix; }
+
+  const capRows = capacites.map(function(c){
+    return "<div class=\"result-row\"><span>Achat sur "+c.d+" ans</span><span style=\"color:#7ef0c0\">"+fmt(c.prix)+"</span></div>";
+  }).join("");
+
   document.getElementById("resLocBudget").innerHTML =
     "<div class=\"result-dark\">"+
     "<div style=\"font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem\">💶 Votre budget loyer</div>"+
-    "<div class=\"result-n\">"+fmt(loyerReel)+" <span style=\"font-size:1rem;font-weight:400\">€/mois</span></div>"+
+    "<div class=\"result-n\">"+loyerReel.toLocaleString("fr-FR")+" <span style=\"font-size:1rem;font-weight:400\">€/mois</span></div>"+
     "<div style=\"font-size:.75rem;color:#7ef0c0;margin-bottom:1rem\">"+qual+"</div>"+
     rows.map(function(r){ return "<div class=\"result-row\"><span>"+r[0]+"</span><span>"+r[1]+"</span></div>"; }).join("")+
     "<div style=\"margin-top:.75rem;font-size:.65rem;color:rgba(255,255,255,.45)\">Règle des 33% : le logement ne doit pas dépasser 33% des revenus.</div>"+
+    "<div style=\"border-top:1px solid rgba(255,255,255,.12);margin-top:.75rem;padding-top:.6rem\">"+
+    "<div style=\"font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem\">🏡 Capacité d'achat équivalente</div>"+
+    "<div style=\"font-size:.65rem;color:rgba(255,255,255,.5);margin-bottom:.4rem\">Si vous consacrez ce budget à un crédit (taux "+Math.round(tauxAchat*100*100)/100+"%, apport "+fmt(apportAchat)+")</div>"+
+    capRows+
+    "<div style=\"font-size:.62rem;color:rgba(255,255,255,.35);margin-top:.4rem\">Prix affiché = emprunt + apport. Sur 20 ans pré-rempli ci-contre.</div>"+
+    "</div>"+
     "</div>";
+}
+
+function toggleLocFiscalite(){
+  const sit = document.getElementById("locSituation").value;
+  const inv = document.getElementById("locFiscaliteInvest");
+  const rp  = document.getElementById("locFiscaliteRP");
+  if(inv) inv.style.display = sit === "invest" ? "" : "none";
+  if(rp)  rp.style.display  = sit === "rp"     ? "" : "none";
 }
 
 function calcLocVsAchat(){
   const loyer0   = parseFloat(document.getElementById("locLoyerMens").value)||0;
   const prix     = parseFloat(document.getElementById("locPrixAchat").value)||0;
-  if(!loyer0 || !prix){ toast("Renseignez le loyer et le prix d\'achat.","err"); return; }
+  if(!loyer0 || !prix){ toast("Renseignez le loyer et le prix d'achat.","err"); return; }
   const apport   = parseFloat(document.getElementById("locApport").value)||0;
   const taux     = (parseFloat(document.getElementById("locTaux").value)||3.42)/100;
   const duree    = parseFloat(document.getElementById("locDuree").value)||20;
@@ -6954,70 +6934,126 @@ function calcLocVsAchat(){
   const chargesAchatAn = parseFloat(document.getElementById("locChargesAchat").value)||3000;
   const revaloBien = (parseFloat(document.getElementById("locRevaloBien").value)||2)/100;
   const inflatLoyer= (parseFloat(document.getElementById("locInflatLoyer").value)||1.5)/100;
+  const situation  = document.getElementById("locSituation").value;
+  const fraisRevPct= (parseFloat(document.getElementById("locFraisRevente").value)||5)/100;
 
   const montant  = prix - apport;
   const notaire  = Math.round(prix * notPct);
   const n = duree * 12;
   const t = taux / 12;
   const factor = t > 0 ? t / (1 - Math.pow(1+t,-n)) : 1/n;
-  const mens   = Math.round(montant * factor);
+  const mens    = Math.round(montant * factor);
   const assurMens = Math.round(montant * 0.0025 / 12);
   const mensTot = mens + assurMens;
 
-  const labelsYr = [], cumLoc = [], cumAch = [];
+  function calcTaxePV(pvBrute, annees){
+    if(situation === "rp" || pvBrute <= 0) return 0;
+    const irAbat = annees >= 22 ? 1 : annees <= 5 ? 0 : Math.min(1,(annees-5)*0.06);
+    let psAbat = 0;
+    if(annees > 5 && annees <= 11)       psAbat = (annees-5)*0.0165;
+    else if(annees === 12)               psAbat = 0.099+0.016;
+    else if(annees > 12 && annees <= 22) psAbat = 0.099+0.016+(annees-12)*0.09;
+    else if(annees > 22 && annees < 30)  psAbat = 0.099+0.016+0.09*10+(annees-22)*0.02;
+    else if(annees >= 30)                psAbat = 1;
+    psAbat = Math.min(1, psAbat);
+    return Math.round(pvBrute * (0.19*(1-irAbat) + 0.172*(1-psAbat)));
+  }
+
+  const labelsYr = [], cumLoc = [], cumAch = [], valBienArr = [];
   let totalLoc = 0, totalAch = apport + notaire, restant = montant;
   let crossoverYr = null;
 
   for(let yr = 1; yr <= duree; yr++){
-    // Location : loyers cumulés + inflation
     const loyerAn = Math.round(loyer0 * 12 * Math.pow(1+inflatLoyer, yr-1));
     totalLoc += loyerAn;
-    // Achat : mensualités + charges - equity
     totalAch += mensTot * 12 + chargesAchatAn;
-    // Capital remboursé cette année
-    let capAn = 0;
     for(let m=0; m<12; m++){
       const intM = restant * t;
       const capM = mens - intM;
-      capAn += capM; restant = Math.max(0, restant - capM);
+      restant = Math.max(0, restant - capM);
     }
-    // Valorisation bien
     const valBien = Math.round(prix * Math.pow(1+revaloBien, yr));
-    // Equity = valeur bien - restant à rembourser
-    const equity = valBien - Math.max(0, restant);
-    // Coût net achat = total payé - equity récupérée
-    const coutNetAch = totalAch - equity;
+    const valApresFrais = Math.round(valBien * (1 - fraisRevPct));
+    const pvBrute     = Math.max(0, valApresFrais - prix);
+    const taxePV      = calcTaxePV(pvBrute, yr);
+    const netRevente  = valApresFrais - taxePV - Math.max(0, restant);
+    const coutNetAch  = totalAch - Math.max(0, netRevente);
 
     labelsYr.push("An "+yr);
     cumLoc.push(Math.round(totalLoc));
     cumAch.push(Math.round(coutNetAch));
+    valBienArr.push(valBien);
     if(!crossoverYr && coutNetAch < totalLoc) crossoverYr = yr;
   }
 
   const lastLoc = cumLoc[cumLoc.length-1];
   const lastAch = cumAch[cumAch.length-1];
+  const lastValBien = valBienArr[valBienArr.length-1];
+  const lastValApresFrais = Math.round(lastValBien * (1 - fraisRevPct));
+  const lastPvBrute       = Math.max(0, lastValApresFrais - prix);
+  const lastTaxePV        = calcTaxePV(lastPvBrute, duree);
+  const patrimoineNet     = Math.max(0, lastValApresFrais - lastTaxePV - restant);
+  const coutNetAchat      = Math.round(lastAch);
   const gain = lastLoc - lastAch;
   const gainSign = gain >= 0 ? "+" : "";
+
   const crossoverTxt = crossoverYr
-    ? "<span style=\"color:#7ef0c0\">✅ Acheter devient plus intéressant à partir de l’an <strong>"+crossoverYr+"</strong></span>"
+    ? "<span style=\"color:#7ef0c0\">✅ Acheter devient rentable à l'an <strong>"+crossoverYr+"</strong></span>"
     : "<span style=\"color:#f39c12\">⚠️ Sur "+duree+" ans, louer reste moins coûteux en coût net</span>";
+
+  function row(label, val, bold){
+    return "<div class=\"result-row\">"+(bold?"<span style=\"font-weight:700\">":"<span>")+label+"</span>"+(bold?"<span style=\"font-weight:700\">":"<span>")+val+"</span></div>";
+  }
+
+  const fiscalLabel = situation === "rp" ? "RP (exonéré)" : "Invest. ("+Math.round(fraisRevPct*100)+"% frais)";
 
   document.getElementById("resLocVsAchat").innerHTML =
     "<div class=\"result-dark\">"+
-    "<div style=\"font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem\">⚖️ Sur "+duree+" ans</div>"+
-    "<div class=\"result-n\" style=\"font-size:1.6rem\">"+gainSign+fmt(Math.abs(gain))+" <span style=\"font-size:.9rem;font-weight:400\">€ "+( gain>=0?"en faveur de l’achat":"en faveur de la location")+"</span></div>"+
+    "<div style=\"font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem\">⚖️ Bilan sur "+duree+" ans · "+fiscalLabel+"</div>"+
+    "<div class=\"result-n\" style=\"font-size:1.6rem\">"+gainSign+fmt(Math.abs(gain))+" <span style=\"font-size:.9rem;font-weight:400\">€ "+(gain>=0?"en faveur de l'achat":"en faveur de la location")+"</span></div>"+
     "<div style=\"margin:.6rem 0 1rem;font-size:.78rem\">"+crossoverTxt+"</div>"+
-    [
-      ["Loyer mensuel (an 1)", fmt(loyer0)+" €/mois"],
-      ["Mensualité crédit + assurance", fmt(mensTot)+" €/mois"],
-      ["Notaire", fmt(notaire)+" €"],
-      ["Total loyers cumulés sur "+duree+" ans", fmt(lastLoc)+" €"],
-      ["Coût net achat (après equity)", fmt(lastAch)+" €"],
-    ].map(function(r){ return "<div class=\"result-row\"><span>"+r[0]+"</span><span>"+r[1]+"</span></div>"; }).join("")+
-    "<div style=\"margin-top:.6rem;font-size:.62rem;color:rgba(255,255,255,.4)\">Hypothèses : revalorisation +"+Math.round(revaloBien*100)+"% / an, inflation loyer +"+Math.round(inflatLoyer*100)+"% / an</div>"+
+    "<div style=\"font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.1em;text-transform:uppercase;margin:.8rem 0 .3rem;border-top:1px solid rgba(255,255,255,.1);padding-top:.6rem\">🏠 Location</div>"+
+    row("Loyer mensuel an 1", fmt(loyer0)+" / mois")+
+    row("Loyers cumulés sur "+duree+" ans", fmt(lastLoc), true)+
+    "<div style=\"font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.1em;text-transform:uppercase;margin:.8rem 0 .3rem;border-top:1px solid rgba(255,255,255,.1);padding-top:.6rem\">🔑 Achat</div>"+
+    row("Mensualité crédit + assurance", fmt(mensTot)+" / mois")+
+    row("Frais de notaire (~"+Math.round(notPct*100)+"%)", fmt(notaire))+
+    row("Valeur du bien à l'an "+duree+" (+"+Math.round(revaloBien*100)+"% / an)", fmt(lastValBien))+
+    row("− Frais de revente ("+Math.round(fraisRevPct*100)+"%)", "− "+fmt(Math.round(lastValBien*fraisRevPct)))+
+    (lastTaxePV > 0 ? row("− Impôt sur plus-value (après abattements)", "− "+fmt(lastTaxePV)) : "")+
+    (restant > 100 ? row("− Capital restant dû", "− "+fmt(Math.round(restant))) : "")+
+    row("Patrimoine net récupéré", fmt(patrimoineNet), true)+
+    row("Coût net achat", fmt(coutNetAchat), true)+
+    "<div style=\"margin-top:.6rem;font-size:.62rem;color:rgba(255,255,255,.4)\">Hypothèses : +"+Math.round(revaloBien*100)+"% / an · loyer +"+Math.round(inflatLoyer*100)+"% / an · frais revente "+Math.round(fraisRevPct*100)+"% · "+fiscalLabel+"</div>"+
     "</div>";
 
-  // Graphique
+  // Explication dynamique
+  const explainEl = document.getElementById("locChartExplain");
+  if(explainEl){
+    const concluColor = gain >= 0 ? "#7ef0c0" : "#f39c12";
+    const concluText  = gain >= 0
+      ? "Sur <strong>"+duree+" ans</strong>, <strong>acheter est plus avantageux</strong> de <strong>"+fmt(Math.abs(gain))+"</strong>."
+      : "Sur <strong>"+duree+" ans</strong>, <strong>louer est moins coûteux</strong> de <strong>"+fmt(Math.abs(gain))+"</strong>.";
+    const crossInfo = crossoverYr
+      ? "Le point de bascule est à l'<strong>an "+crossoverYr+"</strong> : avant cette date, louer coûte moins cher ; après, l'achat est plus rentable."
+      : "Dans ces conditions, acheter ne devient jamais moins cher que louer sur "+duree+" ans.";
+    const fiscalNote = situation === "rp"
+      ? "Résidence principale : <strong>aucun impôt sur la plus-value</strong>."
+      : "Investissement locatif : plus-value taxée à <strong>36,2%</strong> avec abattements progressifs dès la 6ème année.";
+    explainEl.style.display = "";
+    explainEl.innerHTML =
+      "<div style=\"background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:var(--r);padding:1rem;font-size:.74rem;color:rgba(255,255,255,.75)\">"+
+      "<div style=\"font-weight:700;margin-bottom:.5rem;color:#fff\">📊 Lecture du graphique</div>"+
+      "<div style=\"margin-bottom:.4rem\"><span style=\"color:#e74c3c;font-weight:600\">─</span> <strong>Loyers cumulés</strong> : total des loyers versés, inflation "+Math.round(inflatLoyer*100)+"% / an.</div>"+
+      "<div style=\"margin-bottom:.4rem\"><span style=\"color:#f39c12;font-weight:600\">─</span> <strong>Coût net achat</strong> : versements − patrimoine récupéré (valeur − frais − fiscalité).</div>"+
+      "<div style=\"margin-bottom:.4rem\"><span style=\"color:#2a9d8f;font-weight:600\">─ ─</span> <strong>Valeur du bien</strong> : revalorisation +"+Math.round(revaloBien*100)+"% / an.</div>"+
+      "<div style=\"margin-bottom:.6rem\">"+crossInfo+"</div>"+
+      "<div style=\"font-weight:700;color:"+concluColor+";margin-bottom:.4rem\">🏁 "+concluText+"</div>"+
+      "<div style=\"font-size:.66rem;color:rgba(255,255,255,.45)\">"+fiscalNote+" Frais de revente : "+Math.round(fraisRevPct*100)+"%.</div>"+
+      "</div>";
+  }
+
+  // Graphique 3 courbes
   const wrap = document.getElementById("locCompChartWrap");
   wrap.style.display = "block";
   if(window._locVsAchatChart){ window._locVsAchatChart.destroy(); window._locVsAchatChart = null; }
@@ -7025,89 +7061,21 @@ function calcLocVsAchat(){
   window._locVsAchatChart = new Chart(ctx, {
     type:"line",
     data:{ labels:labelsYr, datasets:[
-      { label:"Loyer cumulé", data:cumLoc, borderColor:"#e74c3c", backgroundColor:"rgba(231,76,60,.1)", borderWidth:2.5, pointRadius:0, fill:true, tension:.4, datalabels:{display:false} },
-      { label:"Coût net achat", data:cumAch, borderColor:"#2a9d8f", backgroundColor:"rgba(42,157,143,.1)", borderWidth:2.5, pointRadius:0, fill:true, tension:.4, datalabels:{display:false} }
+      { label:"Loyers cumulés",  data:cumLoc,     borderColor:"#e74c3c", backgroundColor:"rgba(231,76,60,.08)",  borderWidth:2.5, pointRadius:0, fill:false, tension:.4, datalabels:{display:false} },
+      { label:"Coût net achat",  data:cumAch,     borderColor:"#f39c12", backgroundColor:"rgba(243,156,18,.08)", borderWidth:2.5, pointRadius:0, fill:false, tension:.4, datalabels:{display:false} },
+      { label:"Valeur du bien",  data:valBienArr, borderColor:"#2a9d8f", backgroundColor:"rgba(42,157,143,.08)", borderWidth:2, pointRadius:0, fill:false, tension:.4, borderDash:[4,3], datalabels:{display:false} }
     ]},
     options:{ responsive:true, maintainAspectRatio:false,
       interaction:{ mode:"index", intersect:false },
       plugins:{ legend:{ labels:{ color:"rgba(255,255,255,.7)", font:{ size:11 } } },
-        tooltip:{ callbacks:{ label:ctx2 => " "+ctx2.dataset.label+" : "+fmt(ctx2.parsed.y)+" €" } }
+        tooltip:{ callbacks:{ label:function(ctx2){ return " "+ctx2.dataset.label+" : "+fmt(ctx2.parsed.y); } } }
       },
       scales:{
         x:{ ticks:{ color:"rgba(255,255,255,.5)", font:{ size:9 }, maxTicksLimit:12 }, grid:{ color:"rgba(255,255,255,.06)" } },
-        y:{ ticks:{ color:"rgba(255,255,255,.6)", font:{ size:9 }, callback:v => Math.round(v/1000)+"k €" }, grid:{ color:"rgba(255,255,255,.08)" } }
+        y:{ ticks:{ color:"rgba(255,255,255,.6)", font:{ size:9 }, callback:function(v){ return Math.round(v/1000)+"k"; } }, grid:{ color:"rgba(255,255,255,.08)" } }
       }
     }
   });
-}
-
-async function checkEncadrement(){
-  const commune = (document.getElementById("locCommune").value||"").trim();
-  const insee   = (document.getElementById("locCodeInsee").value||"").trim();
-  const surf    = parseFloat(document.getElementById("locSurf").value)||0;
-  const type    = document.getElementById("locType").value;
-  const epoque  = document.getElementById("locEpoque").value;
-  const pieces  = document.getElementById("locPieces").value;
-  if(!commune){ toast("Renseignez la commune.","err"); return; }
-
-  const dept = insee.slice(0,2);
-  const isZoneTendue = LOC_DEPT_ZONE_TENDUE.has(dept) || LOC_VILLES_ZONE_TENDUE.has(insee);
-  const isEncadree   = !!LOC_ENCADREMENT_VILLES[insee];
-  const nomEncadree  = LOC_ENCADREMENT_VILLES[insee]||"";
-
-  let loyerRefHtml = "";
-  if(isEncadree && surf > 0){
-    // Tentative API data.gouv encadrement des loyers
-    try {
-      const ds = "encadrement_des_loyers";
-      const apiUrl = "https://data.gouv.fr/api/1/datasets/?q=encadrement+loyers+"+encodeURIComponent(commune)+"&page_size=1";
-      // Affichage basé sur les barèmes connus (moyennes 2025 indicatives)
-      const BAREME = {
-        "75056": { vide:{1:24.8,2:20.3,3:16.6,4:14.2,5:13.1}, meuble:{1:28.1,2:23.0,3:18.8,4:16.1,5:14.8} },
-        "59350": { vide:{1:12.5,2:10.1,3:8.6,4:7.7,5:7.2}, meuble:{1:14.1,2:11.4,3:9.7,4:8.7,5:8.1} },
-        "69123": { vide:{1:15.3,2:12.8,3:10.4,4:9.1,5:8.3}, meuble:{1:17.3,2:14.5,3:11.8,4:10.3,5:9.4} },
-        "33063": { vide:{1:13.2,2:11.0,3:9.1,4:8.1,5:7.5}, meuble:{1:14.9,2:12.4,3:10.3,4:9.2,5:8.5} },
-        "34172": { vide:{1:13.8,2:11.5,3:9.6,4:8.5,5:7.9}, meuble:{1:15.6,2:13.0,3:10.9,4:9.6,5:8.9} },
-      };
-      const b = BAREME[insee];
-      if(b){
-        const refM2 = (b[type]||b.vide)[pieces] || (b[type]||b.vide)[3];
-        const refMin = Math.round(refM2 * 0.7 * (surf||50));
-        const refMed = Math.round(refM2 * (surf||50));
-        const refMax = Math.round(refM2 * 1.2 * (surf||50));
-        loyerRefHtml = "<div style=\"margin-top:.8rem;padding:.75rem;background:rgba(255,255,255,.06);border-radius:8px\">"+
-          "<div style=\"font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold2);margin-bottom:.4rem\">📋 Loyer de référence (indicatif 2025)</div>"+
-          "<div style=\"font-size:.72rem;color:rgba(255,255,255,.7);margin-bottom:.3rem\">Type : "+type+" · "+pieces+" pièce(s) · "+epoque+"</div>"+
-          (surf>0 ? "<div class=\"result-row\"><span>Loyer de référence minoré</span><span>"+fmt(refMin)+" €/mois</span></div>"+
-          "<div class=\"result-row\" style=\"font-weight:700\"><span>Loyer de référence</span><span>"+fmt(refMed)+" €/mois</span></div>"+
-          "<div class=\"result-row\"><span>Loyer de référence majoré</span><span>"+fmt(refMax)+" €/mois</span></div>" : "")+
-          "<div style=\"margin-top:.5rem;font-size:.62rem;color:rgba(255,255,255,.4)\">Valeurs indicatives moyennes. Consultez <a href=\"https://www.anil.org/outils/encadrement-des-loyers/\" target=\"_blank\" style=\"color:var(--gold)\">ANIL.org</a> pour le barème officiel.</div>"+
-          "</div>";
-      }
-    } catch(e){ /* silencieux */ }
-  }
-
-  const zoneBadge = isZoneTendue
-    ? "<span style=\"background:#e74c3c;color:#fff;padding:.2rem .5rem;border-radius:4px;font-size:.72rem;font-weight:600\">🔴 Zone tendue</span>"
-    : "<span style=\"background:#2a9d8f;color:#fff;padding:.2rem .5rem;border-radius:4px;font-size:.72rem;font-weight:600\">🟢 Hors zone tendue</span>";
-  const encBadge = isEncadree
-    ? "<span style=\"background:#e8a020;color:#fff;padding:.2rem .5rem;border-radius:4px;font-size:.72rem;font-weight:600;margin-left:.4rem\">📋 Loyers encadrés</span>"
-    : "";
-
-  const zoneTxt = isZoneTendue
-    ? "<div style=\"font-size:.72rem;color:rgba(255,255,255,.7);margin-top:.5rem\">📌 Préavis réduit à <strong>1 mois</strong> · Frais d'agence plafonnés · Dépôt de garantie : 1 mois (vide) ou 2 mois (meublé)</div>"
-    : "<div style=\"font-size:.72rem;color:rgba(255,255,255,.7);margin-top:.5rem\">📌 Préavis 3 mois (vide) ou 1 mois (meublé) · Dépôt de garantie : 1 mois (vide) ou 2 mois (meublé)</div>";
-
-  document.getElementById("resEncadrement").innerHTML =
-    "<div class=\"result-dark\">"+
-    "<div style=\"font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.6rem\">🏛️ "+commune+"</div>"+
-    "<div style=\"margin-bottom:.5rem\">"+zoneBadge+encBadge+"</div>"+
-    zoneTxt+
-    loyerRefHtml+
-    "<div style=\"margin-top:.75rem;font-size:.65rem;color:rgba(255,255,255,.35)\">"+
-    "Sources : <a href=\"https://www.service-public.fr/simulateur/calcul/zone-tendue\" target=\"_blank\" style=\"color:var(--gold)\">service-public.fr zone tendue</a> · "+
-    "<a href=\"https://www.anil.org/outils/encadrement-des-loyers/\" target=\"_blank\" style=\"color:var(--gold)\">ANIL encadrement des loyers</a>"+
-    "</div></div>";
 }
 
 function renderLocChecklist(){
@@ -7126,8 +7094,9 @@ function renderLocChecklist(){
   const el = document.getElementById("locChecklist");
   if(!el) return;
   el.innerHTML = ITEMS.map(function(item, i){
+    const checked = localStorage.getItem("locChk_"+i)==="1" ? " checked" : "";
     return "<label style=\"display:flex;gap:.6rem;padding:.65rem .75rem;background:var(--white);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;align-items:flex-start\">"+
-      "<input type=\"checkbox\" id=\"locChk"+i+"\" style=\"margin-top:.1rem;accent-color:var(--gold);flex-shrink:0\">"+
+      "<input type=\"checkbox\" id=\"locChk"+i+"\" "+checked+" onchange=\"localStorage.setItem('locChk_'+"+i+",this.checked?'1':'0');\" style=\"margin-top:.1rem;accent-color:var(--gold);flex-shrink:0\">"+
       "<div><div style=\"font-size:.78rem;font-weight:600;color:var(--text)\">"+item.label+"</div>"+
       "<div style=\"font-size:.66rem;color:var(--muted);margin-top:.1rem\">"+item.detail+"</div></div>"+
       "</label>";
@@ -7515,6 +7484,66 @@ document.addEventListener('DOMContentLoaded', ()=>{
     };
   }
 });
+
+// ══ GÉOLOCALISATION HERO ══
+function geolocateUser(silent){
+  const btn  = document.getElementById("geoBtn");
+  const icon = document.getElementById("geoBtnIcon");
+  const txt  = document.getElementById("geoBtnTxt");
+  if(!navigator.geolocation){
+    if(!silent) toast("Géolocalisation non supportée par ce navigateur.","err");
+    return;
+  }
+  if(btn&&!silent){ btn.disabled=true; if(icon) icon.textContent="⏳"; if(txt) txt.textContent="Localisation…"; }
+  navigator.geolocation.getCurrentPosition(
+    async function(pos){
+      const lat = pos.coords.latitude, lon = pos.coords.longitude;
+      try{
+        const r = await fetch(
+          "https://nominatim.openstreetmap.org/reverse?lat="+lat+"&lon="+lon+"&format=json&addressdetails=1",
+          { headers:{ "Accept-Language":"fr" } }
+        );
+        const data = await r.json();
+        const a    = data.address || {};
+        const num  = a.house_number || "";
+        const rue  = a.road || a.pedestrian || a.path || "";
+        const ville= a.city || a.town || a.village || a.municipality || "";
+        const cp   = a.postcode || "";
+        const l1   = [num, rue].filter(Boolean).join(" ");
+        const l2   = [cp, ville].filter(Boolean).join(" ");
+        const addr = [l1, l2].filter(Boolean).join(", ") || data.display_name || (lat.toFixed(5)+", "+lon.toFixed(5));
+        const heroInp = document.getElementById("heroSearch");
+        if(heroInp){ heroInp.value = addr; heroInp.focus(); }
+        const sideInp = document.getElementById("sideSearch");
+        if(sideInp) sideInp.value = addr;
+        if(window._franceMap){
+          window._franceMap.setView([lat, lon], 14, {animate:true});
+          if(window._franceMarker) window._franceMarker.remove();
+          const geoIcon = L.divIcon({html:"<div style=\"width:14px;height:14px;background:#b8832a;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.5)\"></div>",iconSize:[14,14],iconAnchor:[7,7],className:""});
+          window._franceMarker = L.marker([lat,lon],{icon:geoIcon}).addTo(window._franceMap);
+          window._franceMarker.bindTooltip(addr).openTooltip();
+        }
+      }catch(e){
+        if(!silent) toast("Adresse introuvable, saisissez-la manuellement.","err");
+      }finally{
+        if(btn){ btn.disabled=false; if(icon)icon.textContent="📍"; if(txt)txt.textContent="Me géolocaliser"; }
+      }
+    },
+    function(err){
+      if(btn){ btn.disabled=false; if(icon)icon.textContent="📍"; if(txt)txt.textContent="Me géolocaliser"; }
+      if(err.code !== 1 && !silent) toast("Géolocalisation échouée : "+err.message,"err");
+    },
+    { timeout:10000, maximumAge:300000, enableHighAccuracy:false }
+  );
+}
+
+// ── Auto-géolocalisation si permission déjà accordée ──
+if(navigator.permissions){
+  navigator.permissions.query({name:"geolocation"}).then(function(p){
+    if(p.state==="granted") setTimeout(function(){ geolocateUser(true); }, 800);
+  }).catch(function(){});
+}
+
 </script>
 <script src="/pdf-export.js?v=5"></script>
 <script src="/recherche-bien.js?v=2"></script>
