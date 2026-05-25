@@ -2559,6 +2559,7 @@ async function loadDVF(lat, lng){
 
   window._dvfData = { failed: true, message: 'Sources DVF indisponibles pour ce secteur' };
   setCard('dvf','Indisponible','Données DVF hors ligne','');
+  setCardRetry('dvf',()=>currentCoords&&loadDVF(currentCoords.lat,currentCoords.lng));
 }
 
 function afficherDVF(d){
@@ -3051,6 +3052,7 @@ async function loadAltitude(lat, lng){
     window._altitudeData = d;
   }catch{
     setCard('altitude','Non disponible','Erreur IGN','');
+    setCardRetry('altitude',()=>currentCoords&&loadAltitude(currentCoords.lat,currentCoords.lng));
   }
 }
 
@@ -3332,7 +3334,7 @@ function computeLoyersEstimates() {
   const dvf  = window._dvfData;
   const insee = window._inseeData;
   const prixM2 = dvf?.stats?.medianM2;
-  if (!prixM2) { setCard('loyers', 'Données DVF manquantes', 'Indisponible pour ce secteur', ''); return; }
+  if (!prixM2) { setCard('loyers', 'Données DVF manquantes', 'Indisponible pour ce secteur', ''); setCardRetry('loyers',()=>computeLoyersEstimates()); return; }
 
   // Rendement locatif brut estimé selon densité urbaine (source : observatoires locatifs)
   const dens = insee?.commune?.densite || 0;
