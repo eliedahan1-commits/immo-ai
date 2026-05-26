@@ -7415,7 +7415,6 @@ function calcLocation(){
             backgroundColor: 'transparent',
             borderWidth: 1.5,
             borderDash: [6, 3],
-            pointRadius: 0,
             pointHoverRadius: 5,
             tension: 0.4,
             fill: false,
@@ -7433,35 +7432,38 @@ function calcLocation(){
             callbacks: {
               label: ctx => ' ' + ctx.dataset.label + ' : ' + (ctx.parsed.y > 0 ? '+' : '') + fmt(ctx.parsed.y)
             }
-          },
+          }
         },
         scales: {
           x: { ticks: { color: 'rgba(255,255,255,.5)', font: { size: 9 }, maxTicksLimit: 12 }, grid: { color: 'rgba(255,255,255,.06)' } },
           y: { ticks: { color: 'rgba(255,255,255,.6)', font: { size: 9 }, callback: v => (v>=0?'+':'')+Math.round(v/1000)+'k €' }, grid: { color: 'rgba(255,255,255,.08)' }, border: { dash: [3,3] } }
         }
-      },
-      plugins: [{
-        id: 'breakEvenLines',
-        afterDraw(chart) {
-          const { ctx: c, scales: { x, y } } = chart;
-          const pts = [];
-          if(breakEvenYearNoTax) pts.push({ lbl: 'An ' + breakEvenYearNoTax, color: 'rgba(39,174,96,.9)' });
-          if(breakEvenYear)      pts.push({ lbl: 'An ' + breakEvenYear,      color: '#f0b429' });
-          pts.forEach(p => {
-            const idx = beLabels.indexOf(p.lbl);
-            if(idx < 0) return;
-            const xp = x.getPixelForIndex(idx);
-            c.save();
-            c.beginPath(); c.setLineDash([5,4]); c.strokeStyle = p.color; c.lineWidth = 1.5;
-            c.moveTo(xp, y.top); c.lineTo(xp, y.bottom); c.stroke();
-            c.setLineDash([]);
-            c.font = 'bold 9px Outfit,sans-serif'; c.fillStyle = p.color; c.textAlign = 'center';
-            c.fillText(p.lbl, xp, y.top + 11);
-            c.restore();
-          });
-        }
-      }]
+      }
     });
+
+    // Lignes verticales break-even dessinées sur le canvas après rendu
+    setTimeout(() => {
+      const chart = window._breakEvenChart;
+      if(!chart) return;
+      const c = chart.ctx;
+      const x = chart.scales.x;
+      const y = chart.scales.y;
+      const pts = [];
+      if(breakEvenYearNoTax) pts.push({ lbl: 'An ' + breakEvenYearNoTax, color: 'rgba(39,174,96,.9)',  txt: 'An ' + breakEvenYearNoTax + ' (sans impôts)' });
+      if(breakEvenYear)      pts.push({ lbl: 'An ' + breakEvenYear,      color: '#f0b429',             txt: 'An ' + breakEvenYear + ' (après impôts)' });
+      pts.forEach(p => {
+        const idx = beLabels.indexOf(p.lbl);
+        if(idx < 0) return;
+        const xp = x.getPixelForIndex(idx);
+        c.save();
+        c.beginPath(); c.setLineDash([5,4]); c.strokeStyle = p.color; c.lineWidth = 1.5;
+        c.moveTo(xp, y.top); c.lineTo(xp, y.bottom); c.stroke();
+        c.setLineDash([]);
+        c.font = 'bold 9px Outfit,sans-serif'; c.fillStyle = p.color; c.textAlign = 'center';
+        c.fillText(p.txt, xp, y.top + 11);
+        c.restore();
+      });
+    }, 300);
   }
 
   // ── Tableau d'amortissement investissement locatif ──
