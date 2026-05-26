@@ -6530,7 +6530,7 @@ function calcCout(){
   const prix=parseFloat(document.getElementById('cPrix').value)||0;
   if(!prix){toast('Veuillez saisir le prix.','err');return;}
   const dpe=document.getElementById('cDpe').value;
-  const charges=parseFloat(document.getElementById('cCharges').value)||250;
+  const charges=(v=>isNaN(v)?0:v)(parseFloat(document.getElementById('cCharges').value));
   const apport=parseFloat(document.getElementById('cApport').value)||0;
   const duree=parseFloat(document.getElementById('cDuree').value)||20;
   const notaire=Math.round(prix*.075);
@@ -6538,7 +6538,7 @@ function calcCout(){
   const taxe=Math.round(prix*.006);
   const emprunt=prix-apport+notaire;
   const tauxC=(parseFloat(document.getElementById('cTaux').value)||3.4)/100;
-  const assurC=(parseFloat(document.getElementById('cAssur').value)||0.25)/100;
+  const assurC=((v=>isNaN(v)?0.25:v)(parseFloat(document.getElementById('cAssur').value)))/100;
   const t=tauxC/12,n=duree*12;
   const factorAmortC=t/(1-Math.pow(1+t,-n));
   const mensAssurC=emprunt>0?Math.round(emprunt*assurC/12):0;
@@ -6729,7 +6729,7 @@ function calcMensualites(){
   if(!montant){toast('Veuillez saisir le montant emprunté.','err');return;}
   const duree  = parseFloat(document.getElementById('mDuree').value)||20;
   const taux   = (parseFloat(document.getElementById('mTaux').value)||3.42)/100;
-  const assur  = (parseFloat(document.getElementById('mAssur').value)||0.25)/100;
+  const assur  = ((v=>isNaN(v)?0.25:v)(parseFloat(document.getElementById('mAssur').value)))/100;
   const apport = parseFloat(document.getElementById('mApport').value)||0;
   const notairePct = parseFloat(document.getElementById('mNotairePct').value)||7.5;
   const notaireFin = document.getElementById('mNotaireFin')?.checked||false;
@@ -6878,7 +6878,7 @@ function calcLocBudget(){
   const rev = parseFloat(document.getElementById("locRevenu").value)||0;
   if(!rev){ toast("Renseignez vos revenus.","err"); return; }
   const charges   = parseFloat(document.getElementById("locCharges").value)||0;
-  const assur     = parseFloat(document.getElementById("locAssurHab").value)||15;
+  const assur     = (v=>isNaN(v)?15:v)(parseFloat(document.getElementById("locAssurHab").value));
   const parking   = parseFloat(document.getElementById("locParking").value)||0;
   const loyerMax33  = Math.round(rev * 0.33);
   const loyerReel   = Math.max(0, loyerMax33 - charges - assur - parking);
@@ -6941,18 +6941,19 @@ function toggleLocFiscalite(){
 }
 
 function calcLocVsAchat(){
-  const loyer0   = parseFloat(document.getElementById("locLoyerMens").value)||0;
-  const prix     = parseFloat(document.getElementById("locPrixAchat").value)||0;
+  function pf(id, def){ const v = parseFloat(document.getElementById(id)?.value); return isNaN(v) ? def : v; }
+  const loyer0   = pf("locLoyerMens", 0);
+  const prix     = pf("locPrixAchat", 0);
   if(!loyer0 || !prix){ toast("Renseignez le loyer et le prix d'achat.","err"); return; }
-  const apport   = parseFloat(document.getElementById("locApport").value)||0;
-  const taux     = (parseFloat(document.getElementById("locTaux").value)||3.42)/100;
-  const duree    = parseFloat(document.getElementById("locDuree").value)||20;
-  const notPct   = (parseFloat(document.getElementById("locNotaire").value)||7.5)/100;
-  const chargesAchatAn = parseFloat(document.getElementById("locChargesAchat").value)||3000;
-  const revaloBien = (parseFloat(document.getElementById("locRevaloBien").value)||2)/100;
-  const inflatLoyer= (parseFloat(document.getElementById("locInflatLoyer").value)||1.5)/100;
+  const apport   = pf("locApport", 0);
+  const taux     = pf("locTaux", 3.42)/100;
+  const duree    = pf("locDuree", 20);
+  const notPct   = pf("locNotaire", 7.5)/100;
+  const chargesAchatAn = pf("locChargesAchat", 0);
+  const revaloBien = pf("locRevaloBien", 2)/100;
+  const inflatLoyer= pf("locInflatLoyer", 1.5)/100;
   const situation  = document.getElementById("locSituation").value;
-  const fraisRevPct= (parseFloat(document.getElementById("locFraisRevente").value)||5)/100;
+  const fraisRevPct= pf("locFraisRevente", 5)/100;
 
   const montant  = prix - apport;
   const notaire  = Math.round(prix * notPct);
@@ -7059,14 +7060,14 @@ function calcLocVsAchat(){
       : "Investissement locatif : plus-value taxée à <strong>36,2%</strong> avec abattements progressifs dès la 6ème année.";
     explainEl.style.display = "";
     explainEl.innerHTML =
-      "<div style=\"background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:var(--r);padding:1rem;font-size:.74rem;color:rgba(255,255,255,.75)\">"+
-      "<div style=\"font-weight:700;margin-bottom:.5rem;color:#fff\">📊 Lecture du graphique</div>"+
+      "<div style=\"background:var(--card,rgba(0,0,0,.04));border:1px solid var(--border);border-radius:var(--r);padding:1rem;font-size:.74rem;color:var(--text)\">"+
+      "<div style=\"font-weight:700;margin-bottom:.5rem;color:var(--text)\">📊 Lecture du graphique</div>"+
       "<div style=\"margin-bottom:.4rem\"><span style=\"color:#e74c3c;font-weight:600\">─</span> <strong>Loyers cumulés</strong> : total des loyers versés, inflation "+Math.round(inflatLoyer*100)+"% / an.</div>"+
       "<div style=\"margin-bottom:.4rem\"><span style=\"color:#f39c12;font-weight:600\">─</span> <strong>Coût net achat</strong> : versements − patrimoine récupéré (valeur − frais − fiscalité).</div>"+
       "<div style=\"margin-bottom:.4rem\"><span style=\"color:#2a9d8f;font-weight:600\">─ ─</span> <strong>Valeur du bien</strong> : revalorisation +"+Math.round(revaloBien*100)+"% / an.</div>"+
       "<div style=\"margin-bottom:.6rem\">"+crossInfo+"</div>"+
       "<div style=\"font-weight:700;color:"+concluColor+";margin-bottom:.4rem\">🏁 "+concluText+"</div>"+
-      "<div style=\"font-size:.66rem;color:rgba(255,255,255,.45)\">"+fiscalNote+" Frais de revente : "+Math.round(fraisRevPct*100)+"%.</div>"+
+      "<div style=\"font-size:.66rem;color:var(--muted)\">"+fiscalNote+" Frais de revente : "+Math.round(fraisRevPct*100)+"%.</div>"+
       "</div>";
   }
 
@@ -7172,7 +7173,7 @@ function calcLocation(){
   // ── Fiscalité ──
   let baseIR = 0;
   const isLMNP = regime.startsWith('lmnp');
-  const PS_RATE = isLMNP ? 0 : (parseFloat(document.getElementById('lPsRate')?.value)||17.2)/100;
+  const PS_RATE = isLMNP ? 0 : ((v=>isNaN(v)?17.2:v)(parseFloat(document.getElementById('lPsRate')?.value)))/100;
   if(regime === 'micro')       baseIR = loyerEffectif * (1-(parseFloat(document.getElementById('lAbattMicro')?.value)||30)/100);
   else if(regime === 'reel')   baseIR = Math.max(0, loyerEffectif - fraisGestion - chargesAn - taxe - gliAn - interetsAn1 - (mensAssurL*12));
   else if(regime === 'lmnp_micro') baseIR = loyerEffectif * (1-(parseFloat(document.getElementById('lAbattLmnp')?.value)||50)/100);
@@ -7753,7 +7754,7 @@ function calcEmprunt(){
     setCard('emprunt','Capacité nulle','Charges > 35% des revenus','bad');
     return;
   }
-  const assur=(parseFloat(document.getElementById('eAssur').value)||0.25)/100;
+  const assur=((v=>isNaN(v)?0.25:v)(parseFloat(document.getElementById('eAssur').value)))/100;
   const t=taux/12,n=duree*12;
   const factorAmort=t/(1-Math.pow(1+t,-n));
   const empruntMax=mensMax/(factorAmort+assur/12);
