@@ -7514,7 +7514,7 @@ function calcLocation(){
     for(let yr=1; yr<=duree; yr++){
       let capAn=0, intAn=0;
       for(let m=0; m<12; m++){
-        const intM = restantL * tL / 12;
+        const intM = restantL * tL;
         const capM = (mens - mensAssurL) - intM;
         intAn += intM; capAn += capM; restantL -= capM;
       }
