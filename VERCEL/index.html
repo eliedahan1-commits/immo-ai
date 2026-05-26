@@ -3303,7 +3303,7 @@ function showScoreDetail() {
 
   const ringColor = d.note>=7?'#27ae60':d.note>=5?'#f39c12':'#e74c3c';
 
-  const rows = d.items.map(s => {
+  const rows = [...d.items].sort((a,b)=>b.val-a.val).map(s => {
     const pct = Math.round((s.val/s.max)*100);
     const color = pct>=70?'#27ae60':pct>=45?'#f39c12':'#e74c3c';
     const btn = s.action
