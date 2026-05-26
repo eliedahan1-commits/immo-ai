@@ -7379,7 +7379,29 @@ function calcLocation(){
     const ctx2 = document.getElementById('breakEvenChart').getContext('2d');
     const zeroData = beLabels.map(() => 0);
 
-    window._breakEvenChart = new Chart(ctx2, {
+    const _beMarkersPlugin = {
+      id: 'breakEvenMarkers',
+      afterDraw(chart) {
+        const { ctx: c, scales: { x, y } } = chart;
+        const markers = [];
+        if(breakEvenYearNoTax) markers.push({ year: breakEvenYearNoTax, color: 'rgba(39,174,96,.85)', label: 'An ' + breakEvenYearNoTax + ' sans impôts' });
+        if(breakEvenYear)      markers.push({ year: breakEvenYear,      color: '#e8a020',             label: 'An ' + breakEvenYear + ' après impôts' });
+        markers.forEach(m => {
+          const idx = beLabels.indexOf('An ' + m.year);
+          if(idx < 0) return;
+          const xPos = x.getPixelForIndex(idx);
+          const yTop = y.top; const yBot = y.bottom;
+          c.save();
+          c.beginPath(); c.setLineDash([4,3]); c.strokeStyle = m.color; c.lineWidth = 1.5;
+          c.moveTo(xPos, yTop); c.lineTo(xPos, yBot); c.stroke();
+          c.setLineDash([]);
+          c.font = 'bold 9px Outfit,sans-serif'; c.fillStyle = m.color; c.textAlign = 'center';
+          c.fillText(m.label, xPos, yTop + 10);
+          c.restore();
+        });
+      }
+    };
+    window._breakEvenChart = new Chart(ctx2, { plugins: [_beMarkersPlugin],
       type: 'line',
       data: {
         labels: beLabels,
@@ -7429,36 +7451,6 @@ function calcLocation(){
               label: ctx => ' ' + ctx.dataset.label + ' : ' + (ctx.parsed.y > 0 ? '+' : '') + fmt(ctx.parsed.y)
             }
           },
-          breakEvenMarkers: {
-            id: 'breakEvenMarkers',
-            afterDraw(chart) {
-              const { ctx: c, scales: { x, y } } = chart;
-              const markers = [];
-              if(breakEvenYearNoTax) markers.push({ year: breakEvenYearNoTax, color: 'rgba(39,174,96,.85)', label: 'An ' + breakEvenYearNoTax + ' sans impôts' });
-              if(breakEvenYear)      markers.push({ year: breakEvenYear,      color: '#e8a020',             label: 'An ' + breakEvenYear + ' après impôts' });
-              markers.forEach(m => {
-                const idx = beLabels.indexOf('An ' + m.year);
-                if(idx < 0) return;
-                const xPos = x.getPixelForIndex(idx);
-                const yTop = y.top;
-                const yBot = y.bottom;
-                c.save();
-                c.beginPath();
-                c.setLineDash([4, 3]);
-                c.strokeStyle = m.color;
-                c.lineWidth = 1.5;
-                c.moveTo(xPos, yTop);
-                c.lineTo(xPos, yBot);
-                c.stroke();
-                c.setLineDash([]);
-                c.font = 'bold 9px Outfit,sans-serif';
-                c.fillStyle = m.color;
-                c.textAlign = 'center';
-                c.fillText(m.label, xPos, yTop + 10);
-                c.restore();
-              });
-            }
-          }
         },
         scales: {
           x: { ticks: { color: 'rgba(255,255,255,.5)', font: { size: 9 }, maxTicksLimit: 12 }, grid: { color: 'rgba(255,255,255,.06)' } },
