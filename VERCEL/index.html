@@ -7383,8 +7383,30 @@ function calcLocation(){
     const ctx2 = document.getElementById('breakEvenChart').getContext('2d');
     const zeroData = beLabels.map(() => 0);
 
+    const beLinePlugin = {
+      id: 'beLines',
+      afterDraw(chart) {
+        const meta0 = chart.getDatasetMeta(0);
+        if(!meta0 || !meta0.data) return;
+        const c = chart.ctx;
+        const pts = [];
+        if(breakEvenYearNoTax) pts.push({ idx: beLabels.indexOf('An ' + breakEvenYearNoTax), color: 'rgba(39,174,96,.9)', txt: 'An ' + breakEvenYearNoTax + ' (sans impôts)' });
+        if(breakEvenYear)      pts.push({ idx: beLabels.indexOf('An ' + breakEvenYear),      color: '#f0b429',           txt: 'An ' + breakEvenYear + ' (après impôts)' });
+        pts.forEach(p => {
+          if(p.idx < 0 || !meta0.data[p.idx]) return;
+          const xp = meta0.data[p.idx].x;
+          c.save();
+          c.strokeStyle = p.color; c.lineWidth = 1.5; c.setLineDash([5, 4]);
+          c.beginPath(); c.moveTo(xp, chart.chartArea.top); c.lineTo(xp, chart.chartArea.bottom); c.stroke();
+          c.setLineDash([]);
+          c.fillStyle = p.color; c.font = 'bold 9px Outfit,sans-serif'; c.textAlign = 'center';
+          c.fillText(p.txt, xp, chart.chartArea.top + 11);
+          c.restore();
+        });
+      }
+    };
     window._breakEvenChart = new Chart(ctx2, {
-      type: 'line',
+      type: 'line', plugins: [beLinePlugin],
       data: {
         labels: beLabels,
         datasets: [
@@ -7441,32 +7463,6 @@ function calcLocation(){
       }
     });
 
-    // Overlay HTML lignes verticales break-even
-    setTimeout(() => {
-      const container = document.getElementById('breakEvenChartContainer');
-      const chart = window._breakEvenChart;
-      if(!container || !chart) return;
-      container.querySelectorAll('.be-vline,.be-vlbl').forEach(el => el.remove());
-      const pairs = [];
-      if(breakEvenYearNoTax) pairs.push([breakEvenYearNoTax, 'rgba(39,174,96,.9)']);
-      if(breakEvenYear)      pairs.push([breakEvenYear,      '#f0b429']);
-      pairs.forEach(([yr, color]) => {
-        const idx = beLabels.indexOf('An ' + yr);
-        if(idx < 0) return;
-        const xp = chart.scales.x.getPixelForIndex(idx);
-        const yTop = chart.scales.y.top;
-        const yBot = chart.scales.y.bottom;
-        const line = document.createElement('div');
-        line.className = 'be-vline';
-        line.style.cssText = "position:absolute;left:" + xp + "px;top:" + yTop + "px;width:2px;height:" + (yBot - yTop) + "px;background:repeating-linear-gradient(to bottom," + color + " 0," + color + " 5px,transparent 5px,transparent 9px);pointer-events:none;transform:translateX(-50%)";
-        container.appendChild(line);
-        const lbl = document.createElement('div');
-        lbl.className = 'be-vlbl';
-        lbl.style.cssText = "position:absolute;left:" + xp + "px;top:" + (yTop + 4) + "px;transform:translateX(-50%);font-size:9px;font-weight:700;color:" + color + ";white-space:nowrap;pointer-events:none;font-family:Outfit,sans-serif;text-shadow:0 1px 3px rgba(0,0,0,.9)";
-        lbl.textContent = 'An ' + yr;
-        container.appendChild(lbl);
-      });
-    }, 1100);
   }
 
   // ── Tableau d'amortissement investissement locatif ──
