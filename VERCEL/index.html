@@ -2380,7 +2380,7 @@ function renderCards(props, coords){
         {id:'mobilite',  icon:'🚇', label:'Transports & mobilité douce',  value:'<span class="spin"></span>', sub:'Transports & vélos',        source:'Transport.data'},
         {id:'ecoles',    icon:'🏫', label:'Écoles & niveau scolaire',           value:'<span class="spin"></span>', sub:'IPS & résultats',           source:'Éducation'},
         {id:'meteo',     icon:'☀️', label:"Météo et qualité de l'air", value:'<span class="spin"></span>', sub:'Moyenne 5 ans',            source:'open-meteo'},
-        {id:'insee',     icon:'📊', label:'Population & densité',     value:'<span class="spin"></span>', sub:'Population & densité',      source:'INSEE'},
+        {id:'insee',     icon:'📊', label:'Population, densité & sécurité',     value:'<span class="spin"></span>', sub:'Population & densité',      source:'INSEE'},
         {id:'demographie',icon:'📈',label:'Croissance de la population',value:'<span class="spin"></span>', sub:'Historique population',     source:'Wikidata/INSEE'},
         {id:'risques',   icon:'⚠️', label:'Risques naturels & industriels',       value:'<span class="spin"></span>', sub:'Géorisques officiel',       source:'Géorisques'},
         {id:'altitude',  icon:'🏔️', label:'Altitude & topographie', value:'<span class="spin"></span>', sub:'Précision 1m · IGN',       source:'IGN RGE Alti'},
@@ -3299,7 +3299,7 @@ async function reloadScoreWithDist(dist){
 
 function showScoreDetail() {
   const d = window._scoreData;
-  if (!d) { showPanel('⭐ Score de quartier','<p style="color:var(--muted)">Données en cours de chargement…</p>'); return; }
+  if (!d) { showPanel('⭐ Score global du quartier','<p style="color:var(--muted)">Données en cours de chargement…</p>'); return; }
 
   const ringColor = d.note>=7?'#27ae60':d.note>=5?'#f39c12':'#e74c3c';
 
@@ -3321,7 +3321,7 @@ function showScoreDetail() {
     </div>`;
   }).join('');
 
-  showPanel('⭐ Score de quartier · '+(window._inseeData?.commune?.nom||''), `
+  showPanel('⭐ Score global du quartier · '+(window._inseeData?.commune?.nom||''), `
     <div style="text-align:center;margin-bottom:1.2rem">
       <div style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;width:100px;height:100px;border-radius:50%;border:5px solid ${ringColor};background:rgba(0,0,0,.15)">
         <span style="font-size:1.8rem;font-weight:800;color:${ringColor}">${d.note.toFixed(1)}</span>
@@ -3416,7 +3416,7 @@ function showLoyersDetail() {
   const c   = window._inseeData?.commune;
 
   if (!d?.estimates) {
-    showPanel('🏠 Loyers estimés', '<p style="color:var(--muted)">Données DVF insuffisantes pour calculer une estimation.</p>');
+    showPanel('🏠 Estimation des loyers', '<p style="color:var(--muted)">Données DVF insuffisantes pour calculer une estimation.</p>');
     return;
   }
 
@@ -3476,7 +3476,7 @@ function showLoyersDetail() {
     `<option value="${d}" data-taux="${tm[d]??''}" ${d===defaultDuree?'selected':''}>${d} ans</option>`
   ).join('');
 
-  showPanel('🏠 Loyers estimés · ' + (c?.nom || ''), `
+  showPanel('🏠 Estimation des loyers · ' + (c?.nom || ''), `
     <div style="background:rgba(232,160,32,.1);border:1px solid rgba(184,131,42,.3);border-radius:6px;padding:.6rem .8rem;margin-bottom:1rem;font-size:.78rem;color:var(--muted)">
       ⚠️ <strong>Estimation</strong> calculée à partir des prix DVF (${d.prixM2.toLocaleString('fr-FR')} €/m²) × rendement locatif brut typique de la zone (${rendPct}% · ${zoneLbl}). Non issu d'annonces réelles.
     </div>
@@ -3579,7 +3579,7 @@ function showDemographieDetail() {
     // Cas 2 : analyse encore en cours (INSEE pas encore répondu → carte a un .spin)
     const cardStillLoading = !!document.querySelector('#card-demographie .spin');
     if (window._demographieLoading || cardStillLoading) {
-      showPanel('📈 Évolution démographique',
+      showPanel('📈 Croissance de la population',
         '<p style="color:var(--muted)"><span class="spin"></span> Chargement des données historiques…</p>'
         + (c ? `<p style="font-size:.8rem;color:var(--text)">Population actuelle : <strong>${(c.population||0).toLocaleString('fr-FR')} habitants</strong></p>` : '')
       );
@@ -3595,7 +3595,7 @@ function showDemographieDetail() {
       }, 2000);
       return;
     }
-    showPanel('📈 Évolution démographique',
+    showPanel('📈 Croissance de la population',
       '<p style="color:var(--muted)">Données historiques non disponibles via Wikidata pour cette commune.</p>'
       + (c ? `<p style="font-size:.8rem;color:var(--text)">Population actuelle : <strong>${(c.population||0).toLocaleString('fr-FR')} habitants</strong></p>` : '')
       + `<button onclick="if(window._inseeData){window._demographiePanelOpen=true;updateDemographieCard(window._inseeData);showDemographieDetail();}" style="margin-top:.6rem;font-size:.73rem;padding:.25rem .75rem;border:1px solid var(--border);border-radius:10px;background:none;color:var(--muted);cursor:pointer">↻ Réessayer</button>`
@@ -3610,7 +3610,7 @@ function showDemographieDetail() {
   const sign = evol >= 0 ? '+' : '';
   const evolColor = evol >= 0 ? '#27ae60' : '#e74c3c';
 
-  showPanel('📈 Évolution démographique · ' + (c?.nom || ''), `
+  showPanel('📈 Croissance de la population · ' + (c?.nom || ''), `
     <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:1rem">
       <div class="stat-box"><span class="stat-n">${last.pop.toLocaleString('fr-FR')}</span><span class="stat-l">👥 Population ${last.year}</span></div>
       <div class="stat-box"><span class="stat-n" style="color:${evolColor}">${sign}${Number(evolPct).toLocaleString('fr-FR')}%</span><span class="stat-l">📈 Évolution depuis ${first.year}</span></div>
@@ -3934,7 +3934,7 @@ function showDVFDetail(){
   const btnsType = [['tous','Tous'],['appt','🏢 Appt.'],['maison','🏠 Maison'],['local','🏗️ Local/comm.'],['depend','📦 Dépendance']].map(([t,l])=>`<button class="dvf-type-btn" data-t="${t}" onclick="filterDVFType('${t}')" style="${btnStyle}">${l}</button>`).join('');
   const SURF_TRANCHES=[[0,'Toute'],[25,'<25m²'],[50,'25–50'],[75,'50–75'],[100,'75–100'],[125,'100–125'],[150,'125–150'],[999,'>150m²']];
   const btnsSurf = SURF_TRANCHES.map(([s,l])=>`<button class="dvf-surf-btn dvf-filter-btn" data-s="${s}" onclick="filterDVFSurf(${s})" style="${btnStyle}">${l}</button>`).join('');
-  showPanel('💰 Transactions DVF officielles', `
+  showPanel('💰 Prix des dernières transactions', `
     <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1rem">
       <div class="stat-box"><span class="stat-n" id="dvfStatMedian">${d.stats.medianM2.toLocaleString('fr-FR')}€</span><span class="stat-l">💰 Moyenne /m²</span><span class="stat-l" id="dvfMedianBase" style="font-size:.65rem;opacity:.6">sur ${d.count} val.</span></div>
       <div class="stat-box"><span class="stat-n" id="dvfStatCount">${d.count}</span><span class="stat-l" id="dvfStatCountLabel">🏠 Ventes${d.dateRange?' '+d.dateRange:''}</span></div>
@@ -3971,7 +3971,7 @@ function showDVFDetail(){
 
 function showRisquesDetail(){
   const d = window._risquesData;
-  if(!d){showPanel('⚠️ Risques naturels','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
+  if(!d){showPanel('⚠️ Risques naturels & industriels','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
 
   const CAT_INFO = {
     inondation:    {icon:'🌊', label:'Inondation',              color:'#2980B9', desc:'Plan de Prévention des Risques Inondation (PPRI) potentiellement applicable. Peut impacter l\'assurance et la valeur du bien.'},
@@ -4011,7 +4011,7 @@ function showRisquesDetail(){
   const scoreLbl   = d.total===0?'Faible':d.total>=3?'Élevé':'Modéré';
   const georisquesUrl = `https://www.georisques.gouv.fr/mes-risques/connaitre-les-risques-pres-de-chez-moi?form-adresse=${encodeURIComponent(currentAddress||'')}&lon=${d.lng}&lat=${d.lat}&ig=1`;
 
-  showPanel('⚠️ Risques naturels officiels', `
+  showPanel('⚠️ Risques naturels & industriels', `
     <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;padding:.7rem 1rem;background:var(--bg2);border-radius:8px">
       <div style="font-size:1.7rem">${d.total===0?'🟢':d.total>=3?'🔴':'🟡'}</div>
       <div>
@@ -4055,7 +4055,7 @@ function toggleAcc(btn){
 
 function showEcolesDetail(){
   const d = window._ecolesData;
-  if(!d){showPanel('🏫 Écoles & IPS','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
+  if(!d){showPanel('🏫 Écoles & niveau scolaire','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
 
   window._ecolesAll = d.etablissements || [];
   if(!window._ecolesFilterType) window._ecolesFilterType = 'tous';
@@ -4187,7 +4187,7 @@ function showEcolesDetail(){
   const ecoles=d.types?.ecoles||0, college=d.types?.college||0, lycee=d.types?.lycee||0;
   const total=d.total||0;
 
-  showPanel('🏫 Établissements scolaires à proximité', `
+  showPanel('🏫 Écoles & niveau scolaire', `
     <!-- Stats + chart : côte à côte desktop, stats seules mobile -->
     <div style="display:flex;gap:1.2rem;align-items:flex-start;margin-bottom:.8rem;flex-wrap:wrap">
       <div style="flex:1;min-width:0">
@@ -4277,14 +4277,14 @@ function showEcolesDetail(){
 
 function showMobiliteDetail(){
   const d = window._mobiliteData;
-  if(!d){showPanel('🚇 Mobilité & transports','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
+  if(!d){showPanel('🚇 Transports & mobilité douce','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
 
   const mobDist = window._mobiliteCurrentDist || 1000;
   const MOB_RAYONS = [[500,'500m'],[1000,'1km'],[2000,'2km']];
   const sBtnR = r => `padding:.25rem .65rem;font-size:.72rem;border:1px solid ${r===mobDist?'var(--ink)':'var(--border)'};border-radius:3px;cursor:pointer;margin-right:.3rem;background:${r===mobDist?'var(--ink)':'var(--white)'};color:${r===mobDist?'#fff':'inherit'};font-weight:${r===mobDist?'600':'400'}`;
   const btnsMobRayon = MOB_RAYONS.map(([r,l])=>`<button class="mob-rayon-btn" data-r="${r}" onclick="reloadMobiliteWithDist(${r})" style="${sBtnR(r)}">${l}</button>`).join('');
   const lbs = (c) => `display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid ${c};border-radius:3px;background:${c}18;cursor:pointer;font-size:.7rem;transition:opacity .2s`;
-  showPanel('🚇 Mobilité & transports', `
+  showPanel('🚇 Transports & mobilité douce', `
     <div class="map-stats">
       <div class="map-stat"><span class="map-stat-n">${d.score}/10</span><span class="map-stat-l">⭐ Score</span></div>
       <div class="map-stat"><span class="map-stat-n">${d.stats?.metro||0}</span><span class="map-stat-l">🚇 Métro/RER</span></div>
@@ -4519,7 +4519,7 @@ function showMobiliteDetail(){
 function showServicesMap(filterCat){
   const d = window._servicesData;
   if(!d){
-    showPanel('🏥 Services & commerces','<p style="color:var(--muted)">Données en cours de chargement… Réessayez dans quelques secondes.</p>');
+    showPanel('🏥 Commerces, services & santé','<p style="color:var(--muted)">Données en cours de chargement… Réessayez dans quelques secondes.</p>');
     return;
   }
   // Pré-sélectionner un filtre si passé en paramètre
@@ -4685,7 +4685,7 @@ function showServicesMap(filterCat){
   }).length;
   const btnsTous = `<button class="svc-tous-btn" onclick="filterServicesMap('tous',this)" style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid var(--ink);border-radius:3px;background:var(--ink);color:var(--gold2);cursor:pointer;font-size:.7rem;font-weight:600;margin-right:.3rem">✓ Tous (${d.total})</button>`;
   const btnsCateg = CAT_INFO.map(c=>`<button class="svc-cat-btn" data-cat="${c.key}" onclick="filterServicesMap('${c.key}',this)" style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid ${CAT_COLORS[c.key]};border-radius:3px;background:${CAT_COLORS[c.key]}18;cursor:pointer;font-size:.7rem;margin-right:.3rem;margin-bottom:.3rem;transition:opacity .2s"><span style="width:10px;height:10px;border-radius:50%;background:${CAT_COLORS[c.key]};display:inline-block"></span>${c.emoji} ${c.label} (${c.key==='senior'?_seniorsCnt:d.stats[c.key]||0})</button>`).join('');
-  showPanel('🏥 Services & commerces à proximité', `
+  showPanel('🏥 Commerces, services & santé', `
     <div class="map-stats">
       <div class="map-stat"><span class="map-stat-n">${d.score}/10</span><span class="map-stat-l">⭐ Score</span></div>
       <div class="map-stat"><span class="map-stat-n">${d.stats.sante}</span><span class="map-stat-l">🏥 Santé</span></div>
@@ -5057,7 +5057,7 @@ async function showPrixCommunesDetail(){
 function showBruitDetail(){
   const d = window._bruitData;
   if(!d || !d.success){
-    showPanel('🔇 Bruit & nuisances', `
+    showPanel('🔇 Carte du bruit', `
       <p style="color:var(--muted);margin-bottom:1rem">${d?.error||'Données en cours de chargement…'}</p>
       <p style="font-size:.75rem;color:var(--muted)">Cartes officielles : <a href="https://www.bruit.fr/" target="_blank" style="color:var(--gold)">bruit.fr →</a></p>`);
     return;
@@ -5070,7 +5070,7 @@ function showBruitDetail(){
   const niveauCode = score >= 7 ? 'eleve' : score >= 4 ? 'modere' : score >= 2 ? 'faible' : 'faible';
   const niveauLabel = score >= 7 ? 'Élevé' : score >= 4 ? 'Modéré' : score >= 2 ? 'Faible' : 'Très faible';
   const color = colors[niveauCode] || colors.inconnu;
-  showPanel('🔇 Bruit & nuisances', `
+  showPanel('🔇 Carte du bruit', `
     <div style="background:var(--ink);border-radius:var(--r);padding:1.2rem;text-align:center;margin-bottom:1.2rem">
       <div style="font-family:'Cormorant Garamond',serif;font-size:2.2rem;color:${color};line-height:1">${niveauLabel}</div>
       <div style="font-size:.65rem;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.14em;margin-top:.35rem">Risque sonore estimé</div>
@@ -5102,7 +5102,7 @@ function showBruitDetail(){
 
 function showUrbanismeDetail(){
   const d = window._urbanismeData;
-  if(!d){showPanel('📋 Urbanisme, PLU & Énergie','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
+  if(!d){showPanel('📋 Zonage, PLU & réglementation','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
   const z = d.zone;
   const doc = d.document;
   // Traduction des codes de zone PLU
@@ -5145,7 +5145,7 @@ function showUrbanismeDetail(){
     // Code non reconnu : on l'affiche avec une explication générique
     return `📄 "${p}" — règle spécifique au PLU de cette commune (<a href="https://www.geoportail-urbanisme.gouv.fr/" target="_blank" style="color:var(--gold)">consulter le document complet ↗</a>)`;
   }) || [];
-  showPanel('📋 Urbanisme, PLU & Énergie · ' + (doc?.nomCommune||''), `
+  showPanel('📋 Zonage, PLU & réglementation · ' + (doc?.nomCommune||''), `
     <div style="display:flex;gap:1rem;margin-bottom:1.2rem;flex-wrap:wrap">
       <div style="flex:1;background:var(--ink);border-radius:var(--r);padding:1rem;text-align:center;min-width:80px">
         <div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--gold2)">${z.code||'NC'}</div>
@@ -5339,14 +5339,14 @@ function showMeteoDetail(){
 
 function showINSEEDetail(){
   const d = window._inseeData;
-  if(!d){showPanel('📊 Profil du quartier','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
+  if(!d){showPanel('📊 Population, densité & sécurité','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
   const c = d.commune;
   const dens = c?.densite||0;
   const densLabel = dens>10000?'Très dense':dens>5000?'Dense':dens>2000?'Urbain':dens>500?'Péri-urbain':'Rural';
   const densColor = dens>10000?'#c0392b':dens>5000?'#e67e22':dens>2000?'#f39c12':dens>500?'#27ae60':'#2980b9';
   const supKm2 = c?.superficie ? Math.round(c.superficie) : null;
 
-  showPanel('📊 Profil démographique · ' + (c?.nom||''), `
+  showPanel('📊 Population, densité & sécurité · ' + (c?.nom||''), `
     <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:1rem">
       <div class="stat-box"><span class="stat-n">${c?.densite?.toLocaleString('fr-FR')||'—'}</span><span class="stat-l">🗺️ hab/km² · <span style="color:${densColor};font-weight:600">${densLabel}</span></span></div>
       <div class="stat-box">
@@ -5367,88 +5367,96 @@ function showINSEEDetail(){
     <p style="font-size:.62rem;color:var(--muted);margin-top:.3rem">Source : ${d.source} · <a href="https://www.observatoire-des-territoires.gouv.fr/densite-de-population" target="_blank" style="color:var(--gold)">Carte nationale densité →</a></p>
     ${(()=>{
       const cr = window._criminaliteData;
-      const deptLink = `https://www.interieur.gouv.fr/Interstats/Actualites/Insecurite-et-delinquance-en-2024-bilan-statistique-et-atlas-departemental`;
+      const deptLink = "https://www.interieur.gouv.fr/Interstats/Actualites/Insecurite-et-delinquance-en-2024-bilan-statistique-et-atlas-departemental";
+      // Moyennes nationales approx. SSMSI 2022 (taux pour 1000 hab.)
+      const NAT_TAUX = {"cambriolage":3.5,"viol":1.8,"violence":9.0,"vol avec":2.5,"vol sans":11.0,"vol veh":2.8,"escroquerie":6.0,"destruction":8.0,"stupef":4.0,"homicide":0.03};
+      function natRef(ind){
+        const l = ind.toLowerCase();
+        for(const [k,v] of Object.entries(NAT_TAUX)) if(l.includes(k)) return v;
+        return null;
+      }
+      function getIcon2(ind){
+        const l = ind.toLowerCase();
+        const ICON_MAP2 = {"cambriolage":"🏠","viol":"⚠️","violence":"⚠️","vol":"🛍️","escroquerie":"💳","destruction":"🔥","stupef":"💊","trafic":"🚗","homicide":"☠️"};
+        for(const [k,v] of Object.entries(ICON_MAP2)) if(l.includes(k)) return v;
+        return "📋";
+      }
       if(!cr||!cr.success||!Object.keys(cr.indicateurs||{}).length){
         return `<div style="margin-top:1rem;padding-top:.75rem;border-top:1px solid var(--border)">
           <div style="font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.4rem">🚨 Sécurité & criminalité</div>
-          <p style="font-size:.75rem;color:var(--muted)">Statistiques non disponibles via l\'API. <a href="${deptLink}" target="_blank" style="color:var(--gold)">Consulter sur statcrimes.interieur.gouv.fr →</a></p>
+          <p style="font-size:.75rem;color:var(--muted)">Statistiques non disponibles. <a href="${deptLink}" target="_blank" style="color:var(--gold)">Consulter statcrimes.interieur.gouv.fr →</a></p>
         </div>`;
       }
-      const ICON_MAP = {'cambriolage':'🏠','viol':'⚠️','violence':'⚠️','vol':'🛍️','escroquerie':'💳','destruction':'🔥','stupefiants':'💊','trafic':'🚗','homicide':'☠️'};
-      const COLORS = ['#b5473a','#d4833a','#c9a227','#3d7ebf','#4ba076','#7b5ea7','#2a9187','#b85c2a'];
-      // Filtrer les non-diffusés (nb null) et trier par nb desc
-      const sorted = Object.entries(cr.indicateurs)
-        .filter(([,v])=>v.nb!=null && v.nb>0)
-        .sort((a,b)=>(b[1].nb||0)-(a[1].nb||0))
+      const sorted2 = Object.entries(cr.indicateurs)
+        .filter(([,v])=>v.taux!=null && v.taux>0)
+        .sort((a,b)=>(b[1].taux||0)-(a[1].taux||0))
         .slice(0,8);
-      const rows = sorted.map(([ind,v],i)=>{
-        const key = Object.keys(ICON_MAP).find(k=>ind.toLowerCase().includes(k));
-        const icon = ICON_MAP[key]||'📋';
-        const tauxStr = v.taux!=null?`<span style="color:var(--muted);font-size:.7rem">${v.taux.toFixed(1)} ‰</span>`:'';
-        const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${COLORS[i%COLORS.length]};margin-right:.35rem;flex-shrink:0"></span>`;
-        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:.28rem 0;border-bottom:1px solid var(--border);font-size:.77rem">
-          <span style="display:flex;align-items:center">${dot}${icon} ${ind.length>42?ind.slice(0,39)+'…':ind}</span>
-          <span style="text-align:right;flex-shrink:0;margin-left:.5rem"><strong>${v.nb.toLocaleString('fr-FR')}</strong> faits ${tauxStr}</span>
-        </div>`;}).join('');
-      // Stocker les données pour le dessin du graphique (après injection HTML)
-      window._crimeChartData = { labels: sorted.map(([ind])=>ind), values: sorted.map(([,v])=>v.nb||0), colors: COLORS };
+      // Score sécurité synthétique
+      let ratioSum=0,ratioCount=0;
+      sorted2.forEach(([ind,v])=>{ const ref=natRef(ind); if(ref&&ref>0&&v.taux!=null){ratioSum+=v.taux/ref;ratioCount++;} });
+      const avgRatio = ratioCount>0?ratioSum/ratioCount:1;
+      const scoreNum = Math.max(1,Math.min(10,Math.round(10*(2-Math.min(avgRatio,2))/2)));
+      const scoreLbl = scoreNum>=7?"✅ Risque faible":scoreNum>=4?"🟡 Risque modéré":"🔴 Risque élevé";
+      const scoreBg = scoreNum>=7?"rgba(39,174,96,.12)":scoreNum>=4?"rgba(240,180,41,.12)":"rgba(192,57,43,.12)";
+      const scoreCol = scoreNum>=7?"#27ae60":scoreNum>=4?"#f0b429":"#c0392b";
+      const rows2 = sorted2.map(([ind,v])=>{
+        const ref = natRef(ind);
+        let cmp = "";
+        if(ref&&v.taux!=null){ const r=v.taux/ref; cmp=r>1.3?`<span style="color:#c0392b;font-weight:700">↑</span>`:r<0.7?`<span style="color:#27ae60;font-weight:700">↓</span>`:`<span style="color:var(--muted)">≈</span>`; }
+        const tauxStr = v.taux!=null?`${v.taux.toFixed(1)} ‰`:"N/A";
+        const refStr = ref!=null?`<span style="color:var(--muted);font-size:.68rem">(moy. ${ref} ‰)</span>`:"";
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:.26rem 0;border-bottom:1px solid var(--border);font-size:.76rem">
+          <span>${getIcon2(ind)} ${ind.length>40?ind.slice(0,37)+"…":ind}</span>
+          <span style="flex-shrink:0;margin-left:.4rem;text-align:right"><strong>${tauxStr}</strong> ${cmp} ${refStr}</span>
+        </div>`;}).join("");
+      window._crimeChartData = {
+        labels: sorted2.map(([ind])=>ind.length>28?ind.slice(0,25)+"…":ind),
+        values: sorted2.map(([,v])=>v.taux||0),
+        refs: sorted2.map(([ind])=>natRef(ind)),
+        colors: sorted2.map(([ind,v])=>{ const ref=natRef(ind); if(!ref)return "rgba(184,131,42,.6)"; const r=v.taux/ref; return r>1.3?"rgba(192,57,43,.75)":r<0.7?"rgba(39,174,96,.75)":"rgba(230,180,41,.65)"; })
+      };
       return `<div style="margin-top:1rem;padding-top:.75rem;border-top:1px solid var(--border)">
-        <div style="font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.5rem">🚨 Sécurité & criminalité · ${cr.annee||''}</div>
-        <div style="position:relative;height:${sorted.length*26+10}px;margin-bottom:.4rem">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
+          <div style="font-size:.78rem;font-weight:600;color:var(--text)">🚨 Sécurité & criminalité · ${cr.annee||""}</div>
+          <div style="font-size:.73rem;font-weight:700;padding:.15rem .5rem;border-radius:4px;background:${scoreBg};color:${scoreCol}">${scoreLbl}</div>
+        </div>
+        <div style="font-size:.67rem;color:var(--muted);margin-bottom:.45rem">↑ au-dessus · ↓ en-dessous · ≈ dans la moyenne nationale (taux /1 000 hab.)</div>
+        ${rows2}
+        <div style="position:relative;height:${sorted2.length*26+10}px;margin-top:.6rem">
           <canvas id="crimeDonutChart"></canvas>
         </div>
-        <p style="font-size:.61rem;color:var(--muted);margin-top:.2rem">Source : SSMSI · Ministère de l'Intérieur · <a href="${deptLink}" target="_blank" style="color:var(--gold)">Détail complet →</a></p>
+        <p style="font-size:.61rem;color:var(--muted);margin-top:.3rem">Source : SSMSI · Ministère Intérieur · Moy. nat. approx. SSMSI 2022 · <a href="${deptLink}" target="_blank" style="color:var(--gold)">Détail complet →</a></p>
       </div>`;
     })()}`);
 
-  // Camembert criminalité
+  // Graphique criminalité (taux ‰ + moy. nationale)
   setTimeout(()=>{
-    const cvs = document.getElementById('crimeDonutChart');
+    const cvs = document.getElementById("crimeDonutChart");
     const cd = window._crimeChartData;
     if(!cvs||!cd?.values?.length||!window.Chart) return;
     if(window._crimeChartInst){ window._crimeChartInst.destroy(); window._crimeChartInst=null; }
-    const total = cd.values.reduce((a,b)=>a+b,0);
     window._crimeChartInst = new Chart(cvs,{
-      type:'bar',
+      type:"bar",
+      plugins:[ChartDataLabels],
       data:{
         labels: cd.labels,
-        datasets:[{
-          data: cd.values,
-          backgroundColor: cd.colors,
-          borderWidth: 0,
-          borderRadius: 4,
-          maxBarThickness: 16
-        }]
+        datasets:[
+          { label:"Commune (‰)", data:cd.values, backgroundColor:cd.colors, borderWidth:0, borderRadius:3, maxBarThickness:14 },
+          { label:"Moy. nationale (‰)", data:cd.refs.map(r=>r!=null?r:0), backgroundColor:"rgba(255,255,255,.13)", borderColor:"rgba(255,255,255,.35)", borderWidth:1, borderRadius:3, maxBarThickness:6 }
+        ]
       },
       options:{
-        indexAxis:'y',
+        indexAxis:"y",
         responsive:true, maintainAspectRatio:false,
-        clip:false,
         animation:{ duration:500 },
         plugins:{
-          legend:{ display:false },
-          tooltip:{
-            backgroundColor:'rgba(20,20,20,.9)',
-            callbacks:{
-              label: ctx=>{
-                const pct = total>0?Math.round(ctx.raw/total*100):0;
-                return `  ${ctx.raw.toLocaleString('fr-FR')} faits · ${pct}%`;
-              }
-            }
-          },
-          datalabels:{
-            display:true, anchor:'end', align:'end',
-            color:'#666', font:{size:9, weight:'600'},
-            formatter:(v)=>{
-              const pct = total>0?Math.round(v/total*100):0;
-              return `${v.toLocaleString('fr-FR')} · ${pct}%`;
-            },
-            padding:{left:3}
-          }
+          legend:{ display:true, labels:{ color:"#888", font:{size:9}, boxWidth:10, padding:6 } },
+          tooltip:{ backgroundColor:"rgba(20,20,20,.9)", callbacks:{ label:ctx=>` ${ctx.dataset.label}: ${ctx.raw.toFixed(1)} ‰` } },
+          datalabels:{ display:ctx=>ctx.datasetIndex===0, anchor:"end", align:"end", color:"#666", font:{size:9,weight:"600"}, formatter:v=>`${v.toFixed(1)} ‰`, padding:{left:3} }
         },
         scales:{
-          x:{ display:false, grace:'55%' },
-          y:{ afterFit:(axis)=>{axis.width=240;}, ticks:{color:'#555', font:{size:9.5}}, grid:{display:false} }
+          x:{ display:false, grace:"55%" },
+          y:{ afterFit:(axis)=>{axis.width=190;}, ticks:{color:"#555",font:{size:9}}, grid:{display:false} }
         }
       }
     });
@@ -5572,7 +5580,7 @@ function showFibreDetail(){
   const d = window._fibreData;
   const retryBtn = `<button onclick="if(currentCoords){window._fibreData=null;loadFibre(window._inseeData?.commune?.codeInsee||'',currentCoords.lat,currentCoords.lng).then(showFibreDetail)}" style="margin-top:.8rem;padding:.35rem .9rem;border:1px solid var(--gold);border-radius:10px;background:none;color:var(--gold);font-size:.75rem;cursor:pointer">↻ Réessayer</button>`;
   if(!d){
-    showPanel('📶 Internet & fibre', `
+    showPanel('📶 Connexion internet & fibre', `
       <p style="font-size:.85rem;line-height:1.7;margin-bottom:.5rem">Données non disponibles pour cette adresse.</p>
       ${retryBtn}
       <p style="font-size:.75rem;color:var(--muted);margin-top:1rem">Vérification directe : <a href="https://maconnexioninternet.arcep.fr/" target="_blank" style="color:var(--gold)">maconnexioninternet.arcep.fr →</a></p>`);
@@ -5581,7 +5589,7 @@ function showFibreDetail(){
   const f = d.fibre;
   const fibreLabel = f.eligible===true ? 'Éligible FTTH' : f.eligible===false ? 'Non éligible' : 'À vérifier';
   const fibreColor = f.eligible===true ? 'var(--gold2)' : f.eligible===false ? 'var(--red)' : 'var(--muted)';
-  showPanel('📶 Internet & fibre · ARCEP', `
+  showPanel('📶 Connexion internet & fibre · ARCEP', `
     <div style="background:var(--ink);border-radius:var(--r);padding:1.2rem;text-align:center;margin-bottom:1rem">
       <div style="font-family:'Cormorant Garamond',serif;font-size:1.8rem;color:${fibreColor}">${fibreLabel}</div>
       <div style="font-size:.7rem;color:rgba(255,255,255,.72);margin-top:.3rem">${f.technologie||'Non déterminé'}</div>
