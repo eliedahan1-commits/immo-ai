@@ -6815,11 +6815,35 @@ function calcMensualites(){
   // Sync notaire % dans vrai coût
   const vcNotEl = document.getElementById('vcNotaire');
   if(vcNotEl) vcNotEl.value = notairePct;
-  // Auto-remplir le prix et les travaux dans la section vrai coût
+  // ── Auto-remplir depuis Mensualités ──
+  function afill(id, val, flag){ const e=document.getElementById(id); if(e&&!e[flag||'_userModified']) e.value=val; }
+  const prixCalc = Math.round(montant + apport);
+
+  // Vrai coût du bien
   const vcPrixEl = document.getElementById('vcPrix');
-  if(vcPrixEl && !vcPrixEl._userModified) vcPrixEl.value = Math.round(montant + apport) || '';
+  if(vcPrixEl && !vcPrixEl._userModified) vcPrixEl.value = prixCalc || '';
   const vcTravEl = document.getElementById('vcTravaux');
   if(vcTravEl && !vcTravEl._userModifiedVC && travauxM > 0) vcTravEl.value = travauxM;
+
+  // Investissement locatif
+  const lPrixEl = document.getElementById('lPrix');
+  if(lPrixEl && !lPrixEl._userModified) lPrixEl.value = prixCalc || '';
+  afill('lApport',  apport);
+  afill('lDuree',   duree);
+  afill('lTaux',    (taux*100).toFixed(2));
+  afill('lAssur',   (assur*100).toFixed(2));
+  afill('lNotaire', notairePct);
+  if(travauxM > 0) afill('lTravaux', travauxM);
+  const lNF = document.getElementById('lNotaireFin'); if(lNF) lNF.checked = notaireFin;
+  const lTF = document.getElementById('lTravauxFin'); if(lTF && travauxM > 0) lTF.checked = travauxFin;
+
+  // Location vs Achat
+  const locPrixEl = document.getElementById('locPrixAchat');
+  if(locPrixEl && !locPrixEl._userModified) locPrixEl.value = prixCalc || '';
+  afill('locApport',  apport);
+  afill('locDuree',   duree);
+  afill('locTaux',    (taux*100).toFixed(2));
+  afill('locNotaire', notairePct);
 
   // ── Tableau d'amortissement ──
   const tbody = document.getElementById('mAmortBody');
