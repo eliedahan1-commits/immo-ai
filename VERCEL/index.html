@@ -3164,7 +3164,7 @@ function computeScoreQuartier() {
   // 1. Services & santé
   const svc = window._servicesData;
   if (svc?.score != null)
-    items.push({ label:'Services & santé', icon:'🏥', val:svc.score, max:10,
+    items.push({ label:'Commerces, services & santé', icon:'🏥', val:svc.score, max:10,
       action:"closePanel();setTimeout(()=>showDetail('services'),120)",
       sub: svc.stats ? `${svc.stats.sante} santé · ${svc.stats.commerce} commerces · ${svc.total} services` : '' });
 
@@ -3173,7 +3173,7 @@ function computeScoreQuartier() {
   if (ecoles?.total != null) {
     const t = ecoles.total, ty = ecoles.types||{};
     const eScore = t===0?1 : t<=3?4 : t<=7?6 : t<=14?8 : 9.5;
-    items.push({ label:'Écoles', icon:'🏫', val:eScore, max:10,
+    items.push({ label:'Écoles & niveau scolaire', icon:'🏫', val:eScore, max:10,
       action:"closePanel();setTimeout(()=>showDetail('ecoles'),120)",
       sub:`${t} établissements · ${ty.ecoles||0} éc. · ${ty.college||0} coll. · ${ty.lycee||0} lyc.` });
   }
@@ -3189,7 +3189,7 @@ function computeScoreQuartier() {
       st.arretsBus>0? `${st.arretsBus} bus`     : null,
       st.velos>0    ? `${st.velos} vélo`        : null,
     ].filter(Boolean).join(' · ') || mob.scoreLabel || '';
-    items.push({ label:'Mobilité & transports', icon:'🚇', val:mob.score, max:10,
+    items.push({ label:'Transports & mobilité douce', icon:'🚇', val:mob.score, max:10,
       action:"closePanel();setTimeout(()=>showDetail('mobilite'),120)",
       sub: `${mob.scoreLabel} · ${mobSub}` });
   }
@@ -3207,7 +3207,7 @@ function computeScoreQuartier() {
   const risques = window._risquesData;
   if (risques?.total != null) {
     const rScore = Math.max(0, 10 - risques.total);
-    items.push({ label:'Risques naturels', icon:'⚠️', val:rScore, max:10,
+    items.push({ label:'Risques naturels & industriels', icon:'⚠️', val:rScore, max:10,
       action:"closePanel();setTimeout(()=>showDetail('risques'),120)",
       sub:`${risques.total} risque${risques.total>1?'s':''} identifié${risques.total>1?'s':''}` });
   }
@@ -3225,7 +3225,7 @@ function computeScoreQuartier() {
   const bruit = window._bruitData;
   if (bruit?.success && bruit.niveauCode) {
     const bruitScore = bruit.niveauCode==='eleve'?2 : bruit.niveauCode==='modere'?5.5 : 9;
-    items.push({ label:'Bruit & nuisances', icon:'🔊', val:bruitScore, max:10,
+    items.push({ label:'Carte du bruit', icon:'🔊', val:bruitScore, max:10,
       action:"closePanel();setTimeout(()=>showDetail('bruit'),120)",
       sub: bruit.niveau || '' });
   }
@@ -3244,7 +3244,7 @@ function computeScoreQuartier() {
   const fibre = window._fibreData;
   if (fibre?.fibre) {
     const fibreScore = fibre.fibre.eligible===true?10 : fibre.fibre.eligible===false?3 : 5;
-    items.push({ label:'Internet & fibre', icon:'📶', val:fibreScore, max:10,
+    items.push({ label:'Connexion internet & fibre', icon:'📶', val:fibreScore, max:10,
       action:"closePanel();setTimeout(()=>showDetail('fibre'),120)",
       sub: fibre.fibre.eligible===true ? `Éligible FTTH · ${fibre.fibre.operateurs?.join(', ')||''}` : fibre.fibre.eligible===false ? 'Non éligible fibre' : 'À vérifier' });
   }
@@ -3256,7 +3256,7 @@ function computeScoreQuartier() {
     // Score de densité : ni trop dense (stressant) ni trop rural (isolé) — optimum ~2000-5000
     const densScore = dens>15000?4 : dens>8000?6 : dens>3000?9 : dens>1000?8 : dens>300?6 : 4;
     const densLabel = dens>10000?'Très dense':dens>5000?'Dense':dens>2000?'Urbain':dens>500?'Péri-urbain':'Rural';
-    items.push({ label:'Densité urbaine', icon:'🏙️', val:densScore, max:10,
+    items.push({ label:'Population, densité & sécurité', icon:'🏙️', val:densScore, max:10,
       action:"closePanel();setTimeout(()=>showDetail('insee'),120)",
       sub:`${dens.toLocaleString('fr-FR')} hab/km² · ${densLabel}` });
   }
@@ -5369,16 +5369,27 @@ function showINSEEDetail(){
       const cr = window._criminaliteData;
       const deptLink = "https://www.interieur.gouv.fr/Interstats/Actualites/Insecurite-et-delinquance-en-2024-bilan-statistique-et-atlas-departemental";
       // Moyennes nationales approx. SSMSI 2022 (taux pour 1000 hab.)
-      const NAT_TAUX = {"cambriolage":3.5,"viol":1.8,"violence":9.0,"vol avec":2.5,"vol sans":11.0,"vol veh":2.8,"escroquerie":6.0,"destruction":8.0,"stupef":4.0,"homicide":0.03};
+      function norm2(s){ return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,""); }
+      // Clés sans accent, du plus spécifique au plus général — SSMSI 2022 approx.
+      const NAT_REF = [
+        ["vols sans violence",11.0],["vol sans violence",11.0],
+        ["vol avec violence",2.5],["vols avec violence",2.5],
+        ["violences physiques",9.0],["violences sexuelles",1.8],
+        ["violences",9.0],["viols",1.8],
+        ["cambriolage",3.5],["vehicule",2.8],
+        ["escroquerie",6.0],["destruction",8.0],
+        ["stupefiants",4.0],["stupefiant",4.0],
+        ["homicide",0.03]
+      ];
       function natRef(ind){
-        const l = ind.toLowerCase();
-        for(const [k,v] of Object.entries(NAT_TAUX)) if(l.includes(k)) return v;
+        const l = norm2(ind);
+        for(const [k,v] of NAT_REF) if(l.includes(k)) return v;
         return null;
       }
       function getIcon2(ind){
-        const l = ind.toLowerCase();
-        const ICON_MAP2 = {"cambriolage":"🏠","viol":"⚠️","violence":"⚠️","vol":"🛍️","escroquerie":"💳","destruction":"🔥","stupef":"💊","trafic":"🚗","homicide":"☠️"};
-        for(const [k,v] of Object.entries(ICON_MAP2)) if(l.includes(k)) return v;
+        const l = norm2(ind);
+        const IM2 = [["cambriolage","🏠"],["viol","⚠️"],["violence","⚠️"],["vehicule","🚗"],["vol","🛍️"],["escroquerie","💳"],["destruction","🔥"],["stupefiant","💊"],["trafic","🚗"],["homicide","☠️"]];
+        for(const [k,v] of IM2) if(l.includes(k)) return v;
         return "📋";
       }
       if(!cr||!cr.success||!Object.keys(cr.indicateurs||{}).length){
@@ -5442,7 +5453,7 @@ function showINSEEDetail(){
         labels: cd.labels,
         datasets:[
           { label:"Commune (‰)", data:cd.values, backgroundColor:cd.colors, borderWidth:0, borderRadius:3, maxBarThickness:14 },
-          { label:"Moy. nationale (‰)", data:cd.refs.map(r=>r!=null?r:0), backgroundColor:"rgba(255,255,255,.13)", borderColor:"rgba(255,255,255,.35)", borderWidth:1, borderRadius:3, maxBarThickness:6 }
+          { label:"Moy. nationale (‰)", data:cd.refs.map(r=>r!=null?r:null), backgroundColor:"rgba(120,120,120,.35)", borderColor:"rgba(80,80,80,.55)", borderWidth:1, borderRadius:3, maxBarThickness:10 }
         ]
       },
       options:{
@@ -5999,7 +6010,7 @@ function updatePoidsDisplay(){
   }
   const dims=[
     {key:'mob',  label:'Mobilité',  emoji:'🚇'},
-    {key:'eco',  label:'Écoles',    emoji:'🏫'},
+    {key:'eco',  label:'Écoles & niveau scolaire',    emoji:'🏫'},
     {key:'parc', label:'Parcs',     emoji:'🌳'},
     {key:'rest', label:'Restau.',   emoji:'🍽️'},
     {key:'cult', label:'Culture',   emoji:'🎭'},
@@ -6219,7 +6230,7 @@ async function runProfil(){
     const gScore=globalScore(scores,weights);
     const dims=[
       {key:'mob',  label:'Mobilité',      emoji:'🚇'},
-      {key:'eco',  label:'Écoles',        emoji:'🏫'},
+      {key:'eco',  label:'Écoles & niveau scolaire',        emoji:'🏫'},
       {key:'parc', label:'Espaces verts', emoji:'🌳'},
       {key:'rest', label:'Restaurants',   emoji:'🍽️'},
       {key:'cult', label:'Culture',       emoji:'🎭'},
