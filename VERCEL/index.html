@@ -7379,29 +7379,7 @@ function calcLocation(){
     const ctx2 = document.getElementById('breakEvenChart').getContext('2d');
     const zeroData = beLabels.map(() => 0);
 
-    const _beMarkersPlugin = {
-      id: 'breakEvenMarkers',
-      afterDraw(chart) {
-        const { ctx: c, scales: { x, y } } = chart;
-        const markers = [];
-        if(breakEvenYearNoTax) markers.push({ year: breakEvenYearNoTax, color: 'rgba(39,174,96,.85)', label: 'An ' + breakEvenYearNoTax + ' sans impôts' });
-        if(breakEvenYear)      markers.push({ year: breakEvenYear,      color: '#e8a020',             label: 'An ' + breakEvenYear + ' après impôts' });
-        markers.forEach(m => {
-          const idx = beLabels.indexOf('An ' + m.year);
-          if(idx < 0) return;
-          const xPos = x.getPixelForIndex(idx);
-          const yTop = y.top; const yBot = y.bottom;
-          c.save();
-          c.beginPath(); c.setLineDash([4,3]); c.strokeStyle = m.color; c.lineWidth = 1.5;
-          c.moveTo(xPos, yTop); c.lineTo(xPos, yBot); c.stroke();
-          c.setLineDash([]);
-          c.font = 'bold 9px Outfit,sans-serif'; c.fillStyle = m.color; c.textAlign = 'center';
-          c.fillText(m.label, xPos, yTop + 10);
-          c.restore();
-        });
-      }
-    };
-    window._breakEvenChart = new Chart(ctx2, { plugins: [_beMarkersPlugin],
+    window._breakEvenChart = new Chart(ctx2, {
       type: 'line',
       data: {
         labels: beLabels,
@@ -7412,7 +7390,9 @@ function calcLocation(){
             borderColor: '#e8a020',
             backgroundColor: 'rgba(232,160,32,.12)',
             borderWidth: 2.5,
-            pointRadius: 0,
+            pointRadius: beCumul.map((_, i) => beLabels[i] === 'An ' + breakEvenYear ? 7 : 0),
+            pointStyle: beCumul.map((_, i) => beLabels[i] === 'An ' + breakEvenYear ? 'star' : 'circle'),
+            pointBackgroundColor: '#e8a020',
             pointHoverRadius: 5,
             tension: 0.4,
             fill: true,
@@ -7433,6 +7413,9 @@ function calcLocation(){
             backgroundColor: 'transparent',
             borderWidth: 1.5,
             borderDash: [6, 3],
+            pointRadius: beCumulNoTax.map((_, i) => beLabels[i] === 'An ' + breakEvenYearNoTax ? 7 : 0),
+            pointStyle: beCumulNoTax.map((_, i) => beLabels[i] === 'An ' + breakEvenYearNoTax ? 'star' : 'circle'),
+            pointBackgroundColor: 'rgba(39,174,96,.85)',
             pointHoverRadius: 5,
             tension: 0.4,
             fill: false,
