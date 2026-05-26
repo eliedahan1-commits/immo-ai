@@ -7379,6 +7379,33 @@ function calcLocation(){
       }
     }
 
+    // Plugin global pour lignes verticales break-even (Chart.js v4)
+    if(window._beLinePlugin) { try { Chart.unregister(window._beLinePlugin); } catch(e){} }
+    const _beY = breakEvenYear, _beYNoTax = breakEvenYearNoTax, _beLbls = beLabels.slice();
+    window._beLinePlugin = {
+      id: 'beLines',
+      afterDraw(chart) {
+        if(chart.canvas.id !== 'breakEvenChart') return;
+        const c = chart.ctx, x = chart.scales.x, y = chart.scales.y;
+        const pts = [];
+        if(_beYNoTax) pts.push({ lbl: 'An ' + _beYNoTax, color: 'rgba(39,174,96,.9)',  txt: 'An ' + _beYNoTax + ' (sans impôts)' });
+        if(_beY)      pts.push({ lbl: 'An ' + _beY,      color: '#f0b429',             txt: 'An ' + _beY + ' (après impôts)' });
+        pts.forEach(p => {
+          const idx = _beLbls.indexOf(p.lbl);
+          if(idx < 0) return;
+          const xp = x.getPixelForIndex(idx);
+          c.save();
+          c.beginPath(); c.setLineDash([5,4]); c.strokeStyle = p.color; c.lineWidth = 1.5;
+          c.moveTo(xp, y.top); c.lineTo(xp, y.bottom); c.stroke();
+          c.setLineDash([]);
+          c.font = 'bold 9px Outfit,sans-serif'; c.fillStyle = p.color; c.textAlign = 'center';
+          c.fillText(p.txt, xp, y.top + 11);
+          c.restore();
+        });
+      }
+    };
+    Chart.register(window._beLinePlugin);
+
     if(window._breakEvenChart){ window._breakEvenChart.destroy(); window._breakEvenChart = null; }
     const ctx2 = document.getElementById('breakEvenChart').getContext('2d');
     const zeroData = beLabels.map(() => 0);
@@ -7437,30 +7464,6 @@ function calcLocation(){
         scales: {
           x: { ticks: { color: 'rgba(255,255,255,.5)', font: { size: 9 }, maxTicksLimit: 12 }, grid: { color: 'rgba(255,255,255,.06)' } },
           y: { ticks: { color: 'rgba(255,255,255,.6)', font: { size: 9 }, callback: v => (v>=0?'+':'')+Math.round(v/1000)+'k €' }, grid: { color: 'rgba(255,255,255,.08)' }, border: { dash: [3,3] } }
-        },
-        animation: {
-          onComplete() {
-            const chart = window._breakEvenChart;
-            if(!chart) return;
-            const c = chart.ctx;
-            const x = chart.scales.x;
-            const y = chart.scales.y;
-            const pts = [];
-            if(breakEvenYearNoTax) pts.push({ lbl: 'An ' + breakEvenYearNoTax, color: 'rgba(39,174,96,.9)',  txt: 'An ' + breakEvenYearNoTax + ' (sans impôts)' });
-            if(breakEvenYear)      pts.push({ lbl: 'An ' + breakEvenYear,      color: '#f0b429',             txt: 'An ' + breakEvenYear + ' (après impôts)' });
-            pts.forEach(p => {
-              const idx = beLabels.indexOf(p.lbl);
-              if(idx < 0) return;
-              const xp = x.getPixelForIndex(idx);
-              c.save();
-              c.beginPath(); c.setLineDash([5,4]); c.strokeStyle = p.color; c.lineWidth = 1.5;
-              c.moveTo(xp, y.top); c.lineTo(xp, y.bottom); c.stroke();
-              c.setLineDash([]);
-              c.font = 'bold 9px Outfit,sans-serif'; c.fillStyle = p.color; c.textAlign = 'center';
-              c.fillText(p.txt, xp, y.top + 11);
-              c.restore();
-            });
-          }
         }
       }
     });
