@@ -1160,7 +1160,11 @@ path.leaflet-interactive:focus{outline:none;}
         <div id="breakEvenSection">
           <div style="font-size:.72rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem">📊 À partir de quand gagnez-vous de l'argent ?</div>
           <div style="font-size:.63rem;color:var(--muted);margin-bottom:.4rem;line-height:1.4">Gain cumulé = cash-flows nets + capital remboursé − frais initiaux</div>
-          <div id="breakEvenLabel" style="font-size:.72rem;font-weight:600;margin-bottom:.4rem"></div>
+          <div id="breakEvenLabel" style="font-size:.72rem;font-weight:600;margin-bottom:.25rem"></div>
+          <div style="font-size:.62rem;color:var(--muted);margin-bottom:.4rem;display:flex;gap:1rem;flex-wrap:wrap">
+            <span><span style="display:inline-block;width:12px;height:2px;background:rgba(39,174,96,.9);vertical-align:middle;margin-right:.3rem;border-top:2px dashed rgba(39,174,96,.9)"></span>Ligne verte = break-even sans impôts</span>
+            <span><span style="display:inline-block;width:12px;height:2px;background:#f0b429;vertical-align:middle;margin-right:.3rem;border-top:2px dashed #f0b429"></span>Ligne dorée = break-even après impôts</span>
+          </div>
           <div style="position:relative;background:var(--ink);border-radius:var(--r);padding:1rem .75rem .75rem;height:400px">
             <canvas id="breakEvenChart"></canvas>
           </div>
@@ -7390,9 +7394,7 @@ function calcLocation(){
             borderColor: '#e8a020',
             backgroundColor: 'rgba(232,160,32,.12)',
             borderWidth: 2.5,
-            pointRadius: beCumul.map((_, i) => beLabels[i] === 'An ' + breakEvenYear ? 7 : 0),
-            pointStyle: beCumul.map((_, i) => beLabels[i] === 'An ' + breakEvenYear ? 'star' : 'circle'),
-            pointBackgroundColor: '#e8a020',
+            pointRadius: 0,
             pointHoverRadius: 5,
             tension: 0.4,
             fill: true,
@@ -7413,9 +7415,7 @@ function calcLocation(){
             backgroundColor: 'transparent',
             borderWidth: 1.5,
             borderDash: [6, 3],
-            pointRadius: beCumulNoTax.map((_, i) => beLabels[i] === 'An ' + breakEvenYearNoTax ? 7 : 0),
-            pointStyle: beCumulNoTax.map((_, i) => beLabels[i] === 'An ' + breakEvenYearNoTax ? 'star' : 'circle'),
-            pointBackgroundColor: 'rgba(39,174,96,.85)',
+            pointRadius: 0,
             pointHoverRadius: 5,
             tension: 0.4,
             fill: false,
@@ -7439,7 +7439,28 @@ function calcLocation(){
           x: { ticks: { color: 'rgba(255,255,255,.5)', font: { size: 9 }, maxTicksLimit: 12 }, grid: { color: 'rgba(255,255,255,.06)' } },
           y: { ticks: { color: 'rgba(255,255,255,.6)', font: { size: 9 }, callback: v => (v>=0?'+':'')+Math.round(v/1000)+'k €' }, grid: { color: 'rgba(255,255,255,.08)' }, border: { dash: [3,3] } }
         }
-      }
+      },
+      plugins: [{
+        id: 'breakEvenLines',
+        afterDraw(chart) {
+          const { ctx: c, scales: { x, y } } = chart;
+          const pts = [];
+          if(breakEvenYearNoTax) pts.push({ lbl: 'An ' + breakEvenYearNoTax, color: 'rgba(39,174,96,.9)' });
+          if(breakEvenYear)      pts.push({ lbl: 'An ' + breakEvenYear,      color: '#f0b429' });
+          pts.forEach(p => {
+            const idx = beLabels.indexOf(p.lbl);
+            if(idx < 0) return;
+            const xp = x.getPixelForIndex(idx);
+            c.save();
+            c.beginPath(); c.setLineDash([5,4]); c.strokeStyle = p.color; c.lineWidth = 1.5;
+            c.moveTo(xp, y.top); c.lineTo(xp, y.bottom); c.stroke();
+            c.setLineDash([]);
+            c.font = 'bold 9px Outfit,sans-serif'; c.fillStyle = p.color; c.textAlign = 'center';
+            c.fillText(p.lbl, xp, y.top + 11);
+            c.restore();
+          });
+        }
+      }]
     });
   }
 
