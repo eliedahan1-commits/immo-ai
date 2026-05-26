@@ -7813,6 +7813,31 @@ function calcEmprunt(){
       ${manque20>0?`<div style="margin:.8rem 0 .4rem;font-size:.62rem;color:rgba(255,255,255,.5);letter-spacing:.1em;text-transform:uppercase">💡 Il vous manque <strong>${fmt(manque20)}</strong> pour atteindre 20% d'apport</div><div style="font-size:.62rem;color:rgba(255,255,255,.4);margin-bottom:.4rem">Les banques exigent généralement 20% en apport personnel pour obtenir les meilleures conditions.</div>${[['Pour y arriver en 2 ans',fmt(epargne2a)+'/mois à épargner'],['Pour y arriver en 3 ans',fmt(epargne3a)+'/mois à épargner']].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}`:''}
       <div class="result-insight">Budget de <strong>${fmt(Math.round(prixMax/1000)*1000)}</strong> — consultez la page <strong>Prix des dernières transactions</strong> pour voir ce que vous pouvez acheter dans votre ville cible.</div>
     </div>`;
+  // ── Propagation vers les autres cartes (seulement si pas modifié manuellement) ──
+  function autoFill(id, val, forceFlag){
+    const el = document.getElementById(id);
+    if(el && (forceFlag || !el._userModified)) { el.value = val; }
+  }
+  const prixArrondi = Math.round(prixMax / 1000) * 1000;
+  const empruntArrondi = Math.round(empruntMax / 1000) * 1000;
+  // Mensualités
+  autoFill('mMontant', empruntArrondi);
+  autoFill('mApport',  apport);
+  const mDureeEl = document.getElementById('mDuree');
+  if(mDureeEl) mDureeEl.value = duree;
+  autoFill('mTaux', (taux*100).toFixed(2));
+  // Vrai coût du bien
+  const vcPrixEl = document.getElementById('vcPrix');
+  if(vcPrixEl && !vcPrixEl._userModified) vcPrixEl.value = prixArrondi;
+  // Investissement locatif
+  const lPrixEl = document.getElementById('lPrix');
+  if(lPrixEl && !lPrixEl._userModified) lPrixEl.value = prixArrondi;
+  autoFill('lApport', apport);
+  // Location vs Achat
+  const locPrixEl = document.getElementById('locPrixAchat');
+  if(locPrixEl && !locPrixEl._userModified) locPrixEl.value = prixArrondi;
+  autoFill('locApport', apport);
+
   setCard('emprunt', fmt(Math.round(prixMax/1000)*1000), 'Budget max · emprunt '+fmt(Math.round(empruntMax)), 'good');
 }
 
