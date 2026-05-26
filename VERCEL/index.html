@@ -1093,6 +1093,10 @@ path.leaflet-interactive:focus{outline:none;}
           <label class="lbl">GLI — Garantie loyers impayés (%/an) <span style="font-weight:400;color:var(--muted);font-size:.75em">— 0 = sans</span></label>
           <input class="inp" id="lGli" type="number" value="0" step="0.1" placeholder="2.5" />
           <label class="lbl">Taux de vacance locative (%)</label><input class="inp" id="lVacance" type="number" value="5" />
+          <label class="lbl">Revalorisation loyer (%/an) <span style="font-weight:400;color:var(--muted);font-size:.75em">IRL moyen ~1.5%</span></label>
+          <input class="inp" id="lRevaloLoyer" type="number" value="1.5" step="0.5" min="0" max="10" />
+          <label class="lbl">Revalorisation charges (%/an) <span style="font-weight:400;color:var(--muted);font-size:.75em">inflation ~2%</span></label>
+          <input class="inp" id="lRevaloCharges" type="number" value="2" step="0.5" min="0" max="10" />
           <label class="lbl">Apport (€)</label><input class="inp" id="lApport" type="number" placeholder="50000" />
           <label class="lbl">Durée prêt (ans)</label><input class="inp" id="lDuree" type="number" value="20" />
           <label class="lbl">Taux (%)</label><input class="inp" id="lTaux" type="number" value="3.4" step="0.1" oninput="this._userModified=true" />
@@ -7100,6 +7104,8 @@ function calcLocation(){
   if(hintEl) hintEl.textContent = '≈ '+notaire.toLocaleString('fr-FR')+' €';
   const travaux = parseFloat(document.getElementById('lTravaux').value)||0;
   const loyer   = parseFloat(document.getElementById('lLoyer').value)||0;
+  const revaloLoyer   = (parseFloat(document.getElementById('lRevaloLoyer')?.value)||1.5)/100;
+  const revaloCharges = (parseFloat(document.getElementById('lRevaloCharges')?.value)||2)/100;
   if(!loyer){toast('Veuillez saisir le loyer mensuel.','err');return;}
   const charges = parseFloat(document.getElementById('lCharges').value)||0;
   const taxe    = parseFloat(document.getElementById('lTaxe').value)||0;
@@ -7229,13 +7235,15 @@ function calcLocation(){
         capital -= km;
         if(capital < 0) capital = 0;
       }
+      const loyerAny = loyerEffectif * Math.pow(1 + revaloLoyer, y - 1);
+      const chargesAny = depensesHorsCredit * Math.pow(1 + revaloCharges, y - 1);
       let baseIRy = 0;
-      if(regime==='micro')           baseIRy = loyerEffectif * (1-(parseFloat(document.getElementById('lAbattMicro')?.value)||30)/100);
-      else if(regime==='reel')       baseIRy = Math.max(0, loyerEffectif - depensesHorsCredit - Math.round(interetsAn) - mensAssurL*12);
-      else if(regime==='lmnp_micro') baseIRy = loyerEffectif * (1-(parseFloat(document.getElementById('lAbattLmnp')?.value)||50)/100);
-      else if(regime==='lmnp_reel')  baseIRy = Math.max(0, loyerEffectif - depensesHorsCredit - Math.round(interetsAn) - mensAssurL*12);
+      if(regime==='micro')           baseIRy = loyerAny * (1-(parseFloat(document.getElementById('lAbattMicro')?.value)||30)/100);
+      else if(regime==='reel')       baseIRy = Math.max(0, loyerAny - chargesAny - Math.round(interetsAn) - mensAssurL*12);
+      else if(regime==='lmnp_micro') baseIRy = loyerAny * (1-(parseFloat(document.getElementById('lAbattLmnp')?.value)||50)/100);
+      else if(regime==='lmnp_reel')  baseIRy = Math.max(0, loyerAny - chargesAny - Math.round(interetsAn) - mensAssurL*12);
       const fiscAn = Math.round(baseIRy * (tmi + PS_RATE));
-      const cf = Math.round((loyerEffectif - depensesHorsCredit - fiscAn) / 12 - mens);
+      const cf = Math.round((loyerAny - chargesAny - fiscAn) / 12 - mens);
       labels.push('An ' + y);
       cfAnnuel.push(cf);
     }
@@ -7337,17 +7345,18 @@ function calcLocation(){
       capitalAnY = Math.round(capitalAnY);
 
       // Fiscalité réelle de l'année (intérêts dégressifs)
+      const loyerAnY   = loyerEffectif * Math.pow(1 + revaloLoyer, y - 1);
+      const chargesAnY = depensesHorsCredit * Math.pow(1 + revaloCharges, y - 1);
       let baseIRy = 0;
       const abattMicro = parseFloat(document.getElementById('lAbattMicro')?.value)||30;
       const abattLmnp  = parseFloat(document.getElementById('lAbattLmnp')?.value)||50;
-      if(regime==='micro')        baseIRy = loyerEffectif * (1 - abattMicro/100);
-      else if(regime==='reel')    baseIRy = Math.max(0, loyerEffectif - depensesHorsCredit - Math.round(interetsAnY) - mensAssurL*12);
-      else if(regime==='lmnp_micro') baseIRy = loyerEffectif * (1 - abattLmnp/100);
-      else if(regime==='lmnp_reel')  baseIRy = Math.max(0, loyerEffectif - depensesHorsCredit - Math.round(interetsAnY) - mensAssurL*12);
+      if(regime==='micro')        baseIRy = loyerAnY * (1 - abattMicro/100);
+      else if(regime==='reel')    baseIRy = Math.max(0, loyerAnY - chargesAnY - Math.round(interetsAnY) - mensAssurL*12);
+      else if(regime==='lmnp_micro') baseIRy = loyerAnY * (1 - abattLmnp/100);
+      else if(regime==='lmnp_reel')  baseIRy = Math.max(0, loyerAnY - chargesAnY - Math.round(interetsAnY) - mensAssurL*12);
       const fiscAnY = Math.round(baseIRy * (tmi + PS_RATE));
-
-      const cfNetAn  = (loyerEffectif - depensesHorsCredit - fiscAnY) - mens*12;
-      const cfBrutAn = (loyerEffectif - depensesHorsCredit) - mens*12;
+      const cfNetAn  = (loyerAnY - chargesAnY - fiscAnY) - mens*12;
+      const cfBrutAn = (loyerAnY - chargesAnY) - mens*12;
 
       cumBE      += cfNetAn  + capitalAnY;
       cumBENoTax += cfBrutAn + capitalAnY;
