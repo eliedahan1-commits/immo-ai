@@ -3893,7 +3893,7 @@ function showDVFDetail(){
     window._dvfChart=new Chart(ctx,{type:'bar',plugins:[ChartDataLabels],data:{labels,datasets:[{label:'Transactions',data:counts,backgroundColor:'rgba(184,131,42,.6)',borderColor:'#b8832a',borderWidth:1,borderRadius:4}]},
       options:{plugins:{legend:{display:false},datalabels:{anchor:'end',align:'top',color:'#8a7d68',font:{size:9,weight:'600'}},title:{display:true,text:'Distribution des prix (€/m²)',font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68'}},
         scales:{x:{ticks:{font:{size:8},color:'#8a7d68'},grid:{display:false}},y:{ticks:{font:{size:9},color:'#8a7d68'},grid:{color:'rgba(0,0,0,.05)'}}},
-        animation:{duration:300},
+        animation:{duration:300},responsive:false,
       }
     });
   }
@@ -3925,7 +3925,7 @@ function showDVFDetail(){
     ]},options:{
       plugins:{legend:{display:true,labels:{font:{size:10,family:'Outfit,sans-serif'},color:'#8a7d68',boxWidth:14}},datalabels:{display:false},title:{display:true,text:'Évolution mensuelle des prix (€/m²)',font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68'}},
       scales:{x:{ticks:{font:{size:8},color:'#8a7d68'},grid:{display:false}},y:{ticks:{font:{size:9},color:'#8a7d68',callback:v=>v?v.toLocaleString('fr-FR'):''},grid:{color:'rgba(0,0,0,.05)'}}},
-      animation:{duration:300},
+      animation:{duration:300},responsive:false,
     }});
   }
   const btnStyle = 'padding:.25rem .7rem;font-size:.72rem;border:1px solid var(--border);background:var(--white);border-radius:3px;cursor:pointer;margin-right:.3rem';
@@ -6300,6 +6300,7 @@ async function runProfil(){
             }
           },
           animation:{duration:700},
+          responsive:false,
           layout:{padding:20},
           onClick(evt, elements, chart){
             // Clic sur un point du dataset
