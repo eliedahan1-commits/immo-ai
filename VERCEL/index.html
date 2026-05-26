@@ -7849,7 +7849,8 @@ function calcEmprunt(){
   autoFill('mApport',  apport);
   const mDureeEl = document.getElementById('mDuree');
   if(mDureeEl) mDureeEl.value = duree;
-  autoFill('mTaux', (taux*100).toFixed(2));
+  autoFill('mTaux',  (taux*100).toFixed(2));
+  autoFill('mAssur', (assur*100).toFixed(2));
   // Vrai coût du bien
   const vcPrixEl = document.getElementById('vcPrix');
   if(vcPrixEl && !vcPrixEl._userModified) vcPrixEl.value = prixArrondi;
