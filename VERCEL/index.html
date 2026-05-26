@@ -1086,6 +1086,10 @@ path.leaflet-interactive:focus{outline:none;}
             <span>Financés par la banque <span style="color:var(--muted);font-size:.72rem">(augmente le crédit — rare en investissement locatif)</span></span>
           </label>
           <label class="lbl">Travaux initiaux (€)</label><input class="inp" id="lTravaux" type="number" placeholder="0" />
+          <label style="display:flex;align-items:center;gap:.6rem;font-size:.78rem;color:var(--text);margin-top:.3rem;margin-bottom:.6rem;cursor:pointer;padding:.5rem .6rem;background:var(--warm);border-radius:var(--r);border:1px solid var(--border)">
+            <input type="checkbox" id="lTravauxFin" checked style="width:15px;height:15px;accent-color:var(--gold);flex-shrink:0" />
+            <span>Travaux financés par la banque <span style="color:var(--muted);font-size:.72rem">(décocher = apport / comptant)</span></span>
+          </label>
           <label class="lbl">Loyer mensuel charges comprises (€)</label><input class="inp" id="lLoyer" type="number" placeholder="1200" />
           <label class="lbl">Charges non récupérables /mois (€) <span style="font-weight:400;font-size:.8em;color:var(--muted)">copro, entretien</span></label><input class="inp" id="lCharges" type="number" placeholder="150" />
           <label class="lbl">Taxe foncière /an (€)</label><input class="inp" id="lTaxe" type="number" placeholder="1200" />
@@ -1295,6 +1299,12 @@ path.leaflet-interactive:focus{outline:none;}
         <label style="display:flex;align-items:center;gap:.6rem;font-size:.78rem;color:var(--text);margin-top:.3rem;margin-bottom:.8rem;cursor:pointer;padding:.5rem .6rem;background:var(--warm);border-radius:var(--r);border:1px solid var(--border)">
           <input type="checkbox" id="mNotaireFin" style="width:15px;height:15px;accent-color:var(--gold);flex-shrink:0" />
           <span>Financés par la banque <span style="color:var(--muted);font-size:.72rem">(augmente le crédit)</span></span>
+        </label>
+        <label class="lbl" style="margin-top:.5rem">Travaux (€) <span style="font-weight:400;color:var(--muted);font-size:.75em">— rénovation, rafraîchissement…</span></label>
+        <input class="inp" id="mTravaux" type="number" placeholder="0" />
+        <label style="display:flex;align-items:center;gap:.6rem;font-size:.78rem;color:var(--text);margin-top:.3rem;margin-bottom:.8rem;cursor:pointer;padding:.5rem .6rem;background:var(--warm);border-radius:var(--r);border:1px solid var(--border)">
+          <input type="checkbox" id="mTravauxFin" style="width:15px;height:15px;accent-color:var(--gold);flex-shrink:0" />
+          <span>Travaux financés par la banque <span style="color:var(--muted);font-size:.72rem">(augmente le crédit)</span></span>
         </label>
         <button class="btn btn-dark btn-full" onclick="calcMensualites()">✦ Calculer ma mensualité</button>
         <div style="margin-top:1rem;text-align:center;font-size:.72rem;color:var(--muted)">
@@ -6680,7 +6690,8 @@ function calcVraiCout(){
   const chargesAn = chargesMois * 12;
   const taxe      = parseFloat(document.getElementById('vcTaxe').value)||0;
   // Récupérer le financement notaire depuis la simulation mensualités
-  const notFin    = window._mNotaireFin || false;
+  const notFin      = window._mNotaireFin || false;
+  const travauxFin  = window._mTravauxFin || false;
 
   if(!prix){ toast("Renseignez le prix d'achat.",'err'); return; }
 
@@ -6701,7 +6712,7 @@ function calcVraiCout(){
   const rows = [
     ["Prix d'achat", fmt(prix)],
     !notFin ? ["Frais de notaire (" + notPct + "%)", fmt(notaire)] : null,
-    travaux > 0 ? ["Travaux", fmt(travaux)] : null,
+    travaux > 0 ? ["Travaux " + (travauxFin ? "(financés par banque)" : "(apport / comptant)"), fmt(travaux)] : null,
     chargesAn > 0 ? ["Charges copro sur " + duree + " ans", fmt(chargesTotal)] : null,
     taxe > 0 ? ["Taxe foncière sur " + duree + " ans", fmt(taxeTotal)] : null,
     (montant > 0 && coutCredit > 0) ? ["Intérêts du crédit", fmt(coutCredit)] : null,
@@ -6738,7 +6749,10 @@ function calcMensualites(){
   const notairePct = parseFloat(document.getElementById('mNotairePct').value)||7.5;
   const notaireFin = document.getElementById('mNotaireFin')?.checked||false;
   const notaireMontant = notaireFin ? Math.round((montant+apport)*notairePct/100) : 0;
-  const montantEff = montant + notaireMontant;
+  const travauxM = (v=>isNaN(v)?0:v)(parseFloat(document.getElementById("mTravaux")?.value));
+  const travauxFin = document.getElementById("mTravauxFin")?.checked||false;
+  const travauxMontant = travauxFin ? travauxM : 0;
+  const montantEff = montant + notaireMontant + travauxMontant;
   const n = duree * 12;
   const t = taux / 12;
   const factor = t / (1 - Math.pow(1+t, -n));
@@ -6778,6 +6792,7 @@ function calcMensualites(){
         ['─── Coût total du crédit', ''],
         ['Capital emprunté', fmt(montantEff)],
         ...(notaireFin ? [['dont frais de notaire ('+notairePct+'%)', fmt(notaireMontant)]] : []),
+        ...(travauxFin && travauxM > 0 ? [['dont travaux (financés par banque)', fmt(travauxMontant)]] : []),
         ['Coût des intérêts', fmt(Math.round(coutCredit))],
         ['Coût assurance', fmt(coutAssur)],
         ['Coût total (capital + intérêts + assurance)', fmt(Math.round(coutTotal))],
@@ -6794,12 +6809,17 @@ function calcMensualites(){
   window._mNotaireFin    = notaireFin;
   window._mNotaireMontant= notaireMontant;
   window._mNotairePct    = notairePct;
+  window._mTravauxFin    = travauxFin;
+  window._mTravauxMontant= travauxMontant;
+  window._mTravauxRaw    = travauxM;
   // Sync notaire % dans vrai coût
   const vcNotEl = document.getElementById('vcNotaire');
   if(vcNotEl) vcNotEl.value = notairePct;
-  // Auto-remplir le prix dans la section vrai coût
+  // Auto-remplir le prix et les travaux dans la section vrai coût
   const vcPrixEl = document.getElementById('vcPrix');
   if(vcPrixEl && !vcPrixEl._userModified) vcPrixEl.value = Math.round(montant + apport) || '';
+  const vcTravEl = document.getElementById('vcTravaux');
+  if(vcTravEl && !vcTravEl._userModifiedVC && travauxM > 0) vcTravEl.value = travauxM;
 
   // ── Tableau d'amortissement ──
   const tbody = document.getElementById('mAmortBody');
@@ -7149,9 +7169,10 @@ function calcLocation(){
   const tmi     = (parseFloat(document.getElementById('lTmi').value)||30)/100;
 
   const notaireFin  = document.getElementById('lNotaireFin')?.checked || false;
+  const travauxFin  = document.getElementById('lTravauxFin')?.checked ?? true;
   const investTotal = prix + notaire + travaux;
-  // Emprunt : notaire comptant par défaut (cas courant investissement locatif)
-  const empruntBase = notaireFin ? (investTotal - apport) : (prix + travaux - apport);
+  // Emprunt : selon les toggles notaire et travaux
+  const empruntBase = prix - apport + (notaireFin ? notaire : 0) + (travauxFin ? travaux : 0);
   const emprunt_notaireComptant = notaireFin ? 0 : notaire; // cash sorti en plus de l'apport
   const loyerEffectif = loyer * 12 * (1 - vacance);
   const fraisGestion  = loyerEffectif * gestion;
@@ -7207,7 +7228,7 @@ function calcLocation(){
       <div style="margin:.5rem 0 .3rem;font-size:.62rem;color:rgba(255,255,255,.5);letter-spacing:.1em;text-transform:uppercase">🏦 Financement</div>
       ${apport>0?`<div class="result-row" style="font-size:.72rem"><span>Apport personnel</span><span>${fmt(apport)}</span></div>`:''}
       ${!notaireFin&&notaire>0?`<div class="result-row" style="font-size:.72rem"><span>Notaire (comptant)</span><span>${fmt(Math.round(notaire))}</span></div>`:''}
-      ${apport>0||(!notaireFin&&notaire>0)?`<div class="result-row" style="font-size:.72rem;color:rgba(255,255,255,.5)"><span>Cash sorti total</span><span>${fmt(apport + (notaireFin?0:Math.round(notaire)))}</span></div>`:''}
+      ${apport>0||(!notaireFin&&notaire>0)||(!travauxFin&&travaux>0)?`<div class="result-row" style="font-size:.72rem;color:rgba(255,255,255,.5)"><span>Cash sorti total</span><span>${fmt(apport + (notaireFin?0:Math.round(notaire)) + (travauxFin?0:travaux))}</span></div>`:''}
       <div class="result-row" style="font-weight:700;font-size:.78rem;border-top:1px solid rgba(255,255,255,.12);padding-top:.35rem"><span>Montant emprunté</span><span>${fmt(emprunt)}</span></div>
       ${[
         ['Loyer brut /an', fmt(Math.round(loyer*12))],
