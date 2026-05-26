@@ -1157,7 +1157,7 @@ path.leaflet-interactive:focus{outline:none;}
     <div id="chartsWrapper" style="display:none;margin-top:1.5rem;display:none">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem" class="charts-grid-2col">
         <!-- Break-even -->
-        <div id="breakEvenSection">
+        <div id="breakEvenSection" style="display:flex;flex-direction:column">
           <div style="font-size:.72rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem">📊 À partir de quand gagnez-vous de l'argent ?</div>
           <div style="font-size:.63rem;color:var(--muted);margin-bottom:.4rem;line-height:1.4">Gain cumulé = cash-flows nets + capital remboursé − frais initiaux</div>
           <div id="breakEvenLabel" style="font-size:.72rem;font-weight:600;margin-bottom:.25rem"></div>
@@ -1165,19 +1165,20 @@ path.leaflet-interactive:focus{outline:none;}
             <span><span style="display:inline-block;width:12px;height:2px;background:rgba(39,174,96,.9);vertical-align:middle;margin-right:.3rem;border-top:2px dashed rgba(39,174,96,.9)"></span>Ligne verte = break-even sans impôts</span>
             <span><span style="display:inline-block;width:12px;height:2px;background:#f0b429;vertical-align:middle;margin-right:.3rem;border-top:2px dashed #f0b429"></span>Ligne dorée = break-even après impôts</span>
           </div>
-          <div id="breakEvenChartContainer" style="position:relative;background:var(--ink);border-radius:var(--r);padding:1rem .75rem .75rem;height:400px">
+          <div id="breakEvenChartContainer" style="position:relative;background:var(--ink);border-radius:var(--r);padding:1rem .75rem .75rem;height:400px;margin-top:auto">
+            <button onclick="(function(){var w=document.getElementById('breakEvenChartContainer');if(!document.fullscreenElement){w.requestFullscreen&&w.requestFullscreen();w.style.borderRadius='0';w.style.height='100vh';w.style.padding='1.5rem';}else{document.exitFullscreen&&document.exitFullscreen();w.style.borderRadius='';w.style.height='400px';w.style.padding='';}document.onfullscreenchange=function(){if(!document.fullscreenElement&&window._breakEvenChart){window._breakEvenChart.resize();}};})()" style="position:absolute;top:.5rem;right:.5rem;font-size:.7rem;padding:.2rem .55rem;border:1px solid rgba(255,255,255,.2);border-radius:4px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.55);cursor:pointer;z-index:2" title="Plein écran">⛶ Plein écran</button>
             <canvas id="breakEvenChart"></canvas>
           </div>
         </div>
         <!-- Cashflow -->
-        <div id="cashflowSection">
+        <div id="cashflowSection" style="display:flex;flex-direction:column">
           <div style="font-size:.72rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem">📈 Cash-flow mensuel net après impôts</div>
           <div style="font-size:.63rem;color:var(--muted);margin-bottom:.4rem;line-height:1.4">
             Chaque barre = loyers − mensualité − charges − impôts.<br>
             <span style="color:#27ae60;font-weight:600">Vert</span> = excédent. <span style="color:#e74c3c;font-weight:600">Rouge</span> = effort de poche.<br>
             <span id="cashflowDynComment"></span>
           </div>
-          <div style="position:relative;background:var(--ink);border-radius:var(--r);padding:1rem .75rem .75rem;height:400px">
+          <div style="position:relative;background:var(--ink);border-radius:var(--r);padding:1rem .75rem .75rem;height:400px;margin-top:auto">
             <canvas id="cashflowChart"></canvas>
           </div>
         </div>
@@ -7389,9 +7390,13 @@ function calcLocation(){
         const meta0 = chart.getDatasetMeta(0);
         if(!meta0 || !meta0.data) return;
         const c = chart.ctx;
+        const sameYear = breakEvenYear === breakEvenYearNoTax;
         const pts = [];
-        if(breakEvenYearNoTax) pts.push({ idx: beLabels.indexOf('An ' + breakEvenYearNoTax), color: 'rgba(39,174,96,.9)', txt: 'An ' + breakEvenYearNoTax + ' (sans impôts)' });
-        if(breakEvenYear)      pts.push({ idx: beLabels.indexOf('An ' + breakEvenYear),      color: '#f0b429',           txt: 'An ' + breakEvenYear + ' (après impôts)' });
+        if(breakEvenYearNoTax) pts.push({ idx: beLabels.indexOf('An ' + breakEvenYearNoTax), color: 'rgba(39,174,96,.9)', txt: sameYear ? 'An ' + breakEvenYearNoTax + ' (les deux)' : 'An ' + breakEvenYearNoTax + ' (sans impôts)', offset: 0 });
+        if(breakEvenYear && !sameYear) pts.push({ idx: beLabels.indexOf('An ' + breakEvenYear), color: '#f0b429', txt: 'An ' + breakEvenYear + ' (après impôts)', offset: 0 });
+        else if(breakEvenYear && sameYear) pts[0].color = '#f0b429';
+        // Si même index, décaler le label du 2e
+        if(pts.length === 2 && pts[0].idx === pts[1].idx) { pts[0].offset = -4; pts[1].offset = 14; }
         pts.forEach(p => {
           if(p.idx < 0 || !meta0.data[p.idx]) return;
           const xp = meta0.data[p.idx].x;
@@ -7400,7 +7405,7 @@ function calcLocation(){
           c.beginPath(); c.moveTo(xp, chart.chartArea.top); c.lineTo(xp, chart.chartArea.bottom); c.stroke();
           c.setLineDash([]);
           c.fillStyle = p.color; c.font = 'bold 9px Outfit,sans-serif'; c.textAlign = 'center';
-          c.fillText(p.txt, xp, chart.chartArea.top + 11);
+          c.fillText(p.txt, xp + p.offset, chart.chartArea.top + 11);
           c.restore();
         });
       }
