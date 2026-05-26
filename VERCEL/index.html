@@ -2401,7 +2401,7 @@ function renderCards(props, coords){
       title: '💰 Mon financement',
       cards: [
         {id:'emprunt',     icon:'🏦', label:"Capacité d'emprunt",                        value:'Simuler →',  sub:'Revenus, apport, durée',       source:'Calcul', action:"go('emprunt')"},
-        {id:'mensualites', icon:'🧮', label:'Achat : Mensualités & coût total du crédit', value:'Calculer →', sub:'Mensualités, crédit, vrai coût', source:'Calcul', action:"go('mensualites')"},
+        {id:'mensualites', icon:'💳', label:'Achat : Mensualités & coût total du crédit', value:'Calculer →', sub:'Mensualités, crédit, vrai coût', source:'Calcul', action:"go('mensualites')"},
         {id:'cout',        icon:'🔑', label:'Investissement locatif',                     value:'Simuler →',  sub:'Rendement, cashflow, fiscalité', source:'Calcul', action:"go('cout')"},
         {id:'location',    icon:'🏠', label:'Location : budget & comparaison',            value:'Simuler →',  sub:'Budget loyer, louer vs acheter', source:'Calcul', action:"go('location')"},
         {id:'aides',       icon:'🎁', label:"Aides à l'achat (PTZ, APL…)",               value:'Simuler →',  sub:'PTZ, Action Logement...',        source:'État',   action:"go('aides')"},
@@ -5412,13 +5412,19 @@ function showINSEEDetail(){
       const scoreCol = scoreNum>=7?"#27ae60":scoreNum>=4?"#f0b429":"#c0392b";
       const rows2 = sorted2.map(([ind,v])=>{
         const ref = natRef(ind);
-        let cmp = "";
-        if(ref&&v.taux!=null){ const r=v.taux/ref; cmp=r>1.3?`<span style="color:#c0392b;font-weight:700">↑</span>`:r<0.7?`<span style="color:#27ae60;font-weight:700">↓</span>`:`<span style="color:var(--muted)">≈</span>`; }
+        let dotColor = "var(--muted)", dotTitle = "";
+        if(ref&&v.taux!=null){
+          const r=v.taux/ref;
+          if(r>1.3){ dotColor="#c0392b"; dotTitle="Au-dessus de la moyenne nationale"; }
+          else if(r<0.7){ dotColor="#27ae60"; dotTitle="En dessous de la moyenne nationale"; }
+          else { dotColor="#e8a020"; dotTitle="Dans la moyenne nationale"; }
+        }
+        const dot = ref!=null ? `<span title="${dotTitle}" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${dotColor};margin-right:.4rem;flex-shrink:0;vertical-align:middle"></span>` : `<span style="display:inline-block;width:9px;margin-right:.4rem"></span>`;
         const tauxStr = v.taux!=null?`${v.taux.toFixed(1)} ‰`:"N/A";
         const refStr = ref!=null?`<span style="color:var(--muted);font-size:.68rem">(moy. ${ref} ‰)</span>`:"";
         return `<div style="display:flex;justify-content:space-between;align-items:center;padding:.26rem 0;border-bottom:1px solid var(--border);font-size:.76rem">
           <span>${getIcon2(ind)} ${ind.length>40?ind.slice(0,37)+"…":ind}</span>
-          <span style="flex-shrink:0;margin-left:.4rem;text-align:right"><strong>${tauxStr}</strong> ${cmp} ${refStr}</span>
+          <span style="flex-shrink:0;margin-left:.4rem;text-align:right;display:flex;align-items:center;gap:.2rem">${dot}<strong>${tauxStr}</strong> ${refStr}</span>
         </div>`;}).join("");
       window._crimeChartData = {
         labels: sorted2.map(([ind])=>ind.length>28?ind.slice(0,25)+"…":ind),
