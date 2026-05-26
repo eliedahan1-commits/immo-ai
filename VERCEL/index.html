@@ -1170,7 +1170,8 @@ path.leaflet-interactive:focus{outline:none;}
           <div style="font-size:.72rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem">📈 Cash-flow mensuel net après impôts</div>
           <div style="font-size:.63rem;color:var(--muted);margin-bottom:.4rem;line-height:1.4">
             Chaque barre = loyers − mensualité − charges − impôts.<br>
-            <span style="color:#27ae60;font-weight:600">Vert</span> = excédent. <span style="color:#e74c3c;font-weight:600">Rouge</span> = effort de poche. Le cash-flow se dégrade car les intérêts baissent → moins de déductions → impôts croissants.
+            <span style="color:#27ae60;font-weight:600">Vert</span> = excédent. <span style="color:#e74c3c;font-weight:600">Rouge</span> = effort de poche.<br>
+            <span id="cashflowDynComment"></span>
           </div>
           <div style="position:relative;background:var(--ink);border-radius:var(--r);padding:1rem .75rem .75rem;height:400px">
             <canvas id="cashflowChart"></canvas>
@@ -5271,6 +5272,7 @@ function showMeteoDetail(){
           <span style="font-size:.78rem;color:var(--muted);font-weight:500">🌬️ Qualité de l\'air :</span>
           <span style="background:${aq.color};color:#fff;font-size:.78rem;font-weight:700;padding:.25rem .7rem;border-radius:20px">${aq.label}</span>
           <span style="font-size:.72rem;color:var(--muted)">IQA ${aq.aqi}/100</span>
+          <button onclick="closePanel();setTimeout(()=>showQualiteAirDetail(),120)" style="margin-left:.4rem;font-size:.68rem;padding:.18rem .55rem;border:1px solid var(--border);border-radius:12px;background:transparent;color:var(--muted);cursor:pointer">Détail →</button>
         </div>
         <div style="font-size:.65rem;color:var(--muted);margin-bottom:.3rem">Seuils OMS · vert = OK · orange = modéré · rouge = élevé</div>
         ${barHtml}
@@ -7282,6 +7284,26 @@ function calcLocation(){
         }
       }
     });
+    // Commentaire dynamique selon régime et tendance
+    const cfFirst = cfAnnuel[0] || 0;
+    const cfLast  = cfAnnuel[cfAnnuel.length - 1] || 0;
+    const cfDegrade = cfLast < cfFirst - 10;
+    const cfAmeliore = cfLast > cfFirst + 10;
+    const cfStable = !cfDegrade && !cfAmeliore;
+    let dynComment = "";
+    const isReel = regime === "reel" || regime === "lmnp_reel";
+    if(isReel) {
+      if(cfDegrade) dynComment = "Les intérêts déductibles diminuent chaque année → base imposable croissante → effort mensuel qui s'alourdit progressivement.";
+      else if(cfAmeliore) dynComment = "Malgré des intérêts déductibles décroissants, la hausse potentielle des loyers améliore la tendance.";
+      else dynComment = "Régime réel : les intérêts déductibles baissent au fil du temps mais le cash-flow reste relativement stable ici.";
+    } else {
+      if(cfDegrade) dynComment = "Abattement forfaitaire constant — la dégradation reflète une charge ou un taux d'actualisation, pas les intérêts.";
+      else if(cfAmeliore) dynComment = "Abattement forfaitaire constant → impôts stables, le cash-flow s'améliore sur la durée.";
+      else dynComment = "Abattement forfaitaire constant (" + (regime === "lmnp_micro" ? "50% LMNP" : "30% micro-foncier") + ") → impôts stables, effort mensuel constant.";
+    }
+    const dynEl = document.getElementById("cashflowDynComment");
+    if(dynEl) dynEl.textContent = dynComment;
+
     document.getElementById('cashflowSection').style.display = '';
     document.getElementById('chartsWrapper').style.display = 'block';
   }
@@ -7331,6 +7353,26 @@ function calcLocation(){
       beLabels.push('An ' + y);
       beCumul.push(Math.round(cumBE));
       beCumulNoTax.push(Math.round(cumBENoTax));
+    }
+
+    // Label dynamique break-even
+    const beLabel = document.getElementById('breakEvenLabel');
+    if(beLabel) {
+      if(breakEvenYear && breakEvenYearNoTax) {
+        const ecart = breakEvenYear - breakEvenYearNoTax;
+        const ecartTxt = ecart > 0 ? ` (${ecart} an${ecart>1?'s':''} de délai dû à la fiscalité)` : '';
+        beLabel.innerHTML = `✅ Rentable après impôts à l'<strong>an ${breakEvenYear}</strong>${ecartTxt} · Sans impôts : an ${breakEvenYearNoTax}`;
+        beLabel.style.color = 'var(--gold)';
+      } else if(breakEvenYearNoTax && !breakEvenYear) {
+        beLabel.innerHTML = "⚠️ L'investissement n'atteint pas l'équilibre après impôts sur la durée simulée · Sans impôts : an " + breakEvenYearNoTax;
+        beLabel.style.color = '#e74c3c';
+      } else if(!breakEvenYearNoTax && !breakEvenYear) {
+        beLabel.innerHTML = "⚠️ L'investissement reste déficitaire sur toute la durée simulée.";
+        beLabel.style.color = '#e74c3c';
+      } else {
+        beLabel.innerHTML = "✅ Rentable dès l'<strong>an " + breakEvenYear + "</strong> après impôts";
+        beLabel.style.color = 'var(--gold)';
+      }
     }
 
     if(window._breakEvenChart){ window._breakEvenChart.destroy(); window._breakEvenChart = null; }
