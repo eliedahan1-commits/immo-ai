@@ -6773,7 +6773,7 @@ function calcMensualites(){
   document.getElementById('resMensualites').innerHTML = `
     <div class="result-dark">
       <div style="font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem">💳 Votre mensualité totale</div>
-      <div class="result-n">${fmt(mensTotal)} <span style="font-size:1rem;font-weight:400">€/mois</span></div>
+      <div class="result-n">${fmt(mensTotal)} <span style="font-size:1rem;font-weight:400">/mois</span></div>
       <div style="display:flex;gap:.5rem;margin:.9rem 0 .3rem;font-size:.68rem;color:rgba(255,255,255,.55)">
         <span style="flex:${pCap};background:#2a9d8f;height:8px;border-radius:4px 0 0 4px"></span>
         <span style="flex:${pInt};background:#e63946;height:8px"></span>
@@ -6838,20 +6838,20 @@ function calcMensualites(){
       totCap+=capAn; totInt+=intAn; totAss+=assAn;
       rows.push('<tr style="border-bottom:1px solid var(--border)">'
         +'<td style="padding:.4rem .75rem">Année '+yr+'</td>'
-        +'<td style="padding:.4rem .75rem;text-align:right">'+fmt(mensCredit+mensAssur)+' €</td>'
-        +'<td style="padding:.4rem .75rem;text-align:right;color:#2a9d8f">'+fmt(capAn)+' €</td>'
-        +'<td style="padding:.4rem .75rem;text-align:right;color:#e63946">'+fmt(intAn)+' €</td>'
-        +'<td style="padding:.4rem .75rem;text-align:right;color:var(--muted)">'+fmt(assAn)+' €</td>'
-        +'<td style="padding:.4rem .75rem;text-align:right">'+fmt(Math.max(0,Math.round(restant)))+' €</td>'
+        +'<td style="padding:.4rem .75rem;text-align:right">'+fmt(mensCredit+mensAssur)+'</td>'
+        +'<td style="padding:.4rem .75rem;text-align:right;color:#2a9d8f">'+fmt(capAn)+'</td>'
+        +'<td style="padding:.4rem .75rem;text-align:right;color:#e63946">'+fmt(intAn)+'</td>'
+        +'<td style="padding:.4rem .75rem;text-align:right;color:var(--muted)">'+fmt(assAn)+'</td>'
+        +'<td style="padding:.4rem .75rem;text-align:right">'+fmt(Math.max(0,Math.round(restant)))+'</td>'
         +'</tr>');
     }
     tbody.innerHTML = rows.join('');
     tfoot.innerHTML = '<tr style="background:var(--warm);font-weight:600">'
       +'<td style="padding:.5rem .75rem">Total</td>'
       +'<td style="padding:.5rem .75rem;text-align:right">—</td>'
-      +'<td style="padding:.5rem .75rem;text-align:right;color:#2a9d8f">'+fmt(totCap)+' €</td>'
-      +'<td style="padding:.5rem .75rem;text-align:right;color:#e63946">'+fmt(totInt)+' €</td>'
-      +'<td style="padding:.5rem .75rem;text-align:right;color:var(--muted)">'+fmt(totAss)+' €</td>'
+      +'<td style="padding:.5rem .75rem;text-align:right;color:#2a9d8f">'+fmt(totCap)+'</td>'
+      +'<td style="padding:.5rem .75rem;text-align:right;color:#e63946">'+fmt(totInt)+'</td>'
+      +'<td style="padding:.5rem .75rem;text-align:right;color:var(--muted)">'+fmt(totAss)+'</td>'
       +'<td style="padding:.5rem .75rem;text-align:right">0 €</td>'
       +'</tr>';
     document.getElementById('mAmortSection').style.display = '';
@@ -7332,7 +7332,7 @@ function calcLocation(){
           tooltip: {
             callbacks: {
               title: ctx => ctx[0].label,
-              label: ctx => " Cash-flow : " + (ctx.parsed.y > 0 ? "+" : "") + fmt(ctx.parsed.y) + " €/mois"
+              label: ctx => " Cash-flow : " + (ctx.parsed.y > 0 ? "+" : "") + fmt(ctx.parsed.y) + "/mois"
             }
           }
         },
@@ -7614,12 +7614,12 @@ function calcNegoOffre(){
         <span style="font-size:.72rem;font-weight:600;color:var(--ink)">${s.label}</span>
       </div>
       <div style="font-size:1.1rem;font-weight:700;color:${s.pct===0?'var(--ink)':s.color};margin-bottom:.1rem">${fmt(newPrix)} €</div>
-      ${s.pct>0?'<div style="font-size:.7rem;color:'+s.color+';font-weight:600;margin-bottom:.6rem">économie '+fmt(saving)+' €</div>':'<div style="margin-bottom:.6rem"></div>'}
+      ${s.pct>0?'<div style="font-size:.7rem;color:'+s.color+';font-weight:600;margin-bottom:.6rem">économie '+fmt(saving)+'</div>':'<div style="margin-bottom:.6rem"></div>'}
       <div style="font-size:.72rem;color:var(--muted);display:flex;flex-direction:column;gap:.25rem">
         <div style="display:flex;justify-content:space-between"><span>Frais notaire (~7,5%)</span><span style="font-weight:600;color:var(--ink)">${fmt(newNotaire)} €</span></div>
         <div style="display:flex;justify-content:space-between"><span>Emprunt (hors apport)</span><span style="font-weight:600;color:var(--ink)">${fmt(newEmprunt)} €</span></div>
         <div style="display:flex;justify-content:space-between"><span>Mensualité estimée</span><span style="font-weight:600;color:var(--ink)">${fmt(newMens)} €/mois</span></div>
-        ${s.pct>0?'<div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:.25rem;margin-top:.1rem"><span>Économie sur le prix</span><span style="font-weight:700;color:'+s.color+'">'+fmt(saving)+' €</span></div>':''}
+        ${s.pct>0?'<div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:.25rem;margin-top:.1rem"><span>Économie sur le prix</span><span style="font-weight:700;color:'+s.color+'">'+fmt(saving)+'</span></div>':''}
       </div>
     </div>`;
   });
@@ -7800,17 +7800,17 @@ function calcEmprunt(){
       <div style="font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem">🏦 Votre capacité</div>
       <div class="result-n">${fmt(Math.round(prixMax/1000)*1000)}</div>
       <div style="font-size:.7rem;color:rgba(255,255,255,.7);text-align:center;margin-bottom:1rem">Budget d'achat total estimé (emprunt + apport)</div>
-      ${[['Mensualité max (35%)',fmt(Math.round(mensMax))+'/mois'],['dont capital + intérêts',fmt(mensPret)+' €/mois'],['dont assurance emprunteur',fmt(mensAssur)+' €/mois'],['Capacité d\'emprunt (hors apport)',fmt(Math.round(empruntMax))+' €'],['Apport personnel',fmt(apport)+' €']].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
+      ${[['Mensualité max (35%)',fmt(Math.round(mensMax))+'/mois'],['dont capital + intérêts',fmt(mensPret)+'/mois'],['dont assurance emprunteur',fmt(mensAssur)+'/mois'],['Capacité d\'emprunt (hors apport)',fmt(Math.round(empruntMax))],['Apport personnel',fmt(apport)]].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
       <div style="margin:.8rem 0 .2rem;font-size:.62rem;color:rgba(255,255,255,.5);letter-spacing:.1em;text-transform:uppercase">📊 Stress test — capacité d'emprunt selon le taux</div>
       <div style="font-size:.67rem;color:rgba(255,255,255,.38);margin-bottom:.45rem">À mensualité identique, combien pouvez-vous emprunter si les taux bougent ?</div>
       ${[
-        stress_m2!=null ? ['Taux −1% → '+pct(taux-0.01)+' (baisse)', fmt(stress_m2)+' €'+diffStr(stress_m2,Math.round(empruntMax))] : null,
-        stress_m1!=null ? ['Taux −0,5% → '+pct(taux-0.005)+' (baisse)', fmt(stress_m1)+' €'+diffStr(stress_m1,Math.round(empruntMax))] : null,
-        ['✦ Taux actuel '+pct(taux)+' (référence)', fmt(Math.round(empruntMax))+' €'],
-        ['Taux +0,5% → '+pct(taux+0.005)+' (hausse)', fmt(stress1)+' €'+diffStr(stress1,Math.round(empruntMax))],
-        ['Taux +1% → '+pct(taux+0.01)+' (hausse)', fmt(stress2)+' €'+diffStr(stress2,Math.round(empruntMax))],
+        stress_m2!=null ? ['Taux −1% → '+pct(taux-0.01)+' (baisse)', fmt(stress_m2)+diffStr(stress_m2,Math.round(empruntMax))] : null,
+        stress_m1!=null ? ['Taux −0,5% → '+pct(taux-0.005)+' (baisse)', fmt(stress_m1)+diffStr(stress_m1,Math.round(empruntMax))] : null,
+        ['✦ Taux actuel '+pct(taux)+' (référence)', fmt(Math.round(empruntMax))],
+        ['Taux +0,5% → '+pct(taux+0.005)+' (hausse)', fmt(stress1)+diffStr(stress1,Math.round(empruntMax))],
+        ['Taux +1% → '+pct(taux+0.01)+' (hausse)', fmt(stress2)+diffStr(stress2,Math.round(empruntMax))],
       ].filter(Boolean).map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
-      ${manque20>0?`<div style="margin:.8rem 0 .4rem;font-size:.62rem;color:rgba(255,255,255,.5);letter-spacing:.1em;text-transform:uppercase">💡 Il vous manque <strong>${fmt(manque20)} €</strong> pour atteindre 20% d'apport</div><div style="font-size:.62rem;color:rgba(255,255,255,.4);margin-bottom:.4rem">Les banques exigent généralement 20% en apport personnel pour obtenir les meilleures conditions.</div>${[['Pour y arriver en 2 ans',fmt(epargne2a)+' €/mois à épargner'],['Pour y arriver en 3 ans',fmt(epargne3a)+' €/mois à épargner']].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}`:''}
+      ${manque20>0?`<div style="margin:.8rem 0 .4rem;font-size:.62rem;color:rgba(255,255,255,.5);letter-spacing:.1em;text-transform:uppercase">💡 Il vous manque <strong>${fmt(manque20)}</strong> pour atteindre 20% d'apport</div><div style="font-size:.62rem;color:rgba(255,255,255,.4);margin-bottom:.4rem">Les banques exigent généralement 20% en apport personnel pour obtenir les meilleures conditions.</div>${[['Pour y arriver en 2 ans',fmt(epargne2a)+'/mois à épargner'],['Pour y arriver en 3 ans',fmt(epargne3a)+'/mois à épargner']].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}`:''}
       <div class="result-insight">Budget de <strong>${fmt(Math.round(prixMax/1000)*1000)}</strong> — consultez la page <strong>Prix des dernières transactions</strong> pour voir ce que vous pouvez acheter dans votre ville cible.</div>
     </div>`;
   setCard('emprunt', fmt(Math.round(prixMax/1000)*1000), 'Budget max · emprunt '+fmt(Math.round(empruntMax)), 'good');
