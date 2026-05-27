@@ -43,9 +43,11 @@ aside{
   background:var(--ink);
   display:flex;flex-direction:column;
   position:fixed;top:0;left:0;height:100vh;
-  overflow-y:auto;z-index:200;
+  overflow-y:auto;z-index:1100;
   border-right:1px solid rgba(255,255,255,.04);
+  transform:translateX(-100%);transition:transform .3s;
 }
+aside.open{transform:translateX(0);box-shadow:4px 0 32px rgba(0,0,0,.5);}
 .logo-area{padding:1.8rem 1.4rem 1.4rem;border-bottom:1px solid rgba(255,255,255,.05);}
 .logo{font-family:'Cormorant Garamond',serif;font-size:1.55rem;color:#fff;letter-spacing:.05em;cursor:pointer;line-height:1;}
 .logo em{color:var(--gold2);font-style:italic;}
@@ -85,7 +87,13 @@ aside{
   padding:.6rem 1rem .2rem;
   font-size:.55rem;color:rgba(255,255,255,.72);
   letter-spacing:.18em;text-transform:uppercase;margin-top:.4rem;
+  cursor:pointer;display:flex;align-items:center;justify-content:space-between;
+  padding-right:1.1rem;user-select:none;
 }
+.nav-section:hover{color:rgba(255,255,255,.95);}
+.nav-arrow{font-size:.6rem;transition:transform .2s;color:rgba(255,255,255,.4);}
+.nav-group-content{overflow:hidden;transition:max-height .25s ease;}
+.nav-group-content.collapsed{display:none;}
 .nav-item{
   display:flex;align-items:center;gap:.65rem;
   padding:.52rem .9rem;margin:.06rem .5rem;
@@ -125,7 +133,7 @@ aside{
 }
 
 /* ══ MAIN ══ */
-.main-wrap{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;min-height:100vh;max-width:100%;overflow-x:hidden;}
+.main-wrap{margin-left:0;flex:1;display:flex;flex-direction:column;min-height:100vh;max-width:100%;overflow-x:hidden;}
 
 /* Topbar */
 .topbar{
@@ -635,7 +643,7 @@ path.leaflet-interactive:focus{outline:none;}
 
 /* ── Hamburger button (masqué par défaut, visible sur mobile) ── */
 #hamburgerBtn{
-  display:none;
+  display:flex;
   flex-direction:column;justify-content:center;align-items:center;
   gap:5px;width:38px;height:38px;
   background:none;border:1px solid var(--border);
@@ -690,15 +698,12 @@ path.leaflet-interactive:focus{outline:none;}
 
 /* ── Responsive ≤1024px : sidebar en drawer, hamburger visible ── */
 @media(max-width:1024px){
-  aside{transform:translateX(-100%);transition:transform .3s;z-index:1100;}
-  aside.open{transform:translateX(0);box-shadow:4px 0 32px rgba(0,0,0,.5);}
-  .main-wrap{margin-left:0;padding-bottom:64px;}
+  .main-wrap{padding-bottom:64px;}
   .map-container{height:min(380px,calc(55vh - 64px))!important;}
   .cards-grid{grid-template-columns:1fr 1fr;}
   .chat-wrap{grid-template-columns:1fr;}
   .topbar{padding:.55rem 1rem;}
   .topbar-right .tb-btn{display:none;}
-  #hamburgerBtn{display:flex;}
   .topbar-logo-mobile{display:flex;}
   #sideOverlay{display:none;} /* géré par JS */
   #bottomTabBar{display:flex;}
@@ -871,47 +876,64 @@ path.leaflet-interactive:focus{outline:none;}
     <span class="ai-lbl" id="aiLbl">Configurer l'IA</span>
   </div>
 
-  <div class="nav-section">Prix des biens</div>
-  <div class="nav-item" onclick="go('analyse')"><span class="nav-icon">🏠</span>Analyse complète</div>
-  <div class="nav-sub">
-    <div class="nav-item" onclick="go('prix')"><span class="nav-icon">💰</span>Prix des dernières transactions</div>
-    <div class="nav-item" onclick="go('risques')"><span class="nav-icon">⚠️</span>Risques naturels</div>
-    <div class="nav-item" onclick="go('urbanisme')"><span class="nav-icon">⚡</span>Énergie & DPE</div>
-    <div class="nav-item" onclick="go('bruit')"><span class="nav-icon">🔇</span>Bruit & nuisances</div>
-    <div class="nav-item" onclick="go('urbanisme')"><span class="nav-icon">📋</span>Urbanisme, PLU & Énergie</div>
+  <!-- Groupe : Prix des biens (ouvert par défaut) -->
+  <div class="nav-section" onclick="toggleNavGroup(this)"><span>Prix des biens</span><span class="nav-arrow">▾</span></div>
+  <div class="nav-group-content">
+    <div class="nav-item" onclick="go('analyse')"><span class="nav-icon">🏠</span>Analyse complète</div>
+    <div class="nav-sub">
+      <div class="nav-item" onclick="go('prix')"><span class="nav-icon">💰</span>Prix des transactions</div>
+      <div class="nav-item" onclick="go('risques')"><span class="nav-icon">⚠️</span>Risques naturels</div>
+      <div class="nav-item" onclick="go('urbanisme')"><span class="nav-icon">⚡</span>Énergie & DPE</div>
+      <div class="nav-item" onclick="go('bruit')"><span class="nav-icon">🔇</span>Bruit & nuisances</div>
+      <div class="nav-item" onclick="go('urbanisme')"><span class="nav-icon">📋</span>Urbanisme & PLU</div>
+    </div>
   </div>
 
-  <div class="nav-section">Mon quartier</div>
-  <div class="nav-sub">
-    <div class="nav-item" onclick="go('ecoles')"><span class="nav-icon">🏫</span>Écoles & IPS</div>
-    <div class="nav-item" onclick="go('mobilite')"><span class="nav-icon">🚇</span>Mobilité & transports</div>
-    <div class="nav-item" onclick="go('fibre')"><span class="nav-icon">📶</span>Internet & fibre</div>
-    <div class="nav-item" onclick="go('services')"><span class="nav-icon">🏥</span>Services & santé</div>
-    <div class="nav-item" onclick="go('soleil')"><span class="nav-icon">☀️</span>Météo et qualité de l'air</div>
+  <!-- Groupe : Mon quartier (fermé) -->
+  <div class="nav-section" onclick="toggleNavGroup(this)"><span>Mon quartier</span><span class="nav-arrow" style="transform:rotate(-90deg)">▾</span></div>
+  <div class="nav-group-content collapsed">
+    <div class="nav-sub">
+      <div class="nav-item" onclick="go('ecoles')"><span class="nav-icon">🏫</span>Écoles & IPS</div>
+      <div class="nav-item" onclick="go('mobilite')"><span class="nav-icon">🚇</span>Mobilité & transports</div>
+      <div class="nav-item" onclick="go('fibre')"><span class="nav-icon">📶</span>Internet & fibre</div>
+      <div class="nav-item" onclick="go('services')"><span class="nav-icon">🏥</span>Services & santé</div>
+      <div class="nav-item" onclick="go('soleil')"><span class="nav-icon">☀️</span>Météo & qualité de l'air</div>
+    </div>
   </div>
 
-  <div class="nav-section">Mon financement</div>
-  <div class="nav-sub">
-    <div class="nav-item" onclick="go('emprunt')"><span class="nav-icon">🏦</span>Capacité d'emprunt</div>
-    <div class="nav-item" onclick="go('mensualites')"><span class="nav-icon">🧮</span>Achat : Mensualités & crédit</div>
-    <div class="nav-item" onclick="go('cout')"><span class="nav-icon">🔑</span>Investissement locatif</div>
-    <div class="nav-item" onclick="go('location')"><span class="nav-icon">🏠</span>Location : budget & comparaison</div>
-    <div class="nav-item" onclick="go('aides')"><span class="nav-icon">🎁</span>Aides PTZ & État</div>
-    <div class="nav-item" onclick="go('renov')"><span class="nav-icon">🔨</span>Rénovation & aides</div>
+  <!-- Groupe : Mon financement (fermé) -->
+  <div class="nav-section" onclick="toggleNavGroup(this)"><span>Mon financement</span><span class="nav-arrow" style="transform:rotate(-90deg)">▾</span></div>
+  <div class="nav-group-content collapsed">
+    <div class="nav-sub">
+      <div class="nav-item" onclick="go('emprunt')"><span class="nav-icon">🏦</span>Capacité d'emprunt</div>
+      <div class="nav-item" onclick="go('mensualites')"><span class="nav-icon">🧮</span>Mensualités & crédit</div>
+      <div class="nav-item" onclick="go('cout')"><span class="nav-icon">🔑</span>Investissement locatif</div>
+      <div class="nav-item" onclick="go('location')"><span class="nav-icon">🏠</span>Location vs achat</div>
+      <div class="nav-item" onclick="go('aides')"><span class="nav-icon">🎁</span>Aides PTZ & État</div>
+      <div class="nav-item" onclick="go('renov')"><span class="nav-icon">🔨</span>Rénovation & aides</div>
+    </div>
   </div>
 
-  <div class="nav-section">Ma stratégie</div>
-  <div class="nav-sub">
-    <div class="nav-item" onclick="go('offre')"><span class="nav-icon">🤝</span>Coaching de l'offre</div>
-    <div class="nav-item" onclick="go('profil')"><span class="nav-icon">🎯</span>Compatibilité de vie</div>
+  <!-- Groupe : Ma stratégie (fermé) -->
+  <div class="nav-section" onclick="toggleNavGroup(this)"><span>Ma stratégie</span><span class="nav-arrow" style="transform:rotate(-90deg)">▾</span></div>
+  <div class="nav-group-content collapsed">
+    <div class="nav-sub">
+      <div class="nav-item" onclick="go('offre')"><span class="nav-icon">🤝</span>Coaching de l'offre</div>
+      <div class="nav-item" onclick="go('profil')"><span class="nav-icon">🎯</span>Compatibilité de vie</div>
+    </div>
   </div>
 
-  <div class="nav-section">Marché & services</div>
-  <div class="nav-item" onclick="go('annonces')"><span class="nav-icon">🏠</span>Annonces<span class="nav-badge">V2</span></div>
-  <div class="nav-item" onclick="go('alertes')"><span class="nav-icon">🔔</span>Alertes<span class="nav-badge">V2</span></div>
-  <div class="nav-item" onclick="go('conseil')"><span class="nav-icon">🤖</span>Conseiller IA 24h/24</div>
-  <div class="nav-item" onclick="go('pros')"><span class="nav-icon">👔</span>Annuaire pros</div>
-  <div class="nav-item" onclick="go('juridique')"><span class="nav-icon">📜</span>Guide juridique</div>
+  <!-- Groupe : Marché & services (fermé) -->
+  <div class="nav-section" onclick="toggleNavGroup(this)"><span>Marché & services</span><span class="nav-arrow" style="transform:rotate(-90deg)">▾</span></div>
+  <div class="nav-group-content collapsed">
+    <div class="nav-sub">
+      <div class="nav-item" onclick="go('annonces')"><span class="nav-icon">🏠</span>Annonces<span class="nav-badge">V2</span></div>
+      <div class="nav-item" onclick="go('alertes')"><span class="nav-icon">🔔</span>Alertes<span class="nav-badge">V2</span></div>
+      <div class="nav-item" onclick="go('conseil')"><span class="nav-icon">🤖</span>Conseiller IA 24h/24</div>
+      <div class="nav-item" onclick="go('pros')"><span class="nav-icon">👔</span>Annuaire pros</div>
+      <div class="nav-item" onclick="go('juridique')"><span class="nav-icon">📜</span>Guide juridique</div>
+    </div>
+  </div>
 
   <div class="sidebar-foot">IMMO·AI © 2026 · France entière · v2.0</div>
 </aside>
@@ -921,14 +943,11 @@ path.leaflet-interactive:focus{outline:none;}
   <button class="btab active" id="btab-home" onclick="go('home');setActiveTab('home')">
     <span class="btab-icon">🏠</span><span>Accueil</span>
   </button>
-  <button class="btab" id="btab-analyse" onclick="go('analyse');setActiveTab('analyse')">
-    <span class="btab-icon">🔍</span><span>Bien</span>
-  </button>
-  <button class="btab" id="btab-quartier" onclick="go('ecoles');setActiveTab('quartier')">
-    <span class="btab-icon">📍</span><span>Quartier</span>
+  <button class="btab" id="btab-bien" onclick="go('analyse');setActiveTab('bien')">
+    <span class="btab-icon">🏡</span><span>Mon bien</span>
   </button>
   <button class="btab" id="btab-financement" onclick="go('emprunt');setActiveTab('financement')">
-    <span class="btab-icon">💰</span><span>Financement</span>
+    <span class="btab-icon">💳</span><span>Financement</span>
   </button>
   <button class="btab" id="btab-strategie" onclick="go('offre');setActiveTab('strategie')">
     <span class="btab-icon">🎯</span><span>Stratégie</span>
@@ -8017,8 +8036,8 @@ function closeSidebar(){
 // Map page id → tab id
 const _PAGE_TO_TAB={
   home:'home',
-  analyse:'analyse',prix:'analyse',risques:'analyse',energie:'analyse',bruit:'analyse',urbanisme:'analyse',
-  ecoles:'quartier',mobilite:'quartier',fibre:'quartier',services:'quartier',soleil:'quartier',
+  analyse:'bien',prix:'bien',risques:'bien',energie:'bien',bruit:'bien',urbanisme:'bien',
+  ecoles:'bien',mobilite:'bien',fibre:'bien',services:'bien',soleil:'bien',
   emprunt:'financement',cout:'financement',mensualites:'financement',aides:'financement',renov:'financement',location:'financement',
   offre:'strategie',profil:'strategie',
 };
@@ -8033,12 +8052,21 @@ const _goPatched=function(id){
   _goOrig(id);
   const tab=_PAGE_TO_TAB[id]||null;
   if(tab) setActiveTab(tab);
-  if(window.innerWidth<=768) closeSidebar();
+  if(window.innerWidth<=1024) closeSidebar();
 };
-// Override nav-item clicks to also close sidebar
+// Accordion nav sections
+function toggleNavGroup(sectionEl) {
+  var content = sectionEl.nextElementSibling;
+  var arrow = sectionEl.querySelector('.nav-arrow');
+  if (!content) return;
+  var collapsed = content.classList.toggle('collapsed');
+  if (arrow) arrow.style.transform = collapsed ? 'rotate(-90deg)' : 'rotate(0deg)';
+}
+
+// Override nav-item clicks to close sidebar (desktop + mobile)
 document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('.nav-item').forEach(el=>{
-    el.addEventListener('click',()=>{ if(window.innerWidth<=768) closeSidebar(); });
+    el.addEventListener('click',()=>{ closeSidebar(); });
   });
 });
 
