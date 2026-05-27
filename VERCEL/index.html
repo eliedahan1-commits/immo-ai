@@ -3785,7 +3785,7 @@ function showPanel(title, html){
 
 function closePanel(){
   window._demographiePanelOpen = false;
-  ['_dvfChart','_dvfEvoChart','_risquesChart','_mobiliteChart','_radarChart','_radarProfilChart','_servicesChart','_inseeNeighborChart','_meteoMensuelChart','_demographieChart'].forEach(k=>{if(window[k]){window[k].destroy();window[k]=null;}});
+  ['_dvfChart','_dvfEvoChart','_risquesChart','_mobiliteChart','_radarChart','_radarProfilChart','_servicesChart','_inseeNeighborChart','_meteoMensuelChart','_aqHistChart','_demographieChart'].forEach(k=>{if(window[k]){window[k].destroy();window[k]=null;}});
   document.getElementById('detailContainer').innerHTML = '';
   document.getElementById('cardsGrid').style.display = 'grid';
   if(window._leafletMap){window._leafletMap.remove();window._leafletMap=null;}
@@ -4111,6 +4111,9 @@ function buildDVFMap(){
   // Palette par prix/m²
   const PRIX_COLORS = [[3000,'#22c55e'],[5000,'#84cc16'],[7000,'#eab308'],[10000,'#f97316'],[Infinity,'#ef4444']];
   function prixColor(pm2){ const c=PRIX_COLORS.find(([seuil])=>pm2<=seuil); return c?c[1]:'#ef4444'; }
+  const cluster = L.markerClusterGroup({ maxClusterRadius: 40, showCoverageOnHover: false,
+    iconCreateFunction: function(c){ var n=c.getChildCount(); return L.divIcon({html:'<div style="background:#1a1a1a;color:#c9a84c;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;border:2px solid #c9a84c">'+n+'</div>',iconSize:[28,28]}); }
+  });
   const bounds = [];
   pts.forEach(t => {
     const color = prixColor(t.prixM2||0);
@@ -4120,10 +4123,18 @@ function buildDVFMap(){
     const gmUrl = 'https://maps.google.com/?q=' + encodeURIComponent((t.adresse ? t.adresse + (currentAddress ? ', ' + currentAddress : '') : (t.lat + ',' + t.lon)));
     const prixTotalStr = t.prix ? t.prix.toLocaleString('fr-FR') + ' €' : '';
     marker.bindPopup(`<b>${label}</b><br>${t.type||''} – ${t.surf?t.surf+'m²':''}${t.pieces?' · '+(t.piecesEstime?'~':'')+'T'+(t.pieces>=5?'5+':t.pieces):''}<br>${t.adresse?'📍 '+t.adresse+'<br>':''}${prixTotalStr?'💶 '+prixTotalStr+'<br>':''}<small>${t.date||''}</small><br><a href="${gmUrl}" target="_blank" rel="noopener" style="display:inline-block;margin-top:.3rem;padding:.2rem .55rem;background:#1a1a1a;color:#c9a84c;border-radius:4px;font-size:.72rem;font-weight:600;text-decoration:none">🗺 Y aller</a>`);
-    marker.addTo(map);
+    cluster.addLayer(marker);
     bounds.push([t.lat, t.lon]);
   });
+  map.addLayer(cluster);
   if(bounds.length) map.fitBounds(bounds, {padding:[20,20], maxZoom:15});
+  // Légende compteur
+  const nonGeo = liste.length - pts.length;
+  if(nonGeo > 0){
+    const info = L.control({position:'bottomright'});
+    info.onAdd = function(){ var d=L.DomUtil.create('div'); d.style.cssText='background:rgba(0,0,0,.6);color:#fff;padding:.25rem .5rem;border-radius:4px;font-size:.65rem;line-height:1.4'; d.innerHTML=pts.length+' géolocalisées<br>'+nonGeo+' sans coordonnées'; return d; };
+    info.addTo(map);
+  }
   // Marqueur de l'adresse analysee
   if(currentCoords) {
     const homeIcon = L.divIcon({ className:'', html:'<div style="width:22px;height:22px;border-radius:50%;background:#1a1a1a;border:3px solid #c9a84c;display:flex;align-items:center;justify-content:center;font-size:11px;box-shadow:0 2px 6px rgba(0,0,0,.5)">📍</div>', iconSize:[22,22], iconAnchor:[11,11] });
@@ -5418,7 +5429,7 @@ function showMeteoDetail(){
     <div style="margin-top:.6rem;margin-bottom:.8rem">
       <div style="font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.4rem">🌡️ Températures moyennes par mois</div>
       <div id="meteoMensuelLoading" style="font-size:.75rem;color:var(--muted);padding:.3rem">Chargement…</div>
-      <div style="position:relative;height:140px;display:none" id="meteoChartWrap"><canvas id="meteoMensuelChart"></canvas></div>
+      <div style="position:relative;height:280px;display:none" id="meteoChartWrap"><canvas id="meteoMensuelChart"></canvas></div>
     </div>
     ${(()=>{
       const aq = window._qualiteAirData;
@@ -5456,6 +5467,12 @@ function showMeteoDetail(){
         ${barHtml}
       </div>`;
     })()}
+    <div style="margin-top:.8rem;margin-bottom:.6rem" id="aqHistSection" style="display:none">
+      <div style="font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.4rem">📅 Historique PM2.5 – 12 derniers mois</div>
+      <div id="aqHistLoading" style="font-size:.75rem;color:var(--muted);padding:.3rem">Chargement…</div>
+      <div style="position:relative;height:180px;display:none" id="aqHistChartWrap"><canvas id="aqHistChart"></canvas></div>
+      <div style="font-size:.6rem;color:var(--muted);margin-top:.2rem">Moyenne mensuelle · Seuil OMS PM2.5 = 15 µg/m³</div>
+    </div>
     <p style="font-size:.62rem;color:var(--muted)">Source : ${d.source} · Qualité air : Open-Meteo Air Quality</p>`);
 
   // Graphique températures mensuelles (données journalières 2022-2023 agrégées par mois)
@@ -5504,6 +5521,68 @@ function showMeteoDetail(){
       if(loading) loading.textContent='Graphique non disponible.';
     }
   },150);
+
+  // Historique qualité de l'air (PM2.5 mensuel, 12 mois)
+  setTimeout(async ()=>{
+    if(!currentCoords) return;
+    const {lat,lng}=currentCoords;
+    const aqHistSec = document.getElementById('aqHistSection');
+    const aqHistLoad = document.getElementById('aqHistLoading');
+    const aqHistWrap = document.getElementById('aqHistChartWrap');
+    if(!aqHistSec) return;
+    aqHistSec.style.display='block';
+    try {
+      const now = new Date();
+      const endDate = now.toISOString().slice(0,10);
+      const startD = new Date(now); startD.setMonth(startD.getMonth()-12);
+      const startDate = startD.toISOString().slice(0,10);
+      const rv = await fetch("https://air-quality-api.open-meteo.com/v1/air-quality?latitude="+lat+"&longitude="+lng+"&hourly=pm2_5&start_date="+startDate+"&end_date="+endDate+"&timezone=Europe%2FParis");
+      if(!rv.ok) throw new Error();
+      const aqd = await rv.json();
+      const times = aqd.hourly?.time||[];
+      const vals = aqd.hourly?.pm2_5||[];
+      if(!times.length) throw new Error();
+      // Aggregate to monthly means
+      const monthSum = {}, monthCnt = {};
+      times.forEach((t,i)=>{
+        const v = vals[i];
+        if(v==null||isNaN(v)) return;
+        const key = t.slice(0,7); // "YYYY-MM"
+        monthSum[key]=(monthSum[key]||0)+v;
+        monthCnt[key]=(monthCnt[key]||0)+1;
+      });
+      const MOIS_SHORT=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+      const labels=[]; const data=[];
+      Object.keys(monthSum).sort().forEach(k=>{
+        const avg=+(monthSum[k]/monthCnt[k]).toFixed(1);
+        const m=parseInt(k.slice(5,7))-1;
+        labels.push(MOIS_SHORT[m]+" "+k.slice(2,4));
+        data.push(avg);
+      });
+      if(aqHistLoad) aqHistLoad.style.display='none';
+      if(aqHistWrap) aqHistWrap.style.display='block';
+      const ctx2=document.getElementById('aqHistChart');
+      if(ctx2&&window.Chart){
+        if(window._aqHistChart){window._aqHistChart.destroy();window._aqHistChart=null;}
+        const OMS_SEUIL=15;
+        window._aqHistChart=new Chart(ctx2,{
+          type:'bar',
+          data:{labels,datasets:[
+            {label:'PM2.5 moy.',data,backgroundColor:data.map(v=>v<=OMS_SEUIL?'rgba(76,175,80,.75)':v<=OMS_SEUIL*2?'rgba(255,152,0,.75)':'rgba(244,67,54,.75)'),borderRadius:3,borderSkipped:false}
+          ]},
+          options:{responsive:true,maintainAspectRatio:false,
+            plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>"PM2.5 : "+c.raw+" µg/m³"}},annotation:{annotations:{seuil:{type:'line',yMin:OMS_SEUIL,yMax:OMS_SEUIL,borderColor:'rgba(76,175,80,.6)',borderWidth:1,borderDash:[4,3]}}}},
+            scales:{
+              x:{ticks:{color:'#999',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}},
+              y:{ticks:{color:'#999',font:{size:9},callback:v=>v+" µg"},grid:{color:'rgba(255,255,255,.05)'},suggestedMin:0}
+            }
+          }
+        });
+      }
+    } catch(e) {
+      if(aqHistLoad) aqHistLoad.textContent='Historique non disponible.';
+    }
+  },400);
 }
 
 function showINSEEDetail(){
