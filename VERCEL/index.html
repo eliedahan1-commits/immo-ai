@@ -881,13 +881,13 @@ path.leaflet-interactive:focus{outline:none;}
   <div class="nav-group-content">
     <div class="nav-item" onclick="go('analyse')"><span class="nav-icon">📊</span>Vue d'ensemble</div>
     <div class="nav-sub">
-      <div class="nav-item" onclick="go('ecoles')"><span class="nav-icon">🏫</span>Écoles & IPS</div>
-      <div class="nav-item" onclick="go('mobilite')"><span class="nav-icon">🚇</span>Mobilité & transports</div>
       <div class="nav-item" onclick="go('services')"><span class="nav-icon">🏥</span>Services & santé</div>
+      <div class="nav-item" onclick="go('mobilite')"><span class="nav-icon">🚇</span>Mobilité & transports</div>
+      <div class="nav-item" onclick="go('ecoles')"><span class="nav-icon">🏫</span>Écoles & IPS</div>
       <div class="nav-item" onclick="go('soleil')"><span class="nav-icon">☀️</span>Météo & qualité de l'air</div>
-      <div class="nav-item" onclick="go('fibre')"><span class="nav-icon">📶</span>Internet & fibre</div>
       <div class="nav-item" onclick="go('risques')"><span class="nav-icon">⚠️</span>Risques naturels</div>
       <div class="nav-item" onclick="go('bruit')"><span class="nav-icon">🔇</span>Bruit & nuisances</div>
+      <div class="nav-item" onclick="go('fibre')"><span class="nav-icon">📶</span>Internet & fibre</div>
       <div class="nav-item" onclick="go('urbanisme')"><span class="nav-icon">📋</span>Urbanisme & PLU</div>
     </div>
   </div>
@@ -896,8 +896,9 @@ path.leaflet-interactive:focus{outline:none;}
   <div class="nav-section" onclick="toggleNavGroup(this)"><span>🏠 Prix des biens</span><span class="nav-arrow" style="transform:rotate(-90deg)">▾</span></div>
   <div class="nav-group-content collapsed">
     <div class="nav-sub">
-      <div class="nav-item" onclick="go('prix')"><span class="nav-icon">💰</span>Prix des transactions DVF</div>
-      <div class="nav-item" onclick="go('analyse')"><span class="nav-icon">🗺️</span>Estimation & carte des prix</div>
+      <div class="nav-item" onclick="go('analyse');setTimeout(()=>showDetail('dvf'),300)"><span class="nav-icon">💰</span>Prix des transactions DVF</div>
+      <div class="nav-item" onclick="go('analyse');setTimeout(()=>showDetail('loyers'),300)"><span class="nav-icon">🏠</span>Estimation des loyers</div>
+      <div class="nav-item" onclick="go('prix')"><span class="nav-icon">🗺️</span>Carte des prix au m²</div>
     </div>
   </div>
 
@@ -3917,7 +3918,7 @@ function showDVFDetail(){
     window._dvfChart=new Chart(ctx,{type:'bar',plugins:[ChartDataLabels],data:{labels,datasets:[{label:'Transactions',data:counts,backgroundColor:'rgba(184,131,42,.6)',borderColor:'#b8832a',borderWidth:1,borderRadius:4}]},
       options:{plugins:{legend:{display:false},datalabels:{anchor:'end',align:'top',color:'#8a7d68',font:{size:9,weight:'600'}},title:{display:true,text:'Distribution des prix (€/m²)',font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68'}},
         scales:{x:{ticks:{font:{size:8},color:'#8a7d68'},grid:{display:false}},y:{ticks:{font:{size:9},color:'#8a7d68'},grid:{color:'rgba(0,0,0,.05)'}}},
-        animation:{duration:300},responsive:false,
+        animation:{duration:300},responsive:true,maintainAspectRatio:false,
       }
     });
   }
@@ -3949,7 +3950,7 @@ function showDVFDetail(){
     ]},options:{
       plugins:{legend:{display:true,labels:{font:{size:10,family:'Outfit,sans-serif'},color:'#8a7d68',boxWidth:14}},datalabels:{display:false},title:{display:true,text:'Évolution mensuelle des prix (€/m²)',font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68'}},
       scales:{x:{ticks:{font:{size:8},color:'#8a7d68'},grid:{display:false}},y:{ticks:{font:{size:9},color:'#8a7d68',callback:v=>v?v.toLocaleString('fr-FR'):''},grid:{color:'rgba(0,0,0,.05)'}}},
-      animation:{duration:300},responsive:false,
+      animation:{duration:300},responsive:true,maintainAspectRatio:false,
     }});
   }
   const btnStyle = 'padding:.25rem .7rem;font-size:.72rem;border:1px solid var(--border);background:var(--white);border-radius:3px;cursor:pointer;margin-right:.3rem';
@@ -3974,8 +3975,8 @@ function showDVFDetail(){
     <div style="margin-bottom:.7rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Afficher :</span>${btnsFiltres}
     </div>
-    <div style="margin-bottom:1.2rem"><canvas id="dvfHistChart" height="140"></canvas></div>
-    <div style="margin-bottom:1.2rem"><canvas id="dvfEvolutionChart" height="160"></canvas></div>
+    <div style="margin-bottom:1.2rem;height:160px;position:relative"><canvas id="dvfHistChart"></canvas></div>
+    <div style="margin-bottom:1.2rem;height:180px;position:relative"><canvas id="dvfEvolutionChart"></canvas></div>
     <button id="dvfListeToggle" onclick="var w=document.getElementById('dvfListeWrap');var show=w.style.display==='none';w.style.display=show?'block':'none';this.textContent=show?'▲ Masquer la liste':'📋 Afficher la liste';" style="margin-top:.5rem;margin-bottom:.5rem;padding:.4rem 1rem;background:var(--surface2);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:600;color:var(--text)">📋 Afficher la liste</button>
     <div id="dvfListeWrap" style="display:none">
     <table class="tbl"><thead><tr>
@@ -4998,6 +4999,7 @@ async function showPrixCommunesDetail(){
 
     const _loadingDepts = new Set(); // évite les requêtes doublons en vol
 
+    const _mapEl = () => document.getElementById('mapPrixCommunes');
     async function loadDept(dept) {
       if(dept in window._deptContoursCache) {
         window._deptContoursCache[dept].forEach(c => drawCommune(c));
@@ -5005,6 +5007,7 @@ async function showPrixCommunesDetail(){
       }
       if(_loadingDepts.has(dept)) return;
       _loadingDepts.add(dept);
+      const el = _mapEl(); if(el) el.style.cursor='wait';
       try {
         let communes;
         // Villes à arrondissements : DVF stocke par arrondissement, pas par commune mère
@@ -5042,7 +5045,10 @@ async function showPrixCommunesDetail(){
         window._deptContoursCache[dept] = communes;
         communes.forEach(c => drawCommune(c));
       } catch(e) {}
-      finally { _loadingDepts.delete(dept); }
+      finally {
+        _loadingDepts.delete(dept);
+        if(_loadingDepts.size === 0) { const el=_mapEl(); if(el) el.style.cursor=''; }
+      }
     }
 
     let _bboxAbort = null;
@@ -6282,7 +6288,7 @@ async function runProfil(){
           <div style="font-size:.62rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-top:.2rem">Score de compatibilité</div>
           ${travailKm!=null?`<p style="font-size:.75rem;color:var(--muted);margin-top:.3rem">🏢 ${travailLabel||'Travail'} : <strong>${travailKm} km</strong></p>`:''}
         </div>
-        <div style="position:relative"><canvas id="radarProfil" height="340"></canvas></div>
+        <div style="position:relative;height:380px"><canvas id="radarProfil"></canvas></div>
         <p style="font-size:.58rem;color:var(--muted);margin-top:.4rem;text-align:center">DVF · OSM · Éducation nationale · Géorisques</p>`;
     }
     box.style.display='none'; // l'aibox n'est plus utilisée pour le radar
@@ -6324,7 +6330,7 @@ async function runProfil(){
             }
           },
           animation:{duration:700},
-          responsive:false,
+          responsive:true,maintainAspectRatio:false,
           layout:{padding:20},
           onClick(evt, elements, chart){
             // Clic sur un point du dataset
