@@ -43,9 +43,13 @@ export default async function handler(req, res) {
       if (!map.has(key)) {
         map.set(key, t);
       } else {
-        const existPrio = TYPES_PRIORITAIRES.includes(map.get(key).type);
+        const existing  = map.get(key);
+        const existPrio = TYPES_PRIORITAIRES.includes(existing.type);
         const currPrio  = TYPES_PRIORITAIRES.includes(t.type);
-        if (currPrio && !existPrio) map.set(key, t);
+        // Priorité 1 : Appartement/Maison > Dépendance/Local
+        if (currPrio && !existPrio) { map.set(key, t); continue; }
+        // Priorité 2 : à type égal, préférer le lot qui a nombre_pieces renseigné
+        if (currPrio && existPrio && !existing.pieces && t.pieces) map.set(key, t);
       }
     }
     return [...map.values()];
@@ -89,7 +93,9 @@ export default async function handler(req, res) {
           adresse: `${m.adresse_numero || ''} ${m.adresse_nom_voie || ''}`.trim(),
           lat: parseFloat(m.latitude) || null,
           lon: parseFloat(m.longitude) || null,
-          idMutation: m.id_mutation || null
+          idMutation: m.id_mutation || null,
+          pieces: parseInt(m.nombre_pieces_principales) || null,
+          surfaceTerrain: Math.round(parseFloat(m.surface_terrain || 0)) || null
         };
       })
       .filter(t => t.prixM2 > PRIX_M2_MIN && t.prixM2 < PRIX_M2_MAX);

@@ -3864,7 +3864,7 @@ function showDVFDetail(){
     if(fp_check > 0 && liste.length === 0) {
       const hasPData = (window._dvfRecentes||[]).some(t=>t.pieces>0);
       if(!hasPData) {
-        document.getElementById('dvfTbody').innerHTML = '<tr><td colspan="6" style="color:var(--muted);text-align:center;padding:1rem;font-size:.78rem">ℹ️ Données pièces non disponibles pour ces transactions DVF.<br>Ce champ nest pas renseigné pour certaines mutations multi-lots.</td></tr>';
+        document.getElementById('dvfTbody').innerHTML = '<tr><td colspan="6" style="color:var(--muted);text-align:center;padding:1rem;font-size:.78rem">ℹ️ Données pièces non disponibles pour ces transactions DVF.<br>Ce champ n'est pas renseigné pour certaines mutations multi-lots.</td></tr>';
         return;
       }
     }
@@ -4002,35 +4002,6 @@ function showDVFDetail(){
     const badge = p>0 && hasPieces ? ` <span style="font-size:.65rem;opacity:.6">(${cnt})</span>` : '';
     return `<button class="dvf-pieces-btn dvf-filter-btn" data-p="${p}" onclick="filterDVFPieces(${p})" style="${btnStyle}${disabled}">${l}${badge}</button>`;
   }).join('');
-  // ── Prix au m² par pièce (médiane) ──
-  const PIECES_LABELS = {1:'Studio/T1', 2:'T2', 3:'T3', 4:'T4', 5:'T5+'};
-  const prixParPiece = [1,2,3,4,5].map(function(p){
-    var ts = recentes.filter(function(t){ return p===5 ? (t.pieces||0)>=5 : (t.pieces||0)===p; });
-    if(!ts.length) return null;
-    var vals = ts.map(function(t){return t.prixM2;}).filter(function(v){return v>0;}).sort(function(a,b){return a-b;});
-    if(!vals.length) return null;
-    var med = vals[Math.floor(vals.length/2)];
-    var surfs = ts.map(function(t){return t.surf;}).filter(function(v){return v>0;}).sort(function(a,b){return a-b;});
-    var medSurf = surfs.length ? surfs[Math.floor(surfs.length/2)] : null;
-    return { p:p, label:PIECES_LABELS[p], medianM2:med, count:ts.length, medSurf:medSurf };
-  }).filter(Boolean);
-
-  var prixParPieceHTML = '';
-  if(hasPieces && prixParPiece.length) {
-    var cards = prixParPiece.map(function(r){
-      return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.55rem .7rem;text-align:center">'
-        + '<div style="font-size:.7rem;color:var(--muted);margin-bottom:.2rem">'+r.label+'</div>'
-        + '<div style="font-size:1rem;font-weight:700;color:var(--gold2)">'+r.medianM2.toLocaleString('fr-FR')+' €</div>'
-        + '<div style="font-size:.62rem;color:var(--muted)">/m² · '+r.count+' vente'+(r.count>1?'s':'')+'</div>'
-        + (r.medSurf ? '<div style="font-size:.6rem;color:var(--muted);margin-top:.1rem">~'+r.medSurf+'m² médian</div>' : '')
-        + '</div>';
-    }).join('');
-    prixParPieceHTML = '<div style="margin-bottom:1.2rem">'
-      + '<p style="font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">💡 Prix médian au m² par type de bien</p>'
-      + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:.5rem">'
-      + cards + '</div></div>';
-  }
-
   showPanel('💰 Prix des dernières transactions', `
     <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1rem">
       <div class="stat-box"><span class="stat-n" id="dvfStatMedian">${d.stats.medianM2.toLocaleString('fr-FR')}€</span><span class="stat-l">💰 Moyenne /m²</span><span class="stat-l" id="dvfMedianBase" style="font-size:.65rem;opacity:.6">sur ${d.count} val.</span></div>
@@ -4038,7 +4009,6 @@ function showDVFDetail(){
       <div class="stat-box" id="dvfTrendBox"><span class="stat-n" id="dvfTrendVal">—</span><span class="stat-l" id="dvfTrendLabel">📈 Tendance 6 mois</span></div>
     </div>
     <p style="font-size:.75rem;color:var(--muted);margin-bottom:.6rem" id="dvfFourchette">Fourchette : ${d.stats.minM2.toLocaleString('fr-FR')} – ${d.stats.maxM2.toLocaleString('fr-FR')} €/m²</p>
-    ${prixParPieceHTML}
     <div style="margin-bottom:.5rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Type :</span>${btnsType}
     </div>
@@ -4046,7 +4016,7 @@ function showDVFDetail(){
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Surface :</span>${btnsSurf}
     </div>
     <div style="margin-bottom:.5rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
-      <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Pièces :</span>${btnsPieces}${!hasPieces ? '<span style="font-size:.65rem;color:var(--muted);font-style:italic;margin-left:.3rem">— données non disponibles pour cette zone</span>' : ''}
+      <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Pièces :</span>${btnsPieces}${!hasPieces ? '<span style="font-size:.65rem;color:var(--muted);font-style:italic;margin-left:.3rem">non renseignées</span>' : ''}
     </div>
     <div style="margin-bottom:.7rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Afficher :</span>${btnsFiltres}

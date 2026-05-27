@@ -298,6 +298,7 @@
   <div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Ouvrir sur chaque site (filtres pré-remplis)</div>
   <div id="rb-sites" style="display:grid;grid-template-columns:1fr 1fr;gap:7px"></div>
 </div>`;
+  // (bloc Choose & Connect injecté dynamiquement par _rbUpdateSites)
   }
 
   function renderSiteCards(urls) {
@@ -351,7 +352,21 @@
   window._rbUpdateSites = function () {
     const sites = sel('rb-sites');
     if (!sites) return;
+    // Remplir la grille avec les 5 sites
     sites.innerHTML = renderSiteCards(buildAllUrls(getParams()));
+    // Bloc Choose & Connect : créer ou mettre à jour l'élément juste après la grille
+    const parent = sites.parentNode;
+    let ccBlock = document.getElementById('rb-cc-block');
+    if (!ccBlock) {
+      ccBlock = document.createElement('div');
+      ccBlock.id = 'rb-cc-block';
+      ccBlock.style.cssText = 'margin-top:14px;padding:12px 14px;background:#fdf5e4;border:1px solid rgba(184,131,42,.35);border-radius:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap';
+      ccBlock.innerHTML = '<span style="font-size:.82rem;color:#5a4a2a;flex:1;min-width:180px">🎓 <strong>Colocation étudiante ?</strong></span>'
+        + '<a href="https://www.chooseandconnect.com/" target="_blank" rel="noopener"'
+        + ' style="display:inline-flex;align-items:center;gap:.4rem;padding:.45rem 1rem;background:#2d2410;color:#c9a84c;border-radius:6px;font-size:.78rem;font-weight:600;text-decoration:none;white-space:nowrap"'
+        + '>Trouver avec Choose &amp; Connect ↗</a>';
+      parent.appendChild(ccBlock);
+    }
   };
 
   window._rbSetMode = function (mode) {
