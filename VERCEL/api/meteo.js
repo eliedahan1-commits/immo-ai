@@ -111,8 +111,9 @@ export default async function handler(req, res) {
               avgMin = Math.round(mn.reduce((a,b)=>a+b,0)/mn.length * 10) / 10;
             }
             if(annualPrecip == null || joursPluis == null) {
-              annualPrecip = Math.round(mPrec.reduce((a,b)=>a+b,0));
-              joursPluis = mDays.reduce((a,b)=>a+b,0);
+              const nYears = endY - startY + 1;
+              annualPrecip = Math.round(mPrec.reduce((a,b)=>a+b,0) / nYears);
+              joursPluis   = Math.round(mDays.reduce((a,b)=>a+b,0) / nYears);
             }
           }
         }

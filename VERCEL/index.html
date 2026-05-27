@@ -3318,8 +3318,11 @@ function computeScoreQuartier() {
   const cssClass = note>=7?'good':note>=5?'':'warn';
   const label = note>=8?'Excellent':note>=6?'Bon':note>=4?'Moyen':'Faible';
   window._scoreData = { note, label, items };
-  setCard('score', note.toFixed(1)+' / 10', label+' · '+items.length+' critères', cssClass);
-  if(items.length < 4) setCardRetry('score', () => computeScoreQuartier());
+  const MAX_CRITERIA = 10;
+  const missingCount = MAX_CRITERIA - items.length;
+  const subLabel = label+' · '+items.length+' critère'+(items.length>1?'s':'')+(missingCount>0?' · '+missingCount+' manquant'+(missingCount>1?'s':''):'');
+  setCard('score', note.toFixed(1)+' / 10', subLabel, cssClass);
+  if(missingCount > 0) setCardRetry('score', () => computeScoreQuartier());
 }
 
 // Recharge Services + Écoles + Mobilité avec le rayon choisi puis recalcule le score
@@ -5449,9 +5452,9 @@ function showMeteoDetail(){
       <div style="position:relative;height:280px;display:none" id="meteoChartWrap"><canvas id="meteoMensuelChart"></canvas></div>
     </div>
     <div style="margin-top:.6rem;margin-bottom:.8rem">
-      <div style="font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.1rem">📈 Évolution Min / Max – 5 dernières années</div>
+      <div style="font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.1rem">📈 Températures annuelles Min / Max – 30 ans</div>
       <div id="meteoEvoLoading" style="font-size:.75rem;color:var(--muted);padding:.3rem">Chargement…</div>
-      <div style="position:relative;height:200px;display:none" id="meteoEvoWrap"><canvas id="meteoEvoChart"></canvas></div>
+      <div style="position:relative;height:220px;display:none" id="meteoEvoWrap"><canvas id="meteoEvoChart"></canvas></div>
     </div>
     ${(()=>{
       const aq = window._qualiteAirData;
@@ -5546,38 +5549,35 @@ function showMeteoDetail(){
     }
   },150);
 
-  // Évolution Min/Max sur 5 ans (mensuel)
+  // Évolution annuelle Min/Max sur 30 ans (2 barres par année)
   setTimeout(async ()=>{
     if(!currentCoords) return;
     const {lat,lng}=currentCoords;
     const evoLoad=document.getElementById('meteoEvoLoading');
     const evoWrap=document.getElementById('meteoEvoWrap');
     try {
-      const endDate = new Date().toISOString().slice(0,10);
-      const startD = new Date(); startD.setFullYear(startD.getFullYear()-5);
-      const startDate = startD.toISOString().slice(0,10);
-      const rv=await fetch("https://archive-api.open-meteo.com/v1/archive?latitude="+lat+"&longitude="+lng+"&start_date="+startDate+"&end_date="+endDate+"&daily=temperature_2m_max,temperature_2m_min&timezone=Europe%2FParis");
+      const endY = new Date().getFullYear()-1;
+      const startY = endY - 29;
+      const rv=await fetch("https://archive-api.open-meteo.com/v1/archive?latitude="+lat+"&longitude="+lng+"&start_date="+startY+"-01-01&end_date="+endY+"-12-31&daily=temperature_2m_max,temperature_2m_min&timezone=Europe%2FParis");
       if(!rv.ok) throw new Error();
       const md=await rv.json();
       const times=md.daily?.time||[];
       const tMaxArr=md.daily?.temperature_2m_max||[];
       const tMinArr=md.daily?.temperature_2m_min||[];
       if(!times.length) throw new Error();
-      // Agréger par mois (YYYY-MM)
-      const MOIS_SHORT=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
-      const mSumMax={}, mSumMin={}, mCnt={};
+      // Agréger par année
+      const ySumMax={}, ySumMin={}, yCnt={};
       times.forEach(function(t,i){
-        const k=t.slice(0,7);
-        if(tMaxArr[i]!=null){mSumMax[k]=(mSumMax[k]||0)+tMaxArr[i];mCnt[k]=(mCnt[k]||0)+1;}
-        if(tMinArr[i]!=null) mSumMin[k]=(mSumMin[k]||0)+tMinArr[i];
+        const y=t.slice(0,4);
+        if(tMaxArr[i]!=null){ySumMax[y]=(ySumMax[y]||0)+tMaxArr[i];yCnt[y]=(yCnt[y]||0)+1;}
+        if(tMinArr[i]!=null) ySumMin[y]=(ySumMin[y]||0)+tMinArr[i];
       });
       const labels=[]; const dataMax=[]; const dataMin=[];
-      Object.keys(mSumMax).sort().forEach(function(k){
-        const n=mCnt[k];
-        const mo=parseInt(k.slice(5,7))-1;
-        labels.push(MOIS_SHORT[mo]+" "+k.slice(2,4));
-        dataMax.push(+(mSumMax[k]/n).toFixed(1));
-        dataMin.push(+(mSumMin[k]/n).toFixed(1));
+      Object.keys(ySumMax).sort().forEach(function(y){
+        const n=yCnt[y];
+        labels.push(y);
+        dataMax.push(+(ySumMax[y]/n).toFixed(1));
+        dataMin.push(+(ySumMin[y]/n).toFixed(1));
       });
       if(evoLoad) evoLoad.style.display='none';
       if(evoWrap) evoWrap.style.display='block';
@@ -5585,18 +5585,18 @@ function showMeteoDetail(){
       if(ctxE&&window.Chart){
         if(window._meteoEvoChart){window._meteoEvoChart.destroy();window._meteoEvoChart=null;}
         window._meteoEvoChart=new Chart(ctxE,{
-          type:'line',
+          type:'bar',
           data:{labels,datasets:[
-            {label:'Max',data:dataMax,borderColor:'#e67e22',backgroundColor:'rgba(230,126,34,.12)',fill:'+1',tension:.3,pointRadius:0,borderWidth:1.5},
-            {label:'Min',data:dataMin,borderColor:'#3498db',backgroundColor:'rgba(52,152,219,.08)',fill:false,tension:.3,pointRadius:0,borderWidth:1.5}
+            {label:'Max moy.',data:dataMax,backgroundColor:'rgba(230,126,34,.75)',borderRadius:2,borderSkipped:false,order:1},
+            {label:'Min moy.',data:dataMin,backgroundColor:'rgba(52,152,219,.75)',borderRadius:2,borderSkipped:false,order:2}
           ]},
           options:{responsive:true,maintainAspectRatio:false,
-            plugins:{legend:{display:true,labels:{color:'#ccc',font:{size:10},boxWidth:12}},
+            plugins:{legend:{display:true,labels:{color:'#ccc',font:{size:10},boxWidth:10}},
               tooltip:{mode:'index',intersect:false,callbacks:{label:function(c){return c.dataset.label+" : "+c.raw+"°C";}}},
               datalabels:{display:false}
             },
             scales:{
-              x:{ticks:{color:'#888',font:{size:8},maxTicksLimit:20,maxRotation:0},grid:{color:'rgba(255,255,255,.04)'}},
+              x:{ticks:{color:'#888',font:{size:8},maxRotation:45},grid:{display:false}},
               y:{ticks:{color:'#888',font:{size:9},callback:function(v){return v+"°";}},grid:{color:'rgba(255,255,255,.05)'}}
             }
           }
@@ -5672,7 +5672,17 @@ function showMeteoDetail(){
           if(window._aqHistChart0){window._aqHistChart0.destroy();window._aqHistChart0=null;}
           window._aqHistChart0 = new Chart(ctxG, {
             type: 'bar',
-            data: {labels: labels, datasets: datasets},
+            data: {labels: labels, datasets: datasets.concat([{
+              type: 'line',
+              label: 'Seuil OMS (100%)',
+              data: labels.map(function(){return 100;}),
+              borderColor: 'rgba(239,68,68,.7)',
+              borderWidth: 1.5,
+              borderDash: [5,4],
+              pointRadius: 0,
+              fill: false,
+              order: -1
+            }])},
             options: {
               responsive: true, maintainAspectRatio: false,
               plugins: {
