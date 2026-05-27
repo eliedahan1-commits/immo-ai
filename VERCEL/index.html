@@ -91,7 +91,7 @@ aside.open{transform:translateX(0);box-shadow:4px 0 32px rgba(0,0,0,.5);}
   padding-right:1.1rem;user-select:none;
 }
 .nav-section:hover{color:rgba(255,255,255,.95);}
-.nav-arrow{font-size:.6rem;transition:transform .2s;color:rgba(255,255,255,.4);}
+.nav-arrow{font-size:1rem;line-height:1;transition:transform .2s;color:rgba(255,255,255,.6);flex-shrink:0;}
 .nav-group-content{overflow:hidden;transition:max-height .25s ease;}
 .nav-group-content.collapsed{display:none;}
 .nav-item{
@@ -876,33 +876,33 @@ path.leaflet-interactive:focus{outline:none;}
     <span class="ai-lbl" id="aiLbl">Configurer l'IA</span>
   </div>
 
-  <!-- Groupe : Prix des biens (ouvert par défaut) -->
-  <div class="nav-section" onclick="toggleNavGroup(this)"><span>Prix des biens</span><span class="nav-arrow">▾</span></div>
+  <!-- Groupe : Mon quartier (ouvert par défaut — 1er sur homepage) -->
+  <div class="nav-section" onclick="toggleNavGroup(this)"><span>🏘️ Mon quartier</span><span class="nav-arrow">▾</span></div>
   <div class="nav-group-content">
-    <div class="nav-item" onclick="go('analyse')"><span class="nav-icon">🏠</span>Analyse complète</div>
+    <div class="nav-item" onclick="go('analyse')"><span class="nav-icon">📊</span>Vue d'ensemble</div>
     <div class="nav-sub">
-      <div class="nav-item" onclick="go('prix')"><span class="nav-icon">💰</span>Prix des transactions</div>
+      <div class="nav-item" onclick="go('ecoles')"><span class="nav-icon">🏫</span>Écoles & IPS</div>
+      <div class="nav-item" onclick="go('mobilite')"><span class="nav-icon">🚇</span>Mobilité & transports</div>
+      <div class="nav-item" onclick="go('services')"><span class="nav-icon">🏥</span>Services & santé</div>
+      <div class="nav-item" onclick="go('soleil')"><span class="nav-icon">☀️</span>Météo & qualité de l'air</div>
+      <div class="nav-item" onclick="go('fibre')"><span class="nav-icon">📶</span>Internet & fibre</div>
       <div class="nav-item" onclick="go('risques')"><span class="nav-icon">⚠️</span>Risques naturels</div>
-      <div class="nav-item" onclick="go('urbanisme')"><span class="nav-icon">⚡</span>Énergie & DPE</div>
       <div class="nav-item" onclick="go('bruit')"><span class="nav-icon">🔇</span>Bruit & nuisances</div>
       <div class="nav-item" onclick="go('urbanisme')"><span class="nav-icon">📋</span>Urbanisme & PLU</div>
     </div>
   </div>
 
-  <!-- Groupe : Mon quartier (fermé) -->
-  <div class="nav-section" onclick="toggleNavGroup(this)"><span>Mon quartier</span><span class="nav-arrow" style="transform:rotate(-90deg)">▾</span></div>
+  <!-- Groupe : Prix des biens (fermé) -->
+  <div class="nav-section" onclick="toggleNavGroup(this)"><span>🏠 Prix des biens</span><span class="nav-arrow" style="transform:rotate(-90deg)">▾</span></div>
   <div class="nav-group-content collapsed">
     <div class="nav-sub">
-      <div class="nav-item" onclick="go('ecoles')"><span class="nav-icon">🏫</span>Écoles & IPS</div>
-      <div class="nav-item" onclick="go('mobilite')"><span class="nav-icon">🚇</span>Mobilité & transports</div>
-      <div class="nav-item" onclick="go('fibre')"><span class="nav-icon">📶</span>Internet & fibre</div>
-      <div class="nav-item" onclick="go('services')"><span class="nav-icon">🏥</span>Services & santé</div>
-      <div class="nav-item" onclick="go('soleil')"><span class="nav-icon">☀️</span>Météo & qualité de l'air</div>
+      <div class="nav-item" onclick="go('prix')"><span class="nav-icon">💰</span>Prix des transactions DVF</div>
+      <div class="nav-item" onclick="go('analyse')"><span class="nav-icon">🗺️</span>Estimation & carte des prix</div>
     </div>
   </div>
 
   <!-- Groupe : Mon financement (fermé) -->
-  <div class="nav-section" onclick="toggleNavGroup(this)"><span>Mon financement</span><span class="nav-arrow" style="transform:rotate(-90deg)">▾</span></div>
+  <div class="nav-section" onclick="toggleNavGroup(this)"><span>💰 Mon financement</span><span class="nav-arrow" style="transform:rotate(-90deg)">▾</span></div>
   <div class="nav-group-content collapsed">
     <div class="nav-sub">
       <div class="nav-item" onclick="go('emprunt')"><span class="nav-icon">🏦</span>Capacité d'emprunt</div>
@@ -915,22 +915,13 @@ path.leaflet-interactive:focus{outline:none;}
   </div>
 
   <!-- Groupe : Ma stratégie (fermé) -->
-  <div class="nav-section" onclick="toggleNavGroup(this)"><span>Ma stratégie</span><span class="nav-arrow" style="transform:rotate(-90deg)">▾</span></div>
+  <div class="nav-section" onclick="toggleNavGroup(this)"><span>🎯 Ma stratégie</span><span class="nav-arrow" style="transform:rotate(-90deg)">▾</span></div>
   <div class="nav-group-content collapsed">
     <div class="nav-sub">
+      <div class="nav-item" onclick="go('recherche')"><span class="nav-icon">🏠</span>Trouver un bien</div>
       <div class="nav-item" onclick="go('offre')"><span class="nav-icon">🤝</span>Coaching de l'offre</div>
       <div class="nav-item" onclick="go('profil')"><span class="nav-icon">🎯</span>Compatibilité de vie</div>
-    </div>
-  </div>
-
-  <!-- Groupe : Marché & services (fermé) -->
-  <div class="nav-section" onclick="toggleNavGroup(this)"><span>Marché & services</span><span class="nav-arrow" style="transform:rotate(-90deg)">▾</span></div>
-  <div class="nav-group-content collapsed">
-    <div class="nav-sub">
-      <div class="nav-item" onclick="go('annonces')"><span class="nav-icon">🏠</span>Annonces<span class="nav-badge">V2</span></div>
-      <div class="nav-item" onclick="go('alertes')"><span class="nav-icon">🔔</span>Alertes<span class="nav-badge">V2</span></div>
       <div class="nav-item" onclick="go('conseil')"><span class="nav-icon">🤖</span>Conseiller IA 24h/24</div>
-      <div class="nav-item" onclick="go('pros')"><span class="nav-icon">👔</span>Annuaire pros</div>
       <div class="nav-item" onclick="go('juridique')"><span class="nav-icon">📜</span>Guide juridique</div>
     </div>
   </div>
@@ -8036,10 +8027,10 @@ function closeSidebar(){
 // Map page id → tab id
 const _PAGE_TO_TAB={
   home:'home',
-  analyse:'bien',prix:'bien',risques:'bien',energie:'bien',bruit:'bien',urbanisme:'bien',
+  analyse:'bien',prix:'bien',risques:'bien',bruit:'bien',urbanisme:'bien',
   ecoles:'bien',mobilite:'bien',fibre:'bien',services:'bien',soleil:'bien',
   emprunt:'financement',cout:'financement',mensualites:'financement',aides:'financement',renov:'financement',location:'financement',
-  offre:'strategie',profil:'strategie',
+  offre:'strategie',profil:'strategie',recherche:'strategie',conseil:'strategie',juridique:'strategie',
 };
 function setActiveTab(tabId){
   document.querySelectorAll('.btab').forEach(b=>b.classList.remove('active'));
