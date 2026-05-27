@@ -20,6 +20,30 @@ const TYPES_PRIORITAIRES   = ['Appartement', 'Maison'];
 // Décalages en mètres [nord/sud, est/ouest] pour sonder les parcelles voisines si le point exact est sur une voie
 const IGN_OFFSETS_M = [[0,0],[15,0],[-15,0],[0,15],[0,-15],[15,15],[-15,-15]];
 
+
+// ── Estimation du nombre de pièces par surface (fallback quand DVF ne renseigne pas le champ) ──
+const SURFACE_PIECES_APPART = [
+  [35, 1],   // < 35 m² → Studio/T1
+  [55, 2],   // 35–55 m² → T2
+  [80, 3],   // 55–80 m² → T3
+  [110, 4],  // 80–110 m² → T4
+  [Infinity, 5], // > 110 m² → T5+
+];
+const SURFACE_PIECES_MAISON = [
+  [50, 2],
+  [80, 3],
+  [110, 4],
+  [Infinity, 5],
+];
+function estimePieces(surf, type) {
+  if (!surf || surf < 9) return null;
+  const table = (type === 'Maison') ? SURFACE_PIECES_MAISON : SURFACE_PIECES_APPART;
+  for (const [seuil, p] of table) {
+    if (surf < seuil) return p;
+  }
+  return 5;
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   const lat = parseFloat(req.query.lat);
@@ -94,7 +118,8 @@ export default async function handler(req, res) {
           lat: parseFloat(m.latitude) || null,
           lon: parseFloat(m.longitude) || null,
           idMutation: m.id_mutation || null,
-          pieces: parseInt(m.nombre_pieces_principales) || null,
+          pieces: parseInt(m.nombre_pieces_principales) || estimePieces(parseFloat(m.surface_reelle_bati || m.lot1_surface_carrez || 0), m.type_local || '—'),
+          piecesEstime: !parseInt(m.nombre_pieces_principales),
           surfaceTerrain: Math.round(parseFloat(m.surface_terrain || 0)) || null
         };
       })

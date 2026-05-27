@@ -2537,19 +2537,37 @@ function setCardRetry(id, fn){
 }
 
 // ── DVF : vraies transactions officielles ──
+function _estimePiecesClient(surf, type) {
+  if (!surf || surf < 9) return null;
+  if (type === 'Maison') {
+    if (surf < 50) return 2;
+    if (surf < 80) return 3;
+    if (surf < 110) return 4;
+    return 5;
+  }
+  if (surf < 35) return 1;
+  if (surf < 55) return 2;
+  if (surf < 80) return 3;
+  if (surf < 110) return 4;
+  return 5;
+}
 function normaliseDVF(items){
   return items.map(t => {
     const p = t.properties || t;
     const surf = parseFloat(p.surface_reelle_bati || p.surface_carrez || p.surface_habitable || p.surface || 0);
     const prix = parseFloat(p.valeur_fonciere || p.prix || 0);
     const prixM2 = (surf > 9 && prix > 10000) ? Math.round(prix / surf) : 0;
+    const piecesRaw = parseInt(p.nombre_pieces_principales) || null;
+    const type = p.type_local || p.nature_mutation || p.type || '—';
+    const pieces = piecesRaw || _estimePiecesClient(Math.round(surf), type);
     return { surf: Math.round(surf), prix: Math.round(prix), prixM2,
       date: p.date_mutation || p.date_vente || p.date || '—',
-      type: p.type_local || p.nature_mutation || p.type || '—',
+      type,
       adresse: `${p.adresse_numero||p.no_voie||''} ${p.adresse_nom_voie||p.voie||p.adresse||''}`.trim(),
       lat: parseFloat(p.latitude) || null,
       lon: parseFloat(p.longitude) || null,
-      pieces: parseInt(p.nombre_pieces_principales) || null,
+      pieces,
+      piecesEstime: !piecesRaw,
       surfaceTerrain: Math.round(parseFloat(p.surface_terrain || 0)) || null
     };
   }).filter(t => t.prixM2 > 500 && t.prixM2 < 50000);
@@ -3864,7 +3882,7 @@ function showDVFDetail(){
     if(fp_check > 0 && liste.length === 0) {
       const hasPData = (window._dvfRecentes||[]).some(t=>t.pieces>0);
       if(!hasPData) {
-        document.getElementById('dvfTbody').innerHTML = '<tr><td colspan="6" style="color:var(--muted);text-align:center;padding:1rem;font-size:.78rem">ℹ️ Données pièces non disponibles pour ces transactions DVF.<br>Ce champ nest pas renseigné pour certaines mutations multi-lots.</td></tr>';
+        document.getElementById('dvfTbody').innerHTML = '<tr><td colspan="6" style="color:var(--muted);text-align:center;padding:1rem;font-size:.78rem">Aucune transaction pour ce filtre.</td></tr>';
         return;
       }
     }
@@ -3873,7 +3891,7 @@ function showDVFDetail(){
         <td>${t.date||'—'}</td>
         <td>${t.type||'—'}${t.adresse?'<br><span style="font-size:.62rem;color:var(--muted)">📍 '+t.adresse+'</span><br><a href="https://maps.google.com/?q='+encodeURIComponent((t.adresse?t.adresse+(currentAddress?', '+currentAddress:''):(t.lat&&t.lon?t.lat+','+t.lon:'')))+'" target="_blank" rel="noopener" style="display:inline-block;margin-top:.2rem;padding:.2rem .55rem;background:var(--ink);color:var(--gold2);border-radius:4px;font-size:.7rem;font-weight:600;text-decoration:none">🗺 Y aller</a>':''}</td>
         <td>${t.surf?t.surf+'m²':'—'}${t.surfaceTerrain&&t.surfaceTerrain>0?'<br><span style="font-size:.62rem;color:var(--muted)">terrain '+t.surfaceTerrain+'m²</span>':''}</td>
-        <td>${t.pieces?'T'+(t.pieces>=5?'5+':t.pieces):'—'}</td>
+        <td>${t.pieces?(t.piecesEstime?'~':'')+'T'+(t.pieces>=5?'5+':t.pieces):'—'}</td>
         <td><strong>${t.prixM2?t.prixM2.toLocaleString('fr-FR')+' €/m²':'—'}</strong></td>
         <td>${t.prix?t.prix.toLocaleString('fr-FR')+' €':'—'}</td>
       </tr>`).join('') || '<tr><td colspan="6" style="color:var(--muted);text-align:center;padding:.8rem">Aucune transaction pour ce filtre</td></tr>';
@@ -3990,7 +4008,7 @@ function showDVFDetail(){
   const DVF_PIECES=[[0,'Tous'],[1,'Studio'],[2,'T2'],[3,'T3'],[4,'T4'],[5,'T5+']];
   // Compter les transactions avec pièces connues pour chaque catégorie
   const recentes = window._dvfRecentes || [];
-  const hasPieces = recentes.some(t => t.pieces > 0);
+  const hasPieces = true; // pieces are always available via surface estimation
   const piecesCount = DVF_PIECES.map(([p]) => {
     if(p===0) return recentes.length;
     if(p===5) return recentes.filter(t=>(t.pieces||0)>=5).length;
@@ -4046,7 +4064,7 @@ function showDVFDetail(){
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Surface :</span>${btnsSurf}
     </div>
     <div style="margin-bottom:.5rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
-      <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Pièces :</span>${btnsPieces}${!hasPieces ? '<span style="font-size:.65rem;color:var(--muted);font-style:italic;margin-left:.3rem">— données non disponibles pour cette zone</span>' : ''}
+      <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Pièces :</span>${btnsPieces}
     </div>
     <div style="margin-bottom:.7rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Afficher :</span>${btnsFiltres}
@@ -4096,11 +4114,18 @@ function buildDVFMap(){
     const marker = L.marker([t.lat, t.lon], {icon});
     const gmUrl = 'https://maps.google.com/?q=' + encodeURIComponent((t.adresse ? t.adresse + (currentAddress ? ', ' + currentAddress : '') : (t.lat + ',' + t.lon)));
     const prixTotalStr = t.prix ? t.prix.toLocaleString('fr-FR') + ' €' : '';
-    marker.bindPopup(`<b>${label}</b><br>${t.type||''} – ${t.surf?t.surf+'m²':''}${t.pieces?' · T'+(t.pieces>=5?'5+':t.pieces):''}<br>${t.adresse?'📍 '+t.adresse+'<br>':''}${prixTotalStr?'💶 '+prixTotalStr+'<br>':''}<small>${t.date||''}</small><br><a href="${gmUrl}" target="_blank" rel="noopener" style="display:inline-block;margin-top:.3rem;padding:.2rem .55rem;background:#1a1a1a;color:#c9a84c;border-radius:4px;font-size:.72rem;font-weight:600;text-decoration:none">🗺 Y aller</a>`);
+    marker.bindPopup(`<b>${label}</b><br>${t.type||''} – ${t.surf?t.surf+'m²':''}${t.pieces?' · '+(t.piecesEstime?'~':'')+'T'+(t.pieces>=5?'5+':t.pieces):''}<br>${t.adresse?'📍 '+t.adresse+'<br>':''}${prixTotalStr?'💶 '+prixTotalStr+'<br>':''}<small>${t.date||''}</small><br><a href="${gmUrl}" target="_blank" rel="noopener" style="display:inline-block;margin-top:.3rem;padding:.2rem .55rem;background:#1a1a1a;color:#c9a84c;border-radius:4px;font-size:.72rem;font-weight:600;text-decoration:none">🗺 Y aller</a>`);
     marker.addTo(map);
     bounds.push([t.lat, t.lon]);
   });
   if(bounds.length) map.fitBounds(bounds, {padding:[20,20], maxZoom:15});
+  // Marqueur de l'adresse analysee
+  if(currentCoords) {
+    const homeIcon = L.divIcon({ className:'', html:'<div style="width:22px;height:22px;border-radius:50%;background:#1a1a1a;border:3px solid #c9a84c;display:flex;align-items:center;justify-content:center;font-size:11px;box-shadow:0 2px 6px rgba(0,0,0,.5)">📍</div>', iconSize:[22,22], iconAnchor:[11,11] });
+    L.marker([currentCoords.lat, currentCoords.lng], {icon:homeIcon, zIndexOffset:1000})
+     .bindPopup('<strong>📍 ' + (currentAddress||'Adresse analysée') + '</strong>')
+     .addTo(map);
+  }
 }
 
 function showRisquesDetail(){
