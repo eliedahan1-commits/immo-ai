@@ -3859,6 +3859,15 @@ function showDVFDetail(){
     if(el_base) el_base.textContent = 'sur '+prix2.length+' val.';
     if(el_cnt) el_cnt.textContent = liste.length;
     if(el_four && prix2.length>=2) el_four.textContent = 'Fourchette : '+prix2[0].toLocaleString('fr-FR')+' – '+prix2[prix2.length-1].toLocaleString('fr-FR')+' €/m²';
+    // Vérifier si données pièces disponibles quand filtre actif
+    const fp_check = window._dvfFilterPieces;
+    if(fp_check > 0 && liste.length === 0) {
+      const hasPData = (window._dvfRecentes||[]).some(t=>t.pieces>0);
+      if(!hasPData) {
+        document.getElementById('dvfTbody').innerHTML = '<tr><td colspan="6" style="color:var(--muted);text-align:center;padding:1rem;font-size:.78rem">ℹ️ Données pièces non disponibles pour ces transactions DVF.<br>Ce champ n'est pas renseigné pour certaines mutations multi-lots.</td></tr>';
+        return;
+      }
+    }
     document.getElementById('dvfTbody').innerHTML = liste.map(t=>`
       <tr>
         <td>${t.date||'—'}</td>
@@ -3979,7 +3988,48 @@ function showDVFDetail(){
   const SURF_TRANCHES=[[0,'Toute'],[25,'<25m²'],[50,'25–50'],[75,'50–75'],[100,'75–100'],[125,'100–125'],[150,'125–150'],[999,'>150m²']];
   const btnsSurf = SURF_TRANCHES.map(([s,l])=>`<button class="dvf-surf-btn dvf-filter-btn" data-s="${s}" onclick="filterDVFSurf(${s})" style="${btnStyle}">${l}</button>`).join('');
   const DVF_PIECES=[[0,'Tous'],[1,'Studio'],[2,'T2'],[3,'T3'],[4,'T4'],[5,'T5+']];
-  const btnsPieces = DVF_PIECES.map(([p,l])=>`<button class="dvf-pieces-btn dvf-filter-btn" data-p="${p}" onclick="filterDVFPieces(${p})" style="${btnStyle}">${l}</button>`).join('');
+  // Compter les transactions avec pièces connues pour chaque catégorie
+  const recentes = window._dvfRecentes || [];
+  const hasPieces = recentes.some(t => t.pieces > 0);
+  const piecesCount = DVF_PIECES.map(([p]) => {
+    if(p===0) return recentes.length;
+    if(p===5) return recentes.filter(t=>(t.pieces||0)>=5).length;
+    return recentes.filter(t=>(t.pieces||0)===p).length;
+  });
+  const btnsPieces = DVF_PIECES.map(([p,l],i)=>{
+    const cnt = piecesCount[i];
+    const disabled = p>0 && !hasPieces ? ' opacity:.4;cursor:not-allowed' : '';
+    const badge = p>0 && hasPieces ? ` <span style="font-size:.65rem;opacity:.6">(${cnt})</span>` : '';
+    return `<button class="dvf-pieces-btn dvf-filter-btn" data-p="${p}" onclick="filterDVFPieces(${p})" style="${btnStyle}${disabled}">${l}${badge}</button>`;
+  }).join('');
+  // ── Prix au m² par pièce (médiane) ──
+  const PIECES_LABELS = {1:'Studio/T1', 2:'T2', 3:'T3', 4:'T4', 5:'T5+'};
+  const prixParPiece = [1,2,3,4,5].map(p => {
+    const ts = recentes.filter(t => p===5 ? (t.pieces||0)>=5 : (t.pieces||0)===p);
+    if(ts.length === 0) return null;
+    const vals = ts.map(t=>t.prixM2).filter(v=>v>0).sort((a,b)=>a-b);
+    if(!vals.length) return null;
+    const med = vals[Math.floor(vals.length/2)];
+    const surfs = ts.map(t=>t.surf).filter(v=>v>0).sort((a,b)=>a-b);
+    const medSurf = surfs.length ? surfs[Math.floor(surfs.length/2)] : null;
+    return { p, label: PIECES_LABELS[p], medianM2: med, count: ts.length, medSurf };
+  }).filter(Boolean);
+
+  // Tableau HTML prix par pièce (visible seulement si données dispo)
+  const prixParPieceHTML = hasPieces && prixParPiece.length ? `
+    <div style="margin-bottom:1.2rem">
+      <p style="font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">💡 Prix médian au m² par type de bien</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:.5rem">
+        ${prixParPiece.map(r=>`
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.55rem .7rem;text-align:center">
+            <div style="font-size:.7rem;color:var(--muted);margin-bottom:.2rem">${r.label}</div>
+            <div style="font-size:1rem;font-weight:700;color:var(--gold2)">${r.medianM2.toLocaleString('fr-FR')} €</div>
+            <div style="font-size:.62rem;color:var(--muted)">/m² · ${r.count} vente${r.count>1?'s':''}</div>
+            ${r.medSurf ? `<div style="font-size:.6rem;color:var(--muted);margin-top:.1rem">~${r.medSurf}m² médian</div>` : ''}
+          </div>`).join('')}
+      </div>
+    </div>` : '';
+
   showPanel('💰 Prix des dernières transactions', `
     <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1rem">
       <div class="stat-box"><span class="stat-n" id="dvfStatMedian">${d.stats.medianM2.toLocaleString('fr-FR')}€</span><span class="stat-l">💰 Moyenne /m²</span><span class="stat-l" id="dvfMedianBase" style="font-size:.65rem;opacity:.6">sur ${d.count} val.</span></div>
@@ -3987,6 +4037,7 @@ function showDVFDetail(){
       <div class="stat-box" id="dvfTrendBox"><span class="stat-n" id="dvfTrendVal">—</span><span class="stat-l" id="dvfTrendLabel">📈 Tendance 6 mois</span></div>
     </div>
     <p style="font-size:.75rem;color:var(--muted);margin-bottom:.6rem" id="dvfFourchette">Fourchette : ${d.stats.minM2.toLocaleString('fr-FR')} – ${d.stats.maxM2.toLocaleString('fr-FR')} €/m²</p>
+    ${prixParPieceHTML}
     <div style="margin-bottom:.5rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Type :</span>${btnsType}
     </div>
@@ -3994,7 +4045,7 @@ function showDVFDetail(){
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Surface :</span>${btnsSurf}
     </div>
     <div style="margin-bottom:.5rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
-      <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Pièces :</span>${btnsPieces}
+      <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Pièces :</span>${btnsPieces}${!hasPieces ? '<span style="font-size:.65rem;color:var(--muted);font-style:italic;margin-left:.3rem">non renseignées</span>' : ''}
     </div>
     <div style="margin-bottom:.7rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Afficher :</span>${btnsFiltres}
