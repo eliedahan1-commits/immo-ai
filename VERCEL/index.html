@@ -4084,7 +4084,7 @@ function buildDVFMap(){
   if(window._dvfLeafletMap){ window._dvfLeafletMap.remove(); window._dvfLeafletMap=null; }
   const map = L.map(container, { zoomControl:true, attributionControl:false });
   window._dvfLeafletMap = map;
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CartoDB',subdomains:'abcd',maxZoom:19}).addTo(map);
   // Palette par prix/m²
   const PRIX_COLORS = [[3000,'#22c55e'],[5000,'#84cc16'],[7000,'#eab308'],[10000,'#f97316'],[Infinity,'#ef4444']];
   function prixColor(pm2){ const c=PRIX_COLORS.find(([seuil])=>pm2<=seuil); return c?c[1]:'#ef4444'; }
