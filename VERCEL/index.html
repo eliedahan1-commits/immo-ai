@@ -5439,8 +5439,8 @@ function showMeteoDetail(){
       <div class="stat-box"><span class="stat-n">${hJour||'—'} h</span><span class="stat-l">🌤️ Soleil/jour moy.</span></div>
     </div>
     <div class="stat-grid stat-grid-4" style="margin-bottom:1rem">
-      <div class="stat-box"><span class="stat-n">${tMin||'—'}°</span><span class="stat-l">🥶 Temp. min. moy.</span></div>
-      <div class="stat-box"><span class="stat-n">${tMax||'—'}°</span><span class="stat-l">🌡️ Temp. max. moy.</span></div>
+      <div class="stat-box"><span class="stat-n" id="meteoTileMin">${tMin||'—'}°</span><span class="stat-l" id="meteoTileMinLbl">🥶 Temp. hiver moy.</span></div>
+      <div class="stat-box"><span class="stat-n" id="meteoTileMax">${tMax||'—'}°</span><span class="stat-l" id="meteoTileMaxLbl">🌡️ Temp. été moy.</span></div>
       <div class="stat-box"><span class="stat-n">${pluieMm||'—'} mm</span><span class="stat-l">🌧️ Précip./an</span></div>
       <div class="stat-box"><span class="stat-n">${pluieJ||'—'}</span><span class="stat-l">☔ Jours pluie/an</span></div>
     </div>
@@ -5452,7 +5452,7 @@ function showMeteoDetail(){
       <div style="position:relative;height:280px;display:none" id="meteoChartWrap"><canvas id="meteoMensuelChart"></canvas></div>
     </div>
     <div style="margin-top:.6rem;margin-bottom:.8rem">
-      <div style="font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.1rem">📈 Températures annuelles Min / Max – 30 ans</div>
+      <div style="font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.1rem">📈 Extremes annuels Min / Max – 30 ans (jour le plus chaud / froid)</div>
       <div id="meteoEvoLoading" style="font-size:.75rem;color:var(--muted);padding:.3rem">Chargement…</div>
       <div style="position:relative;height:220px;display:none" id="meteoEvoWrap"><canvas id="meteoEvoChart"></canvas></div>
     </div>
@@ -5521,6 +5521,20 @@ function showMeteoDetail(){
       times.forEach((t,i)=>{const m=parseInt(t.slice(5,7))-1;sumMax[m]+=tMaxArr[i]||0;sumMin[m]+=tMinArr[i]||0;cnt[m]++;});
       const avgMax=sumMax.map((s,i)=>cnt[i]?+(s/cnt[i]).toFixed(1):null);
       const avgMin=sumMin.map((s,i)=>cnt[i]?+(s/cnt[i]).toFixed(1):null);
+      // Mise à jour tuiles avec moyennes saisonnières
+      // Été = Jun(5) Jul(6) Aoû(7), Hiver = Déc(11) Jan(0) Fév(1)
+      const eteMax  = [avgMax[5],avgMax[6],avgMax[7]].filter(v=>v!=null);
+      const hiverMin= [avgMin[11],avgMin[0],avgMin[1]].filter(v=>v!=null);
+      if(eteMax.length){
+        const v=+(eteMax.reduce((a,b)=>a+b,0)/eteMax.length).toFixed(1);
+        const el=document.getElementById('meteoTileMax'); if(el) el.textContent=v+'°';
+        const lbl=document.getElementById('meteoTileMaxLbl'); if(lbl) lbl.textContent='🌡️ Temp. été moy. (juin-août)';
+      }
+      if(hiverMin.length){
+        const v=+(hiverMin.reduce((a,b)=>a+b,0)/hiverMin.length).toFixed(1);
+        const el=document.getElementById('meteoTileMin'); if(el) el.textContent=v+'°';
+        const lbl=document.getElementById('meteoTileMinLbl'); if(lbl) lbl.textContent='🥶 Temp. hiver moy. (déc-fév)';
+      }
       const loading=document.getElementById('meteoMensuelLoading');
       const wrap=document.getElementById('meteoChartWrap');
       if(loading) loading.style.display='none';
@@ -5565,19 +5579,18 @@ function showMeteoDetail(){
       const tMaxArr=md.daily?.temperature_2m_max||[];
       const tMinArr=md.daily?.temperature_2m_min||[];
       if(!times.length) throw new Error();
-      // Agréger par année
-      const ySumMax={}, ySumMin={}, yCnt={};
+      // Agréger par année : max réel (jour le plus chaud) et min réel (jour le plus froid)
+      const yMax={}, yMin={};
       times.forEach(function(t,i){
         const y=t.slice(0,4);
-        if(tMaxArr[i]!=null){ySumMax[y]=(ySumMax[y]||0)+tMaxArr[i];yCnt[y]=(yCnt[y]||0)+1;}
-        if(tMinArr[i]!=null) ySumMin[y]=(ySumMin[y]||0)+tMinArr[i];
+        if(tMaxArr[i]!=null) yMax[y]=yMax[y]!=null ? Math.max(yMax[y],tMaxArr[i]) : tMaxArr[i];
+        if(tMinArr[i]!=null) yMin[y]=yMin[y]!=null ? Math.min(yMin[y],tMinArr[i]) : tMinArr[i];
       });
       const labels=[]; const dataMax=[]; const dataMin=[];
-      Object.keys(ySumMax).sort().forEach(function(y){
-        const n=yCnt[y];
+      Object.keys(yMax).sort().forEach(function(y){
         labels.push(y);
-        dataMax.push(+(ySumMax[y]/n).toFixed(1));
-        dataMin.push(+(ySumMin[y]/n).toFixed(1));
+        dataMax.push(+yMax[y].toFixed(1));
+        dataMin.push(+yMin[y].toFixed(1));
       });
       if(evoLoad) evoLoad.style.display='none';
       if(evoWrap) evoWrap.style.display='block';
@@ -5587,8 +5600,8 @@ function showMeteoDetail(){
         window._meteoEvoChart=new Chart(ctxE,{
           type:'bar',
           data:{labels,datasets:[
-            {label:'Max moy.',data:dataMax,backgroundColor:'rgba(230,126,34,.75)',borderRadius:2,borderSkipped:false,order:1},
-            {label:'Min moy.',data:dataMin,backgroundColor:'rgba(52,152,219,.75)',borderRadius:2,borderSkipped:false,order:2}
+            {label:'Max année',data:dataMax,backgroundColor:'rgba(230,126,34,.75)',borderRadius:2,borderSkipped:false,order:1},
+            {label:'Min année',data:dataMin,backgroundColor:'rgba(52,152,219,.75)',borderRadius:2,borderSkipped:false,order:2}
           ]},
           options:{responsive:true,maintainAspectRatio:false,
             plugins:{legend:{display:true,labels:{color:'#ccc',font:{size:10},boxWidth:10}},
@@ -5686,7 +5699,7 @@ function showMeteoDetail(){
             options: {
               responsive: true, maintainAspectRatio: false,
               plugins: {
-                legend: {display:true, labels:{color:'#ccc',font:{size:9},boxWidth:10,padding:8}},
+                legend: {display:true, labels:{color:'#e0e0e0',font:{size:10,weight:'500'},boxWidth:12,padding:10}},
                 tooltip: {callbacks:{
                   label: function(c){
                     var raw = c.dataset.rawData[c.dataIndex];
