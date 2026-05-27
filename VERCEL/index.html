@@ -4004,31 +4004,32 @@ function showDVFDetail(){
   }).join('');
   // ── Prix au m² par pièce (médiane) ──
   const PIECES_LABELS = {1:'Studio/T1', 2:'T2', 3:'T3', 4:'T4', 5:'T5+'};
-  const prixParPiece = [1,2,3,4,5].map(p => {
-    const ts = recentes.filter(t => p===5 ? (t.pieces||0)>=5 : (t.pieces||0)===p);
-    if(ts.length === 0) return null;
-    const vals = ts.map(t=>t.prixM2).filter(v=>v>0).sort((a,b)=>a-b);
+  const prixParPiece = [1,2,3,4,5].map(function(p){
+    var ts = recentes.filter(function(t){ return p===5 ? (t.pieces||0)>=5 : (t.pieces||0)===p; });
+    if(!ts.length) return null;
+    var vals = ts.map(function(t){return t.prixM2;}).filter(function(v){return v>0;}).sort(function(a,b){return a-b;});
     if(!vals.length) return null;
-    const med = vals[Math.floor(vals.length/2)];
-    const surfs = ts.map(t=>t.surf).filter(v=>v>0).sort((a,b)=>a-b);
-    const medSurf = surfs.length ? surfs[Math.floor(surfs.length/2)] : null;
-    return { p, label: PIECES_LABELS[p], medianM2: med, count: ts.length, medSurf };
+    var med = vals[Math.floor(vals.length/2)];
+    var surfs = ts.map(function(t){return t.surf;}).filter(function(v){return v>0;}).sort(function(a,b){return a-b;});
+    var medSurf = surfs.length ? surfs[Math.floor(surfs.length/2)] : null;
+    return { p:p, label:PIECES_LABELS[p], medianM2:med, count:ts.length, medSurf:medSurf };
   }).filter(Boolean);
 
-  // Tableau HTML prix par pièce (visible seulement si données dispo)
-  const prixParPieceHTML = hasPieces && prixParPiece.length ? `
-    <div style="margin-bottom:1.2rem">
-      <p style="font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">💡 Prix médian au m² par type de bien</p>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:.5rem">
-        ${prixParPiece.map(r=>`
-          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.55rem .7rem;text-align:center">
-            <div style="font-size:.7rem;color:var(--muted);margin-bottom:.2rem">${r.label}</div>
-            <div style="font-size:1rem;font-weight:700;color:var(--gold2)">${r.medianM2.toLocaleString('fr-FR')} €</div>
-            <div style="font-size:.62rem;color:var(--muted)">/m² · ${r.count} vente${r.count>1?'s':''}</div>
-            ${r.medSurf ? `<div style="font-size:.6rem;color:var(--muted);margin-top:.1rem">~${r.medSurf}m² médian</div>` : ''}
-          </div>`).join('')}
-      </div>
-    </div>` : '';
+  var prixParPieceHTML = '';
+  if(hasPieces && prixParPiece.length) {
+    var cards = prixParPiece.map(function(r){
+      return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.55rem .7rem;text-align:center">'
+        + '<div style="font-size:.7rem;color:var(--muted);margin-bottom:.2rem">'+r.label+'</div>'
+        + '<div style="font-size:1rem;font-weight:700;color:var(--gold2)">'+r.medianM2.toLocaleString('fr-FR')+' €</div>'
+        + '<div style="font-size:.62rem;color:var(--muted)">/m² · '+r.count+' vente'+(r.count>1?'s':'')+'</div>'
+        + (r.medSurf ? '<div style="font-size:.6rem;color:var(--muted);margin-top:.1rem">~'+r.medSurf+'m² médian</div>' : '')
+        + '</div>';
+    }).join('');
+    prixParPieceHTML = '<div style="margin-bottom:1.2rem">'
+      + '<p style="font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">💡 Prix médian au m² par type de bien</p>'
+      + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:.5rem">'
+      + cards + '</div></div>';
+  }
 
   showPanel('💰 Prix des dernières transactions', `
     <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1rem">
