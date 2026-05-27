@@ -880,15 +880,15 @@ path.leaflet-interactive:focus{outline:none;}
   <div class="nav-section" onclick="toggleNavGroup(this)"><span>🏘️ Mon quartier</span><span class="nav-arrow">▾</span></div>
   <div class="nav-group-content">
     <div class="nav-sub">
-      <div class="nav-item" onclick="go('analyse')"><span class="nav-icon">⭐</span>Score global du quartier</div>
-      <div class="nav-item" onclick="go('services')"><span class="nav-icon">🏥</span>Commerces, services & santé</div>
-      <div class="nav-item" onclick="go('mobilite')"><span class="nav-icon">🚇</span>Transports & mobilité douce</div>
-      <div class="nav-item" onclick="go('ecoles')"><span class="nav-icon">🏫</span>Écoles & niveau scolaire</div>
-      <div class="nav-item" onclick="go('soleil')"><span class="nav-icon">☀️</span>Météo et qualité de l'air</div>
-      <div class="nav-item" onclick="go('risques')"><span class="nav-icon">⚠️</span>Risques naturels & industriels</div>
-      <div class="nav-item" onclick="go('bruit')"><span class="nav-icon">🔇</span>Carte du bruit</div>
-      <div class="nav-item" onclick="go('fibre')"><span class="nav-icon">📶</span>Connexion internet & fibre</div>
-      <div class="nav-item" onclick="go('urbanisme')"><span class="nav-icon">📋</span>Zonage, PLU & réglementation</div>
+      <div class="nav-item" onclick="setActiveNavItem(this);go('analyse');if(currentCoords)setTimeout(()=>showDetail('score'),300)"><span class="nav-icon">⭐</span>Score global du quartier</div>
+      <div class="nav-item" onclick="setActiveNavItem(this);go('services')"><span class="nav-icon">🏥</span>Commerces, services & santé</div>
+      <div class="nav-item" onclick="setActiveNavItem(this);go('mobilite')"><span class="nav-icon">🚇</span>Transports & mobilité douce</div>
+      <div class="nav-item" onclick="setActiveNavItem(this);go('ecoles')"><span class="nav-icon">🏫</span>Écoles & niveau scolaire</div>
+      <div class="nav-item" onclick="setActiveNavItem(this);go('soleil')"><span class="nav-icon">☀️</span>Météo et qualité de l'air</div>
+      <div class="nav-item" onclick="setActiveNavItem(this);go('risques')"><span class="nav-icon">⚠️</span>Risques naturels & industriels</div>
+      <div class="nav-item" onclick="setActiveNavItem(this);go('bruit')"><span class="nav-icon">🔇</span>Carte du bruit</div>
+      <div class="nav-item" onclick="setActiveNavItem(this);go('fibre')"><span class="nav-icon">📶</span>Connexion internet & fibre</div>
+      <div class="nav-item" onclick="setActiveNavItem(this);go('urbanisme')"><span class="nav-icon">📋</span>Zonage, PLU & réglementation</div>
     </div>
   </div>
 
@@ -896,9 +896,9 @@ path.leaflet-interactive:focus{outline:none;}
   <div class="nav-section" onclick="toggleNavGroup(this)"><span>🏠 Prix des biens</span><span class="nav-arrow" style="transform:rotate(-90deg)">▾</span></div>
   <div class="nav-group-content collapsed">
     <div class="nav-sub">
-      <div class="nav-item" onclick="go('analyse');setTimeout(()=>showDetail('dvf'),300)"><span class="nav-icon">💰</span>Prix des dernières transactions</div>
-      <div class="nav-item" onclick="go('analyse');setTimeout(()=>showDetail('loyers'),300)"><span class="nav-icon">🏠</span>Estimation des loyers</div>
-      <div class="nav-item" onclick="go('prix')"><span class="nav-icon">🗺️</span>Prix au m² par commune</div>
+      <div class="nav-item" onclick="setActiveNavItem(this);go('analyse');setTimeout(()=>showDetail('dvf'),300)"><span class="nav-icon">💰</span>Prix des dernières transactions</div>
+      <div class="nav-item" onclick="setActiveNavItem(this);go('analyse');setTimeout(()=>showDetail('loyers'),300)"><span class="nav-icon">🏠</span>Estimation des loyers</div>
+      <div class="nav-item" onclick="setActiveNavItem(this);go('prix')"><span class="nav-icon">🗺️</span>Prix au m² par commune</div>
     </div>
   </div>
 
@@ -906,12 +906,12 @@ path.leaflet-interactive:focus{outline:none;}
   <div class="nav-section" onclick="toggleNavGroup(this)"><span>💰 Mon financement</span><span class="nav-arrow" style="transform:rotate(-90deg)">▾</span></div>
   <div class="nav-group-content collapsed">
     <div class="nav-sub">
-      <div class="nav-item" onclick="go('emprunt')"><span class="nav-icon">🏦</span>Capacité d'emprunt</div>
-      <div class="nav-item" onclick="go('mensualites')"><span class="nav-icon">💳</span>Achat : Mensualités & coût total</div>
-      <div class="nav-item" onclick="go('cout')"><span class="nav-icon">🔑</span>Investissement locatif</div>
-      <div class="nav-item" onclick="go('location')"><span class="nav-icon">🏠</span>Location : budget & comparaison</div>
-      <div class="nav-item" onclick="go('aides')"><span class="nav-icon">🎁</span>Aides à l'achat (PTZ, APL…)</div>
-      <div class="nav-item" onclick="go('renov')"><span class="nav-icon">🔨</span>MaPrimeRénov' & aides travaux</div>
+      <div class="nav-item" onclick="setActiveNavItem(this);go('emprunt')"><span class="nav-icon">🏦</span>Capacité d'emprunt</div>
+      <div class="nav-item" onclick="setActiveNavItem(this);go('mensualites')"><span class="nav-icon">💳</span>Achat : Mensualités & coût total</div>
+      <div class="nav-item" onclick="setActiveNavItem(this);go('cout')"><span class="nav-icon">🔑</span>Investissement locatif</div>
+      <div class="nav-item" onclick="setActiveNavItem(this);go('location')"><span class="nav-icon">🏠</span>Location : budget & comparaison</div>
+      <div class="nav-item" onclick="setActiveNavItem(this);go('aides')"><span class="nav-icon">🎁</span>Aides à l'achat (PTZ, APL…)</div>
+      <div class="nav-item" onclick="setActiveNavItem(this);go('renov')"><span class="nav-icon">🔨</span>MaPrimeRénov' & aides travaux</div>
     </div>
   </div>
 
@@ -919,11 +919,11 @@ path.leaflet-interactive:focus{outline:none;}
   <div class="nav-section" onclick="toggleNavGroup(this)"><span>🎯 Ma stratégie</span><span class="nav-arrow" style="transform:rotate(-90deg)">▾</span></div>
   <div class="nav-group-content collapsed">
     <div class="nav-sub">
-      <div class="nav-item" onclick="go('recherche')"><span class="nav-icon">🏠</span>Trouver un bien</div>
-      <div class="nav-item" onclick="go('offre')"><span class="nav-icon">🤝</span>Coaching de l'offre</div>
-      <div class="nav-item" onclick="go('profil')"><span class="nav-icon">🎯</span>Compatibilité de vie</div>
-      <div class="nav-item" onclick="go('conseil')"><span class="nav-icon">🤖</span>Conseiller IA 24h/24</div>
-      <div class="nav-item" onclick="go('juridique')"><span class="nav-icon">📜</span>Guide juridique</div>
+      <div class="nav-item" onclick="setActiveNavItem(this);go('recherche')"><span class="nav-icon">🏠</span>Trouver un bien</div>
+      <div class="nav-item" onclick="setActiveNavItem(this);go('offre')"><span class="nav-icon">🤝</span>Coaching de l'offre</div>
+      <div class="nav-item" onclick="setActiveNavItem(this);go('profil')"><span class="nav-icon">🎯</span>Compatibilité de vie</div>
+      <div class="nav-item" onclick="setActiveNavItem(this);go('conseil')"><span class="nav-icon">🤖</span>Conseiller IA 24h/24</div>
+      <div class="nav-item" onclick="setActiveNavItem(this);go('juridique')"><span class="nav-icon">📜</span>Guide juridique</div>
     </div>
   </div>
 
@@ -2030,6 +2030,8 @@ function go(id){
   }
 }
 
+function setActiveNavItem(el){ window._activeNavEl = el; }
+
 function _goPage(id){
   // Sauvegarder la position scroll quand on quitte la page analyse
   if(id !== 'analyse') window._analyseScrollY = window.scrollY;
@@ -2037,9 +2039,7 @@ function _goPage(id){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   const p=document.getElementById('p-'+id);if(p)p.classList.add('on');
   document.getElementById('topTitle').textContent=PAGES[id]||id;
-  document.querySelectorAll('.nav-item').forEach(n=>{
-    if(n.getAttribute('onclick')?.includes("'"+id+"'"))n.classList.add('active');
-  });
+  if(window._activeNavEl) window._activeNavEl.classList.add('active');
   if(id === 'analyse' && window._analyseScrollY > 0){
     // Restaurer la position au retour sur la page des cartes
     setTimeout(()=>window.scrollTo({top:window._analyseScrollY, behavior:'smooth'}), 50);
@@ -3290,13 +3290,18 @@ function computeScoreQuartier() {
       sub:`${dens.toLocaleString('fr-FR')} hab/km² · ${densLabel}` });
   }
 
-  if (!items.length) { setCard('score','Chargement…','Données en attente',''); return; }
+  if (!items.length) {
+    setCard('score','Chargement…','Données en attente','');
+    setCardRetry('score', () => computeScoreQuartier());
+    return;
+  }
 
   const note = Math.round(items.reduce((a,s)=>a+s.val,0) / items.length * 10) / 10;
   const cssClass = note>=7?'good':note>=5?'':'warn';
   const label = note>=8?'Excellent':note>=6?'Bon':note>=4?'Moyen':'Faible';
   window._scoreData = { note, label, items };
   setCard('score', note.toFixed(1)+' / 10', label+' · '+items.length+' critères', cssClass);
+  if(items.length < 4) setCardRetry('score', () => computeScoreQuartier());
 }
 
 // Recharge Services + Écoles + Mobilité avec le rayon choisi puis recalcule le score
@@ -3994,8 +3999,8 @@ function showDVFDetail(){
     <div style="margin-bottom:.7rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Afficher :</span>${btnsFiltres}
     </div>
-    <div style="margin-bottom:1.2rem;height:240px;position:relative"><canvas id="dvfHistChart"></canvas></div>
-    <div style="margin-bottom:1.2rem;height:260px;position:relative"><canvas id="dvfEvolutionChart"></canvas></div>
+    <div style="margin-bottom:1.2rem;height:480px;position:relative"><canvas id="dvfHistChart"></canvas></div>
+    <div style="margin-bottom:1.2rem;height:520px;position:relative"><canvas id="dvfEvolutionChart"></canvas></div>
     <div id="dvfMapContainer" style="margin-bottom:1.2rem;height:280px;border-radius:8px;overflow:hidden;border:1px solid var(--border)"></div>
     <button id="dvfListeToggle" onclick="var w=document.getElementById('dvfListeWrap');var show=w.style.display==='none';w.style.display=show?'block':'none';this.textContent=show?'▲ Masquer la liste':'📋 Afficher la liste';" style="margin-top:.5rem;margin-bottom:.5rem;padding:.4rem 1rem;background:var(--surface2);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:600;color:var(--text)">📋 Afficher la liste</button>
     <div id="dvfListeWrap" style="display:none">
