@@ -2546,7 +2546,11 @@ function normaliseDVF(items){
     return { surf: Math.round(surf), prix: Math.round(prix), prixM2,
       date: p.date_mutation || p.date_vente || p.date || '—',
       type: p.type_local || p.nature_mutation || p.type || '—',
-      adresse: `${p.adresse_numero||p.no_voie||''} ${p.adresse_nom_voie||p.voie||p.adresse||''}`.trim()
+      adresse: `${p.adresse_numero||p.no_voie||''} ${p.adresse_nom_voie||p.voie||p.adresse||''}`.trim(),
+      lat: parseFloat(p.latitude) || null,
+      lon: parseFloat(p.longitude) || null,
+      pieces: parseInt(p.nombre_pieces_principales) || null,
+      surfaceTerrain: Math.round(parseFloat(p.surface_terrain || 0)) || null
     };
   }).filter(t => t.prixM2 > 500 && t.prixM2 < 50000);
 }
@@ -3784,9 +3788,10 @@ function showDVFDetail(){
   if(!d.stats){showPanel('💰 Prix des dernières transactions','<p style="color:var(--muted)">Aucune transaction trouvée dans ce secteur.</p>');return;}
   const periodeLabel = d.dateRange ? `Période ${d.dateRange}` : '';
   window._dvfRecentes = d.recentes || [];
-  window._dvfFilterType = 'tous';
-  window._dvfFilterSurf = 0;
-  window._dvfFilterN    = 0;
+  window._dvfFilterType   = 'tous';
+  window._dvfFilterSurf   = 0;
+  window._dvfFilterN      = 0;
+  window._dvfFilterPieces = 0;
   window._dvfSortCol    = 'date';
   window._dvfSortDir    = 'desc'; // date la plus récente par défaut
   window.sortDVF = function(col){
@@ -3816,6 +3821,11 @@ function showDVFDetail(){
       const SURF_TRANCHES=[[25,0,25],[50,25,50],[75,50,75],[100,75,100],[125,100,125],[150,125,150],[999,150,99999]];
       const tranche=SURF_TRANCHES.find(t=>t[0]===s);
       if(tranche) liste=liste.filter(t=>(t.surf||0)>=tranche[1]&&(t.surf||0)<tranche[2]);
+    }
+    const fp=window._dvfFilterPieces;
+    if(fp>0){
+      if(fp===5) liste=liste.filter(t=>(t.pieces||0)>=5);
+      else liste=liste.filter(t=>(t.pieces||0)===fp);
     }
     // Tri
     const col=window._dvfSortCol, dir=window._dvfSortDir;
@@ -3848,13 +3858,15 @@ function showDVFDetail(){
       <tr>
         <td>${t.date||'—'}</td>
         <td>${t.type||'—'}${t.adresse?'<br><span style="font-size:.62rem;color:var(--muted)">📍 '+t.adresse+'</span><br><a href="https://maps.google.com/?q='+encodeURIComponent((t.adresse?t.adresse+(currentAddress?', '+currentAddress:''):(t.lat&&t.lon?t.lat+','+t.lon:'')))+'" target="_blank" rel="noopener" style="display:inline-block;margin-top:.2rem;padding:.2rem .55rem;background:var(--ink);color:var(--gold2);border-radius:4px;font-size:.7rem;font-weight:600;text-decoration:none">🗺 Y aller</a>':''}</td>
-        <td>${t.surf?t.surf+'m²':'—'}</td>
+        <td>${t.surf?t.surf+'m²':'—'}${t.surfaceTerrain&&t.surfaceTerrain>0?'<br><span style="font-size:.62rem;color:var(--muted)">terrain '+t.surfaceTerrain+'m²</span>':''}</td>
+        <td>${t.pieces?'T'+(t.pieces>=5?'5+':t.pieces):'—'}</td>
         <td><strong>${t.prixM2?t.prixM2.toLocaleString('fr-FR')+' €/m²':'—'}</strong></td>
         <td>${t.prix?t.prix.toLocaleString('fr-FR')+' €':'—'}</td>
-      </tr>`).join('') || '<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:.8rem">Aucune transaction pour ce filtre</td></tr>';
+      </tr>`).join('') || '<tr><td colspan="6" style="color:var(--muted);text-align:center;padding:.8rem">Aucune transaction pour ce filtre</td></tr>';
     document.querySelectorAll('.dvf-n-btn').forEach(b=>b.classList.toggle('active', b.dataset.n===String(n)));
     document.querySelectorAll('.dvf-type-btn').forEach(b=>b.classList.toggle('active', b.dataset.t===window._dvfFilterType));
     document.querySelectorAll('.dvf-surf-btn').forEach(b=>b.classList.toggle('active', b.dataset.s===String(window._dvfFilterSurf)));
+    document.querySelectorAll('.dvf-pieces-btn').forEach(b=>b.classList.toggle('active', b.dataset.p===String(window._dvfFilterPieces)));
     // ── Tendance dynamique ──
     updateDvfTrend(liste);
   }
@@ -3897,14 +3909,16 @@ function showDVFDetail(){
     tEl.style.color = up?'#2a9d8f':'#e63946';
     lEl.textContent = label;
   }
-  window.filterDVF     = n  => { window._dvfFilterN=n;    renderDVFRows(); refreshDVFChart(); };
-  window.filterDVFType = t  => { window._dvfFilterType=t; renderDVFRows(); refreshDVFChart(); };
-  window.filterDVFSurf = s  => { window._dvfFilterSurf=s; renderDVFRows(); refreshDVFChart(); };
+  window.filterDVF       = n  => { window._dvfFilterN=n;      renderDVFRows(); refreshDVFChart(); };
+  window.filterDVFType   = t  => { window._dvfFilterType=t;   renderDVFRows(); refreshDVFChart(); };
+  window.filterDVFSurf   = s  => { window._dvfFilterSurf=s;   renderDVFRows(); refreshDVFChart(); };
+  window.filterDVFPieces = p  => { window._dvfFilterPieces=p; renderDVFRows(); refreshDVFChart(); };
   window.filterDVFPrix = (lo,hi) => { window._dvfFilterPrixLo=lo; window._dvfFilterPrixHi=hi; renderDVFRows(); };
   function getFilteredVals(){
     let l=window._dvfRecentes||[];
     if(window._dvfFilterType!=='tous') l=l.filter(t=>{const tp=(t.type||'').toLowerCase();if(window._dvfFilterType==='appt')return tp.includes('appartement');if(window._dvfFilterType==='maison')return tp.includes('maison');if(window._dvfFilterType==='local')return tp.includes('local');if(window._dvfFilterType==='depend')return tp.includes('dépendance')||tp.includes('dependance');return true;});
     const s=window._dvfFilterSurf;if(s>0){const T=[[25,0,25],[50,25,50],[75,50,75],[100,75,100],[125,100,125],[150,125,150],[999,150,99999]];const tr=T.find(t=>t[0]===s);if(tr)l=l.filter(t=>(t.surf||0)>=tr[1]&&(t.surf||0)<tr[2]);}
+    const fp2=window._dvfFilterPieces;if(fp2>0){if(fp2===5)l=l.filter(t=>(t.pieces||0)>=5);else l=l.filter(t=>(t.pieces||0)===fp2);}
     const n=window._dvfFilterN;if(n>0)l=l.slice(0,n);
     return l.map(t=>t.prixM2).filter(v=>v>0);
   }
@@ -3959,6 +3973,8 @@ function showDVFDetail(){
   const btnsType = [['tous','Tous'],['appt','🏢 Appt.'],['maison','🏠 Maison'],['local','🏗️ Local/comm.'],['depend','📦 Dépendance']].map(([t,l])=>`<button class="dvf-type-btn" data-t="${t}" onclick="filterDVFType('${t}')" style="${btnStyle}">${l}</button>`).join('');
   const SURF_TRANCHES=[[0,'Toute'],[25,'<25m²'],[50,'25–50'],[75,'50–75'],[100,'75–100'],[125,'100–125'],[150,'125–150'],[999,'>150m²']];
   const btnsSurf = SURF_TRANCHES.map(([s,l])=>`<button class="dvf-surf-btn dvf-filter-btn" data-s="${s}" onclick="filterDVFSurf(${s})" style="${btnStyle}">${l}</button>`).join('');
+  const DVF_PIECES=[[0,'Tous'],[1,'Studio'],[2,'T2'],[3,'T3'],[4,'T4'],[5,'T5+']];
+  const btnsPieces = DVF_PIECES.map(([p,l])=>`<button class="dvf-pieces-btn dvf-filter-btn" data-p="${p}" onclick="filterDVFPieces(${p})" style="${btnStyle}">${l}</button>`).join('');
   showPanel('💰 Prix des dernières transactions', `
     <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1rem">
       <div class="stat-box"><span class="stat-n" id="dvfStatMedian">${d.stats.medianM2.toLocaleString('fr-FR')}€</span><span class="stat-l">💰 Moyenne /m²</span><span class="stat-l" id="dvfMedianBase" style="font-size:.65rem;opacity:.6">sur ${d.count} val.</span></div>
@@ -3972,17 +3988,22 @@ function showDVFDetail(){
     <div style="margin-bottom:.5rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Surface :</span>${btnsSurf}
     </div>
+    <div style="margin-bottom:.5rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
+      <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Pièces :</span>${btnsPieces}
+    </div>
     <div style="margin-bottom:.7rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Afficher :</span>${btnsFiltres}
     </div>
-    <div style="margin-bottom:1.2rem;height:160px;position:relative"><canvas id="dvfHistChart"></canvas></div>
-    <div style="margin-bottom:1.2rem;height:180px;position:relative"><canvas id="dvfEvolutionChart"></canvas></div>
+    <div style="margin-bottom:1.2rem;height:240px;position:relative"><canvas id="dvfHistChart"></canvas></div>
+    <div style="margin-bottom:1.2rem;height:260px;position:relative"><canvas id="dvfEvolutionChart"></canvas></div>
+    <div id="dvfMapContainer" style="margin-bottom:1.2rem;height:280px;border-radius:8px;overflow:hidden;border:1px solid var(--border)"></div>
     <button id="dvfListeToggle" onclick="var w=document.getElementById('dvfListeWrap');var show=w.style.display==='none';w.style.display=show?'block':'none';this.textContent=show?'▲ Masquer la liste':'📋 Afficher la liste';" style="margin-top:.5rem;margin-bottom:.5rem;padding:.4rem 1rem;background:var(--surface2);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:600;color:var(--text)">📋 Afficher la liste</button>
     <div id="dvfListeWrap" style="display:none">
     <table class="tbl"><thead><tr>
       <th class="dvf-th" data-col="date"  onclick="sortDVF('date')"  style="cursor:pointer;user-select:none">Date<span class="sort-ind"> ▼</span></th>
       <th class="dvf-th" data-col="type"  onclick="sortDVF('type')"  style="cursor:pointer;user-select:none">Type / Adresse<span class="sort-ind"> ⇅</span></th>
       <th class="dvf-th" data-col="surf"  onclick="sortDVF('surf')"  style="cursor:pointer;user-select:none">Surface<span class="sort-ind"> ⇅</span></th>
+      <th class="dvf-th" style="user-select:none">Pièces</th>
       <th class="dvf-th" data-col="prixM2" onclick="sortDVF('prixM2')" style="cursor:pointer;user-select:none">Prix/m²<span class="sort-ind"> ⇅</span></th>
       <th class="dvf-th" data-col="prix"  onclick="sortDVF('prix')"  style="cursor:pointer;user-select:none">Prix total<span class="sort-ind"> ⇅</span></th>
     </tr></thead>
@@ -3992,6 +4013,35 @@ function showDVFDetail(){
   renderDVFRows();
   setTimeout(()=>refreshDVFChart(), 80);
   setTimeout(()=>buildDvfEvolutionChart(), 120);
+  setTimeout(()=>buildDVFMap(), 200);
+}
+
+function buildDVFMap(){
+  const container = document.getElementById('dvfMapContainer');
+  if(!container || !window.L) return;
+  const liste = window._dvfRecentes || [];
+  const pts = liste.filter(t => t.lat && t.lon);
+  if(pts.length === 0){ container.style.display='none'; return; }
+  container.style.display='';
+  // Détruire carte existante
+  if(window._dvfLeafletMap){ window._dvfLeafletMap.remove(); window._dvfLeafletMap=null; }
+  const map = L.map(container, { zoomControl:true, attributionControl:false });
+  window._dvfLeafletMap = map;
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
+  // Palette par prix/m²
+  const PRIX_COLORS = [[3000,'#22c55e'],[5000,'#84cc16'],[7000,'#eab308'],[10000,'#f97316'],[Infinity,'#ef4444']];
+  function prixColor(pm2){ const c=PRIX_COLORS.find(([seuil])=>pm2<=seuil); return c?c[1]:'#ef4444'; }
+  const bounds = [];
+  pts.forEach(t => {
+    const color = prixColor(t.prixM2||0);
+    const label = t.prixM2 ? t.prixM2.toLocaleString('fr-FR')+'€/m²' : '—';
+    const icon = L.divIcon({ className:'', html:`<div style="width:12px;height:12px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,.4)"></div>`, iconSize:[12,12], iconAnchor:[6,6] });
+    const marker = L.marker([t.lat, t.lon], {icon});
+    marker.bindPopup(`<b>${label}</b><br>${t.type||''} – ${t.surf?t.surf+'m²':''}<br>${t.adresse||''}<br><small>${t.date||''}</small>`);
+    marker.addTo(map);
+    bounds.push([t.lat, t.lon]);
+  });
+  if(bounds.length) map.fitBounds(bounds, {padding:[20,20], maxZoom:15});
 }
 
 function showRisquesDetail(){
