@@ -3864,7 +3864,7 @@ function showDVFDetail(){
     if(fp_check > 0 && liste.length === 0) {
       const hasPData = (window._dvfRecentes||[]).some(t=>t.pieces>0);
       if(!hasPData) {
-        document.getElementById('dvfTbody').innerHTML = '<tr><td colspan="6" style="color:var(--muted);text-align:center;padding:1rem;font-size:.78rem">ℹ️ Données pièces non disponibles pour ces transactions DVF.<br>Ce champ n'est pas renseigné pour certaines mutations multi-lots.</td></tr>';
+        document.getElementById('dvfTbody').innerHTML = '<tr><td colspan="6" style="color:var(--muted);text-align:center;padding:1rem;font-size:.78rem">ℹ️ Données pièces non disponibles pour ces transactions DVF.<br>Ce champ nest pas renseigné pour certaines mutations multi-lots.</td></tr>';
         return;
       }
     }
