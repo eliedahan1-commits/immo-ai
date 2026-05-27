@@ -3810,7 +3810,12 @@ function showDVFDetail(){
   }
   if(!d.stats){showPanel('💰 Prix des dernières transactions','<p style="color:var(--muted)">Aucune transaction trouvée dans ce secteur.</p>');return;}
   const periodeLabel = d.dateRange ? `Période ${d.dateRange}` : '';
-  window._dvfRecentes = d.recentes || [];
+  window._dvfRecentes = (d.recentes || []).map(function(t){
+    if (!t.pieces && t.surf) {
+      return Object.assign({}, t, { pieces: _estimePiecesClient(t.surf, t.type), piecesEstime: true });
+    }
+    return t;
+  });
   window._dvfFilterType   = 'tous';
   window._dvfFilterSurf   = 0;
   window._dvfFilterN      = 0;
