@@ -92,8 +92,8 @@ aside.open{transform:translateX(0);box-shadow:4px 0 32px rgba(0,0,0,.5);}
 }
 .nav-section:hover{color:rgba(255,255,255,.95);}
 .nav-arrow{font-size:1rem;line-height:1;transition:transform .2s;color:rgba(255,255,255,.6);flex-shrink:0;}
-.nav-group-content{overflow:hidden;transition:max-height .25s ease;}
-.nav-group-content.collapsed{display:none;}
+.nav-group-content{overflow:hidden;transition:max-height .28s ease;max-height:600px;}
+.nav-group-content.collapsed{max-height:0;}
 .nav-item{
   display:flex;align-items:center;gap:.65rem;
   padding:.52rem .9rem;margin:.06rem .5rem;
@@ -103,7 +103,7 @@ aside.open{transform:translateX(0);box-shadow:4px 0 32px rgba(0,0,0,.5);}
   position:relative;
 }
 .nav-item:hover{color:#fff;background:rgba(255,255,255,.09);}
-.nav-item.active{color:var(--gold2);background:rgba(184,131,42,.1);border-color:rgba(184,131,42,.2);}
+.nav-item.active{color:var(--gold2);}
 .nav-icon{font-size:.88rem;width:18px;text-align:center;flex-shrink:0;}
 .nav-badge{margin-left:auto;background:var(--gold);color:var(--ink);font-size:.54rem;padding:.07rem .4rem;border-radius:10px;font-weight:600;}
 .nav-sub{padding-left:1rem;}
@@ -876,19 +876,19 @@ path.leaflet-interactive:focus{outline:none;}
     <span class="ai-lbl" id="aiLbl">Configurer l'IA</span>
   </div>
 
-  <!-- Groupe : Mon quartier (ouvert par défaut — 1er sur homepage) -->
+  <!-- Groupe : Mon quartier (ouvert par défaut) -->
   <div class="nav-section" onclick="toggleNavGroup(this)"><span>🏘️ Mon quartier</span><span class="nav-arrow">▾</span></div>
   <div class="nav-group-content">
-    <div class="nav-item" onclick="go('analyse')"><span class="nav-icon">📊</span>Vue d'ensemble</div>
     <div class="nav-sub">
-      <div class="nav-item" onclick="go('services')"><span class="nav-icon">🏥</span>Services & santé</div>
-      <div class="nav-item" onclick="go('mobilite')"><span class="nav-icon">🚇</span>Mobilité & transports</div>
-      <div class="nav-item" onclick="go('ecoles')"><span class="nav-icon">🏫</span>Écoles & IPS</div>
-      <div class="nav-item" onclick="go('soleil')"><span class="nav-icon">☀️</span>Météo & qualité de l'air</div>
-      <div class="nav-item" onclick="go('risques')"><span class="nav-icon">⚠️</span>Risques naturels</div>
-      <div class="nav-item" onclick="go('bruit')"><span class="nav-icon">🔇</span>Bruit & nuisances</div>
-      <div class="nav-item" onclick="go('fibre')"><span class="nav-icon">📶</span>Internet & fibre</div>
-      <div class="nav-item" onclick="go('urbanisme')"><span class="nav-icon">📋</span>Urbanisme & PLU</div>
+      <div class="nav-item" onclick="go('analyse')"><span class="nav-icon">⭐</span>Score global du quartier</div>
+      <div class="nav-item" onclick="go('services')"><span class="nav-icon">🏥</span>Commerces, services & santé</div>
+      <div class="nav-item" onclick="go('mobilite')"><span class="nav-icon">🚇</span>Transports & mobilité douce</div>
+      <div class="nav-item" onclick="go('ecoles')"><span class="nav-icon">🏫</span>Écoles & niveau scolaire</div>
+      <div class="nav-item" onclick="go('soleil')"><span class="nav-icon">☀️</span>Météo et qualité de l'air</div>
+      <div class="nav-item" onclick="go('risques')"><span class="nav-icon">⚠️</span>Risques naturels & industriels</div>
+      <div class="nav-item" onclick="go('bruit')"><span class="nav-icon">🔇</span>Carte du bruit</div>
+      <div class="nav-item" onclick="go('fibre')"><span class="nav-icon">📶</span>Connexion internet & fibre</div>
+      <div class="nav-item" onclick="go('urbanisme')"><span class="nav-icon">📋</span>Zonage, PLU & réglementation</div>
     </div>
   </div>
 
@@ -896,9 +896,9 @@ path.leaflet-interactive:focus{outline:none;}
   <div class="nav-section" onclick="toggleNavGroup(this)"><span>🏠 Prix des biens</span><span class="nav-arrow" style="transform:rotate(-90deg)">▾</span></div>
   <div class="nav-group-content collapsed">
     <div class="nav-sub">
-      <div class="nav-item" onclick="go('analyse');setTimeout(()=>showDetail('dvf'),300)"><span class="nav-icon">💰</span>Prix des transactions DVF</div>
+      <div class="nav-item" onclick="go('analyse');setTimeout(()=>showDetail('dvf'),300)"><span class="nav-icon">💰</span>Prix des dernières transactions</div>
       <div class="nav-item" onclick="go('analyse');setTimeout(()=>showDetail('loyers'),300)"><span class="nav-icon">🏠</span>Estimation des loyers</div>
-      <div class="nav-item" onclick="go('prix')"><span class="nav-icon">🗺️</span>Carte des prix au m²</div>
+      <div class="nav-item" onclick="go('prix')"><span class="nav-icon">🗺️</span>Prix au m² par commune</div>
     </div>
   </div>
 
@@ -907,11 +907,11 @@ path.leaflet-interactive:focus{outline:none;}
   <div class="nav-group-content collapsed">
     <div class="nav-sub">
       <div class="nav-item" onclick="go('emprunt')"><span class="nav-icon">🏦</span>Capacité d'emprunt</div>
-      <div class="nav-item" onclick="go('mensualites')"><span class="nav-icon">🧮</span>Mensualités & crédit</div>
+      <div class="nav-item" onclick="go('mensualites')"><span class="nav-icon">💳</span>Achat : Mensualités & coût total</div>
       <div class="nav-item" onclick="go('cout')"><span class="nav-icon">🔑</span>Investissement locatif</div>
-      <div class="nav-item" onclick="go('location')"><span class="nav-icon">🏠</span>Location vs achat</div>
-      <div class="nav-item" onclick="go('aides')"><span class="nav-icon">🎁</span>Aides PTZ & État</div>
-      <div class="nav-item" onclick="go('renov')"><span class="nav-icon">🔨</span>Rénovation & aides</div>
+      <div class="nav-item" onclick="go('location')"><span class="nav-icon">🏠</span>Location : budget & comparaison</div>
+      <div class="nav-item" onclick="go('aides')"><span class="nav-icon">🎁</span>Aides à l'achat (PTZ, APL…)</div>
+      <div class="nav-item" onclick="go('renov')"><span class="nav-icon">🔨</span>MaPrimeRénov' & aides travaux</div>
     </div>
   </div>
 
