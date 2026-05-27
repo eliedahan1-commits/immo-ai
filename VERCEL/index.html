@@ -3785,7 +3785,7 @@ function showPanel(title, html){
 
 function closePanel(){
   window._demographiePanelOpen = false;
-  ['_dvfChart','_dvfEvoChart','_risquesChart','_mobiliteChart','_radarChart','_radarProfilChart','_servicesChart','_inseeNeighborChart','_meteoMensuelChart','_aqHistChart0','_aqHistChart1','_aqHistChart2','_aqHistChart3','_demographieChart'].forEach(k=>{if(window[k]){window[k].destroy();window[k]=null;}});
+  ['_dvfChart','_dvfEvoChart','_risquesChart','_mobiliteChart','_radarChart','_radarProfilChart','_servicesChart','_inseeNeighborChart','_meteoMensuelChart','_meteoEvoChart','_aqHistChart0','_demographieChart'].forEach(k=>{if(window[k]){window[k].destroy();window[k]=null;}});
   document.getElementById('detailContainer').innerHTML = '';
   document.getElementById('cardsGrid').style.display = 'grid';
   if(window._leafletMap){window._leafletMap.remove();window._leafletMap=null;}
@@ -4038,6 +4038,15 @@ function showDVFDetail(){
     return { p:p, label:PIECES_LABELS[p], medianM2:med, count:ts.length, medSurf:medSurf };
   }).filter(Boolean);
 
+  // Tuile Maison globale
+  var maisonGlobal = (function(){
+    var ms = recentes.filter(function(t){ return (t.type||'').toLowerCase().includes('maison'); });
+    if(!ms.length) return null;
+    var vals = ms.map(function(t){return t.prixM2;}).filter(function(v){return v>0;}).sort(function(a,b){return a-b;});
+    if(!vals.length) return null;
+    return { medianM2: vals[Math.floor(vals.length/2)], count: ms.length };
+  })();
+
   var prixParPieceHTML = '';
   if(hasPieces && prixParPiece.length) {
     var cards = prixParPiece.map(function(r){
@@ -4048,10 +4057,18 @@ function showDVFDetail(){
         + (r.medSurf ? '<div style="font-size:.6rem;color:var(--muted);margin-top:.1rem">~'+r.medSurf+'m² médian</div>' : '')
         + '</div>';
     }).join('');
+    var maisonCard = maisonGlobal
+      ? '<div style="background:var(--surface2);border:1px solid var(--gold);border-radius:8px;padding:.55rem .7rem;text-align:center">'
+        + '<div style="font-size:.7rem;color:var(--muted);margin-bottom:.2rem">🏡 Maison</div>'
+        + '<div style="font-size:1rem;font-weight:700;color:var(--gold2)">'+maisonGlobal.medianM2.toLocaleString('fr-FR')+' €</div>'
+        + '<div style="font-size:.62rem;color:var(--muted)">/m² · '+maisonGlobal.count+' vente'+(maisonGlobal.count>1?'s':'')+'</div>'
+        + '<div style="font-size:.6rem;color:var(--muted);margin-top:.1rem">médiane globale</div>'
+        + '</div>'
+      : '';
     prixParPieceHTML = '<div style="margin-bottom:1.2rem">'
       + '<p style="font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">💡 Prix médian au m² par type de bien</p>'
       + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:.5rem">'
-      + cards + '</div></div>';
+      + cards + maisonCard + '</div></div>';
   }
 
   showPanel('💰 Prix des dernières transactions', `
@@ -5431,6 +5448,11 @@ function showMeteoDetail(){
       <div id="meteoMensuelLoading" style="font-size:.75rem;color:var(--muted);padding:.3rem">Chargement…</div>
       <div style="position:relative;height:280px;display:none" id="meteoChartWrap"><canvas id="meteoMensuelChart"></canvas></div>
     </div>
+    <div style="margin-top:.6rem;margin-bottom:.8rem">
+      <div style="font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.1rem">📈 Évolution Min / Max – 5 dernières années</div>
+      <div id="meteoEvoLoading" style="font-size:.75rem;color:var(--muted);padding:.3rem">Chargement…</div>
+      <div style="position:relative;height:200px;display:none" id="meteoEvoWrap"><canvas id="meteoEvoChart"></canvas></div>
+    </div>
     ${(()=>{
       const aq = window._qualiteAirData;
       if(!aq||aq.error) return `<p style="font-size:.75rem;color:var(--muted);margin-bottom:.4rem">🌬️ Qualité de l\'air : données non disponibles</p>`;
@@ -5471,16 +5493,9 @@ function showMeteoDetail(){
       <div style="font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.5rem">📅 Évolution qualité de l'air – 12 derniers mois</div>
       <div id="aqHistLoading" style="font-size:.75rem;color:var(--muted);padding:.3rem">Chargement…</div>
       <div id="aqHistCharts" style="display:none">
-        <div style="font-size:.68rem;color:var(--muted);margin-bottom:.2rem;font-weight:600">PM2.5 <span style="font-weight:400;opacity:.7">· OMS &lt;15 µg/m³</span></div>
-        <div style="position:relative;height:110px;margin-bottom:.6rem"><canvas id="aqHistChart0"></canvas></div>
-        <div style="font-size:.68rem;color:var(--muted);margin-bottom:.2rem;font-weight:600">PM10 <span style="font-weight:400;opacity:.7">· OMS &lt;45 µg/m³</span></div>
-        <div style="position:relative;height:110px;margin-bottom:.6rem"><canvas id="aqHistChart1"></canvas></div>
-        <div style="font-size:.68rem;color:var(--muted);margin-bottom:.2rem;font-weight:600">NO2 <span style="font-weight:400;opacity:.7">· OMS &lt;25 µg/m³</span></div>
-        <div style="position:relative;height:110px;margin-bottom:.6rem"><canvas id="aqHistChart2"></canvas></div>
-        <div style="font-size:.68rem;color:var(--muted);margin-bottom:.2rem;font-weight:600">O3 <span style="font-weight:400;opacity:.7">· OMS &lt;100 µg/m³</span></div>
-        <div style="position:relative;height:110px;margin-bottom:.3rem"><canvas id="aqHistChart3"></canvas></div>
+        <div style="position:relative;height:200px"><canvas id="aqHistChartGrouped"></canvas></div>
       </div>
-      <div style="font-size:.6rem;color:var(--muted);margin-top:.2rem">Moyennes mensuelles · Open-Meteo Air Quality</div>
+      <div style="font-size:.6rem;color:var(--muted);margin-top:.3rem">% du seuil OMS · 100% = limite OMS · Moyennes mensuelles · Open-Meteo Air Quality</div>
     </div>
     <p style="font-size:.62rem;color:var(--muted)">Source : ${d.source} · Qualité air : Open-Meteo Air Quality</p>`);
 
@@ -5531,6 +5546,67 @@ function showMeteoDetail(){
     }
   },150);
 
+  // Évolution Min/Max sur 5 ans (mensuel)
+  setTimeout(async ()=>{
+    if(!currentCoords) return;
+    const {lat,lng}=currentCoords;
+    const evoLoad=document.getElementById('meteoEvoLoading');
+    const evoWrap=document.getElementById('meteoEvoWrap');
+    try {
+      const endDate = new Date().toISOString().slice(0,10);
+      const startD = new Date(); startD.setFullYear(startD.getFullYear()-5);
+      const startDate = startD.toISOString().slice(0,10);
+      const rv=await fetch("https://archive-api.open-meteo.com/v1/archive?latitude="+lat+"&longitude="+lng+"&start_date="+startDate+"&end_date="+endDate+"&daily=temperature_2m_max,temperature_2m_min&timezone=Europe%2FParis");
+      if(!rv.ok) throw new Error();
+      const md=await rv.json();
+      const times=md.daily?.time||[];
+      const tMaxArr=md.daily?.temperature_2m_max||[];
+      const tMinArr=md.daily?.temperature_2m_min||[];
+      if(!times.length) throw new Error();
+      // Agréger par mois (YYYY-MM)
+      const MOIS_SHORT=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+      const mSumMax={}, mSumMin={}, mCnt={};
+      times.forEach(function(t,i){
+        const k=t.slice(0,7);
+        if(tMaxArr[i]!=null){mSumMax[k]=(mSumMax[k]||0)+tMaxArr[i];mCnt[k]=(mCnt[k]||0)+1;}
+        if(tMinArr[i]!=null) mSumMin[k]=(mSumMin[k]||0)+tMinArr[i];
+      });
+      const labels=[]; const dataMax=[]; const dataMin=[];
+      Object.keys(mSumMax).sort().forEach(function(k){
+        const n=mCnt[k];
+        const mo=parseInt(k.slice(5,7))-1;
+        labels.push(MOIS_SHORT[mo]+" "+k.slice(2,4));
+        dataMax.push(+(mSumMax[k]/n).toFixed(1));
+        dataMin.push(+(mSumMin[k]/n).toFixed(1));
+      });
+      if(evoLoad) evoLoad.style.display='none';
+      if(evoWrap) evoWrap.style.display='block';
+      const ctxE=document.getElementById('meteoEvoChart');
+      if(ctxE&&window.Chart){
+        if(window._meteoEvoChart){window._meteoEvoChart.destroy();window._meteoEvoChart=null;}
+        window._meteoEvoChart=new Chart(ctxE,{
+          type:'line',
+          data:{labels,datasets:[
+            {label:'Max',data:dataMax,borderColor:'#e67e22',backgroundColor:'rgba(230,126,34,.12)',fill:'+1',tension:.3,pointRadius:0,borderWidth:1.5},
+            {label:'Min',data:dataMin,borderColor:'#3498db',backgroundColor:'rgba(52,152,219,.08)',fill:false,tension:.3,pointRadius:0,borderWidth:1.5}
+          ]},
+          options:{responsive:true,maintainAspectRatio:false,
+            plugins:{legend:{display:true,labels:{color:'#ccc',font:{size:10},boxWidth:12}},
+              tooltip:{mode:'index',intersect:false,callbacks:{label:function(c){return c.dataset.label+" : "+c.raw+"°C";}}},
+              datalabels:{display:false}
+            },
+            scales:{
+              x:{ticks:{color:'#888',font:{size:8},maxTicksLimit:20,maxRotation:0},grid:{color:'rgba(255,255,255,.04)'}},
+              y:{ticks:{color:'#888',font:{size:9},callback:function(v){return v+"°";}},grid:{color:'rgba(255,255,255,.05)'}}
+            }
+          }
+        });
+      }
+    }catch(e2){
+      if(evoLoad) evoLoad.textContent='Graphique non disponible.';
+    }
+  },300);
+
   // Historique qualité de l'air (4 métriques, moyennes mensuelles 12 mois)
   setTimeout(async ()=>{
     if(!currentCoords) return;
@@ -5575,31 +5651,48 @@ function showMeteoDetail(){
       if(aqHistLoad) aqHistLoad.style.display='none';
       if(aqHistChartsDiv) aqHistChartsDiv.style.display='block';
       if(window.Chart){
-        AQ_METRICS.forEach(function(m, idx){
-          const ctxEl=document.getElementById('aqHistChart'+idx);
-          if(!ctxEl) return;
-          if(window[m.varKey]){window[m.varKey].destroy();window[m.varKey]=null;}
-          const d=metricData[idx].data;
-          const lbl=metricData[idx].labels;
-          window[m.varKey]=new Chart(ctxEl,{
-            type:'bar',
-            data:{labels:lbl,datasets:[{
-              data:d,
-              backgroundColor:d.map(function(v){return v<=m.oms?'rgba(76,175,80,.75)':v<=m.oms*2?'rgba(255,152,0,.75)':'rgba(244,67,54,.75)';}),
-              borderRadius:2,borderSkipped:false
-            }]},
-            options:{responsive:true,maintainAspectRatio:false,
-              plugins:{legend:{display:false},
-                tooltip:{callbacks:{label:function(c){return m.label+" : "+c.raw+" "+m.unit;}}},
-                datalabels:{display:true,color:function(c){var v=c.dataset.data[c.dataIndex];return v<=m.oms?'#4caf50':v<=m.oms*2?'#ff9800':'#f44336';},font:{size:8,weight:'600'},formatter:function(v){return v;},anchor:'end',align:'top',offset:1}
+        // Normaliser en % du seuil OMS pour comparer sur le même axe
+        var labels = metricData[0].labels;
+        var COLORS = ['rgba(59,130,246,.75)','rgba(34,197,94,.75)','rgba(249,115,22,.75)','rgba(168,85,247,.75)'];
+        var COLORS_HOVER = ['rgba(59,130,246,1)','rgba(34,197,94,1)','rgba(249,115,22,1)','rgba(168,85,247,1)'];
+        var datasets = AQ_METRICS.map(function(m, idx){
+          var pcts = metricData[idx].data.map(function(v){ return +(v/m.oms*100).toFixed(1); });
+          return {
+            label: m.label,
+            data: pcts,
+            backgroundColor: COLORS[idx],
+            hoverBackgroundColor: COLORS_HOVER[idx],
+            borderRadius: 2,
+            borderSkipped: false,
+            rawData: metricData[idx].data
+          };
+        });
+        var ctxG = document.getElementById('aqHistChartGrouped');
+        if(ctxG){
+          if(window._aqHistChart0){window._aqHistChart0.destroy();window._aqHistChart0=null;}
+          window._aqHistChart0 = new Chart(ctxG, {
+            type: 'bar',
+            data: {labels: labels, datasets: datasets},
+            options: {
+              responsive: true, maintainAspectRatio: false,
+              plugins: {
+                legend: {display:true, labels:{color:'#ccc',font:{size:9},boxWidth:10,padding:8}},
+                tooltip: {callbacks:{
+                  label: function(c){
+                    var raw = c.dataset.rawData[c.dataIndex];
+                    return c.dataset.label+' : '+raw+' µg/m³ ('+c.raw+'% OMS)';
+                  }
+                }},
+                datalabels: {display: false},
+                annotation: {annotations:{seuil:{type:'line',yMin:100,yMax:100,borderColor:'rgba(255,255,255,.3)',borderWidth:1,borderDash:[4,3],label:{display:true,content:'Seuil OMS',color:'rgba(255,255,255,.4)',font:{size:8},position:'end'}}}}
               },
-              scales:{
-                x:{ticks:{color:'#888',font:{size:8}},grid:{display:false}},
-                y:{ticks:{color:'#888',font:{size:8},callback:function(v){return v;}},grid:{color:'rgba(255,255,255,.04)'},suggestedMin:0}
+              scales: {
+                x: {ticks:{color:'#888',font:{size:8},maxRotation:0}, grid:{display:false}},
+                y: {ticks:{color:'#888',font:{size:9},callback:function(v){return v+'%';}}, grid:{color:'rgba(255,255,255,.04)'}, suggestedMin:0, suggestedMax:120}
               }
             }
           });
-        });
+        }
       }
     } catch(e) {
       if(aqHistLoad) aqHistLoad.textContent='Historique non disponible.';

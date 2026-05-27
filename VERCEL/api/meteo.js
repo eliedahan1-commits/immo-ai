@@ -77,12 +77,12 @@ export default async function handler(req, res) {
           totalDays += mmPerDay >= 1 ? DAYS[m] : Math.round(DAYS[m] * mmPerDay);
         }
       }
-      annualPrecip = Math.round(totalMm);
-      joursPluis   = Math.round(totalDays);
+      annualPrecip = totalMm > 0 ? Math.round(totalMm) : null;
+      joursPluis   = totalDays > 0 ? Math.round(totalDays) : null;
     }
 
     // ── Fallback Open-Meteo Archive si NASA ne retourne pas les températures/précip ──
-    if(avgMax == null || avgMin == null || annualPrecip == null) {
+    if(avgMax == null || avgMin == null || annualPrecip == null || joursPluis == null) {
       try {
         const endY = new Date().getFullYear()-1, startY = endY-2;
         const omUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${startY}-01-01&end_date=${endY}-12-31&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Europe%2FParis`;
@@ -110,7 +110,7 @@ export default async function handler(req, res) {
               const mn = mSumMin.map((s,i) => mCnt[i] ? s/mCnt[i] : null).filter(v => v != null);
               avgMin = Math.round(mn.reduce((a,b)=>a+b,0)/mn.length * 10) / 10;
             }
-            if(annualPrecip == null) {
+            if(annualPrecip == null || joursPluis == null) {
               annualPrecip = Math.round(mPrec.reduce((a,b)=>a+b,0));
               joursPluis = mDays.reduce((a,b)=>a+b,0);
             }
