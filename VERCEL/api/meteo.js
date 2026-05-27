@@ -20,7 +20,7 @@ export default async function handler(req, res) {
 
   try {
     // ── NASA POWER : ensoleillement + températures + précipitations (climatologie) ──
-    const nasaUrl = `https://power.larc.nasa.gov/api/temporal/climatology/point?parameters=ALLSKY_SFC_SW_DWN,CLRSKY_SFC_SW_DWN,T2M_MAX,T2M_MIN,PRECTOTCORR&community=SB&longitude=${lon}&latitude=${lat}&format=JSON`;
+    const nasaUrl = `https://power.larc.nasa.gov/api/temporal/climatology/point?parameters=ALLSKY_SFC_SW_DWN,CLRSKY_SFC_SW_DWN,T2M_MAX,T2M_MIN,PRECTOTCORR&community=AG&longitude=${lon}&latitude=${lat}&format=JSON`;
     const nasaResp = await fetch(nasaUrl, {signal: AbortSignal.timeout(12000)});
     if(!nasaResp.ok) throw new Error('NASA POWER ' + nasaResp.status);
     const nd = await nasaResp.json();
@@ -79,6 +79,44 @@ export default async function handler(req, res) {
       }
       annualPrecip = Math.round(totalMm);
       joursPluis   = Math.round(totalDays);
+    }
+
+    // ── Fallback Open-Meteo Archive si NASA ne retourne pas les températures/précip ──
+    if(avgMax == null || avgMin == null || annualPrecip == null) {
+      try {
+        const endY = new Date().getFullYear()-1, startY = endY-2;
+        const omUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${startY}-01-01&end_date=${endY}-12-31&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Europe%2FParis`;
+        const omR = await fetch(omUrl, { signal: AbortSignal.timeout(8000) });
+        if(omR.ok) {
+          const omd = await omR.json();
+          const times = omd.daily?.time || [];
+          const omTMax = omd.daily?.temperature_2m_max || [];
+          const omTMin = omd.daily?.temperature_2m_min || [];
+          const omPrec = omd.daily?.precipitation_sum || [];
+          if(times.length) {
+            const mSumMax = Array(12).fill(0), mSumMin = Array(12).fill(0), mCnt = Array(12).fill(0);
+            const mPrec = Array(12).fill(0), mDays = Array(12).fill(0);
+            times.forEach((t, i) => {
+              const m = parseInt(t.slice(5,7)) - 1;
+              if(omTMax[i] != null) { mSumMax[m] += omTMax[i]; mCnt[m]++; }
+              if(omTMin[i] != null) mSumMin[m] += omTMin[i];
+              if(omPrec[i] != null) { mPrec[m] += omPrec[i]; if(omPrec[i] >= 1) mDays[m]++; }
+            });
+            if(avgMax == null && mCnt.some(c => c > 0)) {
+              const mx = mSumMax.map((s,i) => mCnt[i] ? s/mCnt[i] : null).filter(v => v != null);
+              avgMax = Math.round(mx.reduce((a,b)=>a+b,0)/mx.length * 10) / 10;
+            }
+            if(avgMin == null && mCnt.some(c => c > 0)) {
+              const mn = mSumMin.map((s,i) => mCnt[i] ? s/mCnt[i] : null).filter(v => v != null);
+              avgMin = Math.round(mn.reduce((a,b)=>a+b,0)/mn.length * 10) / 10;
+            }
+            if(annualPrecip == null) {
+              annualPrecip = Math.round(mPrec.reduce((a,b)=>a+b,0));
+              joursPluis = mDays.reduce((a,b)=>a+b,0);
+            }
+          }
+        }
+      } catch(e2) { /* fallback silencieux */ }
     }
 
     const label = sunshineHours>2500?'Très ensoleillé':sunshineHours>2000?'Ensoleillé':sunshineHours>1700?'Moyennement ensoleillé':'Peu ensoleillé';

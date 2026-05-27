@@ -3785,7 +3785,7 @@ function showPanel(title, html){
 
 function closePanel(){
   window._demographiePanelOpen = false;
-  ['_dvfChart','_dvfEvoChart','_risquesChart','_mobiliteChart','_radarChart','_radarProfilChart','_servicesChart','_inseeNeighborChart','_meteoMensuelChart','_aqHistChart','_demographieChart'].forEach(k=>{if(window[k]){window[k].destroy();window[k]=null;}});
+  ['_dvfChart','_dvfEvoChart','_risquesChart','_mobiliteChart','_radarChart','_radarProfilChart','_servicesChart','_inseeNeighborChart','_meteoMensuelChart','_aqHistChart0','_aqHistChart1','_aqHistChart2','_aqHistChart3','_demographieChart'].forEach(k=>{if(window[k]){window[k].destroy();window[k]=null;}});
   document.getElementById('detailContainer').innerHTML = '';
   document.getElementById('cardsGrid').style.display = 'grid';
   if(window._leafletMap){window._leafletMap.remove();window._leafletMap=null;}
@@ -5468,10 +5468,19 @@ function showMeteoDetail(){
       </div>`;
     })()}
     <div style="margin-top:.8rem;margin-bottom:.6rem" id="aqHistSection" style="display:none">
-      <div style="font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.4rem">📅 Historique PM2.5 – 12 derniers mois</div>
+      <div style="font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.5rem">📅 Évolution qualité de l'air – 12 derniers mois</div>
       <div id="aqHistLoading" style="font-size:.75rem;color:var(--muted);padding:.3rem">Chargement…</div>
-      <div style="position:relative;height:180px;display:none" id="aqHistChartWrap"><canvas id="aqHistChart"></canvas></div>
-      <div style="font-size:.6rem;color:var(--muted);margin-top:.2rem">Moyenne mensuelle · Seuil OMS PM2.5 = 15 µg/m³</div>
+      <div id="aqHistCharts" style="display:none">
+        <div style="font-size:.68rem;color:var(--muted);margin-bottom:.2rem;font-weight:600">PM2.5 <span style="font-weight:400;opacity:.7">· OMS &lt;15 µg/m³</span></div>
+        <div style="position:relative;height:110px;margin-bottom:.6rem"><canvas id="aqHistChart0"></canvas></div>
+        <div style="font-size:.68rem;color:var(--muted);margin-bottom:.2rem;font-weight:600">PM10 <span style="font-weight:400;opacity:.7">· OMS &lt;45 µg/m³</span></div>
+        <div style="position:relative;height:110px;margin-bottom:.6rem"><canvas id="aqHistChart1"></canvas></div>
+        <div style="font-size:.68rem;color:var(--muted);margin-bottom:.2rem;font-weight:600">NO2 <span style="font-weight:400;opacity:.7">· OMS &lt;25 µg/m³</span></div>
+        <div style="position:relative;height:110px;margin-bottom:.6rem"><canvas id="aqHistChart2"></canvas></div>
+        <div style="font-size:.68rem;color:var(--muted);margin-bottom:.2rem;font-weight:600">O3 <span style="font-weight:400;opacity:.7">· OMS &lt;100 µg/m³</span></div>
+        <div style="position:relative;height:110px;margin-bottom:.3rem"><canvas id="aqHistChart3"></canvas></div>
+      </div>
+      <div style="font-size:.6rem;color:var(--muted);margin-top:.2rem">Moyennes mensuelles · Open-Meteo Air Quality</div>
     </div>
     <p style="font-size:.62rem;color:var(--muted)">Source : ${d.source} · Qualité air : Open-Meteo Air Quality</p>`);
 
@@ -5522,13 +5531,13 @@ function showMeteoDetail(){
     }
   },150);
 
-  // Historique qualité de l'air (PM2.5 mensuel, 12 mois)
+  // Historique qualité de l'air (4 métriques, moyennes mensuelles 12 mois)
   setTimeout(async ()=>{
     if(!currentCoords) return;
     const {lat,lng}=currentCoords;
     const aqHistSec = document.getElementById('aqHistSection');
     const aqHistLoad = document.getElementById('aqHistLoading');
-    const aqHistWrap = document.getElementById('aqHistChartWrap');
+    const aqHistChartsDiv = document.getElementById('aqHistCharts');
     if(!aqHistSec) return;
     aqHistSec.style.display='block';
     try {
@@ -5536,47 +5545,60 @@ function showMeteoDetail(){
       const endDate = now.toISOString().slice(0,10);
       const startD = new Date(now); startD.setMonth(startD.getMonth()-12);
       const startDate = startD.toISOString().slice(0,10);
-      const rv = await fetch("https://air-quality-api.open-meteo.com/v1/air-quality?latitude="+lat+"&longitude="+lng+"&hourly=pm2_5&start_date="+startDate+"&end_date="+endDate+"&timezone=Europe%2FParis");
+      const rv = await fetch("https://air-quality-api.open-meteo.com/v1/air-quality?latitude="+lat+"&longitude="+lng+"&hourly=pm2_5,pm10,nitrogen_dioxide,ozone&start_date="+startDate+"&end_date="+endDate+"&timezone=Europe%2FParis");
       if(!rv.ok) throw new Error();
       const aqd = await rv.json();
       const times = aqd.hourly?.time||[];
-      const vals = aqd.hourly?.pm2_5||[];
       if(!times.length) throw new Error();
-      // Aggregate to monthly means
-      const monthSum = {}, monthCnt = {};
-      times.forEach((t,i)=>{
-        const v = vals[i];
-        if(v==null||isNaN(v)) return;
-        const key = t.slice(0,7); // "YYYY-MM"
-        monthSum[key]=(monthSum[key]||0)+v;
-        monthCnt[key]=(monthCnt[key]||0)+1;
-      });
+      const AQ_METRICS = [
+        {key:'pm2_5',        label:'PM2.5', unit:'µg/m³', oms:15,  varKey:'_aqHistChart0'},
+        {key:'pm10',         label:'PM10',  unit:'µg/m³', oms:45,  varKey:'_aqHistChart1'},
+        {key:'nitrogen_dioxide', label:'NO2', unit:'µg/m³', oms:25, varKey:'_aqHistChart2'},
+        {key:'ozone',        label:'O3',    unit:'µg/m³', oms:100, varKey:'_aqHistChart3'}
+      ];
       const MOIS_SHORT=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
-      const labels=[]; const data=[];
-      Object.keys(monthSum).sort().forEach(k=>{
-        const avg=+(monthSum[k]/monthCnt[k]).toFixed(1);
-        const m=parseInt(k.slice(5,7))-1;
-        labels.push(MOIS_SHORT[m]+" "+k.slice(2,4));
-        data.push(avg);
+      // Aggregate each metric by month
+      const metricData = AQ_METRICS.map(function(m){
+        const vals = aqd.hourly?.[m.key]||[];
+        const mSum={}, mCnt={};
+        times.forEach(function(t,i){
+          const v=vals[i]; if(v==null||isNaN(v)) return;
+          const k=t.slice(0,7); mSum[k]=(mSum[k]||0)+v; mCnt[k]=(mCnt[k]||0)+1;
+        });
+        const labels=[]; const data=[];
+        Object.keys(mSum).sort().forEach(function(k){
+          labels.push(MOIS_SHORT[parseInt(k.slice(5,7))-1]+" "+k.slice(2,4));
+          data.push(+(mSum[k]/mCnt[k]).toFixed(1));
+        });
+        return {labels, data};
       });
       if(aqHistLoad) aqHistLoad.style.display='none';
-      if(aqHistWrap) aqHistWrap.style.display='block';
-      const ctx2=document.getElementById('aqHistChart');
-      if(ctx2&&window.Chart){
-        if(window._aqHistChart){window._aqHistChart.destroy();window._aqHistChart=null;}
-        const OMS_SEUIL=15;
-        window._aqHistChart=new Chart(ctx2,{
-          type:'bar',
-          data:{labels,datasets:[
-            {label:'PM2.5 moy.',data,backgroundColor:data.map(v=>v<=OMS_SEUIL?'rgba(76,175,80,.75)':v<=OMS_SEUIL*2?'rgba(255,152,0,.75)':'rgba(244,67,54,.75)'),borderRadius:3,borderSkipped:false}
-          ]},
-          options:{responsive:true,maintainAspectRatio:false,
-            plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>"PM2.5 : "+c.raw+" µg/m³"}},annotation:{annotations:{seuil:{type:'line',yMin:OMS_SEUIL,yMax:OMS_SEUIL,borderColor:'rgba(76,175,80,.6)',borderWidth:1,borderDash:[4,3]}}}},
-            scales:{
-              x:{ticks:{color:'#999',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}},
-              y:{ticks:{color:'#999',font:{size:9},callback:v=>v+" µg"},grid:{color:'rgba(255,255,255,.05)'},suggestedMin:0}
+      if(aqHistChartsDiv) aqHistChartsDiv.style.display='block';
+      if(window.Chart){
+        AQ_METRICS.forEach(function(m, idx){
+          const ctxEl=document.getElementById('aqHistChart'+idx);
+          if(!ctxEl) return;
+          if(window[m.varKey]){window[m.varKey].destroy();window[m.varKey]=null;}
+          const d=metricData[idx].data;
+          const lbl=metricData[idx].labels;
+          window[m.varKey]=new Chart(ctxEl,{
+            type:'bar',
+            data:{labels:lbl,datasets:[{
+              data:d,
+              backgroundColor:d.map(function(v){return v<=m.oms?'rgba(76,175,80,.75)':v<=m.oms*2?'rgba(255,152,0,.75)':'rgba(244,67,54,.75)';}),
+              borderRadius:2,borderSkipped:false
+            }]},
+            options:{responsive:true,maintainAspectRatio:false,
+              plugins:{legend:{display:false},
+                tooltip:{callbacks:{label:function(c){return m.label+" : "+c.raw+" "+m.unit;}}},
+                datalabels:{display:true,color:function(c){var v=c.dataset.data[c.dataIndex];return v<=m.oms?'#4caf50':v<=m.oms*2?'#ff9800':'#f44336';},font:{size:8,weight:'600'},formatter:function(v){return v;},anchor:'end',align:'top',offset:1}
+              },
+              scales:{
+                x:{ticks:{color:'#888',font:{size:8}},grid:{display:false}},
+                y:{ticks:{color:'#888',font:{size:8},callback:function(v){return v;}},grid:{color:'rgba(255,255,255,.04)'},suggestedMin:0}
+              }
             }
-          }
+          });
         });
       }
     } catch(e) {
