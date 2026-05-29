@@ -2997,7 +2997,7 @@ async function loadMeteo(lat, lng){
 async function loadQualiteAir(lat, lng){
   window._qualiteAirData = null;
   try{
-    const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lng}&current=european_aqi,pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,ozone`;
+    const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lng}&current=european_aqi,pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,ozone,sulphur_dioxide`;
     const r = await fetch(url, {signal:AbortSignal.timeout(8000)});
     if(!r.ok) throw new Error('HTTP '+r.status);
     const d = await r.json();
@@ -3006,7 +3006,7 @@ async function loadQualiteAir(lat, lng){
     if(aqi == null) throw new Error('no aqi');
     const label = aqi<=20?'Bon':aqi<=40?'Assez bon':aqi<=60?'Modéré':aqi<=80?'Mauvais':aqi<=100?'Très mauvais':'Extrêmement mauvais';
     const color = aqi<=20?'#27ae60':aqi<=40?'#a3c03a':aqi<=60?'#f39c12':aqi<=80?'#e67e22':aqi<=100?'#e74c3c':'#8e44ad';
-    window._qualiteAirData = {aqi, label, color, pm10:cur.pm10, pm25:cur.pm2_5, no2:cur.nitrogen_dioxide, o3:cur.ozone};
+    window._qualiteAirData = {aqi, label, color, pm10:cur.pm10, pm25:cur.pm2_5, no2:cur.nitrogen_dioxide, o3:cur.ozone, so2:cur.sulphur_dioxide};
   }catch(e){
     window._qualiteAirData = {error:true};
   }
@@ -3142,6 +3142,8 @@ function showQualiteAirDetail() {
       desc:"Gaz brun-rougeâtre émis principalement par les moteurs diesel et le chauffage. Provoque inflammation des bronches et diminution de la fonction pulmonaire, surtout chez les enfants et asthmatiques.", icon:'🟡' },
     { label:'O₃',    sublabel:'Ozone troposphérique',       val:air.o3,   unit:'µg/m³', seuil:100,
       desc:"Formé par réaction chimique entre oxydes d'azote et composés organiques sous l'effet du soleil. Pic en été en après-midi. Irrite les voies respiratoires et les yeux.", icon:'🔵' },
+    { label:'SO₂',   sublabel:'Dioxyde de soufre',             val:air.so2,  unit:'µg/m³', seuil:40,
+      desc:"Gaz irritant émis principalement par la combustion de combustibles fossiles soufrés (charbon, fioul) et l'industrie. Peut provoquer toux, gêne respiratoire et aggrave l'asthme. Rare en zones urbaines résidentielles.", icon:'🟤' },
   ].filter(p => p.val != null);
 
   const polRows = polluants.map(p => {
@@ -3170,7 +3172,7 @@ function showQualiteAirDetail() {
     <div style="text-align:center;margin-bottom:1rem">
       <div style="font-size:3rem;font-weight:800;color:${color}">${air.aqi}</div>
       <div style="font-size:1rem;font-weight:600;color:${color};margin-bottom:.3rem">${air.label}</div>
-      <div style="font-size:.75rem;color:var(--muted)">Indice AQI Européen (0 = pur, 100+ = très pollué)</div>
+      <div style="font-size:.75rem;color:var(--muted)">Indice AQI Européen · 5 polluants · 0 = pur · 100+ = très pollué</div>
     </div>
     <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-bottom:1rem">${polRows}</div>
     <p style="font-size:.62rem;color:var(--muted)">Source : Open-Meteo Air Quality · Données temps réel</p>
@@ -3792,7 +3794,7 @@ function showPanel(title, html, backAction){
 
 function closePanel(){
   window._demographiePanelOpen = false;
-  ['_dvfChart','_dvfEvoChart','_risquesChart','_mobiliteChart','_radarChart','_radarProfilChart','_servicesChart','_inseeNeighborChart','_meteoMensuelChart','_meteoEvoChart','_aqHistChart0','_demographieChart'].forEach(k=>{if(window[k]){window[k].destroy();window[k]=null;}});
+  ['_dvfChart','_dvfEvoChart','_risquesChart','_mobiliteChart','_radarChart','_radarProfilChart','_servicesChart','_inseeNeighborChart','_meteoMensuelChart','_meteoEvoChart','_aqHistChart0','_aqHistChart4','_demographieChart'].forEach(k=>{if(window[k]){window[k].destroy();window[k]=null;}});
   document.getElementById('detailContainer').innerHTML = '';
   document.getElementById('cardsGrid').style.display = 'grid';
   if(window._leafletMap){window._leafletMap.remove();window._leafletMap=null;}
@@ -4127,7 +4129,13 @@ function showDVFDetail(){
 function buildDVFMap(){
   const container = document.getElementById('dvfMapContainer');
   if(!container || !window.L) return;
-  const liste = getFilteredListDVF();
+  // Appliquer les filtres directement (getFilteredListDVF est dans la closure showDVFDetail)
+  let liste = window._dvfRecentes || [];
+  const _ft = window._dvfFilterType||'tous';
+  if(_ft !== 'tous') liste = liste.filter(t=>{const tp=(t.type||'').toLowerCase();if(_ft==='appt')return tp.includes('appartement');if(_ft==='maison')return tp.includes('maison');if(_ft==='local')return tp.includes('local');if(_ft==='depend')return tp.includes('dépendance')||tp.includes('dependance');return true;});
+  const _fs = window._dvfFilterSurf||0; if(_fs>0){const T=[[25,0,25],[50,25,50],[75,50,75],[100,75,100],[125,100,125],[150,125,150],[999,150,99999]];const tr=T.find(t=>t[0]===_fs);if(tr)liste=liste.filter(t=>(t.surf||0)>=tr[1]&&(t.surf||0)<tr[2]);}
+  const _fp = window._dvfFilterPieces||0; if(_fp>0){if(_fp===5)liste=liste.filter(t=>(t.pieces||0)>=5);else liste=liste.filter(t=>(t.pieces||0)===_fp);}
+  const _fn = window._dvfFilterN||0; if(_fn>0)liste=liste.slice(0,_fn);
   const pts = liste.filter(t => t.lat && t.lon);
   if(pts.length === 0){ container.style.display='none'; return; }
   container.style.display='';
@@ -5474,7 +5482,8 @@ function showMeteoDetail(){
         {name:'PM2.5', val:aq.pm25, max:75,  seuil:15,  unit:'µg/m³'},
         {name:'PM10',  val:aq.pm10, max:150, seuil:45,  unit:'µg/m³'},
         {name:'NO2',   val:aq.no2,  max:200, seuil:25,  unit:'µg/m³'},
-        {name:'O3',    val:aq.o3,   max:200, seuil:100, unit:'µg/m³'}
+        {name:'O3',    val:aq.o3,   max:200, seuil:100, unit:'µg/m³'},
+        {name:'SO2',   val:aq.so2,  max:160, seuil:40,  unit:'µg/m³'}
       ].filter(b=>b.val!=null);
       const barHtml = bars.map(b=>{
         const omsPct = Math.round(b.val/b.seuil*100);
@@ -5494,7 +5503,7 @@ function showMeteoDetail(){
         <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.35rem">
           <span style="font-size:.78rem;color:var(--muted);font-weight:500">🌬️ Qualité de l\'air :</span>
           <span style="background:${aq.color};color:#fff;font-size:.78rem;font-weight:700;padding:.25rem .7rem;border-radius:20px">${aq.label}</span>
-          <span style="font-size:.72rem;color:var(--muted)">IQA ${aq.aqi}/100</span>
+          <span style="font-size:.72rem;color:var(--muted)">IQA ${aq.aqi} / 100+</span>
           <button onclick="closePanel();setTimeout(()=>showQualiteAirDetail(),120)" style="margin-left:.4rem;font-size:.68rem;padding:.18rem .55rem;border:1px solid var(--border);border-radius:12px;background:transparent;color:var(--muted);cursor:pointer">Détail →</button>
         </div>
         <div style="font-size:.65rem;color:var(--muted);margin-bottom:.3rem">Recommandations OMS 2021 (non réglementaires) · vert &lt;75% · orange 75-99% · rouge ≥100%</div>
@@ -5643,7 +5652,7 @@ function showMeteoDetail(){
       const endDate = now.toISOString().slice(0,10);
       const startD = new Date(now); startD.setMonth(startD.getMonth()-12);
       const startDate = startD.toISOString().slice(0,10);
-      const rv = await fetch("https://air-quality-api.open-meteo.com/v1/air-quality?latitude="+lat+"&longitude="+lng+"&hourly=pm2_5,pm10,nitrogen_dioxide,ozone&start_date="+startDate+"&end_date="+endDate+"&timezone=Europe%2FParis");
+      const rv = await fetch("https://air-quality-api.open-meteo.com/v1/air-quality?latitude="+lat+"&longitude="+lng+"&hourly=pm2_5,pm10,nitrogen_dioxide,ozone,sulphur_dioxide&start_date="+startDate+"&end_date="+endDate+"&timezone=Europe%2FParis");
       if(!rv.ok) throw new Error();
       const aqd = await rv.json();
       const times = aqd.hourly?.time||[];
@@ -5652,7 +5661,8 @@ function showMeteoDetail(){
         {key:'pm2_5',        label:'PM2.5', unit:'µg/m³', oms:15,  varKey:'_aqHistChart0'},
         {key:'pm10',         label:'PM10',  unit:'µg/m³', oms:45,  varKey:'_aqHistChart1'},
         {key:'nitrogen_dioxide', label:'NO2', unit:'µg/m³', oms:25, varKey:'_aqHistChart2'},
-        {key:'ozone',        label:'O3',    unit:'µg/m³', oms:100, varKey:'_aqHistChart3'}
+        {key:'ozone',        label:'O3',    unit:'µg/m³', oms:100, varKey:'_aqHistChart3'},
+        {key:'sulphur_dioxide', label:'SO2', unit:'µg/m³', oms:40,  varKey:'_aqHistChart4'}
       ];
       const MOIS_SHORT=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
       // Aggregate each metric by month
@@ -5675,8 +5685,8 @@ function showMeteoDetail(){
       if(window.Chart){
         // Normaliser en % du seuil OMS pour comparer sur le même axe
         var labels = metricData[0].labels;
-        var COLORS = ['rgba(59,130,246,.75)','rgba(34,197,94,.75)','rgba(249,115,22,.75)','rgba(168,85,247,.75)'];
-        var COLORS_HOVER = ['rgba(59,130,246,1)','rgba(34,197,94,1)','rgba(249,115,22,1)','rgba(168,85,247,1)'];
+        var COLORS = ['rgba(59,130,246,.75)','rgba(34,197,94,.75)','rgba(249,115,22,.75)','rgba(168,85,247,.75)','rgba(161,110,70,.75)'];
+        var COLORS_HOVER = ['rgba(59,130,246,1)','rgba(34,197,94,1)','rgba(249,115,22,1)','rgba(168,85,247,1)','rgba(161,110,70,1)'];
         var datasets = AQ_METRICS.map(function(m, idx){
           var pcts = metricData[idx].data.map(function(v){ return +(v/m.oms*100).toFixed(1); });
           return {
