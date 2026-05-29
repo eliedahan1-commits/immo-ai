@@ -2002,10 +2002,11 @@ function go(id){
     if(id === 'mobilite')  { showMobiliteFromMenu(); return; }
     if(id === 'services')  { showServicesFromMenu(); return; }
     if(id === 'bruit')     { _goPage('analyse'); setTimeout(()=>showBruitDetail(), 100); return; }
-    if(id === 'risques')   { _goPage('analyse'); setTimeout(()=>showRisquesDetail(), 100); return; }
-    if(id === 'prix')      { _goPage('analyse'); setTimeout(()=>showPrixCommunesDetail(), 100); return; }
-    if(id === 'fibre')     { _goPage('analyse'); setTimeout(()=>showFibreDetail(), 100); return; }
-    if(id === 'soleil')    { _goPage('analyse'); setTimeout(()=>showMeteoDetail(), 100); return; }
+    function _goAnalyseIfNeeded(fn){ if(!document.getElementById('p-analyse')?.classList.contains('on')) _goPage('analyse'); setTimeout(fn, 50); }
+    if(id === 'risques')   { _goAnalyseIfNeeded(()=>showRisquesDetail()); return; }
+    if(id === 'prix')      { _goAnalyseIfNeeded(()=>showPrixCommunesDetail()); return; }
+    if(id === 'fibre')     { _goAnalyseIfNeeded(()=>showFibreDetail()); return; }
+    if(id === 'soleil')    { _goAnalyseIfNeeded(()=>showMeteoDetail()); return; }
   }
   if(id === 'recherche') { if(typeof showRecherchePanel==='function') showRecherchePanel(); return; }
   _goPage(id);
@@ -8442,6 +8443,37 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
 });
 
+
+// ── Bouton Back mobile : navigation intra-app ──
+(function(){
+  // Etat initial : on pousse un état pour avoir toujours qqch à intercepter
+  history.replaceState({immoai:'base'}, '');
+  history.pushState({immoai:'current'}, '');
+
+  window.addEventListener('popstate', function(){
+    // Re-pousser immédiatement pour que le back continue à fonctionner
+    history.pushState({immoai:'current'}, '');
+
+    // Panel ouvert → le fermer
+    var panelEl = document.getElementById('detailContainer');
+    if(panelEl && panelEl.innerHTML.trim()){
+      closePanel();
+      return;
+    }
+    // Sur une sous-page → revenir aux cartes analyse
+    var onAnalyse = document.getElementById('p-analyse')?.classList.contains('on');
+    if(!onAnalyse){
+      _goPage('analyse');
+      return;
+    }
+    // Sur analyse avec les cartes → revenir à l'accueil
+    var onHome = document.getElementById('p-home')?.classList.contains('on');
+    if(!onHome){
+      go('home');
+    }
+    // Sur home → ne rien faire (laisser le navigateur gérer)
+  });
+})();
 
 </script>
 </body>
