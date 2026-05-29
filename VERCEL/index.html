@@ -2453,7 +2453,6 @@ function renderCards(props, coords){
           <div class="card-label">${c.label}</div>
           <div class="card-value" id="val-${c.id}">${c.value}</div>
           <div class="card-sub" id="sub-${c.id}">${c.sub}</div>
-          <div class="source-badge">📊 ${c.source}</div>
         </div>
       </div>
     `).join('')}
@@ -3172,7 +3171,7 @@ function showQualiteAirDetail() {
     </div>
     <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-bottom:1rem">${polRows}</div>
     <p style="font-size:.62rem;color:var(--muted)">Source : Open-Meteo Air Quality · Données temps réel</p>
-  `);
+  `, "closePanel();setTimeout(()=>showMeteoDetail(),120)");
 }
 
 function showDPESecteurDetail() {
@@ -5469,16 +5468,16 @@ function showMeteoDetail(){
         {name:'O3',    val:aq.o3,   max:200, seuil:100, unit:'µg/m³'}
       ].filter(b=>b.val!=null);
       const barHtml = bars.map(b=>{
-        const pct = Math.min(100, Math.round(b.val/b.max*100));
-        const barColor = b.val<=b.seuil?'#4caf50':b.val<=b.seuil*2?'#ff9800':'#f44336';
-        const omsBadgeColor = b.val<=b.seuil?'#4caf50':b.val<=b.seuil*2?'#ff9800':'#f44336';
-        return `<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.2rem">
+        const omsPct = Math.round(b.val/b.seuil*100);
+        const fillPct = Math.min(100, Math.round(b.val/(b.seuil*2)*100)); // echelle 2x seuil
+        const barColor = omsPct<50?'#4caf50':omsPct<100?'#ff9800':'#f44336';
+        return `<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem">
           <span style="font-size:.68rem;color:var(--muted);width:3rem;flex-shrink:0">${b.name}</span>
-          <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden">
-            <div style="width:${pct}%;height:100%;background:${barColor};border-radius:3px"></div>
+          <div style="flex:1;height:6px;background:var(--border);border-radius:3px;position:relative">
+            <div style="width:${fillPct}%;height:100%;background:${barColor};border-radius:3px"></div>
+            <div style="position:absolute;left:50%;top:-2px;width:2px;height:10px;background:rgba(239,68,68,.7);border-radius:1px"></div>
           </div>
-          <span style="font-size:.68rem;color:var(--text);width:3.5rem;text-align:right;flex-shrink:0">${Math.round(b.val)} ${b.unit}</span>
-          <span style="font-size:.6rem;color:${omsBadgeColor};width:4rem;text-align:right;flex-shrink:0;opacity:.85">OMS &lt;${b.seuil}</span>
+          <span style="font-size:.68rem;color:${barColor};font-weight:600;width:3.5rem;text-align:right;flex-shrink:0">${Math.round(b.val)} ${b.unit}</span>
         </div>`;
       }).join('');
       return `<div style="margin-bottom:.6rem">
