@@ -8446,31 +8446,23 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 // ── Bouton Back mobile : navigation intra-app ──
 (function(){
-  // Pousser plusieurs états au démarrage pour avoir du buffer
-  history.replaceState({immoai:'base'}, '');
-  history.pushState({immoai:'buf1'}, '');
-  history.pushState({immoai:'current'}, '');
+  var _base = location.href.split('#')[0];
+  function _pushAppState(){ try{ history.pushState({immoai:'app'}, '', _base+'#app'); }catch(ex){} }
+
+  history.replaceState({immoai:'root'}, '', _base);
+  _pushAppState();
 
   function _showExitConfirm(){
     if(document.getElementById('_exitModal')) return;
     var m = document.createElement('div');
     m.id = '_exitModal';
-    // z-index très élevé, position fixed avec top-level styling
     m.setAttribute('style','position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:1.5rem');
-    window._exitModalStay = function(){
-      var e=document.getElementById('_exitModal'); if(e)e.remove();
-      // Re-pousser pour garder le buffer
-      history.pushState({immoai:'current'},'');
-    };
-    window._exitModalLeave = function(){
-      var e=document.getElementById('_exitModal'); if(e)e.remove();
-      // Tenter de fermer, sinon informer
-      try{ window.close(); }catch(ex){}
-    };
+    window._exitModalStay = function(){ var e=document.getElementById('_exitModal');if(e)e.remove(); _pushAppState(); };
+    window._exitModalLeave = function(){ var e=document.getElementById('_exitModal');if(e)e.remove(); try{window.close();}catch(ex){} };
     m.innerHTML='<div style="background:#fff;border-radius:16px;padding:1.75rem 1.5rem;max-width:300px;width:100%;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.3)">'
       +'<div style="font-size:2rem;margin-bottom:.5rem">🏠</div>'
       +'<div style="font-size:1rem;font-weight:700;color:#111;margin-bottom:.35rem">Quitter ImmoAI ?</div>'
-      +'<div style="font-size:.82rem;color:#777;margin-bottom:1.25rem;line-height:1.4">Utilisez le gestionnaire de tâches Android pour fermer l’application.</div>'
+      +'<div style="font-size:.82rem;color:#777;margin-bottom:1.25rem;line-height:1.4">Utilisez le bouton Home ou le gestionnaire de tâches pour fermer.</div>'
       +'<div style="display:flex;gap:.75rem">'
       +'<button onclick="_exitModalStay()" style="flex:1;padding:.7rem;border:1.5px solid #ddd;border-radius:10px;background:#f4f4f4;font-size:.88rem;font-weight:600;cursor:pointer;color:#333">Rester</button>'
       +'<button onclick="_exitModalLeave()" style="flex:1;padding:.7rem;border:none;border-radius:10px;background:#111;color:#fff;font-size:.88rem;font-weight:600;cursor:pointer">Fermer</button>'
@@ -8478,30 +8470,19 @@ document.addEventListener('DOMContentLoaded',()=>{
     document.body.appendChild(m);
   }
 
-  window.addEventListener('popstate', function(){
-    // setTimeout pour éviter que le navigateur mobile ignore le pushState dans popstate
-    setTimeout(function(){ history.pushState({immoai:'current'}, ''); }, 0);
-
-    // 1. Panel ouvert → cliquer le bouton back (action correcte déjà définie)
+  function _handleBack(){
+    setTimeout(_pushAppState, 0);
     var panelEl = document.getElementById('detailContainer');
     if(panelEl && panelEl.innerHTML.trim()){
-      var backBtn = panelEl.querySelector('.back-btn');
-      if(backBtn) backBtn.click(); else closePanel();
-      return;
+      var btn = panelEl.querySelector('.back-btn'); if(btn) btn.click(); else closePanel(); return;
     }
-    // 2. Accueil → confirmation sortie
-    if(document.getElementById('p-home')?.classList.contains('on')){
-      _showExitConfirm();
-      return;
-    }
-    // 3. Sous-page (emprunt etc.) → cartes analyse
-    if(!document.getElementById('p-analyse')?.classList.contains('on')){
-      _goPage('analyse');
-      return;
-    }
-    // 4. Cartes analyse → accueil
+    if(document.getElementById('p-home')?.classList.contains('on')){ _showExitConfirm(); return; }
+    if(!document.getElementById('p-analyse')?.classList.contains('on')){ _goPage('analyse'); return; }
     go('home');
-  });
+  }
+
+  window.addEventListener('popstate', _handleBack);
+  window.addEventListener('hashchange', _handleBack);
 })();
 
 </script>
