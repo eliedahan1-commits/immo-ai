@@ -3134,19 +3134,19 @@ function showQualiteAirDetail() {
     { label: 'Extrêmement mauvais',   max: 999, color: '#8e44ad' },
   ];
   const polluants = [
-    { label:'PM2.5', sublabel:'Fines particules < 2.5 µm', val:air.pm25, unit:'µg/m³', seuil:25,
+    { label:'PM2.5', sublabel:'Fines particules < 2.5 µm', val:air.pm25, unit:'µg/m³', seuil:15,
       desc:"Particules ultrafines pénétrant profondément dans les poumons et la circulation sanguine. Émises par le trafic, le chauffage au bois et l'industrie. Risque cardiovasculaire et respiratoire à long terme.", icon:'🔴' },
-    { label:'PM10',  sublabel:'Particules < 10 µm',         val:air.pm10, unit:'µg/m³', seuil:50,
+    { label:'PM10',  sublabel:'Particules < 10 µm',         val:air.pm10, unit:'µg/m³', seuil:45,
       desc:"Particules inhalables irritant les voies respiratoires. Sources : poussières routières, chantiers, agriculture. Aggravent l'asthme et les bronchites.", icon:'🟠' },
-    { label:'NO₂',   sublabel:"Dioxyde d'azote",            val:air.no2,  unit:"µg/m³", seuil:200,
+    { label:'NO₂',   sublabel:"Dioxyde d'azote",            val:air.no2,  unit:"µg/m³", seuil:25,
       desc:"Gaz brun-rougeâtre émis principalement par les moteurs diesel et le chauffage. Provoque inflammation des bronches et diminution de la fonction pulmonaire, surtout chez les enfants et asthmatiques.", icon:'🟡' },
-    { label:'O₃',    sublabel:'Ozone troposphérique',       val:air.o3,   unit:'µg/m³', seuil:180,
+    { label:'O₃',    sublabel:'Ozone troposphérique',       val:air.o3,   unit:'µg/m³', seuil:100,
       desc:"Formé par réaction chimique entre oxydes d'azote et composés organiques sous l'effet du soleil. Pic en été en après-midi. Irrite les voies respiratoires et les yeux.", icon:'🔵' },
   ].filter(p => p.val != null);
 
   const polRows = polluants.map(p => {
     const pct = Math.min(100, Math.round(p.val / p.seuil * 100));
-    const pColor = pct < 50 ? '#27ae60' : pct < 80 ? '#f39c12' : '#e74c3c';
+    const pColor = pct < 75 ? '#27ae60' : pct < 100 ? '#f39c12' : '#e74c3c';
     return `<div style="margin-bottom:1rem;padding:.75rem;background:var(--bg);border:1px solid var(--border);border-radius:8px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:.3rem">
         <div>
@@ -3161,7 +3161,7 @@ function showQualiteAirDetail() {
       <div style="background:var(--border);border-radius:3px;height:6px;margin-bottom:.4rem">
         <div style="width:${pct}%;background:${pColor};border-radius:3px;height:6px"></div>
       </div>
-      <div style="font-size:.7rem;color:var(--muted);margin-bottom:.4rem">Seuil OMS journalier : ${p.seuil} ${p.unit} — actuellement à ${pct}%</div>
+      <div style="font-size:.7rem;color:var(--muted);margin-bottom:.4rem">Recommandation OMS 2021 (non réglementaire) : ${p.seuil} ${p.unit} — actuellement à ${pct}%</div>
       <div style="font-size:.73rem;color:var(--text);line-height:1.45">${p.desc}</div>
     </div>`;
   }).join('');
@@ -3174,7 +3174,7 @@ function showQualiteAirDetail() {
     </div>
     <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-bottom:1rem">${polRows}</div>
     <p style="font-size:.62rem;color:var(--muted)">Source : Open-Meteo Air Quality · Données temps réel</p>
-  `, "closePanel();setTimeout(()=>showMeteoDetail(),120)");
+  `, "(function(){var ks=['_aqHistChart0'];ks.forEach(function(k){if(window[k]){window[k].destroy();window[k]=null;}});showMeteoDetail();})()");
 }
 
 function showDPESecteurDetail() {
@@ -3953,18 +3953,22 @@ function showDVFDetail(){
     tEl.style.color = up?'#2a9d8f':'#e63946';
     lEl.textContent = label;
   }
-  window.filterDVF       = n  => { window._dvfFilterN=n;      renderDVFRows(); refreshDVFChart(); };
-  window.filterDVFType   = t  => { window._dvfFilterType=t;   renderDVFRows(); refreshDVFChart(); };
-  window.filterDVFSurf   = s  => { window._dvfFilterSurf=s;   renderDVFRows(); refreshDVFChart(); };
-  window.filterDVFPieces = p  => { window._dvfFilterPieces=p; renderDVFRows(); refreshDVFChart(); };
+  function refreshAllDVF(){ renderDVFRows(); refreshDVFChart(); buildDvfEvolutionChart(); buildDVFMap(); }
+  window.filterDVF       = n  => { window._dvfFilterN=n;      refreshAllDVF(); };
+  window.filterDVFType   = t  => { window._dvfFilterType=t;   refreshAllDVF(); };
+  window.filterDVFSurf   = s  => { window._dvfFilterSurf=s;   refreshAllDVF(); };
+  window.filterDVFPieces = p  => { window._dvfFilterPieces=p; refreshAllDVF(); };
   window.filterDVFPrix = (lo,hi) => { window._dvfFilterPrixLo=lo; window._dvfFilterPrixHi=hi; renderDVFRows(); };
-  function getFilteredVals(){
+  function getFilteredListDVF(){
     let l=window._dvfRecentes||[];
     if(window._dvfFilterType!=='tous') l=l.filter(t=>{const tp=(t.type||'').toLowerCase();if(window._dvfFilterType==='appt')return tp.includes('appartement');if(window._dvfFilterType==='maison')return tp.includes('maison');if(window._dvfFilterType==='local')return tp.includes('local');if(window._dvfFilterType==='depend')return tp.includes('dépendance')||tp.includes('dependance');return true;});
     const s=window._dvfFilterSurf;if(s>0){const T=[[25,0,25],[50,25,50],[75,50,75],[100,75,100],[125,100,125],[150,125,150],[999,150,99999]];const tr=T.find(t=>t[0]===s);if(tr)l=l.filter(t=>(t.surf||0)>=tr[1]&&(t.surf||0)<tr[2]);}
     const fp2=window._dvfFilterPieces;if(fp2>0){if(fp2===5)l=l.filter(t=>(t.pieces||0)>=5);else l=l.filter(t=>(t.pieces||0)===fp2);}
     const n=window._dvfFilterN;if(n>0)l=l.slice(0,n);
-    return l.map(t=>t.prixM2).filter(v=>v>0);
+    return l;
+  }
+  function getFilteredVals(){
+    return getFilteredListDVF().map(t=>t.prixM2).filter(v=>v>0);
   }
   function refreshDVFChart(){
     const vals=getFilteredVals(); if(!vals.length){if(window._dvfChart){window._dvfChart.destroy();window._dvfChart=null;}return;}
@@ -3982,7 +3986,7 @@ function showDVFDetail(){
   }
   // Graphique évolution mensuelle maisons vs appartements
   function buildDvfEvolutionChart(){
-    const all = window._dvfRecentes || [];
+    const all = getFilteredListDVF();
     // Grouper par mois (YYYY-MM) et type
     const byMonth = {};
     for(const t of all){
@@ -4123,7 +4127,7 @@ function showDVFDetail(){
 function buildDVFMap(){
   const container = document.getElementById('dvfMapContainer');
   if(!container || !window.L) return;
-  const liste = window._dvfRecentes || [];
+  const liste = getFilteredListDVF();
   const pts = liste.filter(t => t.lat && t.lon);
   if(pts.length === 0){ container.style.display='none'; return; }
   container.style.display='';
@@ -5475,7 +5479,7 @@ function showMeteoDetail(){
       const barHtml = bars.map(b=>{
         const omsPct = Math.round(b.val/b.seuil*100);
         const fillPct = Math.min(100, Math.round(b.val/(b.seuil*2)*100)); // echelle 2x seuil
-        const barColor = omsPct<50?'#4caf50':omsPct<100?'#ff9800':'#f44336';
+        const barColor = omsPct<75?'#4caf50':omsPct<100?'#ff9800':'#f44336';
         return `<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem">
           <span style="font-size:.68rem;color:var(--muted);width:3rem;flex-shrink:0">${b.name}</span>
           <div style="flex:1;height:6px;background:var(--border);border-radius:3px;position:relative">
@@ -5493,7 +5497,7 @@ function showMeteoDetail(){
           <span style="font-size:.72rem;color:var(--muted)">IQA ${aq.aqi}/100</span>
           <button onclick="closePanel();setTimeout(()=>showQualiteAirDetail(),120)" style="margin-left:.4rem;font-size:.68rem;padding:.18rem .55rem;border:1px solid var(--border);border-radius:12px;background:transparent;color:var(--muted);cursor:pointer">Détail →</button>
         </div>
-        <div style="font-size:.65rem;color:var(--muted);margin-bottom:.3rem">Seuils OMS · vert = OK · orange = modéré · rouge = élevé</div>
+        <div style="font-size:.65rem;color:var(--muted);margin-bottom:.3rem">Recommandations OMS 2021 (non réglementaires) · vert &lt;75% · orange 75-99% · rouge ≥100%</div>
         ${barHtml}
       </div>`;
     })()}
@@ -5503,7 +5507,7 @@ function showMeteoDetail(){
       <div id="aqHistCharts" style="display:none">
         <div style="position:relative;height:200px"><canvas id="aqHistChartGrouped"></canvas></div>
       </div>
-      <div style="font-size:.6rem;color:var(--muted);margin-top:.3rem">% du seuil OMS · 100% = limite OMS · Moyennes mensuelles · Open-Meteo Air Quality</div>
+      <div style="font-size:.6rem;color:var(--muted);margin-top:.3rem">% de la recommandation OMS 2021 (non réglementaire) · 100% = limite OMS · Moyennes mensuelles · Open-Meteo Air Quality</div>
     </div>
     <p style="font-size:.62rem;color:var(--muted)">Source : ${d.source} · Qualité air : Open-Meteo Air Quality</p>`);
 
