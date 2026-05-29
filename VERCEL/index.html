@@ -8446,23 +8446,22 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 // ── Bouton Back mobile : navigation intra-app ──
 (function(){
-  var _base = location.href.split('#')[0];
-  function _pushAppState(){ try{ history.pushState({immoai:'app'}, '', _base+'#app'); }catch(ex){} }
-
-  history.replaceState({immoai:'root'}, '', _base);
-  _pushAppState();
+  // Sentinel sans changement d'URL => pas de hashchange parasite
+  function _pushSentinel(){ try{ history.pushState({immoai:1}, ''); }catch(e){} }
+  try{ history.replaceState({immoai:0}, ''); }catch(e){}
+  _pushSentinel();
 
   function _showExitConfirm(){
     if(document.getElementById('_exitModal')) return;
     var m = document.createElement('div');
     m.id = '_exitModal';
     m.setAttribute('style','position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:1.5rem');
-    window._exitModalStay = function(){ var e=document.getElementById('_exitModal');if(e)e.remove(); _pushAppState(); };
-    window._exitModalLeave = function(){ var e=document.getElementById('_exitModal');if(e)e.remove(); try{window.close();}catch(ex){} };
+    window._exitModalStay  = function(){ var e=document.getElementById('_exitModal');if(e)e.remove(); };
+    window._exitModalLeave = function(){ var e=document.getElementById('_exitModal');if(e)e.remove(); try{history.go(-history.length);}catch(ex){} };
     m.innerHTML='<div style="background:#fff;border-radius:16px;padding:1.75rem 1.5rem;max-width:300px;width:100%;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.3)">'
-      +'<div style="font-size:2rem;margin-bottom:.5rem">🏠</div>'
+      +'<div style="font-size:2rem;margin-bottom:.5rem">&#127968;</div>'
       +'<div style="font-size:1rem;font-weight:700;color:#111;margin-bottom:.35rem">Quitter ImmoAI ?</div>'
-      +'<div style="font-size:.82rem;color:#777;margin-bottom:1.25rem;line-height:1.4">Utilisez le bouton Home ou le gestionnaire de tâches pour fermer.</div>'
+      +'<div style="font-size:.82rem;color:#777;margin-bottom:1.25rem;line-height:1.4">Vous êtes sur l’accueil. Appuyez sur Fermer pour quitter.</div>'
       +'<div style="display:flex;gap:.75rem">'
       +'<button onclick="_exitModalStay()" style="flex:1;padding:.7rem;border:1.5px solid #ddd;border-radius:10px;background:#f4f4f4;font-size:.88rem;font-weight:600;cursor:pointer;color:#333">Rester</button>'
       +'<button onclick="_exitModalLeave()" style="flex:1;padding:.7rem;border:none;border-radius:10px;background:#111;color:#fff;font-size:.88rem;font-weight:600;cursor:pointer">Fermer</button>'
@@ -8470,19 +8469,21 @@ document.addEventListener('DOMContentLoaded',()=>{
     document.body.appendChild(m);
   }
 
-  function _handleBack(){
-    setTimeout(_pushAppState, 0);
+  var _lastTs = 0;
+  window.addEventListener('popstate', function(){
+    var now = Date.now();
+    if(now - _lastTs < 300){ _pushSentinel(); return; }
+    _lastTs = now;
+    _pushSentinel();
+
     var panelEl = document.getElementById('detailContainer');
     if(panelEl && panelEl.innerHTML.trim()){
       var btn = panelEl.querySelector('.back-btn'); if(btn) btn.click(); else closePanel(); return;
     }
     if(document.getElementById('p-home')?.classList.contains('on')){ _showExitConfirm(); return; }
-    if(!document.getElementById('p-analyse')?.classList.contains('on')){ _goPage('analyse'); return; }
-    go('home');
-  }
-
-  window.addEventListener('popstate', _handleBack);
-  window.addEventListener('hashchange', _handleBack);
+    if(document.getElementById('p-analyse')?.classList.contains('on')){ go('home'); return; }
+    _goPage('analyse');
+  });
 })();
 
 </script>
