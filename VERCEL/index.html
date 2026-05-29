@@ -8446,70 +8446,48 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 // ── Bouton Back mobile : navigation intra-app ──
 (function(){
-  history.replaceState({immoai:'home'}, '');
+  history.replaceState({immoai:'base'}, '');
   history.pushState({immoai:'current'}, '');
 
-  // showPanel pousse un état supplémentaire pour chaque panel ouvert
-  var _origShowPanel = window.showPanel;
-  if(typeof showPanel === 'function'){
-    var _spOrig = showPanel;
-    showPanel = function(title, html, backAction){
-      _spOrig(title, html, backAction);
-      history.pushState({immoai:'panel'}, '');
-    };
-  }
-
-  // Modal de confirmation quitter
   function _showExitConfirm(){
-    var existing = document.getElementById('_exitModal');
-    if(existing) return;
+    if(document.getElementById('_exitModal')) return;
     var m = document.createElement('div');
     m.id = '_exitModal';
     m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:1.5rem';
-    window._exitModalStay = function(){ var e=document.getElementById("_exitModal"); if(e)e.remove(); history.pushState({immoai:"current"}, ""); };
+    window._exitModalStay  = function(){ var e=document.getElementById('_exitModal');if(e)e.remove(); };
     window._exitModalLeave = function(){ var e=document.getElementById('_exitModal');if(e)e.remove(); window.close(); };
     m.innerHTML = "<div style=\"background:#fff;border-radius:14px;padding:1.5rem;max-width:320px;width:100%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.25)\">"
       +"<div style=\"font-size:1.5rem;margin-bottom:.5rem\">🏠</div>"
       +"<div style=\"font-weight:700;font-size:1rem;margin-bottom:.4rem;color:#1a1a1a\">Quitter ImmoAI ?</div>"
-      +"<div style=\"font-size:.83rem;color:#666;margin-bottom:1.2rem\">Vous allez quitter l\u2019application.</div>"
+      +"<div style=\"font-size:.83rem;color:#666;margin-bottom:1.2rem\">Appuyez sur le bouton Home pour minimiser.</div>"
       +"<div style=\"display:flex;gap:.75rem\">"
       +"<button onclick=\"_exitModalStay()\" style=\"flex:1;padding:.65rem;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;font-size:.85rem;font-weight:600;cursor:pointer;color:#444\">Rester</button>"
-      +"<button onclick=\"_exitModalLeave()\" style=\"flex:1;padding:.65rem;border:none;border-radius:8px;background:#1a1a1a;color:#fff;font-size:.85rem;font-weight:600;cursor:pointer\">Utiliser le bouton Home</button>"
+      +"<button onclick=\"_exitModalLeave()\" style=\"flex:1;padding:.65rem;border:none;border-radius:8px;background:#1a1a1a;color:#fff;font-size:.85rem;font-weight:600;cursor:pointer\">Quitter</button>"
       +"</div></div>";
     document.body.appendChild(m);
   }
 
-  window.addEventListener('popstate', function(e){
-    var state = e.state;
+  window.addEventListener('popstate', function(){
+    history.pushState({immoai:'current'}, ''); // re-pousser pour maintenir la pile
 
-    // Panel ouvert → cliquer le bouton back existant (qui a la bonne action)
+    // 1. Panel ouvert → cliquer le bouton back (qui a la bonne action)
     var panelEl = document.getElementById('detailContainer');
     if(panelEl && panelEl.innerHTML.trim()){
-      history.pushState({immoai:'current'}, '');
       var backBtn = panelEl.querySelector('.back-btn');
-      if(backBtn) backBtn.click();
-      else closePanel();
+      if(backBtn) backBtn.click(); else closePanel();
       return;
     }
-
-    // Accueil → modal confirmation sortie (AVANT le check analyse)
-    var onHome = document.getElementById('p-home')?.classList.contains('on');
-    if(onHome){
-      history.pushState({immoai:'current'}, '');
+    // 2. Accueil → confirmation sortie
+    if(document.getElementById('p-home')?.classList.contains('on')){
       _showExitConfirm();
       return;
     }
-
-    // Sous-page → cartes analyse
-    var onAnalyse = document.getElementById('p-analyse')?.classList.contains('on');
-    if(!onAnalyse){
-      history.pushState({immoai:'current'}, '');
+    // 3. Sous-page → cartes analyse
+    if(!document.getElementById('p-analyse')?.classList.contains('on')){
       _goPage('analyse');
       return;
     }
-
-    // Cartes analyse → accueil
-    history.pushState({immoai:'current'}, '');
+    // 4. Cartes analyse → accueil
     go('home');
   });
 })();
