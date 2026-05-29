@@ -8446,7 +8446,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 // ── Bouton Back mobile : navigation intra-app ──
 (function(){
-  // Sentinel sans changement d'URL => pas de hashchange parasite
+  // Un seul sentinel permanent — on y revient avec history.go(1) au lieu de pushState
   function _pushSentinel(){ try{ history.pushState({immoai:1}, ''); }catch(e){} }
   try{ history.replaceState({immoai:0}, ''); }catch(e){}
   _pushSentinel();
@@ -8469,13 +8469,22 @@ document.addEventListener('DOMContentLoaded',()=>{
     document.body.appendChild(m);
   }
 
+  var _fwd = false;
   var _lastTs = 0;
-  window.addEventListener('popstate', function(){
-    var now = Date.now();
-    if(now - _lastTs < 300){ _pushSentinel(); return; }
-    _lastTs = now;
-    _pushSentinel();
 
+  window.addEventListener('popstate', function(){
+    // Ignorer le popstate déclenché par notre propre history.go(1)
+    if(_fwd){ _fwd = false; return; }
+
+    var now = Date.now();
+    if(now - _lastTs < 150) return; // anti-double-fire
+    _lastTs = now;
+
+    // Revenir au sentinel sans créer de nouvel état
+    _fwd = true;
+    setTimeout(function(){ history.go(1); }, 0);
+
+    // Navigation applicative
     var panelEl = document.getElementById('detailContainer');
     if(panelEl && panelEl.innerHTML.trim()){
       var btn = panelEl.querySelector('.back-btn'); if(btn) btn.click(); else closePanel(); return;
