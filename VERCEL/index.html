@@ -2049,6 +2049,11 @@ function _goPage(id){
   const p=document.getElementById('p-'+id);if(p)p.classList.add('on');
   document.getElementById('topTitle').textContent=PAGES[id]||id;
   if(window._activeNavEl) window._activeNavEl.classList.add('active');
+  // Masquer la bottom tab bar et le bandeau adresse sur la page d'accueil
+  const _btb = document.getElementById('bottomTabBar');
+  if(_btb) _btb.style.display = (id === 'home') ? 'none' : '';
+  const _rh = document.getElementById('resultsHeader');
+  if(_rh && id === 'home') _rh.style.display = 'none';
   if(id === 'analyse' && window._analyseScrollY > 0){
     // Restaurer la position au retour sur la page des cartes
     setTimeout(()=>window.scrollTo({top:window._analyseScrollY, behavior:'smooth'}), 50);
@@ -8568,15 +8573,21 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('.nav-item').forEach(el=>{
     el.addEventListener('click',()=>{ closeSidebar(); });
   });
+  // Masquer bottom tab bar sur la page d'accueil au démarrage
+  const _btb = document.getElementById('bottomTabBar');
+  if(_btb && document.getElementById('p-home')?.classList.contains('on')) _btb.style.display = 'none';
 });
 
 
 // ── Bouton Back mobile : navigation intra-app ──
 (function(){
-  // Un seul sentinel permanent — on y revient avec history.go(1) au lieu de pushState
   function _pushSentinel(){ try{ history.pushState({immoai:1}, ''); }catch(e){} }
   try{ history.replaceState({immoai:0}, ''); }catch(e){}
   _pushSentinel();
+
+  var _fwd     = false;
+  var _lastTs  = 0;
+  var _exiting = false; // true = sortie volontaire, ne pas rebondir
 
   function _showExitConfirm(){
     if(document.getElementById('_exitModal')) return;
@@ -8584,11 +8595,15 @@ document.addEventListener('DOMContentLoaded',()=>{
     m.id = '_exitModal';
     m.setAttribute('style','position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:1.5rem');
     window._exitModalStay  = function(){ var e=document.getElementById('_exitModal');if(e)e.remove(); };
-    window._exitModalLeave = function(){ var e=document.getElementById('_exitModal');if(e)e.remove(); try{history.go(-history.length);}catch(ex){} };
+    window._exitModalLeave = function(){
+      var e=document.getElementById('_exitModal'); if(e)e.remove();
+      _exiting = true;   // désactiver le rebond dans le handler
+      history.back();    // recule vers root → le browser peut ensuite sortir
+    };
     m.innerHTML='<div style="background:#fff;border-radius:16px;padding:1.75rem 1.5rem;max-width:300px;width:100%;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.3)">'
       +'<div style="font-size:2rem;margin-bottom:.5rem">&#127968;</div>'
       +'<div style="font-size:1rem;font-weight:700;color:#111;margin-bottom:.35rem">Quitter ImmoAI ?</div>'
-      +'<div style="font-size:.82rem;color:#777;margin-bottom:1.25rem;line-height:1.4">Vous êtes sur l’accueil. Appuyez sur Fermer pour quitter.</div>'
+      +'<div style="font-size:.82rem;color:#777;margin-bottom:1.25rem;line-height:1.4">Vous \u00eates sur l\u2019accueil. Appuyez sur Fermer puis le bouton retour syst\u00e8me pour quitter.</div>'
       +'<div style="display:flex;gap:.75rem">'
       +'<button onclick="_exitModalStay()" style="flex:1;padding:.7rem;border:1.5px solid #ddd;border-radius:10px;background:#f4f4f4;font-size:.88rem;font-weight:600;cursor:pointer;color:#333">Rester</button>'
       +'<button onclick="_exitModalLeave()" style="flex:1;padding:.7rem;border:none;border-radius:10px;background:#111;color:#fff;font-size:.88rem;font-weight:600;cursor:pointer">Fermer</button>'
@@ -8596,18 +8611,18 @@ document.addEventListener('DOMContentLoaded',()=>{
     document.body.appendChild(m);
   }
 
-  var _fwd = false;
-  var _lastTs = 0;
-
   window.addEventListener('popstate', function(){
-    // Ignorer le popstate déclenché par notre propre history.go(1)
+    // Sortie volontaire : ne pas rebondir, laisser le navigateur gérer
+    if(_exiting) return;
+
+    // Retour déclenché par notre propre history.go(1)
     if(_fwd){ _fwd = false; return; }
 
     var now = Date.now();
-    if(now - _lastTs < 150) return; // anti-double-fire
+    if(now - _lastTs < 150) return;
     _lastTs = now;
 
-    // Revenir au sentinel sans créer de nouvel état
+    // Rebondir sur le sentinel
     _fwd = true;
     setTimeout(function(){ history.go(1); }, 0);
 
