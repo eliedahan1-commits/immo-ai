@@ -885,7 +885,10 @@ path.leaflet-interactive:focus{outline:none;}
       <div class="nav-item" onclick="setActiveNavItem(this);go('mobilite')"><span class="nav-icon">🚇</span>Transports & mobilité douce</div>
       <div class="nav-item" onclick="setActiveNavItem(this);go('ecoles')"><span class="nav-icon">🏫</span>Écoles & niveau scolaire</div>
       <div class="nav-item" onclick="setActiveNavItem(this);go('soleil')"><span class="nav-icon">☀️</span>Météo et qualité de l'air</div>
+      <div class="nav-item" onclick="setActiveNavItem(this);go('analyse');setTimeout(()=>showDetail('insee'),300)"><span class="nav-icon">📊</span>Population, économie & société</div>
+      <div class="nav-item" onclick="setActiveNavItem(this);go('analyse');setTimeout(()=>showDemographieDetail(),300)"><span class="nav-icon">📈</span>Croissance de la population</div>
       <div class="nav-item" onclick="setActiveNavItem(this);go('risques')"><span class="nav-icon">⚠️</span>Risques naturels & industriels</div>
+      <div class="nav-item" onclick="setActiveNavItem(this);go('analyse');setTimeout(()=>showAltitudeDetail(),300)"><span class="nav-icon">🏔️</span>Altitude & topographie</div>
       <div class="nav-item" onclick="setActiveNavItem(this);go('bruit')"><span class="nav-icon">🔇</span>Carte du bruit</div>
       <div class="nav-item" onclick="setActiveNavItem(this);go('fibre')"><span class="nav-icon">📶</span>Connexion internet & fibre</div>
       <div class="nav-item" onclick="setActiveNavItem(this);go('urbanisme')"><span class="nav-icon">📋</span>Zonage, PLU & réglementation</div>
@@ -2427,7 +2430,7 @@ function renderCards(props, coords){
         {id:'mobilite',  icon:'🚇', label:'Transports & mobilité douce',  value:'<span class="spin"></span>', sub:'Transports & vélos',        source:'Transport.data'},
         {id:'ecoles',    icon:'🏫', label:'Écoles & niveau scolaire',           value:'<span class="spin"></span>', sub:'IPS & résultats',           source:'Éducation'},
         {id:'meteo',     icon:'☀️', label:"Météo et qualité de l'air", value:'<span class="spin"></span>', sub:'Moyenne 5 ans',            source:'open-meteo'},
-        {id:'insee',     icon:'📊', label:'Population, densité & sécurité',     value:'<span class="spin"></span>', sub:'Population & densité',      source:'INSEE'},
+        {id:'insee',     icon:'📊', label:'Population, économie & société',     value:'<span class="spin"></span>', sub:'Population & densité',      source:'INSEE'},
         {id:'demographie',icon:'📈',label:'Croissance de la population',value:'<span class="spin"></span>', sub:'Historique population',     source:'Wikidata/INSEE'},
         {id:'risques',   icon:'⚠️', label:'Risques naturels & industriels',       value:'<span class="spin"></span>', sub:'Géorisques officiel',       source:'Géorisques'},
         {id:'altitude',  icon:'🏔️', label:'Altitude & topographie', value:'<span class="spin"></span>', sub:'Précision 1m · IGN',       source:'IGN RGE Alti'},
@@ -3038,6 +3041,7 @@ async function loadQualiteAir(lat, lng){
 // ── INSEE ──
 async function loadINSEE(citycode, lat, lng){
   window._inseeData = null;
+  window._melodiData = null;
   try{
     const r = await apiCall(`/api/insee?lat=${lat}&lon=${lng}&codeInsee=${citycode||''}`, `https://geo.api.gouv.fr/communes?lat=${lat}&lon=${lng}&fields=nom,population,superficie,codesPostaux,codeDepartement&format=json&limit=1`);
     if(!r.ok) throw new Error();
@@ -3063,10 +3067,39 @@ async function loadINSEE(citycode, lat, lng){
     );
     window._inseeData = d;
     updateDemographieCard(d);
+    // Charger données économiques Melodi (revenu médian, chômage)
+    if(d.commune?.codeInsee) loadMelodi(d.commune.codeInsee);
   }catch{
     setCard('insee','Non disponible','Erreur INSEE','');
     setCardRetry('insee',()=>currentCoords&&loadINSEE(window._inseeData?.commune?.codeInsee||'',currentCoords.lat,currentCoords.lng));
   }
+}
+
+// ── Données économiques Melodi INSEE (revenu médian, chômage) ──
+async function loadMelodi(codeInsee){
+  window._melodiData = null;
+  if(!codeInsee) return;
+  try{
+    const r = await fetch('/api/insee?action=melodi&codeInsee='+codeInsee, {signal:AbortSignal.timeout(12000)});
+    if(!r.ok) throw new Error('melodi '+r.status);
+    const d = await r.json();
+    if(!d.success) throw new Error();
+    window._melodiData = d.economie;
+    updateMelodiTiles(d.economie);
+  }catch(e){ window._melodiData = null; }
+}
+
+function updateMelodiTiles(eco){
+  if(!eco) return;
+  const revMens = eco.revenuMedian ? Math.round(eco.revenuMedian/12).toLocaleString('fr-FR')+' €/mois' : '—';
+  const chomLbl = eco.tauxChomage != null ? eco.tauxChomage.toLocaleString('fr-FR')+'%' : '—';
+  const chomColor = eco.tauxChomage != null ? (eco.tauxChomage<7?'#27ae60':eco.tauxChomage<12?'#e67e22':'#e74c3c') : 'inherit';
+  const yrF = eco.anneeFilosofi ? ' '+eco.anneeFilosofi : '';
+  const yrE = eco.anneeEmploi   ? ' '+eco.anneeEmploi   : '';
+  const tRev = document.getElementById('inseeRevenuTile');
+  const tCho = document.getElementById('inseeChomTile');
+  if(tRev) tRev.innerHTML = '<span class="stat-n">'+revMens+'</span><span class="stat-l">💶 Revenu médian'+yrF+'</span>';
+  if(tCho) tCho.innerHTML = '<span class="stat-n" style="color:'+chomColor+'">'+chomLbl+'</span><span class="stat-l">💼 Chômage'+yrE+'</span>';
 }
 
 // ── Criminalité par commune (stats.interieur.gouv.fr) ──
@@ -3330,7 +3363,7 @@ function computeScoreQuartier() {
     // Score de densité : ni trop dense (stressant) ni trop rural (isolé) — optimum ~2000-5000
     const densScore = dens>15000?4 : dens>8000?6 : dens>3000?9 : dens>1000?8 : dens>300?6 : 4;
     const densLabel = dens>10000?'Très dense':dens>5000?'Dense':dens>2000?'Urbain':dens>500?'Péri-urbain':'Rural';
-    items.push({ label:'Population, densité & sécurité', icon:'🏙️', val:densScore, max:10,
+    items.push({ label:'Population, économie & société', icon:'🏙️', val:densScore, max:10,
       action:"closePanel();setTimeout(()=>showDetail('insee'),120)",
       sub:`${dens.toLocaleString('fr-FR')} hab/km² · ${densLabel}` });
   }
@@ -5775,22 +5808,21 @@ function showMeteoDetail(){
 
 function showINSEEDetail(){
   const d = window._inseeData;
-  if(!d){showPanel('📊 Population, densité & sécurité','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
+  if(!d){showPanel('📊 Population, économie & société','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
   const c = d.commune;
   const dens = c?.densite||0;
   const densLabel = dens>10000?'Très dense':dens>5000?'Dense':dens>2000?'Urbain':dens>500?'Péri-urbain':'Rural';
   const densColor = dens>10000?'#c0392b':dens>5000?'#e67e22':dens>2000?'#f39c12':dens>500?'#27ae60':'#2980b9';
   const supKm2 = c?.superficie ? Math.round(c.superficie) : null;
 
-  showPanel('📊 Population, densité & sécurité · ' + (c?.nom||''), `
-    <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:1rem">
+  showPanel('📊 Population, économie & société · ' + (c?.nom||''), `
+    <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:.5rem">
       <div class="stat-box"><span class="stat-n">${c?.densite?.toLocaleString('fr-FR')||'—'}</span><span class="stat-l">🗺️ hab/km² · <span style="color:${densColor};font-weight:600">${densLabel}</span></span></div>
-      <div class="stat-box">
-        <span class="stat-n">${c?.population?.toLocaleString('fr-FR')||'—'}</span>
-        <span class="stat-l">👥 Habitants</span>
-      </div>
+      <div class="stat-box"><span class="stat-n">${c?.population?.toLocaleString('fr-FR')||'—'}</span><span class="stat-l">👥 Habitants</span></div>
       <div class="stat-box"><span class="stat-n" id="inseeSupVal">${supKm2?supKm2.toLocaleString('fr-FR')+' km²':'N/A'}</span><span class="stat-l">📐 Superficie</span></div>
       <div class="stat-box"><span class="stat-n">${c?.codesPostaux?.[0]||'—'}</span><span class="stat-l">📮 Code postal</span></div>
+      <div class="stat-box" id="inseeRevenuTile"><span class="stat-n">—</span><span class="stat-l">💶 Revenu médian</span></div>
+      <div class="stat-box" id="inseeChomTile"><span class="stat-n">—</span><span class="stat-l">💼 Chômage</span></div>
     </div>
     <p style="font-size:.75rem;color:var(--muted);margin-bottom:.8rem">Département ${c?.departement||'—'} · Code INSEE ${c?.codeInsee||'—'}</p>
     <div class="map-container" id="mapInsee"></div>
@@ -5881,6 +5913,8 @@ function showINSEEDetail(){
         <p style="font-size:.61rem;color:var(--muted);margin-top:.3rem">Source : SSMSI · Ministère Intérieur · Moy. nat. approx. SSMSI 2022 · <a href="${deptLink}" target="_blank" style="color:var(--gold)">Détail complet →</a></p>
       </div>`;
     })()}`);
+
+  if(window._melodiData) updateMelodiTiles(window._melodiData);
 
   // Graphique criminalité (taux ‰ + moy. nationale)
   setTimeout(()=>{

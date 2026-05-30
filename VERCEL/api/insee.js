@@ -1,6 +1,67 @@
-// ══ VERCEL FUNCTION : INSEE (population + densité) + proxy SeLoger location ══
+// ══ VERCEL FUNCTION : INSEE (population + densité) + Melodi (économie) + proxy SeLoger ══
+
+const MELODI_BASE = 'https://api.insee.fr/melodi/data';
+const MELODI_TIMEOUT = 9000;
+
+// Tentatives de vintage géographique (du plus récent au plus ancien)
+const GEO_VINTAGES = ['2024', '2023', '2022', '2021'];
+
+async function fetchMelodiDataset(datasetId, codeInsee) {
+  for (const year of GEO_VINTAGES) {
+    const geoCode = `${year}-COM-${codeInsee}`;
+    try {
+      const r = await fetch(`${MELODI_BASE}/${datasetId}?GEO=${geoCode}`, {
+        headers: { Accept: 'application/json' },
+        signal: AbortSignal.timeout(MELODI_TIMEOUT)
+      });
+      if (!r.ok) continue;
+      const d = await r.json();
+      if (d.observations && d.observations.length > 0) return d;
+    } catch (e) { continue; }
+  }
+  return null;
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
+
+  // ── Action : données économiques Melodi INSEE (revenu médian, chômage) ──
+  if (req.query.action === 'melodi') {
+    const code = (req.query.codeInsee || '').trim();
+    if (!code) return res.status(400).json({ error: 'codeInsee requis' });
+
+    try {
+      const [dFilosofi, dEmploi] = await Promise.all([
+        fetchMelodiDataset('DS_FILOSOFI_CC', code),
+        fetchMelodiDataset('DS_RP_EMPLOI_LR_PRINC', code),
+      ]);
+
+      // ── Filosofi : revenu médian + taux pauvreté ──
+      const obs = dFilosofi?.observations || [];
+      const medSL   = obs.find(o => o.dimensions?.FILOSOFI_MEASURE === 'MED_SL');
+      const pavSL   = obs.find(o => o.dimensions?.FILOSOFI_MEASURE === 'PR_MD60');
+      const revenuMedian  = medSL?.measures?.OBS_VALUE_NIVEAU?.value ? Math.round(medSL.measures.OBS_VALUE_NIVEAU.value) : null;
+      const tauxPauvrete  = pavSL?.measures?.OBS_VALUE_NIVEAU?.value != null ? Math.round(pavSL.measures.OBS_VALUE_NIVEAU.value * 10) / 10 : null;
+      const anneeFilosofi = medSL?.dimensions?.TIME_PERIOD || null;
+
+      // ── Emploi : taux chômage (chômeurs / actifs 15 ans+) ──
+      const eObs = dEmploi?.observations || [];
+      const actifTotal = eObs.find(o => o.dimensions?.EMPSTA_ENQ === '_T' && o.dimensions?.AGE === 'Y_GE15' && o.dimensions?.SEX === '_T');
+      const chomeurs   = eObs.find(o => o.dimensions?.EMPSTA_ENQ === '2'  && o.dimensions?.AGE === 'Y_GE15' && o.dimensions?.SEX === '_T');
+      const nbActifs   = actifTotal?.measures?.OBS_VALUE_NIVEAU?.value;
+      const nbChomeurs = chomeurs?.measures?.OBS_VALUE_NIVEAU?.value;
+      const tauxChomage = (nbActifs && nbChomeurs) ? Math.round(nbChomeurs / nbActifs * 1000) / 10 : null;
+      const anneeEmploi = actifTotal?.dimensions?.TIME_PERIOD || null;
+
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      return res.status(200).json({
+        success: true,
+        economie: { revenuMedian, tauxPauvrete, tauxChomage, anneeFilosofi, anneeEmploi, nbActifs: nbActifs ? Math.round(nbActifs) : null }
+      });
+    } catch (e) {
+      return res.status(500).json({ success: false, error: e.message });
+    }
+  }
 
   // ── Action : lookup SeLoger/Logic-Immo location ID ──
   if (req.query.action === 'seloger-location') {
@@ -18,19 +79,16 @@ export default async function handler(req, res) {
       const city = (Array.isArray(data) ? data : []).find(item => item.type_key === 'AD08') || data[0];
       if (!city || !city.id) return res.status(404).json({ error: 'Ville introuvable' });
       res.setHeader('Cache-Control', 'public, max-age=2592000');
-      return res.status(200).json({
-        id: city.id,
-        label: Array.isArray(city.labels) ? city.labels[0] : city.labels
-      });
+      return res.status(200).json({ id: city.id, label: Array.isArray(city.labels) ? city.labels[0] : city.labels });
     } catch (err) {
       return res.status(500).json({ error: err.message });
     }
   }
 
+  // ── Appel principal : population + densité (geo.api.gouv.fr) ──
   const lat = parseFloat(req.query.lat);
   const lon = parseFloat(req.query.lon);
   const codeInsee = req.query.codeInsee || '';
-
   if (!lat || !lon) return res.status(400).json({ error: 'lat et lon requis' });
 
   try {
@@ -41,29 +99,20 @@ export default async function handler(req, res) {
 
     const geoRes = await fetch(geoUrl, { signal: AbortSignal.timeout(6000) });
     if (!geoRes.ok) throw new Error('geo.api ' + geoRes.status);
-
     const geoData = await geoRes.json();
     const commune = Array.isArray(geoData) ? geoData[0] : geoData;
     if (!commune) throw new Error('Commune introuvable');
 
-    const population = commune.population || 0;
-    const surfaceHa = commune.surface || 0;
+    const population   = commune.population || 0;
+    const surfaceHa    = commune.surface || 0;
     const superficieKm2 = surfaceHa > 0 ? surfaceHa / 100 : null;
-    const densite = superficieKm2 > 0 ? Math.round(population / superficieKm2) : null;
-    const communeCode = codeInsee || commune.code || '';
+    const densite      = superficieKm2 > 0 ? Math.round(population / superficieKm2) : null;
+    const communeCode  = codeInsee || commune.code || '';
 
     res.setHeader('Cache-Control', 'public, max-age=2592000');
     return res.status(200).json({
       success: true,
-      commune: {
-        nom: commune.nom,
-        codeInsee: communeCode,
-        population,
-        superficie: superficieKm2,
-        densite,
-        codesPostaux: commune.codesPostaux,
-        departement: commune.codeDepartement
-      },
+      commune: { nom: commune.nom, codeInsee: communeCode, population, superficie: superficieKm2, densite, codesPostaux: commune.codesPostaux, departement: commune.codeDepartement },
       source: 'geo.api.gouv.fr',
       dateExtraction: new Date().toISOString()
     });
