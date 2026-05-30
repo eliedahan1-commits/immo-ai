@@ -3098,7 +3098,7 @@ function updateMelodiTiles(eco){
   const yrE = eco.anneeEmploi   ? ' '+eco.anneeEmploi   : '';
   const tRev = document.getElementById('inseeRevenuTile');
   const tCho = document.getElementById('inseeChomTile');
-  if(tRev) tRev.innerHTML = '<span class="stat-n">'+revMens+'</span><span class="stat-l">💶 Revenu médian'+yrF+'</span>';
+  if(tRev) tRev.innerHTML = '<span class="stat-n">'+revMens+'</span><span class="stat-l">💶 Revenu disponible net'+yrF+'</span>';
   if(tCho) tCho.innerHTML = '<span class="stat-n" style="color:'+chomColor+'">'+chomLbl+'</span><span class="stat-l">💼 Chômage'+yrE+'</span>';
 }
 
@@ -5821,7 +5821,7 @@ function showINSEEDetail(){
       <div class="stat-box"><span class="stat-n">${c?.population?.toLocaleString('fr-FR')||'—'}</span><span class="stat-l">👥 Habitants</span></div>
       <div class="stat-box"><span class="stat-n" id="inseeSupVal">${supKm2?supKm2.toLocaleString('fr-FR')+' km²':'N/A'}</span><span class="stat-l">📐 Superficie</span></div>
       <div class="stat-box"><span class="stat-n">${c?.codesPostaux?.[0]||'—'}</span><span class="stat-l">📮 Code postal</span></div>
-      <div class="stat-box" id="inseeRevenuTile"><span class="stat-n">—</span><span class="stat-l">💶 Revenu médian</span></div>
+      <div class="stat-box" id="inseeRevenuTile"><span class="stat-n">—</span><span class="stat-l">💶 Revenu disponible net</span></div>
       <div class="stat-box" id="inseeChomTile"><span class="stat-n">—</span><span class="stat-l">💼 Chômage</span></div>
     </div>
     <p style="font-size:.75rem;color:var(--muted);margin-bottom:.8rem">Département ${c?.departement||'—'} · Code INSEE ${c?.codeInsee||'—'}</p>
