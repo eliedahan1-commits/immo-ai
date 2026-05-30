@@ -3693,9 +3693,11 @@ function showDemographieDetail() {
   const evolColor = evol >= 0 ? '#27ae60' : '#e74c3c';
 
   showPanel('📈 Croissance de la population · ' + (c?.nom || ''), `
-    <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:1rem">
+    <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:.5rem">
       <div class="stat-box"><span class="stat-n">${last.pop.toLocaleString('fr-FR')}</span><span class="stat-l">👥 Population ${last.year}</span></div>
       <div class="stat-box"><span class="stat-n" style="color:${evolColor}">${sign}${Number(evolPct).toLocaleString('fr-FR')}%</span><span class="stat-l">📈 Évolution depuis ${first.year}</span></div>
+      <div class="stat-box"><span class="stat-n">${c?.densite?.toLocaleString('fr-FR')||'—'}</span><span class="stat-l">🗺️ hab/km²</span></div>
+      <div class="stat-box"><span class="stat-n">${c?.superficie?Math.round(c.superficie).toLocaleString('fr-FR')+' km²':'—'}</span><span class="stat-l">📐 Superficie</span></div>
     </div>
     <div style="position:relative;height:220px;margin-bottom:1rem"><canvas id="demographieChart"></canvas></div>
     <p style="font-size:.62rem;color:var(--muted);margin-top:.3rem">Source : Wikidata / INSEE (recensements) · Données : ${rows.length} points de ${first.year} à ${last.year}</p>
@@ -4246,6 +4248,11 @@ function showRisquesDetail(){
   const georisquesUrl = `https://www.georisques.gouv.fr/mes-risques/connaitre-les-risques-pres-de-chez-moi?form-adresse=${encodeURIComponent(currentAddress||'')}&lon=${d.lng}&lat=${d.lat}&ig=1`;
 
   showPanel('⚠️ Risques naturels & industriels', `
+    <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1rem">
+      <div class="stat-box"><span class="stat-n" style="color:${scoreColor}">${d.total}</span><span class="stat-l">${d.total===0?'✅':'⚠️'} Risques</span></div>
+      <div class="stat-box"><span class="stat-n">${d.catnat?.length||0}</span><span class="stat-l">📋 Arrêtés CatNat</span></div>
+      <div class="stat-box"><span class="stat-n" style="color:${scoreColor}">${scoreLbl}</span><span class="stat-l">🎯 Niveau</span></div>
+    </div>
     <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;padding:.7rem 1rem;background:var(--bg2);border-radius:8px">
       <div style="font-size:1.7rem">${d.total===0?'🟢':d.total>=3?'🔴':'🟡'}</div>
       <div>
@@ -4524,6 +4531,7 @@ function showMobiliteDetail(){
       <div class="map-stat"><span class="map-stat-n">${d.stats?.metro||0}</span><span class="map-stat-l">🚇 Métro/RER</span></div>
       <div class="map-stat"><span class="map-stat-n">${d.stats?.arretsBus||0}</span><span class="map-stat-l">🚌 Arrêts bus</span></div>
       <div class="map-stat"><span class="map-stat-n">${d.stats?.velos||0}</span><span class="map-stat-l">🚲 Vélos/bornes</span></div>
+      <div class="map-stat"><span class="map-stat-n">${d.stats?.gares||0}</span><span class="map-stat-l">🚉 Gares</span></div>
     </div>
     <div class="map-legend" style="flex-wrap:wrap;gap:.4rem;align-items:center;margin-bottom:.3rem">
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Filtre :</span>
