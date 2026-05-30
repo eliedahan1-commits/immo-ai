@@ -1170,6 +1170,10 @@ path.leaflet-interactive:focus{outline:none;}
           <tfoot id="lAmortFoot"></tfoot>
         </table>
       </div>
+      <!-- Graphique amortissement investissement locatif -->
+      <div id="lAmortChartWrap" style="margin-top:1rem;display:none">
+        <div style="height:220px;position:relative"><canvas id="lAmortChart"></canvas></div>
+      </div>
     </div>
     <!-- Graphique break-even -->
     <!-- Graphiques côte à côte desktop, empilés mobile -->
@@ -1187,7 +1191,7 @@ path.leaflet-interactive:focus{outline:none;}
             </div>
           </div>
           <div id="breakEvenChartContainer" style="position:relative;background:var(--ink);border-radius:var(--r);padding:1rem .75rem .75rem;height:400px">
-            <button onclick="(function(){var w=document.getElementById('breakEvenChartContainer');if(!document.fullscreenElement){w.requestFullscreen&&w.requestFullscreen();w.style.borderRadius='0';w.style.height='100vh';w.style.padding='1.5rem';}else{document.exitFullscreen&&document.exitFullscreen();w.style.borderRadius='';w.style.height='400px';w.style.padding='';}document.onfullscreenchange=function(){if(!document.fullscreenElement&&window._breakEvenChart){window._breakEvenChart.resize();}};})()" style="position:absolute;top:.5rem;right:.5rem;font-size:.7rem;padding:.2rem .55rem;border:1px solid rgba(255,255,255,.2);border-radius:4px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.55);cursor:pointer;z-index:2" title="Plein écran">⛶ Plein écran</button>
+            <button onclick="_toggleBreakEvenFs()" style="position:absolute;top:.5rem;right:.5rem;font-size:.7rem;padding:.2rem .55rem;border:1px solid rgba(255,255,255,.2);border-radius:4px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.55);cursor:pointer;z-index:2" title="Plein écran">⛶ Plein écran</button>
             <canvas id="breakEvenChart"></canvas>
           </div>
         </div>
@@ -1347,6 +1351,10 @@ path.leaflet-interactive:focus{outline:none;}
           <tbody id="mAmortBody"></tbody>
           <tfoot id="mAmortFoot"></tfoot>
         </table>
+      </div>
+      <!-- Graphique amortissement mensualités -->
+      <div id="mAmortChartWrap" style="margin-top:1rem;display:none">
+        <div style="height:220px;position:relative"><canvas id="mAmortChart"></canvas></div>
       </div>
     </div>
 
@@ -3177,7 +3185,7 @@ function showQualiteAirDetail() {
     </div>
     <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-bottom:1rem">${polRows}</div>
     <p style="font-size:.62rem;color:var(--muted)">Source : Open-Meteo Air Quality · Données temps réel</p>
-  `, "(function(){var ks=['_aqHistChart0'];ks.forEach(function(k){if(window[k]){window[k].destroy();window[k]=null;}});showMeteoDetail();})()");
+  `, "(function(){var ks=['_aqHistChart0'];ks.forEach(function(k){if(window[k]){window[k].destroy();window[k]=null;}});showMeteoDetail();})()","← Retour météo");
 }
 
 function showDPESecteurDetail() {
@@ -3207,7 +3215,7 @@ function showDPESecteurDetail() {
     </div>
     <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:1rem">${bars}</div>
     <p style="font-size:.62rem;color:var(--muted);margin-top:.8rem">Source : ADEME · Base DPE commune · Logements existants</p>
-  `);
+  `, 'showUrbanismeDetail()', '← Retour zonage/PLU');
 }
 
 function computeScoreQuartier() {
@@ -3773,9 +3781,9 @@ function showDetail(cardId){
   if(data[cardId]) data[cardId]();
 }
 
-function showPanel(title, html, backAction){
+function showPanel(title, html, backAction, backLabel){
   const _backFn  = backAction || 'closePanel()';
-  const _backLbl = backAction  ? '← Retour météo' : '← Retour aux cartes';
+  const _backLbl = backLabel || (backAction ? '← Retour' : '← Retour aux cartes');
   const container = document.getElementById('detailContainer');
   container.innerHTML = `
     <div style="max-width:860px;margin:0 auto .75rem;width:100%">
@@ -7242,6 +7250,7 @@ function calcMensualites(){
   const tfoot = document.getElementById('mAmortFoot');
   if(tbody) {
     let restant = montantEff, rows = [], totCap=0, totInt=0, totAss=0;
+    const mChartLabels=[], mChartCap=[], mChartInt=[];
     for(let yr=1; yr<=duree; yr++){
       let capAn=0, intAn=0;
       for(let m=0; m<12; m++){
@@ -7252,6 +7261,7 @@ function calcMensualites(){
       capAn=Math.round(capAn); intAn=Math.round(intAn);
       const assAn=mensAssur*12;
       totCap+=capAn; totInt+=intAn; totAss+=assAn;
+      mChartLabels.push(yr); mChartCap.push(capAn); mChartInt.push(intAn);
       rows.push('<tr style="border-bottom:1px solid var(--border)">'
         +'<td style="padding:.4rem .75rem">Année '+yr+'</td>'
         +'<td style="padding:.4rem .75rem;text-align:right">'+fmt(mensCredit+mensAssur)+'</td>'
@@ -7273,6 +7283,7 @@ function calcMensualites(){
     document.getElementById('mAmortSection').style.display = '';
     document.getElementById('mAmortTableWrap').style.display = 'none';
     document.getElementById('mAmortToggleBtn').textContent = 'Afficher';
+    renderAmortChart('mAmortChart', 'mAmortChartWrap', mChartLabels, mChartCap, mChartInt);
   }
 }
 
@@ -7952,6 +7963,7 @@ function calcLocation(){
   const lFoot = document.getElementById("lAmortFoot");
   if(lBody && emprunt > 0) {
     let restantL = emprunt, rowsL = [], totCapL=0, totIntL=0, totAssL=0;
+    const lChartLabels=[], lChartCap=[], lChartInt=[];
     for(let yr=1; yr<=duree; yr++){
       let capAn=0, intAn=0;
       for(let m=0; m<12; m++){
@@ -7962,6 +7974,7 @@ function calcLocation(){
       capAn=Math.round(capAn); intAn=Math.round(intAn);
       const assAn = mensAssurL*12;
       totCapL+=capAn; totIntL+=intAn; totAssL+=assAn;
+      lChartLabels.push(yr); lChartCap.push(capAn); lChartInt.push(intAn);
       rowsL.push("<tr style=\"border-bottom:1px solid var(--border)\">"+
         "<td style=\"padding:.4rem .75rem\">Année "+yr+"</td>"+
         "<td style=\"padding:.4rem .75rem;text-align:right\">"+fmt(mens)+"</td>"+
@@ -7983,7 +7996,137 @@ function calcLocation(){
     document.getElementById("lAmortSection").style.display = "";
     document.getElementById("lAmortTableWrap").style.display = "none";
     document.getElementById("lAmortToggleBtn").textContent = "Afficher";
+    renderAmortChart("lAmortChart", "lAmortChartWrap", lChartLabels, lChartCap, lChartInt);
   }
+}
+
+
+// ── Graphique d'amortissement (mensualités & invest. locatif) ──
+// ── Plein écran break-even : reset canvas pour éviter la croissance progressive ──
+function _toggleBreakEvenFs(){
+  var w = document.getElementById('breakEvenChartContainer');
+  if(!w) return;
+  if(!document.fullscreenElement){
+    w.requestFullscreen && w.requestFullscreen();
+  } else {
+    document.exitFullscreen && document.exitFullscreen();
+  }
+}
+document.addEventListener('fullscreenchange', function(){
+  var w = document.getElementById('breakEvenChartContainer');
+  if(!w) return;
+  if(!document.fullscreenElement){
+    // Sortie plein écran : reset styles + canvas attrs avant resize
+    w.style.height   = '400px';
+    w.style.padding  = '';
+    w.style.borderRadius = '';
+    // Reset des deux canvas pour éviter la boucle d'agrandissement
+    ['breakEvenChart','cashflowChart'].forEach(function(id){
+      var c = document.getElementById(id);
+      if(c){ c.style.width=''; c.style.height=''; c.removeAttribute('width'); c.removeAttribute('height'); }
+    });
+    setTimeout(function(){
+      if(window._breakEvenChart) window._breakEvenChart.resize();
+      if(window._cashflowChart)  window._cashflowChart.resize();
+    }, 50);
+  }
+});
+
+function renderAmortChart(canvasId, wrapId, labels, capData, intData){
+  var wrap = document.getElementById(wrapId);
+  var canvas = document.getElementById(canvasId);
+  if(!wrap || !canvas) return;
+
+  // Trouver l'année de croisement capital > intérêts
+  var crossYear = null;
+  for(var i=0; i<capData.length; i++){
+    if(capData[i] >= intData[i]){ crossYear = labels[i]; break; }
+  }
+
+  // Détruire l'instance précédente
+  var instKey = '_chart_' + canvasId;
+  if(window[instKey]){ window[instKey].destroy(); window[instKey] = null; }
+
+  wrap.style.display = '';
+  var ctx = canvas.getContext('2d');
+
+  window[instKey] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Capital remboursé / an',
+          data: capData,
+          borderColor: '#2a9d8f',
+          backgroundColor: 'rgba(42,157,143,.12)',
+          borderWidth: 2,
+          pointRadius: 2,
+          fill: false,
+          tension: 0.3
+        },
+        {
+          label: 'Intérêts / an',
+          data: intData,
+          borderColor: '#e63946',
+          backgroundColor: 'rgba(230,57,70,.08)',
+          borderWidth: 2,
+          pointRadius: 2,
+          fill: false,
+          tension: 0.3
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 14, padding: 10 } },
+        tooltip: {
+          callbacks: {
+            label: function(ctx){ return ctx.dataset.label + ' : ' + Math.round(ctx.parsed.y).toLocaleString('fr-FR') + ' €'; }
+          }
+        },
+        datalabels: { display: false },
+        annotation: crossYear ? {
+          annotations: {
+            cross: {
+              type: 'line',
+              xMin: crossYear,
+              xMax: crossYear,
+              borderColor: 'rgba(100,100,100,.35)',
+              borderWidth: 1,
+              borderDash: [4,3],
+              label: {
+                display: true,
+                content: 'Capital > Intérêts (an ' + crossYear + ')',
+                position: 'start',
+                font: { size: 10 },
+                color: '#666',
+                backgroundColor: 'rgba(255,255,255,.85)',
+                padding: { x: 4, y: 2 }
+              }
+            }
+          }
+        } : {}
+      },
+      scales: {
+        x: {
+          title: { display: false },
+          ticks: { font: { size: 10 }, maxTicksLimit: 12 },
+          grid: { color: 'rgba(0,0,0,.05)' }
+        },
+        y: {
+          ticks: {
+            font: { size: 10 },
+            callback: function(v){ return (v/1000).toFixed(0) + ' k€'; }
+          },
+          grid: { color: 'rgba(0,0,0,.05)' }
+        }
+      }
+    }
+  });
 }
 
 function toggleMAmort(){
