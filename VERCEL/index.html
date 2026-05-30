@@ -2054,6 +2054,8 @@ function _goPage(id){
   if(_btb) _btb.style.display = (id === 'home') ? 'none' : '';
   const _rh = document.getElementById('resultsHeader');
   if(_rh && id === 'home') _rh.style.display = 'none';
+  // Fermer le drawer sidebar si on revient à l'accueil
+  if(id === 'home') closeSidebar();
   if(id === 'analyse' && window._analyseScrollY > 0){
     // Restaurer la position au retour sur la page des cartes
     setTimeout(()=>window.scrollTo({top:window._analyseScrollY, behavior:'smooth'}), 50);
