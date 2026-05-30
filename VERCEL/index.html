@@ -2054,8 +2054,14 @@ function _goPage(id){
   if(_btb) _btb.style.display = (id === 'home') ? 'none' : '';
   const _rh = document.getElementById('resultsHeader');
   if(_rh && id === 'home') _rh.style.display = 'none';
-  // Fermer le drawer sidebar si on revient à l'accueil
-  if(id === 'home') closeSidebar();
+  // Fermer et masquer le drawer + hamburger sur la page d'accueil
+  const _hb = document.getElementById('hamburgerBtn');
+  if(id === 'home'){
+    closeSidebar();
+    if(_hb) _hb.style.visibility = 'hidden';
+  } else {
+    if(_hb) _hb.style.visibility = '';
+  }
   if(id === 'analyse' && window._analyseScrollY > 0){
     // Restaurer la position au retour sur la page des cartes
     setTimeout(()=>window.scrollTo({top:window._analyseScrollY, behavior:'smooth'}), 50);
@@ -2636,6 +2642,7 @@ function afficherDVF(d){
   const prix = d.stats.medianM2.toLocaleString('fr-FR');
   setCard('dvf', prix+' €/m²', `${d.count} ventes · rayon ${(d.rayon/1000).toFixed(0)}km`, '');
   window._dvfData = d;
+  computeLoyersEstimates(); // recalcul immédiat dès que DVF est disponible
 }
 
 // ── Géorisques : risques naturels officiels ──
