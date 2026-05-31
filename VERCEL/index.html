@@ -3082,7 +3082,7 @@ async function loadMelodi(codeInsee){
   window._melodiNational = null;
   if(!codeInsee) return;
   try{
-    const r = await fetch('/api/insee?action=melodi&codeInsee='+codeInsee+'&v=2', {signal:AbortSignal.timeout(12000)});
+    const r = await fetch('/api/insee?action=melodi&codeInsee='+codeInsee+'&v=3', {signal:AbortSignal.timeout(12000)});
     if(!r.ok) throw new Error('melodi '+r.status);
     const d = await r.json();
     if(!d.success) throw new Error();
@@ -3104,6 +3104,18 @@ function updateMelodiTiles(eco){
   if(tRev) tRev.innerHTML = '<span class="stat-n">'+revMens+'</span><span class="stat-l">💶 Revenu disponible net'+yrF+'</span>';
   if(tCho) tCho.innerHTML = '<span class="stat-n" style="color:'+chomColor+'">'+chomLbl+'</span><span class="stat-l">💼 Chômage'+yrE+'</span>';
   renderMelodiGauges(eco, window._melodiNational);
+  // Mettre à jour le popup du marqueur adresse avec les données Melodi
+  if(window._inseeHomeMarker && window._inseeHomeMarkerBase){
+    const revMensU = eco.revenuMedian ? Math.round(eco.revenuMedian/12).toLocaleString("fr-FR")+" €/mois" : null;
+    const chomU = eco.tauxChomage != null ? eco.tauxChomage+"%" : null;
+    const chomColU = eco.tauxChomage != null ? (eco.tauxChomage<7?"#27ae60":eco.tauxChomage<12?"#e67e22":"#e74c3c") : "";
+    const yrFU = eco.anneeFilosofi ? " "+eco.anneeFilosofi : "";
+    const yrEU = eco.anneeEmploi ? " "+eco.anneeEmploi : "";
+    let extra = "";
+    if(revMensU) extra += `<br><span style="font-size:.75rem">💶 Revenu net${yrFU} : <strong>${revMensU}</strong></span>`;
+    if(chomU) extra += `<br><span style="font-size:.75rem">💼 Chômage${yrEU} : <strong style="color:${chomColU}">${chomU}</strong></span>`;
+    window._inseeHomeMarker.setPopupContent(window._inseeHomeMarkerBase + extra);
+  }
 }
 
 function renderMelodiGauges(eco, nat){
@@ -6045,8 +6057,9 @@ function showINSEEDetail(){
 
     // Marqueur adresse
     const homeIcon=L.divIcon({html:`<div style="background:#fff;border:3px solid ${densColor};border-radius:50%;width:16px;height:16px;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>`,iconSize:[16,16],iconAnchor:[8,8],className:''});
-    L.marker([lat,lng],{icon:homeIcon}).addTo(map)
-      .bindPopup(`<strong>📍 ${currentAddress}</strong><br><span style="font-size:.8rem;color:${densColor}"><strong>${densLabel}</strong></span><br><span style="font-size:.75rem">${(c?.population||0).toLocaleString('fr-FR')} hab. · ${(c?.densite||0).toLocaleString('fr-FR')} hab./km²</span>${supKm2?`<br><span style="font-size:.75rem">Superficie : ${supKm2.toLocaleString('fr-FR')} km²</span>`:''}`).openPopup();
+    window._inseeHomeMarkerBase = `<strong>📍 ${currentAddress}</strong><br><span style="font-size:.8rem;color:${densColor}"><strong>${densLabel}</strong></span><br><span style="font-size:.75rem">${(c?.population||0).toLocaleString('fr-FR')} hab. · ${(c?.densite||0).toLocaleString('fr-FR')} hab./km²</span>${supKm2?`<br><span style="font-size:.75rem">Superficie : ${supKm2.toLocaleString('fr-FR')} km²</span>`:''}`;
+    window._inseeHomeMarker = L.marker([lat,lng],{icon:homeIcon}).addTo(map)
+      .bindPopup(window._inseeHomeMarkerBase).openPopup();
 
     // Clic sur la carte → densité + superficie de la commune cliquée
     map.on('click', async e=>{
@@ -6070,7 +6083,7 @@ function showINSEEDetail(){
         // Chargement Melodi en parallèle
         let revStr='', chomStr='';
         try{
-          const rM=await fetch(`/api/insee?action=melodi&codeInsee=${com.code}&v=2`,{signal:AbortSignal.timeout(8000)});
+          const rM=await fetch(`/api/insee?action=melodi&codeInsee=${com.code}&v=3`,{signal:AbortSignal.timeout(8000)});
           if(rM.ok){
             const mD=await rM.json();
             const eco=mD.economie||{};
