@@ -3125,9 +3125,22 @@ function renderMelodiGauges(eco, nat){
     wrap.innerHTML = "";
     return;
   }
-  // Dégradé : revenu → rouge (faible) à vert (élevé) | chômage → vert (faible) à rouge (élevé)
+  // Dégradé appliqué sur le fond complet, la partie non remplie est masquée par un voile gris
   const gradRev = "linear-gradient(to right, #e74c3c 0%, #f39c12 35%, #f1c40f 55%, #27ae60 100%)";
   const gradCho = "linear-gradient(to right, #27ae60 0%, #f1c40f 45%, #f39c12 65%, #e74c3c 100%)";
+
+  function gaugeBar(pctC, pctN, grad){
+    // Le dégradé couvre 100% du fond, la partie vide est masquée par un voile semi-transparent
+    let h = "<div style=\"position:relative;height:12px;border-radius:6px;overflow:visible;margin-bottom:.35rem\">";
+    // Fond dégradé complet
+    h += "<div style=\"position:absolute;inset:0;background:" + grad + ";border-radius:6px;\"></div>";
+    // Voile gris sur la partie non remplie
+    h += "<div style=\"position:absolute;top:0;left:" + pctC + "%;right:0;bottom:0;background:rgba(230,230,230,.75);border-radius:0 6px 6px 0;\"></div>";
+    // Marqueur national
+    h += "<div style=\"position:absolute;top:-4px;left:calc(" + pctN + "% - 1px);width:3px;height:20px;background:#444;border-radius:2px;\" title=\"Moyenne nationale\"></div>";
+    h += "</div>";
+    return h;
+  }
 
   let html = "<div style=\"margin-top:.8rem;padding-top:.75rem;border-top:1px solid var(--border)\">";
   html += "<div style=\"font-size:.8rem;font-weight:700;color:var(--text);margin-bottom:.75rem\">📊 Comparaison avec la moyenne nationale</div>";
@@ -3153,13 +3166,7 @@ function renderMelodiGauges(eco, nat){
     html += "<span style=\"font-size:.78rem;font-weight:600;color:var(--text)\">💶 Revenu disponible net" + yr + "</span>";
     html += "<span style=\"font-size:.82rem;color:" + col + ";font-weight:700\">" + sign + diffPct + "% vs nat.</span>";
     html += "</div>";
-    html += "<div style=\"position:relative;height:12px;background:rgba(128,128,128,.12);border-radius:6px;margin-bottom:.35rem;overflow:hidden\">";
-    html += "<div style=\"position:absolute;inset:0;background:" + gradRev + ";border-radius:6px;opacity:.25\"></div>";
-    html += "<div style=\"position:relative;width:" + pctC + "%;height:100%;background:" + gradRev + ";border-radius:6px\"></div>";
-    html += "</div>";
-    html += "<div style=\"position:relative;height:0\">";
-    html += "<div style=\"position:absolute;top:-17px;left:calc(" + pctN + "% - 1px);width:2px;height:20px;background:#777;border-radius:1px\" title=\"Moyenne nationale\"></div>";
-    html += "</div>";
+    html += gaugeBar(pctC, pctN, gradRev);
     html += "<div style=\"display:flex;justify-content:space-between;font-size:.76rem;margin-top:.1rem\">";
     html += "<span style=\"color:var(--text)\">Cette commune : <strong>" + cRevMens + " €/mois</strong></span>";
     html += "<span style=\"color:#777\">Nat. " + (eco.anneeFilosofi||"") + " : <strong>" + nRevMens + " €/mois</strong></span>";
@@ -3180,21 +3187,14 @@ function renderMelodiGauges(eco, nat){
     const yr = eco.anneeEmploi ? " " + eco.anneeEmploi : "";
     const summary = diff < 0
       ? "Chômage <strong>" + Math.abs(diff).toFixed(1) + "pt en dessous</strong> de la moyenne nationale"
-      : diff === 0
-        ? "Chômage <strong>dans la moyenne</strong> nationale"
-        : "Chômage <strong>" + diff.toFixed(1) + "pt au-dessus</strong> de la moyenne nationale";
+      : diff === 0 ? "Chômage <strong>dans la moyenne</strong> nationale"
+      : "Chômage <strong>" + diff.toFixed(1) + "pt au-dessus</strong> de la moyenne nationale";
     html += "<div style=\"margin-bottom:.5rem\">";
     html += "<div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem\">";
     html += "<span style=\"font-size:.78rem;font-weight:600;color:var(--text)\">💼 Taux de chômage" + yr + "</span>";
     html += "<span style=\"font-size:.82rem;color:" + col + ";font-weight:700\">" + sign + diff.toFixed(1) + "pt vs nat.</span>";
     html += "</div>";
-    html += "<div style=\"position:relative;height:12px;background:rgba(128,128,128,.12);border-radius:6px;margin-bottom:.35rem;overflow:hidden\">";
-    html += "<div style=\"position:absolute;inset:0;background:" + gradCho + ";border-radius:6px;opacity:.25\"></div>";
-    html += "<div style=\"position:relative;width:" + pctC + "%;height:100%;background:" + gradCho + ";border-radius:6px\"></div>";
-    html += "</div>";
-    html += "<div style=\"position:relative;height:0\">";
-    html += "<div style=\"position:absolute;top:-17px;left:calc(" + pctN + "% - 1px);width:2px;height:20px;background:#777;border-radius:1px\" title=\"Moyenne nationale\"></div>";
-    html += "</div>";
+    html += gaugeBar(pctC, pctN, gradCho);
     html += "<div style=\"display:flex;justify-content:space-between;font-size:.76rem;margin-top:.1rem\">";
     html += "<span style=\"color:var(--text)\">Cette commune : <strong>" + cCho + "%</strong></span>";
     html += "<span style=\"color:#777\">Nat. " + (eco.anneeEmploi||"") + " : <strong>" + nCho + "%</strong></span>";
