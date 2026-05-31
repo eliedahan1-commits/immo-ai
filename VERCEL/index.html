@@ -3114,13 +3114,10 @@ function updateMelodiTiles(eco){
   if(tPropri) tPropri.innerHTML = '<span class="stat-n">'+(eco.pctPropri!=null?eco.pctPropri+'%':'—')+'</span><span class="stat-l">🏠 Propriétaires'+yrL+'</span>';
   if(tSeuls)  tSeuls.innerHTML  = '<span class="stat-n">'+(eco.pctSeuls!=null?eco.pctSeuls+'%':'—')+'</span><span class="stat-l">👤 Ménages seuls'+yrL+'</span>';
   if(tBac5){
-    const dipLines = [];
-    if(eco.pctBac5!=null) dipLines.push('<span style="display:flex;justify-content:space-between;font-size:.72rem"><span>Bac+5 et +</span><strong>'+eco.pctBac5+'%</strong></span>');
-    if(eco.pctBac2!=null) dipLines.push('<span style="display:flex;justify-content:space-between;font-size:.72rem"><span>Bac+3/4</span><strong>'+eco.pctBac2+'%</strong></span>');
-    if(eco.pctBac!=null)  dipLines.push('<span style="display:flex;justify-content:space-between;font-size:.72rem"><span>Bac</span><strong>'+eco.pctBac+'%</strong></span>');
-    if(eco.pctSansDip!=null) dipLines.push('<span style="display:flex;justify-content:space-between;font-size:.72rem;color:#e74c3c"><span>Sans diplôme</span><strong>'+eco.pctSansDip+'%</strong></span>');
-    tBac5.innerHTML = '<span class="stat-l" style="font-weight:600;margin-bottom:.3rem">🎓 Niveau éducation'+yrD+'</span>'
-      + '<span style="display:flex;flex-direction:column;gap:.15rem;width:100%">' + dipLines.join('') + '</span>';
+    const sub = [eco.pctLicence!=null?'Bac+3/4 '+eco.pctLicence+'%':null, eco.pctBts!=null?'Bac+2 '+eco.pctBts+'%':null, eco.pctSansDip!=null?'Sans dipl. '+eco.pctSansDip+'%':null].filter(Boolean).join(' · ');
+    tBac5.innerHTML = '<span class="stat-n">'+(eco.pctBac5!=null?eco.pctBac5+'%':'—')+'</span>'
+      + '<span class="stat-l">🎓 Bac+5 et +'+yrD+'</span>'
+      + (sub ? '<span style="font-size:.65rem;color:var(--muted);margin-top:.2rem;line-height:1.3">'+sub+'</span>' : '');
   }
   if(tVac && eco.nbVacants!=null && eco.nbResidPrinc){
     const pctVac = Math.round(eco.nbVacants/(eco.nbResidPrinc+eco.nbVacants)*100);
@@ -3239,13 +3236,13 @@ function renderDiplomes(eco){
   const yr = eco.anneeDiplomes ? " "+eco.anneeDiplomes : "";
   if(eco.pctBac5==null && eco.pctBac2==null){ wrap.innerHTML=""; return; }
   const bars = [
-    {label:"Bac+5 et +",  pct:eco.pctBac5||0,  color:"#2ecc71"},
-    {label:"Bac+3/4",     pct:eco.pctBac2!=null?eco.pctBac2:0, color:"#27ae60"},
-    {label:"Bac",         pct:eco.pctBac||0,   color:"#f39c12"},
-    {label:"Sans diplôme",pct:eco.pctSansDip||0,color:"#e74c3c"},
+    {label:"Bac+5 et +",   pct:eco.pctBac5||0,    color:"#27ae60"},
+    {label:"Bac+3/4",      pct:eco.pctLicence||0, color:"#2ecc71"},
+    {label:"Bac+2",        pct:eco.pctBts||0,     color:"#f1c40f"},
+    {label:"Bac",          pct:eco.pctBac||0,     color:"#f39c12"},
+    {label:"CAP / BEP",    pct:eco.pctCapBep||0,  color:"#e67e22"},
+    {label:"Sans diplôme", pct:eco.pctSansDip||0, color:"#e74c3c"},
   ];
-  // Recalculer Bac+3/4 = pctBac2 correspond à 600_RP dans l'API (Licence)
-  // Les % ne s'additionnent pas à 100 (autres niveaux non affichés)
   let html = "<div style=\"margin-top:.8rem;padding-top:.75rem;border-top:1px solid var(--border)\">";
   html += "<div style=\"font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.55rem\">🎓 Niveau d'éducation" + yr + "</div>";
   bars.forEach(b => {

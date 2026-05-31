@@ -133,15 +133,22 @@ export default async function handler(req, res) {
       const dipObs  = dDiplomes?.observations || [];
       const dipFilter = o => o.dimensions?.SEX==='_T' && o.dimensions?.AGE==='Y_GE15' && o.dimensions?.RP_MEASURE==='POP';
       const dipTotal  = findLatest(dipObs, o => dipFilter(o) && o.dimensions?.EDUC==='_T');
-      const dipBac5   = findLatest(dipObs, o => dipFilter(o) && o.dimensions?.EDUC==='700_RP');
-      const dipBac2   = findLatest(dipObs, o => dipFilter(o) && o.dimensions?.EDUC==='500_RP');
-      const dipBac    = findLatest(dipObs, o => dipFilter(o) && o.dimensions?.EDUC==='350T351_RP');
-      const dipSans   = findLatest(dipObs, o => dipFilter(o) && o.dimensions?.EDUC==='001T100_RP');
+      const dipBac5     = findLatest(dipObs, o => dipFilter(o) && o.dimensions?.EDUC==='700_RP');
+      const dipLicence  = findLatest(dipObs, o => dipFilter(o) && o.dimensions?.EDUC==='600_RP');
+      const dipBts      = findLatest(dipObs, o => dipFilter(o) && o.dimensions?.EDUC==='500_RP');
+      const dipBac      = findLatest(dipObs, o => dipFilter(o) && o.dimensions?.EDUC==='350T351_RP');
+      const dipCapBep   = findLatest(dipObs, o => dipFilter(o) && o.dimensions?.EDUC==='200_RP');
+      const dipBrevet   = findLatest(dipObs, o => dipFilter(o) && o.dimensions?.EDUC==='300_RP');
+      const dipSans     = findLatest(dipObs, o => dipFilter(o) && o.dimensions?.EDUC==='001T100_RP');
       const nbDipTotal = dipTotal?.measures?.OBS_VALUE_NIVEAU?.value || null;
-      const pctBac5   = (nbDipTotal && dipBac5?.measures?.OBS_VALUE_NIVEAU?.value) ? Math.round(dipBac5.measures.OBS_VALUE_NIVEAU.value / nbDipTotal * 100) : null;
-      const pctBac2   = (nbDipTotal && dipBac2?.measures?.OBS_VALUE_NIVEAU?.value) ? Math.round(dipBac2.measures.OBS_VALUE_NIVEAU.value / nbDipTotal * 100) : null;
-      const pctBac    = (nbDipTotal && dipBac?.measures?.OBS_VALUE_NIVEAU?.value) ? Math.round(dipBac.measures.OBS_VALUE_NIVEAU.value / nbDipTotal * 100) : null;
-      const pctSansDip = (nbDipTotal && dipSans?.measures?.OBS_VALUE_NIVEAU?.value) ? Math.round(dipSans.measures.OBS_VALUE_NIVEAU.value / nbDipTotal * 100) : null;
+      const pct = (obs) => (nbDipTotal && obs?.measures?.OBS_VALUE_NIVEAU?.value) ? Math.round(obs.measures.OBS_VALUE_NIVEAU.value / nbDipTotal * 100) : null;
+      const pctBac5    = pct(dipBac5);
+      const pctLicence = pct(dipLicence);
+      const pctBts     = pct(dipBts);
+      const pctBac     = pct(dipBac);
+      const pctCapBep  = pct(dipCapBep);
+      const pctBrevet  = pct(dipBrevet);
+      const pctSansDip = pct(dipSans);
       const anneeDiplomes = dipTotal?.dimensions?.TIME_PERIOD || null;
 
       res.setHeader('Cache-Control', 'public, max-age=86400');
@@ -152,7 +159,7 @@ export default async function handler(req, res) {
           nbActifs: nbActifs ? Math.round(nbActifs) : null,
           pctPropri, pctLocataires, nbResidPrinc, nbVacants, anneeLogement,
           pctSeuls,
-          pctBac5, pctBac2, pctBac, pctSansDip, anneeDiplomes
+          pctBac5, pctLicence, pctBts, pctBac, pctCapBep, pctBrevet, pctSansDip, anneeDiplomes
         },
         melodiNational: { revenuMedian: revenuMedianNat, tauxChomage: tauxChomageNat, anneeFilosofi: anneeFilosofiNat, anneeEmploi: anneeEmploiNat }
       });
