@@ -20,6 +20,23 @@ async function fetchMelodiDataset(datasetId, codeInsee) {
   return null;
 }
 
+// Fetch données nationales France (GEO codes à tester en fallback)
+async function fetchMelodiNational(datasetId) {
+  const natCodes = ['FE', 'METRO', 'FR'];
+  for (const geoCode of natCodes) {
+    try {
+      const r = await fetch(`${MELODI_BASE}/${datasetId}?GEO=${geoCode}`, {
+        headers: { Accept: 'application/json' },
+        signal: AbortSignal.timeout(MELODI_TIMEOUT)
+      });
+      if (!r.ok) continue;
+      const d = await r.json();
+      if (d.observations && d.observations.length > 0) return d;
+    } catch (e) { continue; }
+  }
+  return null;
+}
+
 // Retourne l'observation la plus récente parmi celles correspondant au filtre
 function findLatest(observations, filterFn) {
   const matches = (observations || []).filter(filterFn);
@@ -40,9 +57,11 @@ export default async function handler(req, res) {
     if (!code) return res.status(400).json({ error: 'codeInsee requis' });
 
     try {
-      const [dFilosofi, dEmploi] = await Promise.all([
+      const [dFilosofi, dEmploi, dFilosofiNat, dEmploiNat] = await Promise.all([
         fetchMelodiDataset('DS_FILOSOFI_CC', code),
         fetchMelodiDataset('DS_RP_EMPLOI_LR_PRINC', code),
+        fetchMelodiNational('DS_FILOSOFI_CC'),
+        fetchMelodiNational('DS_RP_EMPLOI_LR_PRINC'),
       ]);
 
       // Revenu disponible médian net (MED_SL) — dernière année disponible
@@ -62,10 +81,25 @@ export default async function handler(req, res) {
       const tauxChomage = (nbActifs && nbChomeurs) ? Math.round(nbChomeurs / nbActifs * 1000) / 10 : null;
       const anneeEmploi = actifTotal?.dimensions?.TIME_PERIOD || null;
 
+      // Données nationales
+      const obsNat = dFilosofiNat?.observations || [];
+      const medSLNat = findLatest(obsNat, o => o.dimensions?.FILOSOFI_MEASURE === 'MED_SL');
+      const revenuMedianNat = medSLNat?.measures?.OBS_VALUE_NIVEAU?.value ? Math.round(medSLNat.measures.OBS_VALUE_NIVEAU.value) : null;
+      const anneeFilosofiNat = medSLNat?.dimensions?.TIME_PERIOD || null;
+
+      const eObsNat = dEmploiNat?.observations || [];
+      const actifTotalNat = findLatest(eObsNat, o => o.dimensions?.EMPSTA_ENQ === '_T' && o.dimensions?.AGE === 'Y_GE15' && o.dimensions?.SEX === '_T');
+      const chomeursNat   = findLatest(eObsNat, o => o.dimensions?.EMPSTA_ENQ === '2'  && o.dimensions?.AGE === 'Y_GE15' && o.dimensions?.SEX === '_T');
+      const nbActifsNat   = actifTotalNat?.measures?.OBS_VALUE_NIVEAU?.value;
+      const nbChomeursNat = chomeursNat?.measures?.OBS_VALUE_NIVEAU?.value;
+      const tauxChomageNat = (nbActifsNat && nbChomeursNat) ? Math.round(nbChomeursNat / nbActifsNat * 1000) / 10 : null;
+      const anneeEmploiNat = actifTotalNat?.dimensions?.TIME_PERIOD || null;
+
       res.setHeader('Cache-Control', 'public, max-age=86400');
       return res.status(200).json({
         success: true,
-        economie: { revenuMedian, tauxPauvrete, tauxChomage, anneeFilosofi, anneeEmploi, nbActifs: nbActifs ? Math.round(nbActifs) : null }
+        economie: { revenuMedian, tauxPauvrete, tauxChomage, anneeFilosofi, anneeEmploi, nbActifs: nbActifs ? Math.round(nbActifs) : null },
+        melodiNational: { revenuMedian: revenuMedianNat, tauxChomage: tauxChomageNat, anneeFilosofi: anneeFilosofiNat, anneeEmploi: anneeEmploiNat }
       });
     } catch (e) {
       return res.status(500).json({ success: false, error: e.message });

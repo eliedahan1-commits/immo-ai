@@ -3042,6 +3042,7 @@ async function loadQualiteAir(lat, lng){
 async function loadINSEE(citycode, lat, lng){
   window._inseeData = null;
   window._melodiData = null;
+  window._melodiNational = null;
   try{
     const r = await apiCall(`/api/insee?lat=${lat}&lon=${lng}&codeInsee=${citycode||''}`, `https://geo.api.gouv.fr/communes?lat=${lat}&lon=${lng}&fields=nom,population,superficie,codesPostaux,codeDepartement&format=json&limit=1`);
     if(!r.ok) throw new Error();
@@ -3078,6 +3079,7 @@ async function loadINSEE(citycode, lat, lng){
 // ── Données économiques Melodi INSEE (revenu médian, chômage) ──
 async function loadMelodi(codeInsee){
   window._melodiData = null;
+  window._melodiNational = null;
   if(!codeInsee) return;
   try{
     const r = await fetch('/api/insee?action=melodi&codeInsee='+codeInsee, {signal:AbortSignal.timeout(12000)});
@@ -3085,6 +3087,7 @@ async function loadMelodi(codeInsee){
     const d = await r.json();
     if(!d.success) throw new Error();
     window._melodiData = d.economie;
+    window._melodiNational = d.melodiNational || null;
     updateMelodiTiles(d.economie);
   }catch(e){ window._melodiData = null; }
 }
@@ -3100,6 +3103,76 @@ function updateMelodiTiles(eco){
   const tCho = document.getElementById('inseeChomTile');
   if(tRev) tRev.innerHTML = '<span class="stat-n">'+revMens+'</span><span class="stat-l">💶 Revenu disponible net'+yrF+'</span>';
   if(tCho) tCho.innerHTML = '<span class="stat-n" style="color:'+chomColor+'">'+chomLbl+'</span><span class="stat-l">💼 Chômage'+yrE+'</span>';
+  renderMelodiGauges(eco, window._melodiNational);
+}
+
+function renderMelodiGauges(eco, nat){
+  const wrap = document.getElementById("inseeGaugesWrap");
+  if(!wrap) return;
+  if(!nat || (nat.revenuMedian == null && nat.tauxChomage == null)){
+    wrap.innerHTML = "";
+    return;
+  }
+  let html = "<div style=\"margin-top:.8rem;padding-top:.75rem;border-top:1px solid var(--border)\">";
+  html += "<div style=\"font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.6rem\">📊 Comparaison nationale</div>";
+
+  if(eco.revenuMedian != null && nat.revenuMedian != null){
+    const cRev = eco.revenuMedian;
+    const nRev = nat.revenuMedian;
+    const maxRev = Math.max(cRev, nRev) * 1.15;
+    const pctC = Math.round(cRev / maxRev * 100);
+    const pctN = Math.round(nRev / maxRev * 100);
+    const diff = cRev - nRev;
+    const diffPct = Math.round(Math.abs(diff) / nRev * 100);
+    const sign = diff >= 0 ? "+" : "-";
+    const col = diff >= 0 ? "#27ae60" : "#e74c3c";
+    const yr = eco.anneeFilosofi ? " " + eco.anneeFilosofi : "";
+    const cRevMens = Math.round(cRev/12).toLocaleString("fr-FR");
+    const nRevMens = Math.round(nRev/12).toLocaleString("fr-FR");
+    html += "<div style=\"margin-bottom:.75rem\">";
+    html += "<div style=\"display:flex;justify-content:space-between;font-size:.73rem;margin-bottom:.22rem\">";
+    html += "<span>💶 Revenu disponible net" + yr + "</span>";
+    html += "<span style=\"color:" + col + ";font-weight:600\">" + sign + diffPct + "% vs nat.</span>";
+    html += "</div>";
+    html += "<div style=\"position:relative;height:8px;background:rgba(0,0,0,.09);border-radius:4px;margin-bottom:.22rem\">";
+    html += "<div style=\"width:" + pctC + "%;height:100%;background:var(--gold);border-radius:4px\"></div>";
+    html += "<div style=\"position:absolute;top:-4px;left:" + pctN + "%;width:2px;height:16px;background:var(--muted);border-radius:1px\" title=\"Moyenne nationale\"></div>";
+    html += "</div>";
+    html += "<div style=\"display:flex;justify-content:space-between;font-size:.68rem;color:var(--muted)\">";
+    html += "<span>Commune : <strong style=\"color:var(--text)\">" + cRevMens + " €/mois</strong></span>";
+    html += "<span>Nat. : " + nRevMens + " €/mois</span>";
+    html += "</div></div>";
+  }
+
+  if(eco.tauxChomage != null && nat.tauxChomage != null){
+    const cCho = eco.tauxChomage;
+    const nCho = nat.tauxChomage;
+    const maxCho = Math.max(cCho, nCho) * 1.25;
+    const pctC = Math.round(cCho / maxCho * 100);
+    const pctN = Math.round(nCho / maxCho * 100);
+    const diff = cCho - nCho;
+    const sign = diff >= 0 ? "+" : "";
+    const col = diff < 0 ? "#27ae60" : "#e74c3c";
+    const barCol = cCho < 7 ? "#27ae60" : cCho < 12 ? "#e67e22" : "#e74c3c";
+    const yr = eco.anneeEmploi ? " " + eco.anneeEmploi : "";
+    html += "<div style=\"margin-bottom:.75rem\">";
+    html += "<div style=\"display:flex;justify-content:space-between;font-size:.73rem;margin-bottom:.22rem\">";
+    html += "<span>💼 Chômage" + yr + "</span>";
+    html += "<span style=\"color:" + col + ";font-weight:600\">" + sign + diff.toFixed(1) + "pt vs nat.</span>";
+    html += "</div>";
+    html += "<div style=\"position:relative;height:8px;background:rgba(0,0,0,.09);border-radius:4px;margin-bottom:.22rem\">";
+    html += "<div style=\"width:" + pctC + "%;height:100%;background:" + barCol + ";border-radius:4px\"></div>";
+    html += "<div style=\"position:absolute;top:-4px;left:" + pctN + "%;width:2px;height:16px;background:var(--muted);border-radius:1px\" title=\"Moyenne nationale\"></div>";
+    html += "</div>";
+    html += "<div style=\"display:flex;justify-content:space-between;font-size:.68rem;color:var(--muted)\">";
+    html += "<span>Commune : <strong style=\"color:var(--text)\">" + cCho + "%</strong></span>";
+    html += "<span>Nat. : " + nCho + "%</span>";
+    html += "</div></div>";
+  }
+
+  html += "<p style=\"font-size:.62rem;color:var(--muted);margin-top:-.2rem\">Barre dorée/colorée = commune · Trait vertical = moyenne nationale · Source INSEE Melodi</p>";
+  html += "</div>";
+  wrap.innerHTML = html;
 }
 
 // ── Criminalité par commune (stats.interieur.gouv.fr) ──
@@ -5824,6 +5897,7 @@ function showINSEEDetail(){
       <div class="stat-box" id="inseeRevenuTile"><span class="stat-n">—</span><span class="stat-l">💶 Revenu disponible net</span></div>
       <div class="stat-box" id="inseeChomTile"><span class="stat-n">—</span><span class="stat-l">💼 Chômage</span></div>
     </div>
+    <div id="inseeGaugesWrap"></div>
     <p style="font-size:.75rem;color:var(--muted);margin-bottom:.8rem">Département ${c?.departement||'—'} · Code INSEE ${c?.codeInsee||'—'}</p>
     <div class="map-container" id="mapInsee"></div>
     <p style="font-size:.8rem;color:var(--accent);font-weight:500;margin-top:.6rem;padding:.4rem .6rem;background:rgba(184,131,42,.08);border-radius:4px;border-left:3px solid var(--gold)">🖱️ Cliquez sur une commune pour voir sa densité et superficie.</p>
