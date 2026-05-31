@@ -3103,7 +3103,24 @@ function updateMelodiTiles(eco){
   const tCho = document.getElementById('inseeChomTile');
   if(tRev) tRev.innerHTML = '<span class="stat-n">'+revMens+'</span><span class="stat-l">💶 Revenu disponible net'+yrF+'</span>';
   if(tCho) tCho.innerHTML = '<span class="stat-n" style="color:'+chomColor+'">'+chomLbl+'</span><span class="stat-l">💼 Chômage'+yrE+'</span>';
+
+  // Nouvelles tuiles
+  const tPropri = document.getElementById('inseePropriTile');
+  const tSeuls  = document.getElementById('inseeSeulsTile');
+  const tBac5   = document.getElementById('inseeBac5Tile');
+  const tVac    = document.getElementById('inseeVacantsTile');
+  const yrL = eco.anneeLogement ? ' '+eco.anneeLogement : '';
+  const yrD = eco.anneeDiplomes ? ' '+eco.anneeDiplomes : '';
+  if(tPropri) tPropri.innerHTML = '<span class="stat-n">'+(eco.pctPropri!=null?eco.pctPropri+'%':'—')+'</span><span class="stat-l">🏠 Propriétaires'+yrL+'</span>';
+  if(tSeuls)  tSeuls.innerHTML  = '<span class="stat-n">'+(eco.pctSeuls!=null?eco.pctSeuls+'%':'—')+'</span><span class="stat-l">👤 Ménages seuls'+yrL+'</span>';
+  if(tBac5)   tBac5.innerHTML   = '<span class="stat-n">'+(eco.pctBac5!=null?eco.pctBac5+'%':'—')+'</span><span class="stat-l">🎓 Bac+5 et +'+yrD+'</span>';
+  if(tVac && eco.nbVacants!=null && eco.nbResidPrinc){
+    const pctVac = Math.round(eco.nbVacants/(eco.nbResidPrinc+eco.nbVacants)*100);
+    tVac.innerHTML = '<span class="stat-n">'+pctVac+'%</span><span class="stat-l">🏚️ Logements vacants'+yrL+'</span>';
+  }
+
   renderMelodiGauges(eco, window._melodiNational);
+  renderDiplomes(eco);
   // Mettre à jour le popup du marqueur adresse avec les données Melodi
   if(window._inseeHomeMarker && window._inseeHomeMarkerBase){
     const revMensU = eco.revenuMedian ? Math.round(eco.revenuMedian/12).toLocaleString("fr-FR")+" €/mois" : null;
@@ -3204,6 +3221,35 @@ function renderMelodiGauges(eco, nat){
   }
 
   html += "<p style=\"font-size:.63rem;color:#999;margin-top:.5rem\">Trait vertical = moyenne nationale &nbsp;·&nbsp; Dégradé : vert = favorable, rouge = défavorable &nbsp;·&nbsp; Source INSEE Melodi</p>";
+  html += "</div>";
+  wrap.innerHTML = html;
+}
+
+function renderDiplomes(eco){
+  const wrap = document.getElementById("inseeDiplomesWrap");
+  if(!wrap) return;
+  const yr = eco.anneeDiplomes ? " "+eco.anneeDiplomes : "";
+  if(eco.pctBac5==null && eco.pctBac2==null){ wrap.innerHTML=""; return; }
+  const bars = [
+    {label:"Bac+5 et +",  pct:eco.pctBac5||0,  color:"#2ecc71"},
+    {label:"Bac+3/4",     pct:eco.pctBac2!=null?eco.pctBac2:0, color:"#27ae60"},
+    {label:"Bac",         pct:eco.pctBac||0,   color:"#f39c12"},
+    {label:"Sans diplôme",pct:eco.pctSansDip||0,color:"#e74c3c"},
+  ];
+  // Recalculer Bac+3/4 = pctBac2 correspond à 600_RP dans l'API (Licence)
+  // Les % ne s'additionnent pas à 100 (autres niveaux non affichés)
+  let html = "<div style=\"margin-top:.8rem;padding-top:.75rem;border-top:1px solid var(--border)\">";
+  html += "<div style=\"font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.55rem\">🎓 Niveau d'éducation" + yr + "</div>";
+  bars.forEach(b => {
+    if(b.pct == null || b.pct === 0) return;
+    html += "<div style=\"margin-bottom:.4rem\">";
+    html += "<div style=\"display:flex;justify-content:space-between;font-size:.72rem;color:var(--text);margin-bottom:.15rem\">";
+    html += "<span>" + b.label + "</span><span style=\"font-weight:600\">" + b.pct + "%</span>";
+    html += "</div>";
+    html += "<div style=\"height:7px;background:rgba(128,128,128,.12);border-radius:4px\">";
+    html += "<div style=\"width:" + Math.min(b.pct,100) + "%;height:100%;background:" + b.color + ";border-radius:4px\"></div>";
+    html += "</div></div>";
+  });
   html += "</div>";
   wrap.innerHTML = html;
 }
@@ -5929,8 +5975,13 @@ function showINSEEDetail(){
       <div class="stat-box"><span class="stat-n">${c?.codesPostaux?.[0]||'—'}</span><span class="stat-l">📮 Code postal</span></div>
       <div class="stat-box" id="inseeRevenuTile"><span class="stat-n">—</span><span class="stat-l">💶 Revenu disponible net</span></div>
       <div class="stat-box" id="inseeChomTile"><span class="stat-n">—</span><span class="stat-l">💼 Chômage</span></div>
+      <div class="stat-box" id="inseePropriTile"><span class="stat-n">—</span><span class="stat-l">🏠 Propriétaires</span></div>
+      <div class="stat-box" id="inseeSeulsTile"><span class="stat-n">—</span><span class="stat-l">👤 Ménages seuls</span></div>
+      <div class="stat-box" id="inseeBac5Tile"><span class="stat-n">—</span><span class="stat-l">🎓 Bac+5 et +</span></div>
+      <div class="stat-box" id="inseeVacantsTile"><span class="stat-n">—</span><span class="stat-l">🏚️ Logements vacants</span></div>
     </div>
     <div id="inseeGaugesWrap"></div>
+    <div id="inseeDiplomesWrap"></div>
     <p style="font-size:.75rem;color:var(--muted);margin-bottom:.8rem">Département ${c?.departement||'—'} · Code INSEE ${c?.codeInsee||'—'}</p>
     <div class="map-container" id="mapInsee"></div>
     <p style="font-size:.8rem;color:var(--accent);font-weight:500;margin-top:.6rem;padding:.4rem .6rem;background:rgba(184,131,42,.08);border-radius:4px;border-left:3px solid var(--gold)">🖱️ Cliquez sur une commune pour voir sa densité, superficie, revenu médian et taux de chômage.</p>

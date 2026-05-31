@@ -63,12 +63,15 @@ export default async function handler(req, res) {
           return r.ok ? r.json() : null;
         } catch(e) { return null; }
       };
-      const [dFilosofi, dEmploi, dFilosofiNat, dEmploiActifsNat, dEmploiChomNat] = await Promise.all([
+      const [dFilosofi, dEmploi, dFilosofiNat, dEmploiActifsNat, dEmploiChomNat, dLogement, dMenages, dDiplomes] = await Promise.all([
         fetchMelodiDataset('DS_FILOSOFI_CC', code),
         fetchMelodiDataset('DS_RP_EMPLOI_LR_PRINC', code),
         fetchMelodiNational('DS_FILOSOFI_CC'),
         fetchFiltered(`${MELODI_BASE}/DS_RP_EMPLOI_LR_PRINC?GEO=FRANCE&EMPSTA_ENQ=_T&AGE=Y_GE15&SEX=_T`),
         fetchFiltered(`${MELODI_BASE}/DS_RP_EMPLOI_LR_PRINC?GEO=FRANCE&EMPSTA_ENQ=2&AGE=Y_GE15&SEX=_T`),
+        fetchMelodiDataset('DS_RP_LOGEMENT_PRINC', code),
+        fetchMelodiDataset('DS_RP_MENAGES_PRINC', code),
+        fetchMelodiDataset('DS_RP_DIPLOMES_PRINC', code),
       ]);
 
       // Revenu disponible médian net (MED_SL) — dernière année disponible
@@ -101,10 +104,53 @@ export default async function handler(req, res) {
       const tauxChomageNat = (nbActifsNat && nbChomeursNat) ? Math.round(nbChomeursNat / nbActifsNat * 1000) / 10 : null;
       const anneeEmploiNat = actifTotalNat?.dimensions?.TIME_PERIOD || null;
 
+      // ── Logement : % propriétaires, vacants, résid. princ. ──
+      const logObs = dLogement?.observations || [];
+      const logFilter = o => o.dimensions?.NOR==='_T' && o.dimensions?.NRG_SRC==='_T' && o.dimensions?.CARS==='_T'
+        && o.dimensions?.BUILD_END==='_T' && o.dimensions?.CARPARK==='_T' && o.dimensions?.L_STAY==='_T'
+        && o.dimensions?.TDW==='_T' && o.dimensions?.RP_MEASURE==='DWELLINGS';
+      const logTotal  = findLatest(logObs, o => logFilter(o) && o.dimensions?.OCS==='DW_MAIN' && o.dimensions?.TSH==='_T');
+      const logPropri = findLatest(logObs, o => logFilter(o) && o.dimensions?.OCS==='DW_MAIN' && o.dimensions?.TSH==='100');
+      const logVac    = findLatest(logObs, o => logFilter(o) && o.dimensions?.OCS==='DW_VAC'  && o.dimensions?.TSH==='_T');
+      const nbResidPrinc  = logTotal?.measures?.OBS_VALUE_NIVEAU?.value ? Math.round(logTotal.measures.OBS_VALUE_NIVEAU.value) : null;
+      const nbPropri      = logPropri?.measures?.OBS_VALUE_NIVEAU?.value ? Math.round(logPropri.measures.OBS_VALUE_NIVEAU.value) : null;
+      const nbVacants     = logVac?.measures?.OBS_VALUE_NIVEAU?.value ? Math.round(logVac.measures.OBS_VALUE_NIVEAU.value) : null;
+      const pctPropri     = (nbResidPrinc && nbPropri) ? Math.round(nbPropri / nbResidPrinc * 100) : null;
+      const pctLocataires = (nbResidPrinc && nbPropri) ? Math.round((nbResidPrinc - nbPropri) / nbResidPrinc * 100) : null;
+      const anneeLogement = logTotal?.dimensions?.TIME_PERIOD || null;
+
+      // ── Ménages : % personnes seules ──
+      const menObs = dMenages?.observations || [];
+      const nbSeuls = findLatest(menObs, o => o.dimensions?.NOC==='P1' && o.dimensions?.RP_MEASURE==='ONEPERS'
+        && o.dimensions?.OCS==='DW_MAIN' && o.dimensions?.AGE==='Y_GE15' && o.dimensions?.CIVIL_STATUS==='_T' && o.dimensions?.COUPLE==='_T');
+      const nbSeulsVal  = nbSeuls?.measures?.OBS_VALUE_NIVEAU?.value ? Math.round(nbSeuls.measures.OBS_VALUE_NIVEAU.value) : null;
+      const pctSeuls    = (nbResidPrinc && nbSeulsVal) ? Math.round(nbSeulsVal / nbResidPrinc * 100) : null;
+
+      // ── Diplômes : % bac+5, % sans diplôme ──
+      const dipObs  = dDiplomes?.observations || [];
+      const dipFilter = o => o.dimensions?.SEX==='_T' && o.dimensions?.AGE==='Y_GE15' && o.dimensions?.RP_MEASURE==='POP';
+      const dipTotal  = findLatest(dipObs, o => dipFilter(o) && o.dimensions?.EDUC==='_T');
+      const dipBac5   = findLatest(dipObs, o => dipFilter(o) && o.dimensions?.EDUC==='700_RP');
+      const dipBac2   = findLatest(dipObs, o => dipFilter(o) && o.dimensions?.EDUC==='500_RP');
+      const dipBac    = findLatest(dipObs, o => dipFilter(o) && o.dimensions?.EDUC==='350T351_RP');
+      const dipSans   = findLatest(dipObs, o => dipFilter(o) && o.dimensions?.EDUC==='001T100_RP');
+      const nbDipTotal = dipTotal?.measures?.OBS_VALUE_NIVEAU?.value || null;
+      const pctBac5   = (nbDipTotal && dipBac5?.measures?.OBS_VALUE_NIVEAU?.value) ? Math.round(dipBac5.measures.OBS_VALUE_NIVEAU.value / nbDipTotal * 100) : null;
+      const pctBac2   = (nbDipTotal && dipBac2?.measures?.OBS_VALUE_NIVEAU?.value) ? Math.round(dipBac2.measures.OBS_VALUE_NIVEAU.value / nbDipTotal * 100) : null;
+      const pctBac    = (nbDipTotal && dipBac?.measures?.OBS_VALUE_NIVEAU?.value) ? Math.round(dipBac.measures.OBS_VALUE_NIVEAU.value / nbDipTotal * 100) : null;
+      const pctSansDip = (nbDipTotal && dipSans?.measures?.OBS_VALUE_NIVEAU?.value) ? Math.round(dipSans.measures.OBS_VALUE_NIVEAU.value / nbDipTotal * 100) : null;
+      const anneeDiplomes = dipTotal?.dimensions?.TIME_PERIOD || null;
+
       res.setHeader('Cache-Control', 'public, max-age=86400');
       return res.status(200).json({
         success: true,
-        economie: { revenuMedian, tauxPauvrete, tauxChomage, anneeFilosofi, anneeEmploi, nbActifs: nbActifs ? Math.round(nbActifs) : null },
+        economie: {
+          revenuMedian, tauxPauvrete, tauxChomage, anneeFilosofi, anneeEmploi,
+          nbActifs: nbActifs ? Math.round(nbActifs) : null,
+          pctPropri, pctLocataires, nbResidPrinc, nbVacants, anneeLogement,
+          pctSeuls,
+          pctBac5, pctBac2, pctBac, pctSansDip, anneeDiplomes
+        },
         melodiNational: { revenuMedian: revenuMedianNat, tauxChomage: tauxChomageNat, anneeFilosofi: anneeFilosofiNat, anneeEmploi: anneeEmploiNat }
       });
     } catch (e) {
