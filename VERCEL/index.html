@@ -3082,7 +3082,7 @@ async function loadMelodi(codeInsee){
   window._melodiNational = null;
   if(!codeInsee) return;
   try{
-    const r = await fetch('/api/insee?action=melodi&codeInsee='+codeInsee+'&v=10', {signal:AbortSignal.timeout(12000)});
+    const r = await fetch('/api/insee?action=melodi&codeInsee='+codeInsee+'&v=11', {signal:AbortSignal.timeout(12000)});
     if(!r.ok) throw new Error('melodi '+r.status);
     const d = await r.json();
     if(!d.success) throw new Error();
@@ -3363,6 +3363,31 @@ function renderMelodiGauges(eco, nat){
     if(qualif){
       const sansDipStr = eco.pctSansDip!=null?" ("+eco.pctSansDip+"% sans diplôme)":"";
       sentences.push("Population <strong>"+qualif+"</strong> : "+eco.pctBac5+"% de diplômés Bac+5 et +"+sansDipStr+".");
+    }
+  }
+
+  // Densité
+  const insD = window._inseeData?.commune;
+  if(insD?.densite){
+    const dens = insD.densite;
+    const densLbl = dens>10000?"très dense":dens>5000?"dense":dens>2000?"urbaine":dens>500?"péri-urbaine":"rurale";
+    sentences.push("Zone <strong>"+densLbl+"</strong> ("+dens.toLocaleString("fr-FR")+" hab/km²) — "+insD.population?.toLocaleString("fr-FR")+" habitants sur "+Math.round(insD.superficie||0)+" km².");
+  }
+
+  // Sécurité
+  const cr = window._criminaliteData;
+  if(cr?.success && cr.indicateurs && Object.keys(cr.indicateurs).length > 0){
+    function normSynth(s){ return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,""); }
+    const NAT_S = [["vols sans violence",11],["vol sans violence",11],["vol avec violence",2.5],["violences physiques",9],["cambriolage",3.5],["vehicule",2.8],["escroquerie",6],["destruction",8],["stupefiants",4],["homicide",0.03]];
+    function natRefS(ind){ const l=normSynth(ind); for(const [k,v] of NAT_S) if(l.includes(k)) return v; return null; }
+    let rSum=0,rCnt=0;
+    Object.entries(cr.indicateurs).forEach(([ind,v])=>{ const ref=natRefS(ind); if(ref&&ref>0&&v.taux!=null){rSum+=v.taux/ref;rCnt++;} });
+    if(rCnt>0){
+      const avg=rSum/rCnt;
+      const scoreN=Math.max(1,Math.min(10,Math.round(10*(2-Math.min(avg,2))/2)));
+      const secLbl=scoreN>=7?"<strong>faible</strong>":scoreN>=4?"<strong>modéré</strong>":"<strong>élevé</strong>";
+      const secDir=scoreN>=7?"en dessous":scoreN>=4?"dans":"au-dessus";
+      sentences.push("Risque criminel "+secLbl+" (score "+scoreN+"/10) — globalement "+secDir+" de la moyenne nationale"+( cr.annee?" ("+cr.annee+")":"")+".");
     }
   }
 
@@ -6127,12 +6152,12 @@ function showINSEEDetail(){
       <div class="stat-box"><span class="stat-n">${c?.population?.toLocaleString('fr-FR')||'—'}</span><span class="stat-l">👥 Habitants</span></div>
       <div class="stat-box"><span class="stat-n" id="inseeSupVal">${supKm2?supKm2.toLocaleString('fr-FR')+' km²':'N/A'}</span><span class="stat-l">📐 Superficie</span></div>
       <div class="stat-box"><span class="stat-n">${c?.codesPostaux?.[0]||'—'}</span><span class="stat-l">📮 Code postal</span></div>
-      <div class="stat-box" id="inseeRevenuTile"><span class="stat-n">—</span><span class="stat-l">💶 Revenu disponible net</span></div>
-      <div class="stat-box" id="inseeChomTile"><span class="stat-n">—</span><span class="stat-l">💼 Chômage</span></div>
-      <div class="stat-box" id="inseePropriTile"><span class="stat-n">—</span><span class="stat-l">🏠 Propriétaires</span></div>
-      <div class="stat-box" id="inseeSeulsTile"><span class="stat-n">—</span><span class="stat-l">👤 Ménages seuls</span></div>
-      <div class="stat-box" id="inseeBac5Tile"><span class="stat-n">—</span><span class="stat-l">🎓 Bac+5 et +</span></div>
-      <div class="stat-box" id="inseeVacantsTile"><span class="stat-n">—</span><span class="stat-l">🏚️ Logements vacants</span></div>
+      <div class="stat-box" id="inseeRevenuTile"><span class="stat-n" style="font-size:1.2rem;opacity:.4">…</span><span class="stat-l">💶 Revenu disponible net</span></div>
+      <div class="stat-box" id="inseeChomTile"><span class="stat-n" style="font-size:1.2rem;opacity:.4">…</span><span class="stat-l">💼 Chômage</span></div>
+      <div class="stat-box" id="inseePropriTile"><span class="stat-n" style="font-size:1.2rem;opacity:.4">…</span><span class="stat-l">🏠 Propriétaires</span></div>
+      <div class="stat-box" id="inseeSeulsTile"><span class="stat-n" style="font-size:1.2rem;opacity:.4">…</span><span class="stat-l">👤 Ménages seuls</span></div>
+      <div class="stat-box" id="inseeBac5Tile"><span class="stat-n" style="font-size:1.2rem;opacity:.4">…</span><span class="stat-l">🎓 Bac+5 et +</span></div>
+      <div class="stat-box" id="inseeVacantsTile"><span class="stat-n" style="font-size:1.2rem;opacity:.4">…</span><span class="stat-l">🏚️ Logements vacants</span></div>
     </div>
     <div id="inseeGaugesWrap"></div>
     <div id="inseeDiplomesWrap"></div>
@@ -6311,7 +6336,7 @@ function showINSEEDetail(){
         // Chargement Melodi en parallèle
         let revStr='', chomStr='';
         try{
-          const rM=await fetch(`/api/insee?action=melodi&codeInsee=${com.code}&v=10`,{signal:AbortSignal.timeout(8000)});
+          const rM=await fetch(`/api/insee?action=melodi&codeInsee=${com.code}&v=11`,{signal:AbortSignal.timeout(8000)});
           if(rM.ok){
             const mD=await rM.json();
             const eco=mD.economie||{};
