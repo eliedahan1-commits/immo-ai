@@ -126,6 +126,7 @@ export default async function handler(req, res) {
       const years_men = [...new Set((menObs).map(o => o.dimensions?.TIME_PERIOD))].filter(Boolean).sort().reverse();
       const lastYearMen = years_men[0];
       const AGE_GRANULAR = ['Y15T24','Y25T39','Y40T54','Y55T64','Y65T79','Y_GE80'];
+      const primaryComGeo = logTotal?.dimensions?.GEO || null;
       const seulsObs = menObs.filter(o => o.dimensions?.NOC==='P1' && o.dimensions?.RP_MEASURE==='ONEPERS'
         && o.dimensions?.OCS==='DW_MAIN' && o.dimensions?.CIVIL_STATUS==='_T' && o.dimensions?.COUPLE==='_T'
         && o.dimensions?.TIME_PERIOD===lastYearMen && AGE_GRANULAR.includes(o.dimensions?.AGE));
@@ -175,9 +176,12 @@ export default async function handler(req, res) {
       const menNatObs = dMenNat?.observations || [];
       const menNatYears = [...new Set(menNatObs.map(o=>o.dimensions?.TIME_PERIOD))].filter(Boolean).sort().reverse();
       const lastMenNat = menNatYears[0];
+      // Utiliser le même code GEO que logNatTotal pour cohérence (évite double-comptage FRANCE-F + FRANCE-FM)
+      const primaryNatGeo = logNatTotalArr[0]?.dimensions?.GEO || null;
       const seulsNatObs = menNatObs.filter(o => o.dimensions?.TIME_PERIOD===lastMenNat && o.dimensions?.NOC==='P1'
         && o.dimensions?.RP_MEASURE==='ONEPERS' && o.dimensions?.OCS==='DW_MAIN'
         && o.dimensions?.CIVIL_STATUS==='_T' && o.dimensions?.COUPLE==='_T'
+        && (!primaryNatGeo || o.dimensions?.GEO===primaryNatGeo)
         && AGE_GRAN.includes(o.dimensions?.AGE));
       const nbSeulsNat = seulsNatObs.reduce((s,o)=>s+(o.measures?.OBS_VALUE_NIVEAU?.value||0),0);
       const pctSeulsNat = (logNatTotal && nbSeulsNat) ? Math.round(nbSeulsNat/logNatTotal*100) : null;
