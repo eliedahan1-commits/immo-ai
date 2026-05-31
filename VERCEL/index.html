@@ -3082,7 +3082,7 @@ async function loadMelodi(codeInsee){
   window._melodiNational = null;
   if(!codeInsee) return;
   try{
-    const r = await fetch('/api/insee?action=melodi&codeInsee='+codeInsee+'&v=6', {signal:AbortSignal.timeout(12000)});
+    const r = await fetch('/api/insee?action=melodi&codeInsee='+codeInsee+'&v=7', {signal:AbortSignal.timeout(12000)});
     if(!r.ok) throw new Error('melodi '+r.status);
     const d = await r.json();
     if(!d.success) throw new Error();
@@ -3223,6 +3223,104 @@ function renderMelodiGauges(eco, nat){
     html += "</div>";
     html += "<p style=\"font-size:.72rem;color:" + col + ";margin:.25rem 0 0\">" + summary + "</p>";
     html += "</div>";
+  }
+
+  // ── Jauge propriétaires ──
+  if(eco.pctPropri != null && nat.pctPropri != null){
+    const cPro = eco.pctPropri;
+    const nPro = nat.pctPropri;
+    const maxPro = Math.max(cPro, nPro) * 1.15;
+    const pctC = Math.round(cPro/maxPro*100);
+    const pctN = Math.round(nPro/maxPro*100);
+    const diff = cPro - nPro;
+    const sign = diff>=0?"+":"";
+    const col = diff>=0?"#27ae60":"#e74c3c";
+    const yr = eco.anneeLogement?" "+eco.anneeLogement:"";
+    const gradPro = "linear-gradient(to right, #e74c3c 0%, #f39c12 40%, #27ae60 100%)";
+    const summary = diff>=0?"Taux de propriétaires <strong>"+Math.abs(diff)+"pt au-dessus</strong> de la moyenne nationale":"Taux de propriétaires <strong>"+Math.abs(diff)+"pt en dessous</strong> de la moyenne nationale (marché locatif dominant)";
+    html += "<div style=\"margin-bottom:1rem\">";
+    html += "<div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem\">";
+    html += "<span style=\"font-size:.78rem;font-weight:600;color:var(--text)\">🏠 Propriétaires"+yr+"</span>";
+    html += "<span style=\"font-size:.82rem;color:"+col+";font-weight:700\">"+sign+diff+"pt vs nat.</span>";
+    html += "</div>";
+    html += gaugeBar(pctC, pctN, gradPro);
+    html += "<div style=\"display:flex;justify-content:space-between;font-size:.76rem;margin-top:.1rem\">";
+    html += "<span style=\"color:var(--text)\">Cette commune : <strong>"+cPro+"%</strong></span>";
+    html += "<span style=\"color:#777\">Nat. : <strong>"+nPro+"%</strong></span>";
+    html += "</div>";
+    html += "<p style=\"font-size:.72rem;color:"+col+";margin:.25rem 0 0\">"+summary+"</p>";
+    html += "</div>";
+  }
+
+  // ── Jauge ménages seuls ──
+  if(eco.pctSeuls != null && nat.pctSeuls != null){
+    const cSe = eco.pctSeuls;
+    const nSe = nat.pctSeuls;
+    const maxSe = Math.max(cSe, nSe) * 1.2;
+    const pctC = Math.round(cSe/maxSe*100);
+    const pctN = Math.round(nSe/maxSe*100);
+    const diff = cSe - nSe;
+    const sign = diff>=0?"+":"";
+    const col = "#888";
+    const yr = eco.anneeLogement?" "+eco.anneeLogement:"";
+    const gradSe = "linear-gradient(to right, #3498db 0%, #9b59b6 100%)";
+    const profil = cSe > nSe+5?"Forte demande en petits logements (T1/T2)":cSe < nSe-5?"Profil familial dominant (T3/T4+)":"Profil équilibré";
+    html += "<div style=\"margin-bottom:1rem\">";
+    html += "<div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem\">";
+    html += "<span style=\"font-size:.78rem;font-weight:600;color:var(--text)\">👤 Ménages seuls"+yr+"</span>";
+    html += "<span style=\"font-size:.82rem;color:"+col+";font-weight:700\">"+sign+diff+"pt vs nat.</span>";
+    html += "</div>";
+    html += gaugeBar(pctC, pctN, gradSe);
+    html += "<div style=\"display:flex;justify-content:space-between;font-size:.76rem;margin-top:.1rem\">";
+    html += "<span style=\"color:var(--text)\">Cette commune : <strong>"+cSe+"%</strong></span>";
+    html += "<span style=\"color:#777\">Nat. : <strong>"+nSe+"%</strong></span>";
+    html += "</div>";
+    html += "<p style=\"font-size:.72rem;color:#666;margin:.25rem 0 0\">"+profil+"</p>";
+    html += "</div>";
+  }
+
+  // ── Jauge logements vacants ──
+  if(eco.nbVacants != null && eco.nbResidPrinc != null && nat.pctVac != null){
+    const pctVacC = Math.round(eco.nbVacants/(eco.nbResidPrinc+eco.nbVacants)*100);
+    const nVac = nat.pctVac;
+    const maxVac = Math.max(pctVacC, nVac) * 1.3;
+    const pctC = Math.round(pctVacC/maxVac*100);
+    const pctN = Math.round(nVac/maxVac*100);
+    const diff = pctVacC - nVac;
+    const sign = diff>=0?"+":"";
+    const col = diff<=0?"#27ae60":"#e74c3c";
+    const yr = eco.anneeLogement?" "+eco.anneeLogement:"";
+    const gradVac = "linear-gradient(to right, #27ae60 0%, #f39c12 50%, #e74c3c 100%)";
+    const tension = pctVacC<=5?"Marché très tendu — forte demande":pctVacC<=8?"Marché tendu":"Marché détendu — offre abondante";
+    html += "<div style=\"margin-bottom:1rem\">";
+    html += "<div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem\">";
+    html += "<span style=\"font-size:.78rem;font-weight:600;color:var(--text)\">🏚️ Logements vacants"+yr+"</span>";
+    html += "<span style=\"font-size:.82rem;color:"+col+";font-weight:700\">"+sign+diff+"pt vs nat.</span>";
+    html += "</div>";
+    html += gaugeBar(pctC, pctN, gradVac);
+    html += "<div style=\"display:flex;justify-content:space-between;font-size:.76rem;margin-top:.1rem\">";
+    html += "<span style=\"color:var(--text)\">Cette commune : <strong>"+pctVacC+"%</strong></span>";
+    html += "<span style=\"color:#777\">Nat. : <strong>"+nVac+"%</strong></span>";
+    html += "</div>";
+    html += "<p style=\"font-size:.72rem;color:"+col+";margin:.25rem 0 0\">"+tension+"</p>";
+    html += "</div>";
+  }
+
+  // ── Synthèse marché immobilier ──
+  const synthParts = [];
+  if(eco.pctPropri!=null && nat.pctPropri!=null){
+    synthParts.push(eco.pctPropri < nat.pctPropri ? "marché locatif dominant" : "marché propriétaires dominant");
+  }
+  if(eco.pctSeuls!=null && nat.pctSeuls!=null){
+    synthParts.push(eco.pctSeuls > nat.pctSeuls+5 ? "forte demande en petites surfaces" : eco.pctSeuls < nat.pctSeuls-5 ? "profil familial" : "profil équilibré");
+  }
+  if(eco.nbVacants!=null && eco.nbResidPrinc!=null){
+    const pV = Math.round(eco.nbVacants/(eco.nbResidPrinc+eco.nbVacants)*100);
+    synthParts.push(pV<=5?"marché très tendu":pV<=8?"marché tendu":"marché détendu");
+  }
+  if(synthParts.length > 0){
+    html += "<div style=\"margin-top:.6rem;padding:.5rem .7rem;background:rgba(184,131,42,.07);border-left:3px solid var(--gold);border-radius:4px;font-size:.76rem;color:var(--text)\">";
+    html += "📊 <strong>Profil de ce marché :</strong> "+synthParts.join(" · ")+".</div>";
   }
 
   html += "<p style=\"font-size:.63rem;color:#999;margin-top:.5rem\">Trait vertical = moyenne nationale &nbsp;·&nbsp; Dégradé : vert = favorable, rouge = défavorable &nbsp;·&nbsp; Source INSEE Melodi</p>";
@@ -6163,7 +6261,7 @@ function showINSEEDetail(){
         // Chargement Melodi en parallèle
         let revStr='', chomStr='';
         try{
-          const rM=await fetch(`/api/insee?action=melodi&codeInsee=${com.code}&v=6`,{signal:AbortSignal.timeout(8000)});
+          const rM=await fetch(`/api/insee?action=melodi&codeInsee=${com.code}&v=7`,{signal:AbortSignal.timeout(8000)});
           if(rM.ok){
             const mD=await rM.json();
             const eco=mD.economie||{};

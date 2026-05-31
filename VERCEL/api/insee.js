@@ -63,7 +63,7 @@ export default async function handler(req, res) {
           return r.ok ? r.json() : null;
         } catch(e) { return null; }
       };
-      const [dFilosofi, dEmploi, dFilosofiNat, dEmploiActifsNat, dEmploiChomNat, dLogement, dMenages, dDiplomes] = await Promise.all([
+      const [dFilosofi, dEmploi, dFilosofiNat, dEmploiActifsNat, dEmploiChomNat, dLogement, dMenages, dDiplomes, dLogNat, dMenNat] = await Promise.all([
         fetchMelodiDataset('DS_FILOSOFI_CC', code),
         fetchMelodiDataset('DS_RP_EMPLOI_LR_PRINC', code),
         fetchMelodiNational('DS_FILOSOFI_CC'),
@@ -72,6 +72,8 @@ export default async function handler(req, res) {
         fetchMelodiDataset('DS_RP_LOGEMENT_PRINC', code),
         fetchMelodiDataset('DS_RP_MENAGES_PRINC', code),
         fetchMelodiDataset('DS_RP_DIPLOMES_PRINC', code),
+        fetchMelodiNational('DS_RP_LOGEMENT_PRINC'),
+        fetchMelodiNational('DS_RP_MENAGES_PRINC'),
       ]);
 
       // Revenu disponible médian net (MED_SL) — dernière année disponible
@@ -123,9 +125,10 @@ export default async function handler(req, res) {
       const menObs = dMenages?.observations || [];
       const years_men = [...new Set((menObs).map(o => o.dimensions?.TIME_PERIOD))].filter(Boolean).sort().reverse();
       const lastYearMen = years_men[0];
+      const AGE_GRANULAR = ['Y15T24','Y25T39','Y40T54','Y55T64','Y65T79','Y_GE80'];
       const seulsObs = menObs.filter(o => o.dimensions?.NOC==='P1' && o.dimensions?.RP_MEASURE==='ONEPERS'
         && o.dimensions?.OCS==='DW_MAIN' && o.dimensions?.CIVIL_STATUS==='_T' && o.dimensions?.COUPLE==='_T'
-        && o.dimensions?.TIME_PERIOD===lastYearMen && o.dimensions?.AGE !== '_T');
+        && o.dimensions?.TIME_PERIOD===lastYearMen && AGE_GRANULAR.includes(o.dimensions?.AGE));
       const nbSeulsVal = seulsObs.length ? Math.round(seulsObs.reduce((s,o) => s + (o.measures?.OBS_VALUE_NIVEAU?.value||0), 0)) : null;
       const pctSeuls   = (nbResidPrinc && nbSeulsVal) ? Math.round(nbSeulsVal / nbResidPrinc * 100) : null;
 
@@ -151,6 +154,34 @@ export default async function handler(req, res) {
       const pctSansDip = pct(dipSans);
       const anneeDiplomes = dipTotal?.dimensions?.TIME_PERIOD || null;
 
+      // ── Données nationales logement ──
+      const logNatObs = dLogNat?.observations || [];
+      const logNatYears = [...new Set(logNatObs.map(o => o.dimensions?.TIME_PERIOD))].filter(Boolean).sort().reverse();
+      const lastLogNat = logNatYears[0];
+      const logNatF = o => o.dimensions?.TIME_PERIOD===lastLogNat && o.dimensions?.NOR==='_T' && o.dimensions?.NRG_SRC==='_T'
+        && o.dimensions?.CARS==='_T' && o.dimensions?.BUILD_END==='_T' && o.dimensions?.CARPARK==='_T'
+        && o.dimensions?.L_STAY==='_T' && o.dimensions?.TDW==='_T' && o.dimensions?.RP_MEASURE==='DWELLINGS';
+      const logNatTotalArr = logNatObs.filter(o => logNatF(o) && o.dimensions?.OCS==='DW_MAIN' && o.dimensions?.TSH==='_T').sort((a,b)=>(b.measures?.OBS_VALUE_NIVEAU?.value||0)-(a.measures?.OBS_VALUE_NIVEAU?.value||0));
+      const logNatPropriArr = logNatObs.filter(o => logNatF(o) && o.dimensions?.OCS==='DW_MAIN' && o.dimensions?.TSH==='100').sort((a,b)=>(b.measures?.OBS_VALUE_NIVEAU?.value||0)-(a.measures?.OBS_VALUE_NIVEAU?.value||0));
+      const logNatVacArr = logNatObs.filter(o => logNatF(o) && o.dimensions?.OCS==='DW_VAC' && o.dimensions?.TSH==='_T').sort((a,b)=>(b.measures?.OBS_VALUE_NIVEAU?.value||0)-(a.measures?.OBS_VALUE_NIVEAU?.value||0));
+      const logNatTotal = logNatTotalArr[0]?.measures?.OBS_VALUE_NIVEAU?.value || null;
+      const logNatPropri = logNatPropriArr[0]?.measures?.OBS_VALUE_NIVEAU?.value || null;
+      const logNatVac = logNatVacArr[0]?.measures?.OBS_VALUE_NIVEAU?.value || null;
+      const pctPropriNat = (logNatTotal && logNatPropri) ? Math.round(logNatPropri/logNatTotal*100) : null;
+      const pctVacNat = (logNatTotal && logNatVac) ? Math.round(logNatVac/(logNatTotal+logNatVac)*100) : null;
+
+      // ── Données nationales ménages ──
+      const AGE_GRAN = ['Y15T24','Y25T39','Y40T54','Y55T64','Y65T79','Y_GE80'];
+      const menNatObs = dMenNat?.observations || [];
+      const menNatYears = [...new Set(menNatObs.map(o=>o.dimensions?.TIME_PERIOD))].filter(Boolean).sort().reverse();
+      const lastMenNat = menNatYears[0];
+      const seulsNatObs = menNatObs.filter(o => o.dimensions?.TIME_PERIOD===lastMenNat && o.dimensions?.NOC==='P1'
+        && o.dimensions?.RP_MEASURE==='ONEPERS' && o.dimensions?.OCS==='DW_MAIN'
+        && o.dimensions?.CIVIL_STATUS==='_T' && o.dimensions?.COUPLE==='_T'
+        && AGE_GRAN.includes(o.dimensions?.AGE));
+      const nbSeulsNat = seulsNatObs.reduce((s,o)=>s+(o.measures?.OBS_VALUE_NIVEAU?.value||0),0);
+      const pctSeulsNat = (logNatTotal && nbSeulsNat) ? Math.round(nbSeulsNat/logNatTotal*100) : null;
+
       res.setHeader('Cache-Control', 'public, max-age=86400');
       return res.status(200).json({
         success: true,
@@ -161,7 +192,7 @@ export default async function handler(req, res) {
           pctSeuls,
           pctBac5, pctLicence, pctBts, pctBac, pctCapBep, pctBrevet, pctSansDip, anneeDiplomes
         },
-        melodiNational: { revenuMedian: revenuMedianNat, tauxChomage: tauxChomageNat, anneeFilosofi: anneeFilosofiNat, anneeEmploi: anneeEmploiNat }
+        melodiNational: { revenuMedian: revenuMedianNat, tauxChomage: tauxChomageNat, anneeFilosofi: anneeFilosofiNat, anneeEmploi: anneeEmploiNat, pctPropri: pctPropriNat, pctVac: pctVacNat, pctSeuls: pctSeulsNat }
       });
     } catch (e) {
       return res.status(500).json({ success: false, error: e.message });
