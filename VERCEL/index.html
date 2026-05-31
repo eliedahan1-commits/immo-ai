@@ -2654,6 +2654,8 @@ function afficherDVF(d){
       const recent = dd.data.filter(function(x){return x.d>='2023-01' && x.m_m>0;});
       if(!recent.length) return;
       window._dvfDeptData = {medianM2: Math.round(recent.reduce(function(s,x){return s+x.m_m;},0)/recent.length), dept: dvfDept};
+      // Mettre à jour la synthèse DVF si le panel est ouvert
+      appendSynth('dvf');
     }).catch(function(){});
   }
 }
@@ -4480,9 +4482,9 @@ function genSynth(cardId) {
     var gradBruit = "linear-gradient(to right, #e74c3c 0%, #f39c12 50%, #27ae60 100%)";
     var colBruit = bruitScore2>=7?"#27ae60":bruitScore2>=5?"#f39c12":"#e74c3c";
     var bruitGauge = miniGauge("🔇 Niveau sonore (10 = très calme)", bruitScore2, natBruitScore, 10, gradBruit,
-      "Cette adresse : <strong style='color:"+colBruit+"'>"+(d.niveau||niv2)+"</strong>",
+      "Cette adresse : <strong style='color:"+colBruit+"'>"+ niveauLabel2 +"</strong>"+(densBonus2>0?" (+"+densBonus2+" densité)":""),
       "Référence France : niveau modéré (~6/10, Cerema)",
-      null, null);
+      densBonus2>0?"Score ajusté à la densité urbaine ("+densite2.toLocaleString("fr-FR")+" hab/km²) — estimation OSM non certifiée.":null, null);
     if(!s.length && !bruitGauge) return "";
     return '<div style="margin-top:.8rem;padding:.65rem .8rem;background:rgba(184,131,42,.07);border-left:3px solid var(--gold);border-radius:4px;font-size:.76rem;color:var(--text);line-height:1.65">'
       +'<div style="font-weight:700;margin-bottom:.4rem">🔇 Synthèse — Carte du bruit</div>'
