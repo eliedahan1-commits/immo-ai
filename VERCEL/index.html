@@ -2647,7 +2647,7 @@ function afficherDVF(d){
   window._dvfData = d;
   computeLoyersEstimates(); // recalcul immédiat dès que DVF est disponible
   // Fetch médiane département DVF en arrière-plan
-  const dvfDept = window._inseeData && window._inseeData.commune && window._inseeData.commune.codeDepartement;
+  const dvfDept = window._inseeData && window._inseeData.commune && (window._inseeData.commune.codeDepartement || window._inseeData.commune.departement || (window._inseeData.commune.codeInsee||'').slice(0,2));
   if(dvfDept && !window._dvfDeptData) {
     fetch('https://dvf-api.data.gouv.fr/departement/'+dvfDept).then(function(r){return r.json();}).then(function(dd){
       if(!dd.data) return;
@@ -4424,7 +4424,7 @@ function genSynth(cardId) {
     if(d.total===0) {
       s.push(nomCom+" est dans une <strong>zone sans risque naturel ou industriel répertorié</strong>.");
     } else {
-      s.push(d.total+" risque(s) identifié(s). Score sécurité : <strong>"+d.score+"/10</strong>.");
+      s.push(d.total+" risque(s) identifié(s). Niveau d'exposition : <strong>"+d.score+"</strong>.");
       if(d.categories) {
         var cats = Object.keys(d.categories).slice(0,3);
         if(cats.length) s.push("Principaux risques : "+cats.join(", ")+".");
@@ -4435,14 +4435,17 @@ function genSynth(cardId) {
     }
     // Jauge score risque (10 = aucun risque, 0 = très exposé)
     var risqGauge = "";
-    if(d.score!=null) {
-      var natAvgScore = 7; // score moyen estimé France (2,3 risques en moyenne/commune)
+    var scoreLabel = typeof d.score === "string" ? d.score : null;
+    var scoreNum = scoreLabel === "eleve" || scoreLabel === "élevé" ? 2 : scoreLabel === "modere" || scoreLabel === "modéré" ? 5 : scoreLabel === "faible" ? 8 : (typeof d.score === "number" ? d.score : null);
+    if(scoreNum != null) {
+      var natAvgScore = 7;
       var gradRisq = "linear-gradient(to right, #e74c3c 0%, #f39c12 40%, #27ae60 100%)";
-      var colRisq = d.score>=7?"#27ae60":d.score>=4?"#f39c12":"#e74c3c";
-      risqGauge = miniGauge("⚠️ Niveau d'exposition aux risques", d.score, natAvgScore, 10, gradRisq,
-        "Cette adresse : <strong style='color:"+colRisq+"'>"+d.score+"/10</strong>",
+      var colRisq = scoreNum>=7?"#27ae60":scoreNum>=4?"#f39c12":"#e74c3c";
+      var scoreLblDisplay = scoreLabel || (scoreNum+"/10");
+      risqGauge = miniGauge("⚠️ Niveau d'exposition aux risques", scoreNum, natAvgScore, 10, gradRisq,
+        "Cette adresse : <strong style='color:"+colRisq+"'>"+scoreLblDisplay+"</strong>",
         "Moy. nationale estimée : ~7/10",
-        d.total===0?"Zone non exposée — situation favorable.":(d.score>=7?"Exposition modérée — dans la moyenne nationale.":"Exposition significative — consulter les plans de prévention."),
+        d.total===0?"Zone non exposée — situation favorable.":(scoreNum>=7?"Exposition modérée — dans la moyenne nationale.":"Exposition significative — consulter les plans de prévention."),
         null);
     }
     if(!s.length && !risqGauge) return "";
@@ -4454,20 +4457,25 @@ function genSynth(cardId) {
   if(cardId === 'bruit') {
     var d = window._bruitData;
     if(!d || !d.success) return "";
-    var niv2 = d.niveauCode;
+    // Recalculer le score composite identique au panel (OSM + bonus densité)
+    var ins3 = window._inseeData && window._inseeData.commune;
+    var scoreOSM2 = d.score || 0;
+    var densite2 = ins3 && ins3.densite ? ins3.densite : 0;
+    var densBonus2 = densite2>10000?4:densite2>5000?3:densite2>2000?2:densite2>500?1:0;
+    var scoreComp = Math.min(scoreOSM2 + densBonus2, 10);
+    var niv2 = scoreComp>=7?"eleve":scoreComp>=4?"modere":"faible";
+    var niveauLabel2 = scoreComp>=7?"Élevé":scoreComp>=4?"Modéré":scoreComp>=2?"Faible":"Très faible";
     var lbl2 = niv2==="eleve"?"<strong>élevé</strong>":niv2==="modere"?"<strong>modéré</strong>":"<strong>faible</strong>";
-    s.push("Niveau sonore "+lbl2+" à cette adresse"+(d.niveau?" ("+d.niveau+")":"")+".");
+    s.push("Niveau sonore "+lbl2+" à cette adresse ("+niveauLabel2+").");
     if(niv2==="eleve") s.push("Nuisances sonores importantes — à vérifier en cas d'achat ou location (fenêtres double-vitrage recommandées).");
     else if(niv2==="modere") s.push("Nuisances ponctuelles possibles — cadre de vie globalement correct.");
     else s.push("Environnement calme — atout pour la qualité de vie et la valeur du bien.");
-    // Contexte : en France ~20% de la population exposée à des nuisances sonores élevées
-    var ins3 = window._inseeData && window._inseeData.commune;
     if(ins3 && ins3.densite) {
-        var expNat = ins3.densite>5000?"plus fréquentes en zone dense":"plus rares en zone peu dense";
+      var expNat = ins3.densite>5000?"plus fréquentes en zone dense":"plus rares en zone peu dense";
       s.push("Les nuisances sonores sont "+expNat+" — densité locale "+ins3.densite.toLocaleString("fr-FR")+" hab/km².");
     }
-    // Jauge bruit : score sur 10 (inverse : plus c'est élevé, mieux c'est)
-    var bruitScore2 = niv2==="eleve"?2:niv2==="modere"?5:8;
+    // Jauge bruit : score composite sur 10
+    var bruitScore2 = scoreComp;
     var natBruitScore = 6; // en France ~35% exposés bruit route (Cerema 2023)
     var gradBruit = "linear-gradient(to right, #e74c3c 0%, #f39c12 50%, #27ae60 100%)";
     var colBruit = bruitScore2>=7?"#27ae60":bruitScore2>=5?"#f39c12":"#e74c3c";
@@ -4513,7 +4521,7 @@ function genSynth(cardId) {
   if(cardId === 'meteo') {
     var d = window._meteoData;
     if(!d) return "";
-    var h = d.ensoleillement && d.ensoleillement.heures;
+    var h = d.ensoleillement && (d.ensoleillement.heuresAnnuelles || d.ensoleillement.heures);
     if(h) {
       var solLbl = h>1800?"<strong>très ensoleillée</strong>":h>1400?"<strong>bien ensoleillée</strong>":h>1000?"<strong>modérément ensoleillée</strong>":"<strong>peu ensoleillée</strong>";
       s.push("Zone "+solLbl+" : "+h.toLocaleString("fr-FR")+" heures de soleil par an.");
