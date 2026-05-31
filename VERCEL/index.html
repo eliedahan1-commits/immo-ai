@@ -4291,10 +4291,18 @@ function genSynth(cardId) {
     var st = d.stats || {};
     if(st.medianM2) s.push("Prix médian : <strong>"+st.medianM2.toLocaleString("fr-FR")+" €/m²</strong> ("+d.count+" transactions analysées).");
     if(st.minM2 && st.maxM2) s.push("Fourchette constatée : "+st.minM2.toLocaleString("fr-FR")+" – "+st.maxM2.toLocaleString("fr-FR")+" €/m².");
+    // Comparaison nationale (prix médians nationaux si disponibles)
+    var natPrix = window._dvfNationalData;
+    if(natPrix && natPrix.medianM2 && st.medianM2) {
+      var diffPx = Math.round((st.medianM2 - natPrix.medianM2) / natPrix.medianM2 * 100);
+      var dirPx = diffPx >= 0 ? "au-dessus" : "en dessous";
+      s.push("Prix <strong>"+Math.abs(diffPx)+"% "+dirPx+"</strong> de la médiane nationale ("+natPrix.medianM2.toLocaleString("fr-FR")+" €/m²).");
+    }
     var mel = window._melodiData;
     if(mel && mel.revenuMedian && st.medianM2) {
       var effort = Math.round(st.medianM2 * 50 / (mel.revenuMedian / 12));
-      s.push("Effort d'achat estimé : <strong>"+effort+" mois de revenu médian</strong> pour 50 m².");
+      var effortLbl = effort<60?"accessible":effort<120?"effort modéré":effort<180?"effort important":"marché très cher";
+      s.push("Effort d'achat : <strong>"+effort+" mois de revenu médian</strong> pour 50 m² ("+effortLbl+").");
     }
     return synthBlock(s, "💰", "Synthèse — Prix de l'immobilier");
   }
@@ -4312,7 +4320,15 @@ function genSynth(cardId) {
       if(pts.length) s.push("Répartition : "+pts.join(", ")+".");
     }
     var sc = window._scoreData && window._scoreData.items && window._scoreData.items.find(function(i){return i.label&&i.label.indexOf("service")>-1||i.label&&i.label.indexOf("santé")>-1;});
-    if(sc) s.push("Score services : <strong>"+sc.val.toFixed(1)+"/10</strong> — "+(sc.val>=7?"offre abonne":sc.val>=5?"offre correcte":"offre limitée")+".");
+    if(sc) {
+      var svcLbl = sc.val>=8?"excellente":sc.val>=7?"très bonne":sc.val>=5?"correcte":"limitée";
+      s.push("Score services : <strong>"+sc.val.toFixed(1)+"/10</strong> — offre "+svcLbl+".");
+    }
+    var ins2 = window._inseeData && window._inseeData.commune;
+    if(ins2 && ins2.densite && d && d.total) {
+      var densiteCat = ins2.densite>10000?"très dense":ins2.densite>5000?"dense":ins2.densite>2000?"urbaine":"péri-urbaine/rurale";
+      s.push("Densité "+densiteCat+" ("+ins2.densite.toLocaleString("fr-FR")+" hab/km²) — l'offre de services est cohérente avec ce profil territorial.");
+    }
     return synthBlock(s, "🏥", "Synthèse — Commerces & services");
   }
 
@@ -4328,7 +4344,13 @@ function genSynth(cardId) {
     if(st.veloStations>0) modes.push(st.veloStations+" stations vélo");
     if(modes.length) s.push("Transports disponibles : "+modes.join(", ")+".");
     var mel2 = window._melodiData;
-    if(mel2 && mel2.tauxChomage!=null) s.push("Rappel : "+mel2.tauxChomage+"% de chômage local — bonne accessibilité = atout emploi.");
+    if(mel2 && mel2.tauxChomage!=null) {
+      var mobLabel = d.score>=7?"réseau très développé":d.score>=5?"réseau correct":"réseau à développer";
+      s.push(mobLabel+" — "+mel2.tauxChomage+"% de chômage local (bonne accessibilité = atout emploi).");
+    }
+    // Données navettes Melodi si disponibles
+    var nav = window._melodiData;
+    if(nav && nav.pctNavetteurs!=null) s.push(nav.pctNavetteurs+"% des actifs travaillent hors commune — dépendance aux transports.");
     return synthBlock(s, "🚇", "Synthèse — Transports & mobilité");
   }
 
@@ -4360,6 +4382,8 @@ function genSynth(cardId) {
         if(cats.length) s.push("Principaux risques : "+cats.join(", ")+".");
       }
       if(d.catnat && d.catnat.length>0) s.push(d.catnat.length+" arrêté(s) de catastrophe naturelle historique(s) pour cette commune.");
+      // Contexte national : en France, 95% des communes sont exposées à au moins 1 risque naturel
+      s.push("Pour référence : <strong>95% des communes françaises</strong> sont exposées à au moins un risque naturel (source : Géorisques).");
     }
     return synthBlock(s, "⚠️", "Synthèse — Risques naturels & industriels");
   }
@@ -4373,6 +4397,12 @@ function genSynth(cardId) {
     if(niv2==="eleve") s.push("Nuisances sonores importantes — à vérifier en cas d'achat ou location (fenêtres double-vitrage recommandées).");
     else if(niv2==="modere") s.push("Nuisances ponctuelles possibles — cadre de vie globalement correct.");
     else s.push("Environnement calme — atout pour la qualité de vie et la valeur du bien.");
+    // Contexte : en France ~20% de la population exposée à des nuisances sonores élevées
+    var ins3 = window._inseeData && window._inseeData.commune;
+    if(ins3 && ins3.densite) {
+      var expNat = ins3.densite>5000?"plus fréquentes en zone dense":"plus rares en zone peu dense";
+      s.push("Les nuisances sonores sont "+expNat+" — la densité locale ("+ins3.densite.toLocaleString("fr-FR")+" hab/km²) est un facteur à prendre en compte.");
+    }
     return synthBlock(s, "🔇", "Synthèse — Carte du bruit");
   }
 
@@ -4389,6 +4419,8 @@ function genSynth(cardId) {
     } else {
       s.push("Éligibilité fibre <strong>à vérifier auprès des opérateurs</strong>.");
     }
+    // Contexte national : ~85% des logements éligibles fibre en France (2024)
+    s.push("Pour référence : environ <strong>85% des logements en France</strong> sont éligibles à la fibre optique (déploiement FTTH en cours).");
     return synthBlock(s, "📶", "Synthèse — Connexion internet");
   }
 
@@ -4405,6 +4437,12 @@ function genSynth(cardId) {
     if(tMax && tMin) s.push("Températures : moy. max "+tMax+"°C / moy. min "+tMin+"°C.");
     var pluie = d.precipitations && d.precipitations.annuellesMm;
     if(pluie) s.push("Précipitations : "+pluie.toLocaleString("fr-FR")+" mm/an — "+(pluie>1200?"climat humide":pluie>800?"pluviosité modérée":"climat relativement sec")+".");
+    // Comparaison nationale : moyenne France ~1900h/an
+    if(h) {
+      var diffSol = h - 1900;
+      var dirSol = diffSol>=0?"au-dessus":"en dessous";
+      s.push("Ensoleillement <strong>"+Math.abs(Math.round(diffSol/19))+"% "+dirSol+"</strong> de la moyenne nationale (~1 900 h/an).");
+    }
     return synthBlock(s, "☀️", "Synthèse — Météo & ensoleillement");
   }
 
@@ -4417,8 +4455,12 @@ function genSynth(cardId) {
     var evolPct = Math.round(evol/first2.pop*100);
     var dir2 = evol>=0?"en croissance":"en déclin";
     s.push(nomCom+" est une commune <strong>"+dir2+"</strong> : "+(evol>=0?"+":"")+evolPct+"% de population entre "+first2.year+" et "+last2.year+" ("+first2.pop.toLocaleString("fr-FR")+" → "+last2.pop.toLocaleString("fr-FR")+" hab.).");
-    if(Math.abs(evolPct)>10) s.push(evolPct>0?"Forte attractivité résidentielle — marché immobilier dynamique.":"Déclin démographique — attention à la liquidité du marché à long terme.");
-    else s.push("Évolution démographique stable — marché immobilier équilibré.");
+    // Comparaison nationale : France +5% sur la même période environ
+    var evolNatRef = Math.round((last2.year - first2.year) * 0.4); // ~0.4% croissance annuelle nationale
+    if(Math.abs(evolPct)>10) s.push(evolPct>0?"<strong>Forte attractivité</strong> résidentielle (+"+evolPct+"%) — marché immobilier dynamique.":"<strong>Déclin démographique</strong> ("+evolPct+"%) — attention à la liquidité du marché à long terme.");
+    else if(evolPct > evolNatRef) s.push("Croissance légèrement <strong>supérieure à la tendance nationale</strong> — commune attractive.");
+    else if(evolPct < 0) s.push("Légère <strong>perte de population</strong> — marché immobilier à surveiller.");
+    else s.push("Évolution démographique <strong>stable</strong>, dans la moyenne nationale.");
     return synthBlock(s, "📈", "Synthèse — Démographie");
   }
 
