@@ -119,12 +119,15 @@ export default async function handler(req, res) {
       const pctLocataires = (nbResidPrinc && nbPropri) ? Math.round((nbResidPrinc - nbPropri) / nbResidPrinc * 100) : null;
       const anneeLogement = logTotal?.dimensions?.TIME_PERIOD || null;
 
-      // ── Ménages : % personnes seules ──
+      // ── Ménages : % personnes seules (somme de toutes les tranches d'âge) ──
       const menObs = dMenages?.observations || [];
-      const nbSeuls = findLatest(menObs, o => o.dimensions?.NOC==='P1' && o.dimensions?.RP_MEASURE==='ONEPERS'
-        && o.dimensions?.OCS==='DW_MAIN' && o.dimensions?.AGE==='Y_GE15' && o.dimensions?.CIVIL_STATUS==='_T' && o.dimensions?.COUPLE==='_T');
-      const nbSeulsVal  = nbSeuls?.measures?.OBS_VALUE_NIVEAU?.value ? Math.round(nbSeuls.measures.OBS_VALUE_NIVEAU.value) : null;
-      const pctSeuls    = (nbResidPrinc && nbSeulsVal) ? Math.round(nbSeulsVal / nbResidPrinc * 100) : null;
+      const years_men = [...new Set((menObs).map(o => o.dimensions?.TIME_PERIOD))].filter(Boolean).sort().reverse();
+      const lastYearMen = years_men[0];
+      const seulsObs = menObs.filter(o => o.dimensions?.NOC==='P1' && o.dimensions?.RP_MEASURE==='ONEPERS'
+        && o.dimensions?.OCS==='DW_MAIN' && o.dimensions?.CIVIL_STATUS==='_T' && o.dimensions?.COUPLE==='_T'
+        && o.dimensions?.TIME_PERIOD===lastYearMen && o.dimensions?.AGE !== '_T');
+      const nbSeulsVal = seulsObs.length ? Math.round(seulsObs.reduce((s,o) => s + (o.measures?.OBS_VALUE_NIVEAU?.value||0), 0)) : null;
+      const pctSeuls   = (nbResidPrinc && nbSeulsVal) ? Math.round(nbSeulsVal / nbResidPrinc * 100) : null;
 
       // ── Diplômes : % bac+5, % sans diplôme ──
       const dipObs  = dDiplomes?.observations || [];

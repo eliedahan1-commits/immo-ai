@@ -3082,7 +3082,7 @@ async function loadMelodi(codeInsee){
   window._melodiNational = null;
   if(!codeInsee) return;
   try{
-    const r = await fetch('/api/insee?action=melodi&codeInsee='+codeInsee+'&v=3', {signal:AbortSignal.timeout(12000)});
+    const r = await fetch('/api/insee?action=melodi&codeInsee='+codeInsee+'&v=5', {signal:AbortSignal.timeout(12000)});
     if(!r.ok) throw new Error('melodi '+r.status);
     const d = await r.json();
     if(!d.success) throw new Error();
@@ -3113,7 +3113,15 @@ function updateMelodiTiles(eco){
   const yrD = eco.anneeDiplomes ? ' '+eco.anneeDiplomes : '';
   if(tPropri) tPropri.innerHTML = '<span class="stat-n">'+(eco.pctPropri!=null?eco.pctPropri+'%':'—')+'</span><span class="stat-l">🏠 Propriétaires'+yrL+'</span>';
   if(tSeuls)  tSeuls.innerHTML  = '<span class="stat-n">'+(eco.pctSeuls!=null?eco.pctSeuls+'%':'—')+'</span><span class="stat-l">👤 Ménages seuls'+yrL+'</span>';
-  if(tBac5)   tBac5.innerHTML   = '<span class="stat-n">'+(eco.pctBac5!=null?eco.pctBac5+'%':'—')+'</span><span class="stat-l">🎓 Bac+5 et +'+yrD+'</span>';
+  if(tBac5){
+    const dipLines = [];
+    if(eco.pctBac5!=null) dipLines.push('<span style="display:flex;justify-content:space-between;font-size:.72rem"><span>Bac+5 et +</span><strong>'+eco.pctBac5+'%</strong></span>');
+    if(eco.pctBac2!=null) dipLines.push('<span style="display:flex;justify-content:space-between;font-size:.72rem"><span>Bac+3/4</span><strong>'+eco.pctBac2+'%</strong></span>');
+    if(eco.pctBac!=null)  dipLines.push('<span style="display:flex;justify-content:space-between;font-size:.72rem"><span>Bac</span><strong>'+eco.pctBac+'%</strong></span>');
+    if(eco.pctSansDip!=null) dipLines.push('<span style="display:flex;justify-content:space-between;font-size:.72rem;color:#e74c3c"><span>Sans diplôme</span><strong>'+eco.pctSansDip+'%</strong></span>');
+    tBac5.innerHTML = '<span class="stat-l" style="font-weight:600;margin-bottom:.3rem">🎓 Niveau éducation'+yrD+'</span>'
+      + '<span style="display:flex;flex-direction:column;gap:.15rem;width:100%">' + dipLines.join('') + '</span>';
+  }
   if(tVac && eco.nbVacants!=null && eco.nbResidPrinc){
     const pctVac = Math.round(eco.nbVacants/(eco.nbResidPrinc+eco.nbVacants)*100);
     tVac.innerHTML = '<span class="stat-n">'+pctVac+'%</span><span class="stat-l">🏚️ Logements vacants'+yrL+'</span>';
@@ -6157,7 +6165,7 @@ function showINSEEDetail(){
         // Chargement Melodi en parallèle
         let revStr='', chomStr='';
         try{
-          const rM=await fetch(`/api/insee?action=melodi&codeInsee=${com.code}&v=3`,{signal:AbortSignal.timeout(8000)});
+          const rM=await fetch(`/api/insee?action=melodi&codeInsee=${com.code}&v=5`,{signal:AbortSignal.timeout(8000)});
           if(rM.ok){
             const mD=await rM.json();
             const eco=mD.economie||{};
