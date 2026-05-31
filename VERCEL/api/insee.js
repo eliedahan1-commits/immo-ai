@@ -57,11 +57,18 @@ export default async function handler(req, res) {
     if (!code) return res.status(400).json({ error: 'codeInsee requis' });
 
     try {
-      const [dFilosofi, dEmploi, dFilosofiNat, dEmploiNat] = await Promise.all([
+      const fetchFiltered = async (url) => {
+        try {
+          const r = await fetch(url, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(MELODI_TIMEOUT) });
+          return r.ok ? r.json() : null;
+        } catch(e) { return null; }
+      };
+      const [dFilosofi, dEmploi, dFilosofiNat, dEmploiActifsNat, dEmploiChomNat] = await Promise.all([
         fetchMelodiDataset('DS_FILOSOFI_CC', code),
         fetchMelodiDataset('DS_RP_EMPLOI_LR_PRINC', code),
         fetchMelodiNational('DS_FILOSOFI_CC'),
-        fetchMelodiNational('DS_RP_EMPLOI_LR_PRINC'),
+        fetchFiltered(`${MELODI_BASE}/DS_RP_EMPLOI_LR_PRINC?GEO=FRANCE&EMPSTA_ENQ=_T&AGE=Y_GE15&SEX=_T`),
+        fetchFiltered(`${MELODI_BASE}/DS_RP_EMPLOI_LR_PRINC?GEO=FRANCE&EMPSTA_ENQ=2&AGE=Y_GE15&SEX=_T`),
       ]);
 
       // Revenu disponible médian net (MED_SL) — dernière année disponible
@@ -87,9 +94,8 @@ export default async function handler(req, res) {
       const revenuMedianNat = medSLNat?.measures?.OBS_VALUE_NIVEAU?.value ? Math.round(medSLNat.measures.OBS_VALUE_NIVEAU.value) : null;
       const anneeFilosofiNat = medSLNat?.dimensions?.TIME_PERIOD || null;
 
-      const eObsNat = dEmploiNat?.observations || [];
-      const actifTotalNat = findLatest(eObsNat, o => o.dimensions?.EMPSTA_ENQ === '_T' && o.dimensions?.AGE === 'Y_GE15' && o.dimensions?.SEX === '_T');
-      const chomeursNat   = findLatest(eObsNat, o => o.dimensions?.EMPSTA_ENQ === '2'  && o.dimensions?.AGE === 'Y_GE15' && o.dimensions?.SEX === '_T');
+      const actifTotalNat = findLatest(dEmploiActifsNat?.observations || [], () => true);
+      const chomeursNat   = findLatest(dEmploiChomNat?.observations || [], () => true);
       const nbActifsNat   = actifTotalNat?.measures?.OBS_VALUE_NIVEAU?.value;
       const nbChomeursNat = chomeursNat?.measures?.OBS_VALUE_NIVEAU?.value;
       const tauxChomageNat = (nbActifsNat && nbChomeursNat) ? Math.round(nbChomeursNat / nbActifsNat * 1000) / 10 : null;

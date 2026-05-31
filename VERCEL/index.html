@@ -3114,7 +3114,7 @@ function renderMelodiGauges(eco, nat){
     return;
   }
   let html = "<div style=\"margin-top:.8rem;padding-top:.75rem;border-top:1px solid var(--border)\">";
-  html += "<div style=\"font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.6rem\">📊 Comparaison nationale</div>";
+  html += "<div style=\"font-size:.8rem;font-weight:700;color:var(--text);margin-bottom:.75rem\">📊 Comparaison avec la moyenne nationale</div>";
 
   if(eco.revenuMedian != null && nat.revenuMedian != null){
     const cRev = eco.revenuMedian;
@@ -3129,18 +3129,18 @@ function renderMelodiGauges(eco, nat){
     const yr = eco.anneeFilosofi ? " " + eco.anneeFilosofi : "";
     const cRevMens = Math.round(cRev/12).toLocaleString("fr-FR");
     const nRevMens = Math.round(nRev/12).toLocaleString("fr-FR");
-    html += "<div style=\"margin-bottom:.75rem\">";
-    html += "<div style=\"display:flex;justify-content:space-between;font-size:.73rem;margin-bottom:.22rem\">";
-    html += "<span>💶 Revenu disponible net" + yr + "</span>";
-    html += "<span style=\"color:" + col + ";font-weight:600\">" + sign + diffPct + "% vs nat.</span>";
+    html += "<div style=\"margin-bottom:1rem\">";
+    html += "<div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem\">";
+    html += "<span style=\"font-size:.78rem;font-weight:600;color:var(--text)\">💶 Revenu disponible net" + yr + "</span>";
+    html += "<span style=\"font-size:.82rem;color:" + col + ";font-weight:700\">" + sign + diffPct + "% vs nat.</span>";
     html += "</div>";
-    html += "<div style=\"position:relative;height:8px;background:rgba(0,0,0,.09);border-radius:4px;margin-bottom:.22rem\">";
-    html += "<div style=\"width:" + pctC + "%;height:100%;background:var(--gold);border-radius:4px\"></div>";
-    html += "<div style=\"position:absolute;top:-4px;left:" + pctN + "%;width:2px;height:16px;background:var(--muted);border-radius:1px\" title=\"Moyenne nationale\"></div>";
+    html += "<div style=\"position:relative;height:10px;background:rgba(128,128,128,.15);border-radius:5px;margin-bottom:.4rem\">";
+    html += "<div style=\"width:" + pctC + "%;height:100%;background:var(--gold);border-radius:5px\"></div>";
+    html += "<div style=\"position:absolute;top:-5px;left:" + pctN + "%;width:3px;height:20px;background:#888;border-radius:2px\" title=\"Moyenne nationale\"></div>";
     html += "</div>";
-    html += "<div style=\"display:flex;justify-content:space-between;font-size:.68rem;color:var(--muted)\">";
-    html += "<span>Commune : <strong style=\"color:var(--text)\">" + cRevMens + " €/mois</strong></span>";
-    html += "<span>Nat. : " + nRevMens + " €/mois</span>";
+    html += "<div style=\"display:flex;justify-content:space-between;font-size:.75rem\">";
+    html += "<span style=\"color:var(--text)\">Cette commune : <strong>" + cRevMens + " €/mois</strong></span>";
+    html += "<span style=\"color:#888\">Nationale : <strong>" + nRevMens + " €/mois</strong></span>";
     html += "</div></div>";
   }
 
@@ -3155,22 +3155,22 @@ function renderMelodiGauges(eco, nat){
     const col = diff < 0 ? "#27ae60" : "#e74c3c";
     const barCol = cCho < 7 ? "#27ae60" : cCho < 12 ? "#e67e22" : "#e74c3c";
     const yr = eco.anneeEmploi ? " " + eco.anneeEmploi : "";
-    html += "<div style=\"margin-bottom:.75rem\">";
-    html += "<div style=\"display:flex;justify-content:space-between;font-size:.73rem;margin-bottom:.22rem\">";
-    html += "<span>💼 Chômage" + yr + "</span>";
-    html += "<span style=\"color:" + col + ";font-weight:600\">" + sign + diff.toFixed(1) + "pt vs nat.</span>";
+    html += "<div style=\"margin-bottom:.5rem\">";
+    html += "<div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem\">";
+    html += "<span style=\"font-size:.78rem;font-weight:600;color:var(--text)\">💼 Taux de chômage" + yr + "</span>";
+    html += "<span style=\"font-size:.82rem;color:" + col + ";font-weight:700\">" + sign + diff.toFixed(1) + "pt vs nat.</span>";
     html += "</div>";
-    html += "<div style=\"position:relative;height:8px;background:rgba(0,0,0,.09);border-radius:4px;margin-bottom:.22rem\">";
-    html += "<div style=\"width:" + pctC + "%;height:100%;background:" + barCol + ";border-radius:4px\"></div>";
-    html += "<div style=\"position:absolute;top:-4px;left:" + pctN + "%;width:2px;height:16px;background:var(--muted);border-radius:1px\" title=\"Moyenne nationale\"></div>";
+    html += "<div style=\"position:relative;height:10px;background:rgba(128,128,128,.15);border-radius:5px;margin-bottom:.4rem\">";
+    html += "<div style=\"width:" + pctC + "%;height:100%;background:" + barCol + ";border-radius:5px\"></div>";
+    html += "<div style=\"position:absolute;top:-5px;left:" + pctN + "%;width:3px;height:20px;background:#888;border-radius:2px\" title=\"Moyenne nationale\"></div>";
     html += "</div>";
-    html += "<div style=\"display:flex;justify-content:space-between;font-size:.68rem;color:var(--muted)\">";
-    html += "<span>Commune : <strong style=\"color:var(--text)\">" + cCho + "%</strong></span>";
-    html += "<span>Nat. : " + nCho + "%</span>";
+    html += "<div style=\"display:flex;justify-content:space-between;font-size:.75rem\">";
+    html += "<span style=\"color:var(--text)\">Cette commune : <strong>" + cCho + "%</strong></span>";
+    html += "<span style=\"color:#888\">Nationale : <strong>" + nCho + "%</strong></span>";
     html += "</div></div>";
   }
 
-  html += "<p style=\"font-size:.62rem;color:var(--muted);margin-top:-.2rem\">Barre dorée/colorée = commune · Trait vertical = moyenne nationale · Source INSEE Melodi</p>";
+  html += "<p style=\"font-size:.65rem;color:#888;margin-top:.3rem\">Barre = commune &nbsp;·&nbsp; Trait vertical = moyenne nationale &nbsp;·&nbsp; Source INSEE Melodi</p>";
   html += "</div>";
   wrap.innerHTML = html;
 }
@@ -6067,7 +6067,21 @@ function showINSEEDetail(){
         const lbl2=!dens2?'Non disponible':dens2>10000?'Très dense':dens2>5000?'Dense':dens2>2000?'Urbain':dens2>500?'Péri-urbain':'Rural';
         const densStr=`<span style="color:${col2}"><strong>${lbl2}${dens2?' · '+dens2.toLocaleString('fr-FR')+' hab./km²':''}</strong></span>`;
         const supStr=supKm2b?`<br><span style="font-size:.75rem">Superficie : ${supKm2b.toLocaleString('fr-FR')} km²</span>`:'';
-        L.popup().setLatLng(e.latlng).setContent(`<strong>${com.nom}</strong><br>${pop2.toLocaleString('fr-FR')} habitants<br>${densStr}${supStr}`).openOn(map);
+        // Chargement Melodi en parallèle
+        let revStr='', chomStr='';
+        try{
+          const rM=await fetch(`/api/insee?action=melodi&codeInsee=${com.code}&v=2`,{signal:AbortSignal.timeout(8000)});
+          if(rM.ok){
+            const mD=await rM.json();
+            const eco=mD.economie||{};
+            if(eco.revenuMedian) revStr=`<br><span style="font-size:.75rem">💶 Revenu net : <strong>${Math.round(eco.revenuMedian/12).toLocaleString('fr-FR')} €/mois</strong>${eco.anneeFilosofi?' ('+eco.anneeFilosofi+')':''}</span>`;
+            if(eco.tauxChomage!=null){
+              const cCol=eco.tauxChomage<7?'#27ae60':eco.tauxChomage<12?'#e67e22':'#e74c3c';
+              chomStr=`<br><span style="font-size:.75rem">💼 Chômage : <strong style="color:${cCol}">${eco.tauxChomage}%</strong>${eco.anneeEmploi?' ('+eco.anneeEmploi+')':''}</span>`;
+            }
+          }
+        }catch(_){}
+        L.popup().setLatLng(e.latlng).setContent(`<strong>${com.nom}</strong><br>${pop2.toLocaleString('fr-FR')} habitants<br>${densStr}${supStr}${revStr}${chomStr}`).openOn(map);
       }catch(e2){}
     });
 
