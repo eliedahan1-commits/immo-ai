@@ -4350,7 +4350,7 @@ function genSynth(cardId) {
       var effortLbl = effort<60?"accessible":effort<120?"effort modéré":effort<180?"effort important":"marché très cher";
       s.push("Effort d'achat : <strong>"+effort+" mois de revenu médian</strong> pour 50 m² ("+effortLbl+").");
     }
-    var dvfTitle = '<div style="font-weight:700;margin-bottom:.4rem">💰 Synthèse — Prix de l'immobilier</div>';
+    var dvfTitle = '<div style="font-weight:700;margin-bottom:.4rem">💰 Synthèse — Prix de l\'immobilier</div>';
     if(!s.length && !gaugeHtml) return "";
     return '<div style="margin-top:.8rem;padding:.65rem .8rem;background:rgba(184,131,42,.07);border-left:3px solid var(--gold);border-radius:4px;font-size:.76rem;color:var(--text);line-height:1.65">'+dvfTitle+gaugeHtml+s.map(function(t){return '<p style="margin:.2rem 0">'+t+'</p>';}).join("")+'</div>';
   }
