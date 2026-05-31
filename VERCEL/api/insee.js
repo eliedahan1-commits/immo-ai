@@ -170,6 +170,7 @@ export default async function handler(req, res) {
       const logNatVac = logNatVacArr[0]?.measures?.OBS_VALUE_NIVEAU?.value || null;
       const pctPropriNat = (logNatTotal && logNatPropri) ? Math.round(logNatPropri/logNatTotal*100) : null;
       const pctVacNat = (logNatTotal && logNatVac) ? Math.round(logNatVac/(logNatTotal+logNatVac)*100) : null;
+      const anneeLogementNat = logNatTotalArr[0]?.dimensions?.TIME_PERIOD || null;
 
       // ── Données nationales ménages ──
       const AGE_GRAN = ['Y15T24','Y25T39','Y40T54','Y55T64','Y65T79','Y_GE80'];
@@ -196,7 +197,7 @@ export default async function handler(req, res) {
           pctSeuls,
           pctBac5, pctLicence, pctBts, pctBac, pctCapBep, pctBrevet, pctSansDip, anneeDiplomes
         },
-        melodiNational: { revenuMedian: revenuMedianNat, tauxChomage: tauxChomageNat, anneeFilosofi: anneeFilosofiNat, anneeEmploi: anneeEmploiNat, pctPropri: pctPropriNat, pctVac: pctVacNat, pctSeuls: pctSeulsNat }
+        melodiNational: { revenuMedian: revenuMedianNat, tauxChomage: tauxChomageNat, anneeFilosofi: anneeFilosofiNat, anneeEmploi: anneeEmploiNat, pctPropri: pctPropriNat, pctVac: pctVacNat, pctSeuls: pctSeulsNat, anneeLogement: anneeLogementNat }
       });
     } catch (e) {
       return res.status(500).json({ success: false, error: e.message });
