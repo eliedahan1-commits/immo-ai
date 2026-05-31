@@ -3767,7 +3767,44 @@ function showScoreDetail() {
     </div>`;
   }).join('');
 
-  showPanel('⭐ Score global du quartier · '+(window._inseeData?.commune?.nom||''), `
+  // ── Synthèse dynamique du score ──
+  const scoreSynth = (function(){
+    const s = [];
+    const verdict = d.note>=8?"<strong>excellent</strong>":d.note>=6?"<strong>bien noté</strong>":d.note>=4?"<strong>moyen</strong>":"<strong>en difficulté</strong>";
+    const forts = [...d.items].filter(i=>i.val>=7).sort((a,b)=>b.val-a.val).slice(0,3);
+    const faibles = [...d.items].filter(i=>i.val<5).sort((a,b)=>a.val-b.val).slice(0,2);
+    if(forts.length>0) s.push("Points forts : "+forts.map(i=>i.icon+" "+i.label+" ("+i.val.toFixed(1)+"/10)").join(", ")+".");
+    if(faibles.length>0) s.push("Points de vigilance : "+faibles.map(i=>i.icon+" "+i.label+" ("+i.val.toFixed(1)+"/10)").join(", ")+".");
+    const dvf = window._dvfData;
+    if(dvf&&dvf.stats&&dvf.stats.medianM2) s.push("Prix médian du secteur : <strong>"+dvf.stats.medianM2.toLocaleString("fr-FR")+" €/m²</strong> ("+dvf.count+" transactions).");
+    const mel = window._melodiData; const nat = window._melodiNational;
+    if(mel&&mel.revenuMedian&&nat&&nat.revenuMedian){
+      const diff=Math.round(Math.abs(mel.revenuMedian-nat.revenuMedian)/nat.revenuMedian*100);
+      const dir=mel.revenuMedian>=nat.revenuMedian?"au-dessus":"en dessous";
+      s.push("Revenu médian <strong>"+diff+"% "+dir+"</strong> de la moyenne nationale ("+Math.round(mel.revenuMedian/12).toLocaleString("fr-FR")+" €/mois).");
+    }
+    const ins = window._inseeData&&window._inseeData.commune;
+    if(ins&&ins.densite){
+      const lbl=ins.densite>10000?"très dense":ins.densite>5000?"dense":ins.densite>2000?"urbaine":ins.densite>500?"péri-urbaine":"rurale";
+      s.push("Zone <strong>"+lbl+"</strong> — "+(ins.population||0).toLocaleString("fr-FR")+" habitants.");
+    }
+    const cr = window._criminaliteData;
+    if(cr&&cr.success&&cr.indicateurs&&Object.keys(cr.indicateurs).length>0){
+      function normSc(v){return v.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");}
+      const REF=[["vols sans violence",11],["vol sans violence",11],["vol avec violence",2.5],["violences physiques",9],["cambriolage",3.5],["vehicule",2.8],["escroquerie",6],["destruction",8],["stupefiants",4],["homicide",0.03]];
+      function natR(ind){var l=normSc(ind);for(var i=0;i<REF.length;i++)if(l.indexOf(REF[i][0])>=0)return REF[i][1];return null;}
+      var rs=0,rc=0;
+      Object.entries(cr.indicateurs).forEach(function(e){var ref=natR(e[0]);if(ref&&ref>0&&e[1].taux!=null){rs+=e[1].taux/ref;rc++;}});
+      if(rc>0){var avg=rs/rc;var sc=Math.max(1,Math.min(10,Math.round(10*(2-Math.min(avg,2))/2)));var sl=sc>=7?"faible":sc>=4?"modéré":"élevé";s.push("Sécurité : risque <strong>"+sl+"</strong> (score "+sc+"/10).");}
+    }
+    if(!s.length) return "";
+    return '<div style="margin:.8rem 0;padding:.65rem .8rem;background:rgba(184,131,42,.07);border-left:3px solid var(--gold);border-radius:4px;font-size:.76rem;color:var(--text);line-height:1.65">'
+      +'<div style="font-weight:700;margin-bottom:.4rem">📊 Synthèse — Quartier '+verdict+' ('+d.note.toFixed(1)+'/10)</div>'
+      +s.map(function(t){return '<p style="margin:.2rem 0">'+t+'</p>';}).join("")
+      +'</div>';
+  })();
+
+  showPanel('⭐ Score global du quartier · '+(window._inseeData&&window._inseeData.commune&&window._inseeData.commune.nom||''), `
     <div style="text-align:center;margin-bottom:1.2rem">
       <div style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;width:100px;height:100px;border-radius:50%;border:5px solid ${ringColor};background:rgba(0,0,0,.15)">
         <span style="font-size:1.8rem;font-weight:800;color:${ringColor}">${d.note.toFixed(1)}</span>
@@ -3787,6 +3824,7 @@ function showScoreDetail() {
         <span style="font-size:.68rem;color:var(--muted);align-self:center;font-style:italic">Services · Écoles · Mobilité recalculés</span>
       </div>
     </div>
+    ${scoreSynth}
     <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-top:.8rem">${rows}</div>
     <p style="font-size:.62rem;color:var(--muted);margin-top:.8rem">Sources : Géorisques · OSM · ADEME · ARCEP · Open-Meteo · Éducation Nationale · données temps réel à l'adresse</p>
   `);
