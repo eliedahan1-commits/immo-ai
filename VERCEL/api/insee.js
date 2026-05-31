@@ -22,7 +22,7 @@ async function fetchMelodiDataset(datasetId, codeInsee) {
 
 // Fetch données nationales France (GEO codes à tester en fallback)
 async function fetchMelodiNational(datasetId) {
-  const natCodes = ['FE', 'METRO', 'FR'];
+  const natCodes = ['FRANCE'];
   for (const geoCode of natCodes) {
     try {
       const r = await fetch(`${MELODI_BASE}/${datasetId}?GEO=${geoCode}`, {
