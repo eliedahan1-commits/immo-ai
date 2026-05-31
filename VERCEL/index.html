@@ -2646,6 +2646,16 @@ function afficherDVF(d){
   setCard('dvf', prix+' €/m²', `${d.count} ventes · rayon ${(d.rayon/1000).toFixed(0)}km`, '');
   window._dvfData = d;
   computeLoyersEstimates(); // recalcul immédiat dès que DVF est disponible
+  // Fetch médiane département DVF en arrière-plan
+  const dvfDept = window._inseeData && window._inseeData.commune && window._inseeData.commune.codeDepartement;
+  if(dvfDept && !window._dvfDeptData) {
+    fetch('https://dvf-api.data.gouv.fr/departement/'+dvfDept).then(function(r){return r.json();}).then(function(dd){
+      if(!dd.data) return;
+      const recent = dd.data.filter(function(x){return x.d>='2023-01' && x.m_m>0;});
+      if(!recent.length) return;
+      window._dvfDeptData = {medianM2: Math.round(recent.reduce(function(s,x){return s+x.m_m;},0)/recent.length), dept: dvfDept};
+    }).catch(function(){});
+  }
 }
 
 // ── Géorisques : risques naturels officiels ──
@@ -3140,6 +3150,33 @@ function updateMelodiTiles(eco){
   }
 }
 
+function gaugeBar(pctC, pctN, grad){
+  var h = '<div style="position:relative;height:12px;border-radius:6px;overflow:visible;margin-bottom:.35rem">';
+  h += '<div style="position:absolute;inset:0;background:'+grad+';border-radius:6px;"></div>';
+  h += '<div style="position:absolute;top:0;left:'+pctC+'%;right:0;bottom:0;background:rgba(230,230,230,.75);border-radius:0 6px 6px 0;"></div>';
+  h += '<div style="position:absolute;top:-4px;left:calc('+pctN+'% - 1px);width:3px;height:20px;background:#444;border-radius:2px;" title="Référence"></div>';
+  h += '</div>';
+  return h;
+}
+
+function miniGauge(label, cVal, refVal, maxVal, grad, cLabel, refLabel, summaryHtml, yr){
+  if(cVal==null || refVal==null) return '';
+  var pctC = Math.min(100, Math.round(cVal/maxVal*100));
+  var pctN = Math.min(100, Math.round(refVal/maxVal*100));
+  var h = '<div style="margin-bottom:1rem">';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem">';
+  h += '<span style="font-size:.78rem;font-weight:600;color:var(--text)">'+label+(yr?' '+yr:'')+'</span>';
+  h += '</div>';
+  h += gaugeBar(pctC, pctN, grad);
+  h += '<div style="display:flex;justify-content:space-between;font-size:.76rem;margin-top:.1rem">';
+  h += '<span style="color:var(--text)">'+cLabel+'</span>';
+  h += '<span style="color:#777">'+refLabel+'</span>';
+  h += '</div>';
+  if(summaryHtml) h += '<p style="font-size:.72rem;margin:.2rem 0">'+summaryHtml+'</p>';
+  h += '</div>';
+  return h;
+}
+
 function renderMelodiGauges(eco, nat){
   const wrap = document.getElementById("inseeGaugesWrap");
   if(!wrap) return;
@@ -3151,18 +3188,7 @@ function renderMelodiGauges(eco, nat){
   const gradRev = "linear-gradient(to right, #e74c3c 0%, #f39c12 35%, #f1c40f 55%, #27ae60 100%)";
   const gradCho = "linear-gradient(to right, #27ae60 0%, #f1c40f 45%, #f39c12 65%, #e74c3c 100%)";
 
-  function gaugeBar(pctC, pctN, grad){
-    // Le dégradé couvre 100% du fond, la partie vide est masquée par un voile semi-transparent
-    let h = "<div style=\"position:relative;height:12px;border-radius:6px;overflow:visible;margin-bottom:.35rem\">";
-    // Fond dégradé complet
-    h += "<div style=\"position:absolute;inset:0;background:" + grad + ";border-radius:6px;\"></div>";
-    // Voile gris sur la partie non remplie
-    h += "<div style=\"position:absolute;top:0;left:" + pctC + "%;right:0;bottom:0;background:rgba(230,230,230,.75);border-radius:0 6px 6px 0;\"></div>";
-    // Marqueur national
-    h += "<div style=\"position:absolute;top:-4px;left:calc(" + pctN + "% - 1px);width:3px;height:20px;background:#444;border-radius:2px;\" title=\"Moyenne nationale\"></div>";
-    h += "</div>";
-    return h;
-  }
+  // gaugeBar extracted to global scope
 
   let html = "<div style=\"margin-top:.8rem;padding-top:.75rem;border-top:1px solid var(--border)\">";
   html += "<div style=\"font-size:.8rem;font-weight:700;color:var(--text);margin-bottom:.75rem\">📊 Comparaison avec la moyenne nationale</div>";
@@ -4291,12 +4317,32 @@ function genSynth(cardId) {
     var st = d.stats || {};
     if(st.medianM2) s.push("Prix médian : <strong>"+st.medianM2.toLocaleString("fr-FR")+" €/m²</strong> ("+d.count+" transactions analysées).");
     if(st.minM2 && st.maxM2) s.push("Fourchette constatée : "+st.minM2.toLocaleString("fr-FR")+" – "+st.maxM2.toLocaleString("fr-FR")+" €/m².");
-    // Comparaison nationale (prix médians nationaux si disponibles)
-    var natPrix = window._dvfNationalData;
-    if(natPrix && natPrix.medianM2 && st.medianM2) {
-      var diffPx = Math.round((st.medianM2 - natPrix.medianM2) / natPrix.medianM2 * 100);
-      var dirPx = diffPx >= 0 ? "au-dessus" : "en dessous";
-      s.push("Prix <strong>"+Math.abs(diffPx)+"% "+dirPx+"</strong> de la médiane nationale ("+natPrix.medianM2.toLocaleString("fr-FR")+" €/m²).");
+    // Jauge comparaison département + national
+    var gaugeHtml = "";
+    var dept = window._dvfDeptData;
+    var natRef = 2800; // Médiane France métropolitaine 2023 (DGFiP)
+    var gradDVF = "linear-gradient(to right, #27ae60 0%, #f1c40f 40%, #f39c12 70%, #e74c3c 100%)";
+    if(dept && dept.medianM2 && st.medianM2) {
+      var maxDvf = Math.max(st.medianM2, dept.medianM2, natRef) * 1.15;
+      var pctC = Math.round(st.medianM2/maxDvf*100);
+      var pctDept = Math.round(dept.medianM2/maxDvf*100);
+      var pctNat = Math.round(natRef/maxDvf*100);
+      var diffD = Math.round((st.medianM2-dept.medianM2)/dept.medianM2*100);
+      var dirD = diffD>=0?"au-dessus":"en dessous";
+      var colD = diffD>=0?"#e74c3c":"#27ae60"; // cher = rouge, moins cher = vert pour acheteur
+      // Jauge avec 2 marqueurs : dept + national
+      var gHtml = '<div style="position:relative;height:12px;border-radius:6px;overflow:visible;margin-bottom:.35rem">';
+      gHtml += '<div style="position:absolute;inset:0;background:'+gradDVF+';border-radius:6px;"></div>';
+      gHtml += '<div style="position:absolute;top:0;left:'+pctC+'%;right:0;bottom:0;background:rgba(230,230,230,.75);border-radius:0 6px 6px 0;"></div>';
+      gHtml += '<div style="position:absolute;top:-4px;left:calc('+pctDept+'% - 1px);width:3px;height:20px;background:#555;border-radius:2px;" title="Médiane département"></div>';
+      gHtml += '<div style="position:absolute;top:-4px;left:calc('+pctNat+'% - 1px);width:2px;height:20px;background:#aaa;border-radius:2px;" title="Médiane nationale"></div>';
+      gHtml += '</div>';
+      gHtml += '<div style="display:flex;justify-content:space-between;font-size:.73rem;margin-top:.1rem">';
+      gHtml += '<span style="color:var(--text)">Ce secteur : <strong>'+st.medianM2.toLocaleString("fr-FR")+" €/m²"+'</strong></span>';
+      gHtml += '<span style="color:#555">Dept "+dept.dept+" : '+dept.medianM2.toLocaleString("fr-FR")+' €/m²</span>';
+      gHtml += '</div>';
+      gaugeHtml = '<div style="margin-bottom:.75rem"><div style="display:flex;justify-content:space-between;font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.3rem"><span>💰 Prix au m²</span><span style="color:'+colD+'">'+Math.abs(diffD)+"% "+dirD+' du dept</span></div>'+gHtml+'<p style="font-size:.7rem;color:#777;margin:.2rem 0">Trait foncé = médiane département · Trait clair = médiane France (~2 800 €/m²) · Source DVF DGFiP</p></div>';
+      s.push("Prix <strong>"+Math.abs(diffD)+"% "+dirD+"</strong> de la médiane du département ("+dept.medianM2.toLocaleString("fr-FR")+" €/m²).");
     }
     var mel = window._melodiData;
     if(mel && mel.revenuMedian && st.medianM2) {
@@ -4304,7 +4350,9 @@ function genSynth(cardId) {
       var effortLbl = effort<60?"accessible":effort<120?"effort modéré":effort<180?"effort important":"marché très cher";
       s.push("Effort d'achat : <strong>"+effort+" mois de revenu médian</strong> pour 50 m² ("+effortLbl+").");
     }
-    return synthBlock(s, "💰", "Synthèse — Prix de l'immobilier");
+    var dvfTitle = '<div style="font-weight:700;margin-bottom:.4rem">💰 Synthèse — Prix de l'immobilier</div>';
+    if(!s.length && !gaugeHtml) return "";
+    return '<div style="margin-top:.8rem;padding:.65rem .8rem;background:rgba(184,131,42,.07);border-left:3px solid var(--gold);border-radius:4px;font-size:.76rem;color:var(--text);line-height:1.65">'+dvfTitle+gaugeHtml+s.map(function(t){return '<p style="margin:.2rem 0">'+t+'</p>';}).join("")+'</div>';
   }
 
   if(cardId === 'services') {
@@ -4385,7 +4433,22 @@ function genSynth(cardId) {
       // Contexte national : en France, 95% des communes sont exposées à au moins 1 risque naturel
       s.push("Pour référence : <strong>95% des communes françaises</strong> sont exposées à au moins un risque naturel (source : Géorisques).");
     }
-    return synthBlock(s, "⚠️", "Synthèse — Risques naturels & industriels");
+    // Jauge score risque (10 = aucun risque, 0 = très exposé)
+    var risqGauge = "";
+    if(d.score!=null) {
+      var natAvgScore = 7; // score moyen estimé France (2,3 risques en moyenne/commune)
+      var gradRisq = "linear-gradient(to right, #e74c3c 0%, #f39c12 40%, #27ae60 100%)";
+      var colRisq = d.score>=7?"#27ae60":d.score>=4?"#f39c12":"#e74c3c";
+      risqGauge = miniGauge("⚠️ Niveau d'exposition aux risques", d.score, natAvgScore, 10, gradRisq,
+        "Cette adresse : <strong style='color:"+colRisq+"'>"+d.score+"/10</strong>",
+        "Moy. nationale estimée : ~7/10",
+        d.total===0?"Zone non exposée — situation favorable.":(d.score>=7?"Exposition modérée — dans la moyenne nationale.":"Exposition significative — consulter les plans de prévention."),
+        null);
+    }
+    if(!s.length && !risqGauge) return "";
+    return '<div style="margin-top:.8rem;padding:.65rem .8rem;background:rgba(184,131,42,.07);border-left:3px solid var(--gold);border-radius:4px;font-size:.76rem;color:var(--text);line-height:1.65">'
+      +'<div style="font-weight:700;margin-bottom:.4rem">⚠️ Synthèse — Risques naturels & industriels</div>'
+      +risqGauge+s.map(function(t){return '<p style="margin:.2rem 0">'+t+'</p>';}).join("")+'</div>';
   }
 
   if(cardId === 'bruit') {
@@ -4400,10 +4463,22 @@ function genSynth(cardId) {
     // Contexte : en France ~20% de la population exposée à des nuisances sonores élevées
     var ins3 = window._inseeData && window._inseeData.commune;
     if(ins3 && ins3.densite) {
-      var expNat = ins3.densite>5000?"plus fréquentes en zone dense":"plus rares en zone peu dense";
-      s.push("Les nuisances sonores sont "+expNat+" — la densité locale ("+ins3.densite.toLocaleString("fr-FR")+" hab/km²) est un facteur à prendre en compte.");
+        var expNat = ins3.densite>5000?"plus fréquentes en zone dense":"plus rares en zone peu dense";
+      s.push("Les nuisances sonores sont "+expNat+" — densité locale "+ins3.densite.toLocaleString("fr-FR")+" hab/km².");
     }
-    return synthBlock(s, "🔇", "Synthèse — Carte du bruit");
+    // Jauge bruit : score sur 10 (inverse : plus c'est élevé, mieux c'est)
+    var bruitScore2 = niv2==="eleve"?2:niv2==="modere"?5:8;
+    var natBruitScore = 6; // en France ~35% exposés bruit route (Cerema 2023)
+    var gradBruit = "linear-gradient(to right, #e74c3c 0%, #f39c12 50%, #27ae60 100%)";
+    var colBruit = bruitScore2>=7?"#27ae60":bruitScore2>=5?"#f39c12":"#e74c3c";
+    var bruitGauge = miniGauge("🔇 Niveau sonore (10 = très calme)", bruitScore2, natBruitScore, 10, gradBruit,
+      "Cette adresse : <strong style='color:"+colBruit+"'>"+(d.niveau||niv2)+"</strong>",
+      "Référence France : niveau modéré (~6/10, Cerema)",
+      null, null);
+    if(!s.length && !bruitGauge) return "";
+    return '<div style="margin-top:.8rem;padding:.65rem .8rem;background:rgba(184,131,42,.07);border-left:3px solid var(--gold);border-radius:4px;font-size:.76rem;color:var(--text);line-height:1.65">'
+      +'<div style="font-weight:700;margin-bottom:.4rem">🔇 Synthèse — Carte du bruit</div>'
+      +bruitGauge+s.map(function(t){return '<p style="margin:.2rem 0">'+t+'</p>';}).join("")+'</div>';
   }
 
   if(cardId === 'fibre') {
@@ -4419,9 +4494,20 @@ function genSynth(cardId) {
     } else {
       s.push("Éligibilité fibre <strong>à vérifier auprès des opérateurs</strong>.");
     }
-    // Contexte national : ~85% des logements éligibles fibre en France (2024)
-    s.push("Pour référence : environ <strong>85% des logements en France</strong> sont éligibles à la fibre optique (déploiement FTTH en cours).");
-    return synthBlock(s, "📶", "Synthèse — Connexion internet");
+    // Jauge : éligibilité vs ~85% national (ARCEP 2024)
+    var fibreGauge = "";
+    var natFibre = 85; // ARCEP 2024
+    var gradFibre = "linear-gradient(to right, #e74c3c 0%, #f39c12 50%, #27ae60 100%)";
+    var communeFibreVal = (elig===true)?100:(elig===false)?0:50;
+    fibreGauge = miniGauge("📶 Éligibilité fibre (FTTH)", communeFibreVal, natFibre, 100, gradFibre,
+      elig===true?"<strong>Éligible</strong> à la fibre":elig===false?"<strong>Non éligible</strong>":"À vérifier",
+      "Taux national : ~85% (ARCEP 2024)",
+      elig===true?"Adresse raccordée — atout pour le télétravail et la valorisation du bien.":elig===false?"Point de vigilance — la fibre peut ne pas encore être déployée dans ce secteur.":null,
+      null);
+    if(!s.length && !fibreGauge) return "";
+    return '<div style="margin-top:.8rem;padding:.65rem .8rem;background:rgba(184,131,42,.07);border-left:3px solid var(--gold);border-radius:4px;font-size:.76rem;color:var(--text);line-height:1.65">'
+      +'<div style="font-weight:700;margin-bottom:.4rem">📶 Synthèse — Connexion internet</div>'
+      +fibreGauge+s.map(function(t){return '<p style="margin:.2rem 0">'+t+'</p>';}).join("")+'</div>';
   }
 
   if(cardId === 'meteo') {
@@ -4437,13 +4523,25 @@ function genSynth(cardId) {
     if(tMax && tMin) s.push("Températures : moy. max "+tMax+"°C / moy. min "+tMin+"°C.");
     var pluie = d.precipitations && d.precipitations.annuellesMm;
     if(pluie) s.push("Précipitations : "+pluie.toLocaleString("fr-FR")+" mm/an — "+(pluie>1200?"climat humide":pluie>800?"pluviosité modérée":"climat relativement sec")+".");
-    // Comparaison nationale : moyenne France ~1900h/an
+    // Jauge ensoleillement vs référence nationale ~1900h/an (Météo France)
+    var meteoGauge = "";
     if(h) {
-      var diffSol = h - 1900;
+      var natSol = 1900;
+      var maxSol = Math.max(h, natSol) * 1.15;
+      var diffSol = h - natSol;
       var dirSol = diffSol>=0?"au-dessus":"en dessous";
-      s.push("Ensoleillement <strong>"+Math.abs(Math.round(diffSol/19))+"% "+dirSol+"</strong> de la moyenne nationale (~1 900 h/an).");
+      var colSol = diffSol>=0?"#f39c12":"#3498db";
+      var gradSol = "linear-gradient(to right, #95a5a6 0%, #f39c12 50%, #e74c3c 100%)";
+      meteoGauge = miniGauge("☀️ Ensoleillement annuel", h, natSol, maxSol, gradSol,
+        "Commune : <strong>"+(h||0).toLocaleString("fr-FR")+" h/an</strong>",
+        "Moy. France : 1 900 h/an",
+        "Ensoleillement <strong>"+Math.abs(Math.round(Math.abs(diffSol)/natSol*100))+"% "+dirSol+"</strong> de la moyenne nationale (Météo France).",
+        null);
     }
-    return synthBlock(s, "☀️", "Synthèse — Météo & ensoleillement");
+    if(!s.length && !meteoGauge) return "";
+    return '<div style="margin-top:.8rem;padding:.65rem .8rem;background:rgba(184,131,42,.07);border-left:3px solid var(--gold);border-radius:4px;font-size:.76rem;color:var(--text);line-height:1.65">'
+      +'<div style="font-weight:700;margin-bottom:.4rem">☀️ Synthèse — Météo & ensoleillement</div>'
+      +meteoGauge+s.map(function(t){return '<p style="margin:.2rem 0">'+t+'</p>';}).join("")+'</div>';
   }
 
   if(cardId === 'demographie') {
@@ -4461,7 +4559,23 @@ function genSynth(cardId) {
     else if(evolPct > evolNatRef) s.push("Croissance légèrement <strong>supérieure à la tendance nationale</strong> — commune attractive.");
     else if(evolPct < 0) s.push("Légère <strong>perte de population</strong> — marché immobilier à surveiller.");
     else s.push("Évolution démographique <strong>stable</strong>, dans la moyenne nationale.");
-    return synthBlock(s, "📈", "Synthèse — Démographie");
+    // Jauge évolution population vs croissance nationale
+    var demoGauge = "";
+    var natEvol = evolNatRef || Math.round((last2.year-first2.year)*0.4);
+    var maxEvol = Math.max(Math.abs(evolPct), Math.abs(natEvol), 20);
+    var gradDemo = "linear-gradient(to right, #e74c3c 0%, #f39c12 40%, #27ae60 100%)";
+    // Centrer : 0% = milieu de la jauge
+    var demoScore = Math.min(100, Math.max(0, 50 + evolPct*2));
+    var natScore = Math.min(100, Math.max(0, 50 + natEvol*2));
+    var colDemo = evolPct>natEvol+2?"#27ae60":evolPct<natEvol-2?"#e74c3c":"#f39c12";
+    demoGauge = miniGauge("📈 Évolution de la population ("+first2.year+"→"+last2.year+")", demoScore, natScore, 100, gradDemo,
+      "Cette commune : <strong style='color:"+colDemo+"'>"+(evolPct>=0?"+":"")+evolPct+"%</strong>",
+      "France : +"+(natEvol>=0?natEvol:0)+"% (réf.)",
+      null, null);
+    if(!s.length && !demoGauge) return "";
+    return '<div style="margin-top:.8rem;padding:.65rem .8rem;background:rgba(184,131,42,.07);border-left:3px solid var(--gold);border-radius:4px;font-size:.76rem;color:var(--text);line-height:1.65">'
+      +'<div style="font-weight:700;margin-bottom:.4rem">📈 Synthèse — Démographie</div>'
+      +demoGauge+s.map(function(t){return '<p style="margin:.2rem 0">'+t+'</p>';}).join("")+'</div>';
   }
 
   if(cardId === 'altitude') {
