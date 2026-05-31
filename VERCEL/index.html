@@ -3082,6 +3082,17 @@ async function loadINSEE(citycode, lat, lng){
     updateDemographieCard(d);
     // Charger données économiques Melodi (revenu médian, chômage)
     if(d.commune?.codeInsee) loadMelodi(d.commune.codeInsee);
+    // Déclencher fetch dept DVF si DVF déjà chargé mais dept manquant (chargement parallèle)
+    var dvfDeptFallback = d.commune && (d.commune.codeDepartement || d.commune.departement || (d.commune.codeInsee||'').slice(0,2));
+    if(dvfDeptFallback && window._dvfData && !window._dvfDeptData) {
+      fetch('https://dvf-api.data.gouv.fr/departement/'+dvfDeptFallback).then(function(r){return r.json();}).then(function(dd){
+        if(!dd.data) return;
+        var recent = dd.data.filter(function(x){return x.d>='2023-01' && x.m_m>0;});
+        if(!recent.length) return;
+        window._dvfDeptData = {medianM2: Math.round(recent.reduce(function(s,x){return s+x.m_m;},0)/recent.length), dept: dvfDeptFallback};
+        appendSynth('dvf');
+      }).catch(function(){});
+    }
   }catch{
     setCard('insee','Non disponible','Erreur INSEE','');
     setCardRetry('insee',()=>currentCoords&&loadINSEE(window._inseeData?.commune?.codeInsee||'',currentCoords.lat,currentCoords.lng));
