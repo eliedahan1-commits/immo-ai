@@ -3125,6 +3125,10 @@ function renderMelodiGauges(eco, nat){
     wrap.innerHTML = "";
     return;
   }
+  // Dégradé : revenu → rouge (faible) à vert (élevé) | chômage → vert (faible) à rouge (élevé)
+  const gradRev = "linear-gradient(to right, #e74c3c 0%, #f39c12 35%, #f1c40f 55%, #27ae60 100%)";
+  const gradCho = "linear-gradient(to right, #27ae60 0%, #f1c40f 45%, #f39c12 65%, #e74c3c 100%)";
+
   let html = "<div style=\"margin-top:.8rem;padding-top:.75rem;border-top:1px solid var(--border)\">";
   html += "<div style=\"font-size:.8rem;font-weight:700;color:var(--text);margin-bottom:.75rem\">📊 Comparaison avec la moyenne nationale</div>";
 
@@ -3141,19 +3145,27 @@ function renderMelodiGauges(eco, nat){
     const yr = eco.anneeFilosofi ? " " + eco.anneeFilosofi : "";
     const cRevMens = Math.round(cRev/12).toLocaleString("fr-FR");
     const nRevMens = Math.round(nRev/12).toLocaleString("fr-FR");
+    const summary = diff >= 0
+      ? "Revenu <strong>" + diffPct + "% au-dessus</strong> de la moyenne nationale"
+      : "Revenu <strong>" + diffPct + "% en dessous</strong> de la moyenne nationale";
     html += "<div style=\"margin-bottom:1rem\">";
     html += "<div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem\">";
     html += "<span style=\"font-size:.78rem;font-weight:600;color:var(--text)\">💶 Revenu disponible net" + yr + "</span>";
     html += "<span style=\"font-size:.82rem;color:" + col + ";font-weight:700\">" + sign + diffPct + "% vs nat.</span>";
     html += "</div>";
-    html += "<div style=\"position:relative;height:10px;background:rgba(128,128,128,.15);border-radius:5px;margin-bottom:.4rem\">";
-    html += "<div style=\"width:" + pctC + "%;height:100%;background:var(--gold);border-radius:5px\"></div>";
-    html += "<div style=\"position:absolute;top:-5px;left:" + pctN + "%;width:3px;height:20px;background:#888;border-radius:2px\" title=\"Moyenne nationale\"></div>";
+    html += "<div style=\"position:relative;height:12px;background:rgba(128,128,128,.12);border-radius:6px;margin-bottom:.35rem;overflow:hidden\">";
+    html += "<div style=\"position:absolute;inset:0;background:" + gradRev + ";border-radius:6px;opacity:.25\"></div>";
+    html += "<div style=\"position:relative;width:" + pctC + "%;height:100%;background:" + gradRev + ";border-radius:6px\"></div>";
     html += "</div>";
-    html += "<div style=\"display:flex;justify-content:space-between;font-size:.75rem\">";
+    html += "<div style=\"position:relative;height:0\">";
+    html += "<div style=\"position:absolute;top:-17px;left:calc(" + pctN + "% - 1px);width:2px;height:20px;background:#777;border-radius:1px\" title=\"Moyenne nationale\"></div>";
+    html += "</div>";
+    html += "<div style=\"display:flex;justify-content:space-between;font-size:.76rem;margin-top:.1rem\">";
     html += "<span style=\"color:var(--text)\">Cette commune : <strong>" + cRevMens + " €/mois</strong></span>";
-    html += "<span style=\"color:#888\">Nationale : <strong>" + nRevMens + " €/mois</strong></span>";
-    html += "</div></div>";
+    html += "<span style=\"color:#777\">Nat. " + (eco.anneeFilosofi||"") + " : <strong>" + nRevMens + " €/mois</strong></span>";
+    html += "</div>";
+    html += "<p style=\"font-size:.72rem;color:" + col + ";margin:.25rem 0 0\">" + summary + "</p>";
+    html += "</div>";
   }
 
   if(eco.tauxChomage != null && nat.tauxChomage != null){
@@ -3165,24 +3177,33 @@ function renderMelodiGauges(eco, nat){
     const diff = cCho - nCho;
     const sign = diff >= 0 ? "+" : "";
     const col = diff < 0 ? "#27ae60" : "#e74c3c";
-    const barCol = cCho < 7 ? "#27ae60" : cCho < 12 ? "#e67e22" : "#e74c3c";
     const yr = eco.anneeEmploi ? " " + eco.anneeEmploi : "";
+    const summary = diff < 0
+      ? "Chômage <strong>" + Math.abs(diff).toFixed(1) + "pt en dessous</strong> de la moyenne nationale"
+      : diff === 0
+        ? "Chômage <strong>dans la moyenne</strong> nationale"
+        : "Chômage <strong>" + diff.toFixed(1) + "pt au-dessus</strong> de la moyenne nationale";
     html += "<div style=\"margin-bottom:.5rem\">";
     html += "<div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem\">";
     html += "<span style=\"font-size:.78rem;font-weight:600;color:var(--text)\">💼 Taux de chômage" + yr + "</span>";
     html += "<span style=\"font-size:.82rem;color:" + col + ";font-weight:700\">" + sign + diff.toFixed(1) + "pt vs nat.</span>";
     html += "</div>";
-    html += "<div style=\"position:relative;height:10px;background:rgba(128,128,128,.15);border-radius:5px;margin-bottom:.4rem\">";
-    html += "<div style=\"width:" + pctC + "%;height:100%;background:" + barCol + ";border-radius:5px\"></div>";
-    html += "<div style=\"position:absolute;top:-5px;left:" + pctN + "%;width:3px;height:20px;background:#888;border-radius:2px\" title=\"Moyenne nationale\"></div>";
+    html += "<div style=\"position:relative;height:12px;background:rgba(128,128,128,.12);border-radius:6px;margin-bottom:.35rem;overflow:hidden\">";
+    html += "<div style=\"position:absolute;inset:0;background:" + gradCho + ";border-radius:6px;opacity:.25\"></div>";
+    html += "<div style=\"position:relative;width:" + pctC + "%;height:100%;background:" + gradCho + ";border-radius:6px\"></div>";
     html += "</div>";
-    html += "<div style=\"display:flex;justify-content:space-between;font-size:.75rem\">";
+    html += "<div style=\"position:relative;height:0\">";
+    html += "<div style=\"position:absolute;top:-17px;left:calc(" + pctN + "% - 1px);width:2px;height:20px;background:#777;border-radius:1px\" title=\"Moyenne nationale\"></div>";
+    html += "</div>";
+    html += "<div style=\"display:flex;justify-content:space-between;font-size:.76rem;margin-top:.1rem\">";
     html += "<span style=\"color:var(--text)\">Cette commune : <strong>" + cCho + "%</strong></span>";
-    html += "<span style=\"color:#888\">Nationale : <strong>" + nCho + "%</strong></span>";
-    html += "</div></div>";
+    html += "<span style=\"color:#777\">Nat. " + (eco.anneeEmploi||"") + " : <strong>" + nCho + "%</strong></span>";
+    html += "</div>";
+    html += "<p style=\"font-size:.72rem;color:" + col + ";margin:.25rem 0 0\">" + summary + "</p>";
+    html += "</div>";
   }
 
-  html += "<p style=\"font-size:.65rem;color:#888;margin-top:.3rem\">Barre = commune &nbsp;·&nbsp; Trait vertical = moyenne nationale &nbsp;·&nbsp; Source INSEE Melodi</p>";
+  html += "<p style=\"font-size:.63rem;color:#999;margin-top:.5rem\">Trait vertical = moyenne nationale &nbsp;·&nbsp; Dégradé : vert = favorable, rouge = défavorable &nbsp;·&nbsp; Source INSEE Melodi</p>";
   html += "</div>";
   wrap.innerHTML = html;
 }
@@ -5912,7 +5933,7 @@ function showINSEEDetail(){
     <div id="inseeGaugesWrap"></div>
     <p style="font-size:.75rem;color:var(--muted);margin-bottom:.8rem">Département ${c?.departement||'—'} · Code INSEE ${c?.codeInsee||'—'}</p>
     <div class="map-container" id="mapInsee"></div>
-    <p style="font-size:.8rem;color:var(--accent);font-weight:500;margin-top:.6rem;padding:.4rem .6rem;background:rgba(184,131,42,.08);border-radius:4px;border-left:3px solid var(--gold)">🖱️ Cliquez sur une commune pour voir sa densité et superficie.</p>
+    <p style="font-size:.8rem;color:var(--accent);font-weight:500;margin-top:.6rem;padding:.4rem .6rem;background:rgba(184,131,42,.08);border-radius:4px;border-left:3px solid var(--gold)">🖱️ Cliquez sur une commune pour voir sa densité, superficie, revenu médian et taux de chômage.</p>
     <div style="margin-top:1rem;padding-top:.75rem;border-top:1px solid var(--border)">
       <div style="font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.5rem">📊 Densité · communes du département</div>
       <div id="inseeNeighborLoading" style="font-size:.75rem;color:var(--muted);text-align:center;padding:.4rem">Chargement…</div>
@@ -6060,6 +6081,8 @@ function showINSEEDetail(){
     window._inseeHomeMarkerBase = `<strong>📍 ${currentAddress}</strong><br><span style="font-size:.8rem;color:${densColor}"><strong>${densLabel}</strong></span><br><span style="font-size:.75rem">${(c?.population||0).toLocaleString('fr-FR')} hab. · ${(c?.densite||0).toLocaleString('fr-FR')} hab./km²</span>${supKm2?`<br><span style="font-size:.75rem">Superficie : ${supKm2.toLocaleString('fr-FR')} km²</span>`:''}`;
     window._inseeHomeMarker = L.marker([lat,lng],{icon:homeIcon}).addTo(map)
       .bindPopup(window._inseeHomeMarkerBase).openPopup();
+    // Mettre à jour le popup avec données Melodi si déjà disponibles (timing fix)
+    if(window._melodiData) updateMelodiTiles(window._melodiData);
 
     // Clic sur la carte → densité + superficie de la commune cliquée
     map.on('click', async e=>{
