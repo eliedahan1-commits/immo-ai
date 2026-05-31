@@ -1050,7 +1050,6 @@ path.leaflet-interactive:focus{outline:none;}
       <tr><td>Nantes (44)</td><td><strong>3 600 €</strong></td><td><strong>4 100 €</strong></td><td><span class="tag tag-dn">▼ -0.8%</span></td></tr>
     </tbody></table>
     <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : DVF DGFiP 2025 · Mise à jour : avril & octobre</p>
-  setTimeout(function(){appendSynth('dvf');},80);
   </div></div>
 
   <!-- ══ EMPRUNT ══ -->
@@ -3564,7 +3563,6 @@ function showQualiteAirDetail() {
     </div>
     <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-bottom:1rem">${polRows}</div>
     <p style="font-size:.62rem;color:var(--muted)">Source : Open-Meteo Air Quality · Données temps réel</p>
-  setTimeout(function(){appendSynth('qualiteair');},80);
   `, "(function(){var ks=['_aqHistChart0'];ks.forEach(function(k){if(window[k]){window[k].destroy();window[k]=null;}});showMeteoDetail();})()","← Retour météo");
 }
 
@@ -3994,7 +3992,6 @@ function showLoyersDetail() {
       <div id="lvaRows"></div>
     </div>
     <p style="font-size:.62rem;color:var(--muted)">Sources : DVF (DGFiP) pour les prix · rendements locatifs observatoires régionaux · surfaces médianes FILOCOM</p>
-  setTimeout(function(){appendSynth('loyers');},80);
   `);
   // Remplir les lignes après injection du DOM
   setTimeout(()=>{ const el=document.getElementById('lvaRows'); if(el) el.innerHTML=window._calcLvaRows(); },50);
@@ -4106,7 +4103,6 @@ function showDemographieDetail() {
     </div>
     <div style="position:relative;height:220px;margin-bottom:1rem"><canvas id="demographieChart"></canvas></div>
     <p style="font-size:.62rem;color:var(--muted);margin-top:.3rem">Source : Wikidata / INSEE (recensements) · Données : ${rows.length} points de ${first.year} à ${last.year}</p>
-  setTimeout(function(){appendSynth('demographie');},80);
   `);
 
   setTimeout(() => {
@@ -4222,6 +4218,29 @@ function showPanel(title, html, backAction, backLabel){
   // Masquer les cartes
   document.getElementById('cardsGrid').style.display = 'none';
 }
+
+// Auto-synthèse : appelée automatiquement après chaque showPanel
+(function(){
+  var _orig = showPanel;
+  showPanel = function(title, html, backAction, backLabel) {
+    _orig(title, html, backAction, backLabel);
+    var t = (title||'').toLowerCase();
+    var id = null;
+    if(t.indexOf('transactions')>=0||t.indexOf('dvf')>=0) id='dvf';
+    else if(t.indexOf('loyer')>=0||t.indexOf('locat')>=0) id='loyers';
+    else if(t.indexOf('service')>=0||t.indexOf('santé')>=0||t.indexOf('commerc')>=0) id='services';
+    else if(t.indexOf('mobilité')>=0||t.indexOf('transport')>=0) id='mobilite';
+    else if(t.indexOf('école')>=0||t.indexOf('scolaire')>=0) id='ecoles';
+    else if(t.indexOf('risque')>=0) id='risques';
+    else if(t.indexOf('bruit')>=0) id='bruit';
+    else if(t.indexOf('fibre')>=0||t.indexOf('internet')>=0) id='fibre';
+    else if(t.indexOf('météo')>=0||t.indexOf('ensoleil')>=0||t.indexOf('qualité de l')>=0) id='meteo';
+    else if(t.indexOf('démograph')>=0||t.indexOf('croissance')>=0||t.indexOf('attractivité')>=0) id='demographie';
+    else if(t.indexOf('altitude')>=0||t.indexOf('topograph')>=0) id='altitude';
+    else if(t.indexOf('zonage')>=0||t.indexOf('urbanisme')>=0||t.indexOf('plu')>=0) id='urbanisme';
+    if(id) setTimeout(function(){appendSynth(id);},100);
+  };
+})();
 
 function closePanel(){
   window._demographiePanelOpen = false;
@@ -4755,7 +4774,6 @@ function showDVFDetail(){
     <tbody id="dvfTbody"></tbody></table>
     </div>
     <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">${periodeLabel?periodeLabel+' · ':''}Source : ${d.source}</p>`);
-  setTimeout(function(){appendSynth('dvf');},80);
   renderDVFRows();
   setTimeout(()=>refreshDVFChart(), 80);
   setTimeout(()=>buildDvfEvolutionChart(), 120);
@@ -4882,7 +4900,6 @@ function showRisquesDetail(){
       <a href="https://www.georisques.gouv.fr/me-preparer-me-proteger" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:.4rem;border:1px solid var(--border);color:var(--text);padding:.42rem .85rem;border-radius:20px;font-size:.77rem;font-weight:600;text-decoration:none">📄 Se préparer aux risques ↗</a>
     </div>
     <p style="font-size:.61rem;color:var(--muted);margin-top:.6rem">Données officielles Géorisques (BRGM) · Service public · Mise à jour continue</p>`);
-  setTimeout(function(){appendSynth('risques');},80);
 
   setTimeout(()=>{
     const el = document.getElementById('mapRisques');
@@ -5080,7 +5097,6 @@ function showEcolesDetail(){
     <div id="ipsResume" style="margin-bottom:.8rem"></div>
     <div id="ecolesListe"></div>
     <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : OpenStreetMap · Rayon ${(window._ecolesCurrentDist||500)>=1000?((window._ecolesCurrentDist||500)/1000)+'km':(window._ecolesCurrentDist||500)+'m'}</p>
-  setTimeout(function(){appendSynth('ecoles');},80);
     <div style="margin-top:.8rem;padding:.75rem 1rem;background:linear-gradient(135deg,rgba(184,131,42,.08),rgba(184,131,42,.03));border:1px solid var(--goldborder);border-radius:8px;display:flex;align-items:center;gap:.8rem;flex-wrap:wrap">
       <span style="font-size:.82rem;color:var(--text);flex:1;min-width:180px">🎓 Vous aider à choisir votre parcours d'études et trouver votre école ?</span>
       <a href="https://www.chooseandconnect.com/" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:.4rem;padding:.45rem 1rem;background:var(--ink);color:var(--gold);border-radius:6px;font-size:.78rem;font-weight:600;text-decoration:none;white-space:nowrap;transition:opacity .2s" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">Choisir avec Choose &amp; Connect ↗</a>
@@ -5162,7 +5178,6 @@ function showMobiliteDetail(){
     <div style="margin-top:1.2rem;height:160px;width:70%"><canvas id="mobiliteChart"></canvas></div>
     ${d.arretsPrincipaux?.length?`<p style="font-size:.75rem;color:var(--muted);margin-top:.5rem">Principaux arrêts : ${d.arretsPrincipaux.join(' · ')}</p>`:''}
     <p style="font-size:.62rem;color:var(--muted);margin-top:.4rem">Source : OpenStreetMap via Overpass API · Rayon ${mobDist}m</p>
-  setTimeout(function(){appendSynth('mobilite');},80);
     <div id="mobListeSection" style="margin-top:1.2rem"></div>
   `);
 
@@ -5557,7 +5572,6 @@ function showServicesMap(filterCat){
     <div class="map-container" id="mapServices"></div>
     <div style="margin-top:1.2rem;height:220px"><canvas id="servicesChart"></canvas></div>
     <p style="font-size:.62rem;color:var(--muted);margin-top:.4rem">Source : OpenStreetMap · Rayon ${svcDist>=1000?(svcDist/1000)+'km':svcDist+'m'} · ${d.total} établissements trouvés</p>
-  setTimeout(function(){appendSynth('services');},80);
     <div id="seniors-section-placeholder"></div>
     <div id="svcListeSection" style="margin-top:1.2rem"></div>
   `);
@@ -5960,9 +5974,6 @@ function showBruitDetail(){
       <a href="https://www.georisques.gouv.fr/" target="_blank" style="color:var(--gold)">georisques.gouv.fr</a>
     </div>
     <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">Source : ${d.source}</p>`);
-  setTimeout(function(){appendSynth('altitude');},80);
-  setTimeout(function(){appendSynth('fibre');},80);
-  setTimeout(function(){appendSynth('bruit');},80);
 }
 
 function showUrbanismeDetail(){
@@ -6029,7 +6040,6 @@ function showUrbanismeDetail(){
     </div>`:''}
     <p style="font-size:.62rem;color:var(--muted)">Document ${doc?.dateApprobation?'approuvé le '+doc.dateApprobation:''} · ${d.source}</p>
     <p style="font-size:.72rem;margin-top:.5rem"><a href="https://www.geoportail-urbanisme.gouv.fr/" target="_blank" style="color:var(--gold)">Consulter le PLU complet sur Géoportail Urbanisme →</a></p>
-  setTimeout(function(){appendSynth('urbanisme');},80);
     ${(()=>{
       const dept = (window._inseeData?.commune?.codeDepartement || (window._inseeData?.commune?.codeInsee||'').slice(0,2) || '').toString();
       const PTZ = {
@@ -6169,7 +6179,6 @@ function showMeteoDetail(){
       <div style="font-size:.6rem;color:var(--muted);margin-top:.3rem">% de la recommandation OMS 2021 (non réglementaire) · 100% = limite OMS · Moyennes mensuelles · Open-Meteo Air Quality</div>
     </div>
     <p style="font-size:.62rem;color:var(--muted)">Source : ${d.source} · Qualité air : Open-Meteo Air Quality</p>`);
-  setTimeout(function(){appendSynth('meteo');},80);
 
   // Graphique températures mensuelles (données journalières 2022-2023 agrégées par mois)
   setTimeout(async ()=>{
