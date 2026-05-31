@@ -3082,7 +3082,7 @@ async function loadMelodi(codeInsee){
   window._melodiNational = null;
   if(!codeInsee) return;
   try{
-    const r = await fetch('/api/insee?action=melodi&codeInsee='+codeInsee, {signal:AbortSignal.timeout(12000)});
+    const r = await fetch('/api/insee?action=melodi&codeInsee='+codeInsee+'&v=2', {signal:AbortSignal.timeout(12000)});
     if(!r.ok) throw new Error('melodi '+r.status);
     const d = await r.json();
     if(!d.success) throw new Error();
