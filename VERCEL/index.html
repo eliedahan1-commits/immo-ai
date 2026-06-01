@@ -4353,7 +4353,7 @@ function showPanel(title, html, backAction, backLabel){
     else if(t.indexOf('risque')>=0) id='risques';
     else if(t.indexOf('bruit')>=0) id='bruit';
     else if(t.indexOf('fibre')>=0||t.indexOf('internet')>=0) id='fibre';
-    else if(t.indexOf('météo')>=0||t.indexOf('ensoleil')>=0||t.indexOf('qualité de l')>=0) id='meteo';
+    else if(t.indexOf('météo')>=0||t.indexOf('ensoleil')>=0) id='meteo';
     else if(t.indexOf('démograph')>=0||t.indexOf('attractiv')>=0||t.indexOf('croissance')>=0) id='demographie';
     else if(t.indexOf('altitude')>=0||t.indexOf('topograph')>=0) id='altitude';
     else if(t.indexOf('logement')>=0||t.indexOf('habitat')>=0) id='logement';
@@ -4505,11 +4505,8 @@ function genSynth(cardId) {
     if(st.arretsBus>0) modes.push(st.arretsBus+" arrêts bus");
     if(st.veloStations>0) modes.push(st.veloStations+" stations vélo");
     if(modes.length) s.push("Transports disponibles : "+modes.join(", ")+".");
-    var mel2 = window._melodiData;
-    if(mel2 && mel2.tauxChomage!=null) {
-      var mobLabel = d.score>=7?"réseau très développé":d.score>=5?"réseau correct":"réseau à développer";
-      s.push(mobLabel+" — "+mel2.tauxChomage+"% de chômage local (bonne accessibilité = atout emploi).");
-    }
+    var mobLabel = d.score>=7?"réseau très développé":d.score>=5?"réseau correct":"réseau à développer";
+    s.push(mobLabel+".");
     // Données navettes Melodi
     var navD = window._melodiData?.navettes;
     if(navD && navD['_T']) {
@@ -5404,9 +5401,9 @@ function showEcolesDetail(){
             <div style="font-family:'Cormorant Garamond',serif;font-size:1.8rem;color:var(--gold2)">${lycee}</div>
             <div style="font-size:.57rem;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.08em">Lycées</div>
           </div>
-          <div style="background:rgba(184,131,42,.1);border:1px solid var(--goldborder);border-radius:var(--r);padding:.7rem .8rem;text-align:center">
-            <div style="font-family:'Cormorant Garamond',serif;font-size:1.8rem;color:var(--accent)">${total}</div>
-            <div style="font-size:.57rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Total</div>
+          <div style="background:var(--ink);border-radius:var(--r);padding:.7rem .8rem;text-align:center">
+            <div style="font-family:'Cormorant Garamond',serif;font-size:1.8rem;color:var(--gold2)">${total}</div>
+            <div style="font-size:.57rem;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.08em">Total</div>
           </div>
         </div>
         <!-- Filtres compacts : Type + Rayon sur 2 lignes -->
