@@ -3792,7 +3792,7 @@ function showScoreDetail() {
 
     // ── Helpers ──
     const tag = (txt, color) => '<span style="display:inline-block;background:'+color+'18;color:'+color+';border:1px solid '+color+'44;border-radius:3px;padding:.05rem .35rem;font-size:.68rem;font-weight:600;margin:.1rem .15rem 0 0">'+txt+'</span>';
-    const row = (icon, label, val, dot) => { const dotHtml = dot ? '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+dot+';margin-right:.35rem;flex-shrink:0;margin-top:.2rem"></span>' : ''; return '<div style="display:flex;justify-content:space-between;align-items:center;padding:.2rem 0;border-bottom:1px solid rgba(0,0,0,.05)"><span style="font-size:.72rem;color:var(--muted);display:flex;align-items:center">'+dotHtml+icon+' '+label+'</span><span style="font-size:.75rem;font-weight:600;color:var(--text)">'+val+'</span></div>'; };
+    const row = (icon, label, val, dot) => { const dotHtml = dot ? '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+dot+';margin-left:.4rem;flex-shrink:0"></span>' : ''; return '<div style="display:flex;justify-content:space-between;align-items:center;padding:.2rem 0;border-bottom:1px solid rgba(0,0,0,.05)"><span style="font-size:.72rem;color:var(--muted)">'+icon+' '+label+'</span><span style="font-size:.75rem;font-weight:600;color:var(--text);display:flex;align-items:center">'+val+dotHtml+'</span></div>'; };
     const section = (title, rows, color) => {
       if(!rows.filter(Boolean).length) return "";
       color = color||"#b8832a";
@@ -3894,31 +3894,58 @@ function showScoreDetail() {
 
     if(!sections.length && !fortsTags) return "";
 
-    // ── Phrases narratives ──
+    // ── Phrases narratives enrichies ──
     const narratif = (function(){
       const parts = [];
+      // Profil général
       if(ins?.population && ins?.densite){
         const densLbl=ins.densite>10000?"très dense":ins.densite>5000?"dense":ins.densite>2000?"urbaine":"peu dense";
-        parts.push((ins.nom||"Cette commune")+" est une commune <strong>"+densLbl+"</strong> de "+ins.population.toLocaleString("fr-FR")+" habitants"+(ins.superficie?" sur "+Math.round(ins.superficie)+" km²":"")+".");
+        parts.push((ins.nom||"Cette commune")+" est une commune <strong>"+densLbl+"</strong> de <strong>"+ins.population.toLocaleString("fr-FR")+"</strong> habitants"+(ins.superficie?" répartis sur "+Math.round(ins.superficie)+" km²":"")+".");
       }
+      // Marché immobilier
       if(dvf?.stats?.medianM2){
         const p=dvf.stats.medianM2.toLocaleString("fr-FR");
         const dept2=dept?.medianM2;
         const diffD2=dept2?Math.round((dvf.stats.medianM2-dept2)/dept2*100):null;
-        parts.push("Le marché immobilier affiche un prix médian de <strong>"+p+" €/m²</strong>"+(diffD2!=null?" ("+(diffD2>=0?"+":"")+diffD2+"% vs département)":"")+".");
+        const natRef=2800; const diffN2=Math.round((dvf.stats.medianM2-natRef)/natRef*100);
+        let mktTxt="Le marché immobilier est <strong>"+(dvf.stats.medianM2>8000?"premium":dvf.stats.medianM2>5000?"tendu":"accessible")+"</strong> avec un prix médian de <strong>"+p+" €/m²</strong>";
+        if(diffD2!=null) mktTxt+=" ("+(diffD2>=0?"+":"")+diffD2+"% vs département, "+(diffN2>=0?"+":"")+diffN2+"% vs France)";
+        if(dvf.count) mktTxt+=", basé sur "+dvf.count+" transactions";
+        if(mel?.revenuMedian && dvf?.stats?.medianM2){ const effort=Math.round(dvf.stats.medianM2*50/(mel.revenuMedian/12)); mktTxt+=". L'effort d'achat représente <strong>"+effort+" mois</strong> de revenu médian pour 50 m²"; }
+        parts.push(mktTxt+".");
       }
+      // Profil socio-économique
       if(mel?.revenuMedian && nat?.revenuMedian){
         const diff=Math.round((mel.revenuMedian-nat.revenuMedian)/nat.revenuMedian*100);
         const dir=diff>=0?"au-dessus":"en dessous";
         const revM=Math.round(mel.revenuMedian/12).toLocaleString("fr-FR");
-        parts.push("Le revenu médian ("+revM+" €/mois) est <strong>"+Math.abs(diff)+"% "+dir+"</strong> de la moyenne nationale"+(mel.tauxChomage!=null?", avec un taux de chômage de "+mel.tauxChomage+"%":"")+".");
+        let ecoTxt="Côté économie, le revenu disponible médian s'élève à <strong>"+revM+" €/mois</strong>, soit <strong>"+Math.abs(diff)+"% "+dir+"</strong> de la moyenne nationale";
+        if(mel.tauxChomage!=null){ const cDir=nat?.tauxChomage!=null&&mel.tauxChomage<nat.tauxChomage?"en dessous":"au-dessus"; ecoTxt+=", avec un chômage de "+mel.tauxChomage+"% (légèrement "+(nat?.tauxChomage!=null?cDir+" de la nationale ("+nat.tauxChomage+"%)":"dans la moyenne")+")"; }
+        if(mel.pctBac5!=null) ecoTxt+=". La population est <strong>"+(mel.pctBac5>=35?"très qualifiée":mel.pctBac5>=20?"qualifiée":"diversifiée")+"</strong> ("+mel.pctBac5+"% de Bac+5 et +)";
+        parts.push(ecoTxt+".");
       }
-      if(mob?.score && meteo?.ensoleillement?.heuresAnnuelles){
-        const mobLbl=mob.score>=8?"excellente":mob.score>=6?"bonne":"correcte";
-        const h=meteo.ensoleillement.heuresAnnuelles;
-        parts.push("La mobilité est <strong>"+mobLbl+"</strong> ("+mob.score+"/10) et l'ensoleillement atteint "+h.toLocaleString("fr-FR")+" h/an.");
+      // Logement
+      if(mel?.pctPropri!=null){
+        const pV2=mel.nbVacants&&mel.nbResidPrinc?Math.round(mel.nbVacants/(mel.nbResidPrinc+mel.nbVacants)*100):null;
+        const profil=mel.pctPropri>=60?"profil propriétaire":mel.pctPropri<40?"profil locataire dominant":"profil mixte";
+        let logTxt="Le parc immobilier présente un <strong>"+profil+"</strong> ("+mel.pctPropri+"% de propriétaires"+(nat?.pctPropri!=null?", nat. "+nat.pctPropri+"%":"")+")";
+        if(pV2!=null) logTxt+=" avec un taux de vacance de "+pV2+"% ("+(pV2<=5?"marché très tendu":pV2<=9?"marché tendu":"offre disponible")+")";
+        parts.push(logTxt+".");
       }
-      return parts.length ? '<p style="font-size:.76rem;color:var(--text);line-height:1.7;margin:.3rem 0 .6rem">'+parts.join(" ")+'</p>' : "";
+      // Cadre de vie
+      const vParts=[];
+      if(mob?.score) vParts.push("une mobilité <strong>"+(mob.score>=8?"excellente":mob.score>=6?"bonne":"correcte")+"</strong> ("+mob.score+"/10"+(mob.stats?.metro>0?", "+mob.stats.metro+" métro/RER":"")+")");
+      if(meteo?.ensoleillement?.heuresAnnuelles) vParts.push("<strong>"+(meteo.ensoleillement.heuresAnnuelles>1800?"bon":meteo.ensoleillement.heuresAnnuelles>1300?"modéré":"faible")+" ensoleillement</strong> ("+meteo.ensoleillement.heuresAnnuelles.toLocaleString("fr-FR")+" h/an)");
+      if(bruit?.niveauCode){const sc3=Math.min((bruit.score||0)+(ins?.densite>10000?4:ins?.densite>5000?3:ins?.densite>2000?2:1),10);vParts.push("un bruit "+(sc3>=7?"élevé":sc3>=4?"modéré":"faible"));}
+      if(aq?.aqi) vParts.push("une qualité de l'air <strong>"+(aq.aqi<=30?"bonne":aq.aqi<=60?"correcte":"préoccupante")+"</strong> (AQI "+aq.aqi+")");
+      if(vParts.length) parts.push("Le cadre de vie se caractérise par "+vParts.join(", ")+".");
+      // Sécurité & risques
+      const secParts=[];
+      if(risques?.total!=null) secParts.push(risques.total===0?"aucun risque naturel répertorié":"<strong>"+risques.total+" risque(s)</strong> naturel(s) identifié(s)");
+      const cr2=window._criminaliteData;
+      if(cr2&&cr2.success&&cr2.indicateurs){function nS(v){return v.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");}const RF=[["vol sans violence",11],["vol avec violence",2.5],["violences physiques",9],["cambriolage",3.5],["vehicule",2.8],["escroquerie",6],["destruction",8],["stupefiants",4]];function nR(i){var l=nS(i);for(var j=0;j<RF.length;j++)if(l.indexOf(RF[j][0])>=0)return RF[j][1];return null;}var rs3=0,rc3=0;Object.entries(cr2.indicateurs).forEach(function(e){var r=nR(e[0]);if(r&&r>0&&e[1].taux!=null){rs3+=e[1].taux/r;rc3++;}});if(rc3>0){var sc4=Math.max(1,Math.min(10,Math.round(10*(2-Math.min(rs3/rc3,2))/2)));secParts.push("un risque sécurité <strong>"+(sc4>=7?"faible":sc4>=4?"modéré":"élevé")+"</strong> ("+sc4+"/10)");}}
+      if(secParts.length) parts.push("En matière de risques : "+secParts.join(" et ")+".");
+      return parts.length ? '<p style="font-size:.76rem;color:var(--text);line-height:1.75;margin:.3rem 0 .6rem">'+parts.map(p=>'<span style="display:block;margin-bottom:.3rem">'+p+'</span>').join("")+'</p>' : "";
     })();
 
     return '<div style="margin:.8rem 0">'
