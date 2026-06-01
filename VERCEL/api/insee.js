@@ -63,7 +63,7 @@ export default async function handler(req, res) {
           return r.ok ? r.json() : null;
         } catch(e) { return null; }
       };
-      const [dFilosofi, dEmploi, dFilosofiNat, dEmploiActifsNat, dEmploiChomNat, dLogement, dMenages, dDiplomes, dLogNat, dMenNat] = await Promise.all([
+      const [dFilosofi, dEmploi, dFilosofiNat, dEmploiActifsNat, dEmploiChomNat, dLogement, dMenages, dDiplomes, dLogNat, dMenNat, dPopulation, dNavettes, dMigres] = await Promise.all([
         fetchMelodiDataset('DS_FILOSOFI_CC', code),
         fetchMelodiDataset('DS_RP_EMPLOI_LR_PRINC', code),
         fetchMelodiNational('DS_FILOSOFI_CC'),
@@ -74,6 +74,9 @@ export default async function handler(req, res) {
         fetchMelodiDataset('DS_RP_DIPLOMES_PRINC', code),
         fetchMelodiNational('DS_RP_LOGEMENT_PRINC'),
         fetchMelodiNational('DS_RP_MENAGES_PRINC'),
+        fetchMelodiDataset('DS_RP_POPULATION_PRINC', code),
+        fetchMelodiDataset('DS_RP_NAVETTES_PRINC', code),
+        fetchMelodiDataset('DS_RP_MIGRES_PRINC', code),
       ]);
 
       // Revenu disponible médian net (MED_SL) — dernière année disponible
@@ -187,6 +190,40 @@ export default async function handler(req, res) {
       const nbSeulsNat = seulsNatObs.reduce((s,o)=>s+(o.measures?.OBS_VALUE_NIVEAU?.value||0),0);
       const pctSeulsNat = (logNatTotal && nbSeulsNat) ? Math.round(nbSeulsNat/logNatTotal*100) : null;
 
+      // ── Pyramide des âges (DS_RP_POPULATION_PRINC) ──
+      const popObs = dPopulation?.observations || [];
+      const AGE_TRS = ['Y_LT15','Y15T24','Y25T39','Y40T54','Y55T64','Y65T79','Y_GE80'];
+      const pyramideAges = {};
+      AGE_TRS.forEach(age => {
+        const o = findLatest(popObs, o => o.dimensions?.AGE===age && (!o.dimensions?.SEX||o.dimensions?.SEX==='_T') && (!o.dimensions?.RP_MEASURE||o.dimensions?.RP_MEASURE==='POP'));
+        if (o?.measures?.OBS_VALUE_NIVEAU?.value) pyramideAges[age] = Math.round(o.measures.OBS_VALUE_NIVEAU.value);
+      });
+      const pyramideAnnee = findLatest(popObs, o => (!o.dimensions?.SEX||o.dimensions?.SEX==='_T') && (!o.dimensions?.RP_MEASURE||o.dimensions?.RP_MEASURE==='POP'))?.dimensions?.TIME_PERIOD || null;
+
+      // ── Navettes domicile-travail (DS_RP_NAVETTES_PRINC) ──
+      const navObs = dNavettes?.observations || [];
+      const TRANS_CODES = ['_T','1','2','3','4','5','6'];
+      const navettes = {};
+      TRANS_CODES.forEach(t => {
+        const o = findLatest(navObs, o => o.dimensions?.TRANS===t
+          && (!o.dimensions?.WORK_AREA||o.dimensions?.WORK_AREA==='_T')
+          && (!o.dimensions?.SEX||o.dimensions?.SEX==='_T')
+          && (!o.dimensions?.AGE||o.dimensions?.AGE==='_T'));
+        if (o?.measures?.OBS_VALUE_NIVEAU?.value != null) navettes[t] = Math.round(o.measures.OBS_VALUE_NIVEAU.value);
+      });
+      const navetteAnnee = findLatest(navObs, o => o.dimensions?.TRANS==='_T')?.dimensions?.TIME_PERIOD || null;
+
+      // ── Migrations (DS_RP_MIGRES_PRINC) ──
+      const migObs = dMigres?.observations || [];
+      const migTotObs = findLatest(migObs, o => (!o.dimensions?.SEX||o.dimensions?.SEX==='_T') && (!o.dimensions?.AGE||o.dimensions?.AGE==='_T') && (!o.dimensions?.PREV_RES_AREA||o.dimensions?.PREV_RES_AREA==='_T'));
+      const migStableObs = findLatest(migObs, o => (!o.dimensions?.SEX||o.dimensions?.SEX==='_T') && (!o.dimensions?.AGE||o.dimensions?.AGE==='_T') && o.dimensions?.PREV_RES_AREA==='SAM_MUN');
+      const migArrObs = findLatest(migObs, o => (!o.dimensions?.SEX||o.dimensions?.SEX==='_T') && (!o.dimensions?.AGE||o.dimensions?.AGE==='_T') && o.dimensions?.PREV_RES_AREA==='OTH');
+      const migTotal = migTotObs?.measures?.OBS_VALUE_NIVEAU?.value ? Math.round(migTotObs.measures.OBS_VALUE_NIVEAU.value) : null;
+      const migStable = migStableObs?.measures?.OBS_VALUE_NIVEAU?.value ? Math.round(migStableObs.measures.OBS_VALUE_NIVEAU.value) : null;
+      const migArrivals = migArrObs?.measures?.OBS_VALUE_NIVEAU?.value ? Math.round(migArrObs.measures.OBS_VALUE_NIVEAU.value) : null;
+      const pctMigArrivals = (migTotal && migArrivals) ? Math.round(migArrivals/migTotal*100) : null;
+      const migAnnee = migTotObs?.dimensions?.TIME_PERIOD || null;
+
       res.setHeader('Cache-Control', 'public, max-age=86400');
       return res.status(200).json({
         success: true,
@@ -195,7 +232,8 @@ export default async function handler(req, res) {
           nbActifs: nbActifs ? Math.round(nbActifs) : null,
           pctPropri, pctLocataires, nbResidPrinc, nbVacants, anneeLogement,
           pctSeuls,
-          pctBac5, pctLicence, pctBts, pctBac, pctCapBep, pctBrevet, pctSansDip, anneeDiplomes
+          pctBac5, pctLicence, pctBts, pctBac, pctCapBep, pctBrevet, pctSansDip, anneeDiplomes,
+          pyramideAges, pyramideAnnee, navettes, navetteAnnee, pctMigArrivals, migAnnee
         },
         melodiNational: { revenuMedian: revenuMedianNat, tauxChomage: tauxChomageNat, anneeFilosofi: anneeFilosofiNat, anneeEmploi: anneeEmploiNat, pctPropri: pctPropriNat, pctVac: pctVacNat, pctSeuls: pctSeulsNat, anneeLogement: anneeLogementNat }
       });

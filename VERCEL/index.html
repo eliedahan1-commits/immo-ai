@@ -886,7 +886,7 @@ path.leaflet-interactive:focus{outline:none;}
       <div class="nav-item" onclick="setActiveNavItem(this);go('ecoles')"><span class="nav-icon">🏫</span>Écoles & niveau scolaire</div>
       <div class="nav-item" onclick="setActiveNavItem(this);go('soleil')"><span class="nav-icon">☀️</span>Météo et qualité de l'air</div>
       <div class="nav-item" onclick="setActiveNavItem(this);go('analyse');setTimeout(()=>showDetail('insee'),300)"><span class="nav-icon">📊</span>Population, économie & société</div>
-      <div class="nav-item" onclick="setActiveNavItem(this);go('analyse');setTimeout(()=>showDemographieDetail(),300)"><span class="nav-icon">📈</span>Croissance de la population</div>
+      <div class="nav-item" onclick="setActiveNavItem(this);go('analyse');setTimeout(()=>showDemographieDetail(),300)"><span class="nav-icon">📊</span>Démographie & attractivité</div>
       <div class="nav-item" onclick="setActiveNavItem(this);go('risques')"><span class="nav-icon">⚠️</span>Risques naturels & industriels</div>
       <div class="nav-item" onclick="setActiveNavItem(this);go('analyse');setTimeout(()=>showAltitudeDetail(),300)"><span class="nav-icon">🏔️</span>Altitude & topographie</div>
       <div class="nav-item" onclick="setActiveNavItem(this);go('bruit')"><span class="nav-icon">🔇</span>Carte du bruit</div>
@@ -2431,7 +2431,8 @@ function renderCards(props, coords){
         {id:'ecoles',    icon:'🏫', label:'Écoles & niveau scolaire',           value:'<span class="spin"></span>', sub:'IPS & résultats',           source:'Éducation'},
         {id:'meteo',     icon:'☀️', label:"Météo et qualité de l'air", value:'<span class="spin"></span>', sub:'Moyenne 5 ans',            source:'open-meteo'},
         {id:'insee',     icon:'📊', label:'Population, économie & société',     value:'<span class="spin"></span>', sub:'Population & densité',      source:'INSEE'},
-        {id:'demographie',icon:'📈',label:'Croissance de la population',value:'<span class="spin"></span>', sub:'Historique population',     source:'Wikidata/INSEE'},
+        {id:'demographie',icon:'📊',label:'Démographie & attractivité',value:'<span class="spin"></span>', sub:'Population & pyramide',     source:'Wikidata/INSEE'},
+        {id:'logement',   icon:'🏠', label:'Logement & habitat',            value:'<span class="spin"></span>', sub:'Propriétaires · Locataires', source:'INSEE Melodi'},
         {id:'risques',   icon:'⚠️', label:'Risques naturels & industriels',       value:'<span class="spin"></span>', sub:'Géorisques officiel',       source:'Géorisques'},
         {id:'altitude',  icon:'🏔️', label:'Altitude & topographie', value:'<span class="spin"></span>', sub:'Précision 1m · IGN',       source:'IGN RGE Alti'},
         {id:'bruit',     icon:'🔇', label:'Carte du bruit',      value:'<span class="spin"></span>', sub:'Routes, voies ferrées, aéroports', source:'OSM'},
@@ -3145,6 +3146,12 @@ function updateMelodiTiles(eco){
   if(tVac && eco.nbVacants!=null && eco.nbResidPrinc){
     const pctVac = Math.round(eco.nbVacants/(eco.nbResidPrinc+eco.nbVacants)*100);
     tVac.innerHTML = '<span class="stat-n">'+pctVac+'%</span><span class="stat-l">🏚️ Logements vacants'+yrL+'</span>';
+  }
+  // Carte Logement & habitat
+  if(eco.pctPropri!=null && eco.nbResidPrinc) {
+    const pctVacL = eco.nbVacants ? Math.round(eco.nbVacants/(eco.nbResidPrinc+eco.nbVacants)*100) : null;
+    const subLog = pctVacL!=null ? eco.pctPropri+'% prop. · '+pctVacL+'% vacants' : eco.pctPropri+'% propriétaires';
+    setCard('logement', (eco.nbResidPrinc).toLocaleString('fr-FR')+' logements', subLog, eco.pctPropri>=60?'good':eco.pctPropri>=40?'':'warn');
   }
 
   renderMelodiGauges(eco, window._melodiNational);
@@ -4102,7 +4109,7 @@ function showDemographieDetail() {
     // Cas 2 : analyse encore en cours (INSEE pas encore répondu → carte a un .spin)
     const cardStillLoading = !!document.querySelector('#card-demographie .spin');
     if (window._demographieLoading || cardStillLoading) {
-      showPanel('📈 Croissance de la population',
+      showPanel('📊 Démographie & attractivité',
         '<p style="color:var(--muted)"><span class="spin"></span> Chargement des données historiques…</p>'
         + (c ? `<p style="font-size:.8rem;color:var(--text)">Population actuelle : <strong>${(c.population||0).toLocaleString('fr-FR')} habitants</strong></p>` : '')
       );
@@ -4118,7 +4125,7 @@ function showDemographieDetail() {
       }, 2000);
       return;
     }
-    showPanel('📈 Croissance de la population',
+    showPanel('📊 Démographie & attractivité',
       '<p style="color:var(--muted)">Données historiques non disponibles via Wikidata pour cette commune.</p>'
       + (c ? `<p style="font-size:.8rem;color:var(--text)">Population actuelle : <strong>${(c.population||0).toLocaleString('fr-FR')} habitants</strong></p>` : '')
       + `<button onclick="if(window._inseeData){window._demographiePanelOpen=true;updateDemographieCard(window._inseeData);showDemographieDetail();}" style="margin-top:.6rem;font-size:.73rem;padding:.25rem .75rem;border:1px solid var(--border);border-radius:10px;background:none;color:var(--muted);cursor:pointer">↻ Réessayer</button>`
@@ -4133,7 +4140,7 @@ function showDemographieDetail() {
   const sign = evol >= 0 ? '+' : '';
   const evolColor = evol >= 0 ? '#27ae60' : '#e74c3c';
 
-  showPanel('📈 Croissance de la population · ' + (c?.nom || ''), `
+  showPanel('📊 Démographie & attractivité · ' + (c?.nom || ''), `
     <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:.5rem">
       <div class="stat-box"><span class="stat-n">${last.pop.toLocaleString('fr-FR')}</span><span class="stat-l">👥 Population ${last.year}</span></div>
       <div class="stat-box"><span class="stat-n" style="color:${evolColor}">${sign}${Number(evolPct).toLocaleString('fr-FR')}%</span><span class="stat-l">📈 Évolution depuis ${first.year}</span></div>
@@ -4142,6 +4149,16 @@ function showDemographieDetail() {
     </div>
     <div style="position:relative;height:220px;margin-bottom:1rem"><canvas id="demographieChart"></canvas></div>
     <p style="font-size:.62rem;color:var(--muted);margin-top:.3rem">Source : Wikidata / INSEE (recensements) · Données : ${rows.length} points de ${first.year} à ${last.year}</p>
+    ${window._melodiData?.pyramideAges && Object.keys(window._melodiData.pyramideAges).length >= 5 ? `
+    <div style="margin-top:1.2rem">
+      <p style="font-size:.74rem;font-weight:700;color:var(--text);margin-bottom:.6rem">📊 Pyramide des âges${window._melodiData.pyramideAnnee?' · '+window._melodiData.pyramideAnnee:''}</p>
+      <div id="pyramideAgesChart" style="font-size:.72rem"></div>
+    </div>` : ''}
+    ${window._melodiData?.pctMigArrivals != null ? `
+    <div style="margin-top:1rem;padding:.6rem .8rem;background:rgba(184,131,42,.06);border-left:3px solid var(--gold);border-radius:4px;font-size:.76rem">
+      <strong>🔄 Mobilité résidentielle${window._melodiData.migAnnee?' · '+window._melodiData.migAnnee:''}</strong>
+      <p style="margin:.3rem 0 0">Part des résidents arrivés d'une autre commune : <strong>${window._melodiData.pctMigArrivals}%</strong>${window._melodiData.pctMigArrivals>25?' — commune attractive, fort renouvellement':window._melodiData.pctMigArrivals>15?' — mobilité résidentielle notable':' — population stable'}</p>
+    </div>` : ''}
   `);
 
   setTimeout(() => {
@@ -4188,6 +4205,69 @@ function showDemographieDetail() {
       }
     });
   }, 100);
+
+  // Rendu pyramide des âges
+  setTimeout(() => {
+    const pyr = window._melodiData?.pyramideAges;
+    if (!pyr || !Object.keys(pyr).length) return;
+    const container = document.getElementById('pyramideAgesChart');
+    if (!container) return;
+    const AGE_LABELS = {'Y_LT15':'0-14 ans','Y15T24':'15-24 ans','Y25T39':'25-39 ans','Y40T54':'40-54 ans','Y55T64':'55-64 ans','Y65T79':'65-79 ans','Y_GE80':'80+ ans'};
+    const total = Object.values(pyr).reduce((s,v)=>s+v,0);
+    const maxVal = Math.max(...Object.values(pyr));
+    let html = '';
+    Object.keys(AGE_LABELS).forEach(k => {
+      const v = pyr[k] || 0;
+      const pct = total ? Math.round(v/total*100) : 0;
+      const barW = maxVal ? Math.round(v/maxVal*100) : 0;
+      const color = k==='Y_LT15'||k==='Y15T24'?'#3498db':k==='Y65T79'||k==='Y_GE80'?'#e74c3c':'#b8832a';
+      html += `<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.3rem">
+        <span style="width:5.5rem;font-size:.68rem;color:var(--muted);text-align:right;flex-shrink:0">${AGE_LABELS[k]}</span>
+        <div style="flex:1;background:rgba(0,0,0,.06);border-radius:3px;height:14px;overflow:hidden">
+          <div style="height:100%;width:${barW}%;background:${color};border-radius:3px;transition:width .4s"></div>
+        </div>
+        <span style="width:2.5rem;font-size:.68rem;color:var(--text);font-weight:600">${pct}%</span>
+      </div>`;
+    });
+    container.innerHTML = html;
+  }, 200);
+}
+
+function showLogementDetail() {
+  const mel = window._melodiData;
+  const c = window._inseeData?.commune;
+  if (!mel || mel.pctPropri == null) {
+    showPanel("🏠 Logement & habitat", "<p style='color:var(--muted)'>Données en cours de chargement…</p>");
+    return;
+  }
+  const yrL = mel.anneeLogement ? " · " + mel.anneeLogement : "";
+  const pctVac = mel.nbVacants && mel.nbResidPrinc ? Math.round(mel.nbVacants/(mel.nbResidPrinc+mel.nbVacants)*100) : null;
+  const pctLoc = mel.pctLocataires || (100 - mel.pctPropri - (pctVac||0));
+  const nom = c?.nom || "";
+
+  const bar = (label, val, color, max) => {
+    const w = max ? Math.round(val/max*100) : val;
+    return `<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem">
+      <span style="width:9rem;font-size:.72rem;color:var(--text);flex-shrink:0">${label}</span>
+      <div style="flex:1;background:rgba(0,0,0,.06);border-radius:3px;height:14px;overflow:hidden">
+        <div style="height:100%;width:${w}%;background:${color};border-radius:3px"></div>
+      </div>
+      <span style="width:2.8rem;font-size:.72rem;font-weight:600;color:var(--text);text-align:right">${val}%</span>
+    </div>`;
+  };
+
+  showPanel("🏠 Logement & habitat" + (nom ? " · "+nom : ""), `
+    <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1rem">
+      <div class="stat-box"><span class="stat-n">${mel.nbResidPrinc ? mel.nbResidPrinc.toLocaleString("fr-FR") : "—"}</span><span class="stat-l">🏠 Rés. principales${yrL}</span></div>
+      <div class="stat-box"><span class="stat-n" style="color:#27ae60">${mel.pctPropri != null ? mel.pctPropri+"%" : "—"}</span><span class="stat-l">✅ Propriétaires</span></div>
+      <div class="stat-box"><span class="stat-n" style="color:${pctVac!=null&&pctVac>10?"#e74c3c":"#8a7d68"}">${pctVac != null ? pctVac+"%" : "—"}</span><span class="stat-l">🏚️ Vacants</span></div>
+    </div>
+    <p style="font-size:.74rem;font-weight:700;color:var(--text);margin-bottom:.5rem">Statut d'occupation${yrL}</p>
+    ${bar("🏠 Propriétaires", mel.pctPropri||0, "#27ae60", 100)}
+    ${bar("🔑 Locataires", Math.min(pctLoc||0, 100-mel.pctPropri), "#3498db", 100)}
+    ${pctVac != null ? bar("🏚️ Vacants", pctVac, "#e74c3c", 100) : ""}
+    <p style="font-size:.62rem;color:var(--muted);margin-top:.8rem">Source : INSEE Melodi · DS_RP_LOGEMENT_PRINC & DS_RP_MENAGES_PRINC</p>
+  `);
 }
 
 function loadPrixCommunes(lat, lng){
@@ -4274,8 +4354,9 @@ function showPanel(title, html, backAction, backLabel){
     else if(t.indexOf('bruit')>=0) id='bruit';
     else if(t.indexOf('fibre')>=0||t.indexOf('internet')>=0) id='fibre';
     else if(t.indexOf('météo')>=0||t.indexOf('ensoleil')>=0||t.indexOf('qualité de l')>=0) id='meteo';
-    else if(t.indexOf('démograph')>=0||t.indexOf('croissance')>=0||t.indexOf('attractivité')>=0) id='demographie';
+    else if(t.indexOf('démograph')>=0||t.indexOf('attractiv')>=0||t.indexOf('croissance')>=0) id='demographie';
     else if(t.indexOf('altitude')>=0||t.indexOf('topograph')>=0) id='altitude';
+    else if(t.indexOf('logement')>=0||t.indexOf('habitat')>=0) id='logement';
     else if(t.indexOf('zonage')>=0||t.indexOf('urbanisme')>=0||t.indexOf('plu')>=0) id='urbanisme';
     if(id) setTimeout(function(){appendSynth(id);},100);
   };
@@ -4631,6 +4712,18 @@ function genSynth(cardId) {
     else if(d.rendement>0.06) s.push("Bon rendement locatif brut (>6%) — intéressant pour un investissement locatif.");
     else s.push("Rendement locatif brut dans la moyenne nationale.");
     return synthBlock(s, "🏠", "Synthèse — Estimation des loyers");
+  }
+
+  if(cardId === 'logement') {
+    var mel = window._melodiData;
+    if(!mel || mel.pctPropri==null) return "";
+    var pctVacL = mel.nbVacants && mel.nbResidPrinc ? Math.round(mel.nbVacants/(mel.nbResidPrinc+mel.nbVacants)*100) : null;
+    if(mel.pctPropri>=60) s.push("Commune à <strong>forte proportion de propriétaires</strong> ("+mel.pctPropri+"%) — marché immobilier stable, demande locative plus faible.");
+    else if(mel.pctPropri<40) s.push("Commune à <strong>forte proportion de locataires</strong> — forte demande locative, potentiel investissement locatif.");
+    else s.push("Répartition <strong>équilibrée</strong> entre propriétaires ("+mel.pctPropri+"%) et locataires.");
+    if(pctVacL!=null) { if(pctVacL>10) s.push("Taux de vacance élevé (<strong>"+pctVacL+"%</strong>) — tensions modérées, opportunités d'acquisition possibles."); else s.push("Taux de vacance faible (<strong>"+pctVacL+"%</strong>) — marché tendu, peu de biens disponibles."); }
+    if(!s.length) return "";
+    return synthBlock(s, "🏠", "Synthèse — Logement & habitat");
   }
 
   return "";
@@ -5355,6 +5448,35 @@ function showMobiliteDetail(){
     <div style="margin-top:1.2rem;height:160px;width:70%"><canvas id="mobiliteChart"></canvas></div>
     ${d.arretsPrincipaux?.length?`<p style="font-size:.75rem;color:var(--muted);margin-top:.5rem">Principaux arrêts : ${d.arretsPrincipaux.join(' · ')}</p>`:''}
     <p style="font-size:.62rem;color:var(--muted);margin-top:.4rem">Source : OpenStreetMap via Overpass API · Rayon ${mobDist}m</p>
+    ${(()=>{
+      const nav = window._melodiData?.navettes;
+      const total = nav && nav['_T'];
+      if (!nav || !total) return '';
+      const modes = [
+        {k:'1',label:'Travail à domicile',icon:'🏠',color:'#27ae60'},
+        {k:'6',label:'Transports en commun',icon:'🚇',color:'#3498db'},
+        {k:'5',label:'Voiture',icon:'🚗',color:'#e74c3c'},
+        {k:'4',label:'Vélo',icon:'🚲',color:'#f39c12'},
+        {k:'2',label:'Marche',icon:'🚶',color:'#8e44ad'},
+        {k:'3',label:'Deux-roues motorisés',icon:'🛵',color:'#95a5a6'},
+      ];
+      const yr = window._melodiData.navetteAnnee ? ' · '+window._melodiData.navetteAnnee : '';
+      let html = '<div style="margin-top:1.2rem"><p style="font-size:.74rem;font-weight:700;color:var(--text);margin-bottom:.6rem">🗺️ Modes de transport domicile-travail (INSEE'+yr+')</p>';
+      modes.forEach(m => {
+        const v = nav[m.k] || 0;
+        const pct = Math.round(v/total*100);
+        if (!pct) return;
+        const barW = Math.round(v/total*100);
+        html += '<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.35rem">'
+          +'<span style="width:1.2rem;text-align:center;flex-shrink:0">'+m.icon+'</span>'
+          +'<span style="flex:1;font-size:.7rem;color:var(--text)">'+m.label+'</span>'
+          +'<div style="width:6rem;background:rgba(0,0,0,.06);border-radius:3px;height:12px;overflow:hidden;flex-shrink:0">'
+          +'<div style="height:100%;width:'+barW+'%;background:'+m.color+';border-radius:3px"></div></div>'
+          +'<span style="width:2.5rem;font-size:.7rem;font-weight:600;color:var(--text);text-align:right">'+pct+'%</span></div>';
+      });
+      html += '<p style="font-size:.61rem;color:var(--muted);margin-top:.4rem">Source : INSEE Melodi · '+total.toLocaleString("fr-FR")+' actifs occupés</p></div>';
+      return html;
+    })()}
     <div id="mobListeSection" style="margin-top:1.2rem"></div>
   `);
 
