@@ -3792,7 +3792,7 @@ function showScoreDetail() {
 
     // ── Helpers ──
     const tag = (txt, color) => '<span style="display:inline-block;background:'+color+'18;color:'+color+';border:1px solid '+color+'44;border-radius:3px;padding:.05rem .35rem;font-size:.68rem;font-weight:600;margin:.1rem .15rem 0 0">'+txt+'</span>';
-    const row = (icon, label, val) => '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:.18rem 0;border-bottom:1px solid rgba(0,0,0,.05)"><span style="font-size:.72rem;color:var(--muted)">'+icon+' '+label+'</span><span style="font-size:.75rem;font-weight:600;color:var(--text)">'+val+'</span></div>';
+    const row = (icon, label, val, dot) => { const dotHtml = dot ? '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+dot+';margin-right:.35rem;flex-shrink:0;margin-top:.2rem"></span>' : ''; return '<div style="display:flex;justify-content:space-between;align-items:center;padding:.2rem 0;border-bottom:1px solid rgba(0,0,0,.05)"><span style="font-size:.72rem;color:var(--muted);display:flex;align-items:center">'+dotHtml+icon+' '+label+'</span><span style="font-size:.75rem;font-weight:600;color:var(--text)">'+val+'</span></div>'; };
     const section = (title, rows, color) => {
       if(!rows.filter(Boolean).length) return "";
       color = color||"#b8832a";
@@ -3803,66 +3803,81 @@ function showScoreDetail() {
     };
 
     // ── Section marché immobilier ──
+    const G="#27ae60",O="#f39c12",R="#e74c3c";
     const mktRows = [];
-    if(dvf?.stats?.medianM2) mktRows.push(row("💰","Prix médian m²", dvf.stats.medianM2.toLocaleString("fr-FR")+" €/m²"));
+    if(dvf?.stats?.medianM2) mktRows.push(row("💰","Prix médian m²", dvf.stats.medianM2.toLocaleString("fr-FR")+" €/m²", null));
     if(dvf?.stats?.medianM2 && dept?.medianM2){
       const diffD = Math.round((dvf.stats.medianM2-dept.medianM2)/dept.medianM2*100);
-      mktRows.push(row("📊","vs département", (diffD>=0?"+":"")+diffD+"% ("+(diffD>=0?"au-dessus":"en dessous")+")"));
+      const dDot = diffD<=-20?G:diffD<=10?O:R;
+      mktRows.push(row("📊","vs département", (diffD>=0?"+":"")+diffD+"% ("+(diffD>=0?"au-dessus":"en dessous")+")", dDot));
     }
-    if(dvf?.count) mktRows.push(row("📋","Transactions analysées", dvf.count+" ventes"));
-    if(loyers?.estLoyer) mktRows.push(row("🔑","Loyer estimé T2", loyers.estLoyer.T2 ? loyers.estLoyer.T2.toLocaleString("fr-FR")+" €/mois" : "—"));
+    if(dvf?.count) mktRows.push(row("📋","Transactions analysées", dvf.count+" ventes", null));
+    if(loyers?.estLoyer) mktRows.push(row("🔑","Loyer estimé T2", loyers.estLoyer.T2 ? loyers.estLoyer.T2.toLocaleString("fr-FR")+" €/mois" : "—", null));
     if(mel?.revenuMedian && dvf?.stats?.medianM2){
       const effort = Math.round(dvf.stats.medianM2*50/(mel.revenuMedian/12));
-      mktRows.push(row("⏱️","Effort d'achat 50m²", effort+" mois de revenu médian"));
+      const eDot = effort<60?G:effort<120?O:effort<180?O:R;
+      mktRows.push(row("⏱️","Effort d'achat 50m²", effort+" mois de revenu médian", eDot));
     }
 
     // ── Section population & économie ──
     const popRows = [];
-    if(ins?.population) popRows.push(row("👥","Habitants", ins.population.toLocaleString("fr-FR")));
-    if(ins?.densite){ const lbl=ins.densite>10000?"Très dense":ins.densite>5000?"Dense":ins.densite>2000?"Urbaine":"Péri-urbaine"; popRows.push(row("🗺️","Densité", ins.densite.toLocaleString("fr-FR")+" hab/km² · "+lbl)); }
+    if(ins?.population) popRows.push(row("👥","Habitants", ins.population.toLocaleString("fr-FR"), null));
+    if(ins?.densite){ const lbl=ins.densite>10000?"Très dense":ins.densite>5000?"Dense":ins.densite>2000?"Urbaine":"Péri-urbaine"; popRows.push(row("🗺️","Densité", ins.densite.toLocaleString("fr-FR")+" hab/km² · "+lbl, null)); }
     if(mel?.revenuMedian){
       const revM = Math.round(mel.revenuMedian/12);
       const diffRev = nat?.revenuMedian ? Math.round((mel.revenuMedian-nat.revenuMedian)/nat.revenuMedian*100) : null;
-      popRows.push(row("💶","Revenu médian net"+(mel.anneeFilosofi?" "+mel.anneeFilosofi:""), revM.toLocaleString("fr-FR")+" €/mois"+(diffRev!=null?" ("+(diffRev>=0?"+":"")+diffRev+"% nat.)":"")));
+      const rDot = diffRev==null?null:diffRev>=20?G:diffRev>=-10?O:R;
+      popRows.push(row("💶","Revenu médian net"+(mel.anneeFilosofi?" "+mel.anneeFilosofi:""), revM.toLocaleString("fr-FR")+" €/mois"+(diffRev!=null?" ("+(diffRev>=0?"+":"")+diffRev+"% nat.)":""), rDot));
     }
-    if(mel?.tauxChomage!=null){ const diffC = nat?.tauxChomage!=null?Math.round((mel.tauxChomage-nat.tauxChomage)*10)/10:null; popRows.push(row("💼","Chômage"+(mel.anneeEmploi?" "+mel.anneeEmploi:""), mel.tauxChomage+"% "+(diffC!=null?"("+(diffC>=0?"+":"")+diffC+"pt nat.)":""))); }
-    if(mel?.pctBac5!=null) popRows.push(row("🎓","Bac+5 et +"+(mel.anneeDiplomes?" "+mel.anneeDiplomes:""), mel.pctBac5+"%"+(nat?.pctBac5Nat!=null?" (nat. "+nat.pctBac5Nat+"%)":"")));
+    if(mel?.tauxChomage!=null){ const diffC = nat?.tauxChomage!=null?Math.round((mel.tauxChomage-nat.tauxChomage)*10)/10:null; const cDot=diffC==null?null:diffC<=-1?G:diffC<=1?O:R; popRows.push(row("💼","Chômage"+(mel.anneeEmploi?" "+mel.anneeEmploi:""), mel.tauxChomage+"% "+(diffC!=null?"("+(diffC>=0?"+":"")+diffC+"pt nat.)":""), cDot)); }
+    if(mel?.pctBac5!=null){ const bDot=mel.pctBac5>=30?G:mel.pctBac5>=15?O:R; popRows.push(row("🎓","Bac+5 et +"+(mel.anneeDiplomes?" "+mel.anneeDiplomes:""), mel.pctBac5+"%"+(nat?.pctBac5Nat!=null?" (nat. "+nat.pctBac5Nat+"%)":""), bDot)); }
 
     // ── Section cadre de vie ──
     const vieRows = [];
-    if(meteo?.ensoleillement?.heuresAnnuelles){ const h=meteo.ensoleillement.heuresAnnuelles; vieRows.push(row("☀️","Ensoleillement", h.toLocaleString("fr-FR")+" h/an · "+meteo.ensoleillement.label)); }
-    if(meteo?.temperatures?.maxMoyenne) vieRows.push(row("🌡️","Températures", "Max moy. "+meteo.temperatures.maxMoyenne+"°C / Min "+meteo.temperatures.minMoyenne+"°C"));
+    if(meteo?.ensoleillement?.heuresAnnuelles){ const h=meteo.ensoleillement.heuresAnnuelles; const sDot=h>1800?G:h>1300?O:R; vieRows.push(row("☀️","Ensoleillement", h.toLocaleString("fr-FR")+" h/an · "+meteo.ensoleillement.label, sDot)); }
+    if(meteo?.temperatures?.maxMoyenne) vieRows.push(row("🌡️","Températures", "Max moy. "+meteo.temperatures.maxMoyenne+"°C / Min "+meteo.temperatures.minMoyenne+"°C", null));
     if(bruit?.niveauCode){
       const scoreOSM = bruit.score||0;
       const dens2 = ins?.densite||0;
       const bonus = dens2>10000?4:dens2>5000?3:dens2>2000?2:dens2>500?1:0;
       const sc = Math.min(scoreOSM+bonus,10);
       const lbl = sc>=7?"Élevé":sc>=4?"Modéré":"Faible";
-      vieRows.push(row("🔇","Bruit estimé", lbl+(bonus>0?" (densité +"+bonus+"pts)":"")));
+      const bDot2 = sc<=3?G:sc<=6?O:R;
+      vieRows.push(row("🔇","Bruit estimé", lbl+(bonus>0?" (densité +"+bonus+"pts)":""), bDot2));
     }
-    if(aq?.aqi) vieRows.push(row("💨","Qualité de l'air", "AQI "+aq.aqi+" · "+(aq.label||"")));
-    if(risques?.total!=null) vieRows.push(row("⚠️","Risques naturels", risques.total+" risque(s) · Score "+risques.score));
+    if(aq?.aqi){ const aqDot=aq.aqi<=30?G:aq.aqi<=60?O:R; vieRows.push(row("💨","Qualité de l'air", "AQI "+aq.aqi+" · "+(aq.label||""), aqDot)); }
+    if(risques?.total!=null){ const rqDot=risques.total===0?G:risques.total<=2?O:R; vieRows.push(row("⚠️","Risques naturels", risques.total+" risque(s) · Score "+risques.score, rqDot)); }
+    // Sécurité (criminalité)
+    const cr = window._criminaliteData;
+    if(cr&&cr.success&&cr.indicateurs&&Object.keys(cr.indicateurs).length>0){
+      function normSc2(v){return v.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");}
+      const REF2=[["vol sans violence",11],["vol avec violence",2.5],["violences physiques",9],["cambriolage",3.5],["vehicule",2.8],["escroquerie",6],["destruction",8],["stupefiants",4],["homicide",0.03]];
+      function natR2(ind){var l=normSc2(ind);for(var i=0;i<REF2.length;i++)if(l.indexOf(REF2[i][0])>=0)return REF2[i][1];return null;}
+      var rs2=0,rc2=0;
+      Object.entries(cr.indicateurs).forEach(function(e){var ref=natR2(e[0]);if(ref&&ref>0&&e[1].taux!=null){rs2+=e[1].taux/ref;rc2++;}});
+      if(rc2>0){var avg2=rs2/rc2;var sc2=Math.max(1,Math.min(10,Math.round(10*(2-Math.min(avg2,2))/2)));var sl2=sc2>=7?"faible":sc2>=4?"modéré":"élevé";const secDot=sc2>=7?G:sc2>=4?O:R;vieRows.push(row("🔒","Sécurité (criminalité)", "Risque "+sl2+" · score "+sc2+"/10", secDot));}
+    }
 
     // ── Section mobilité & services ──
     const mobRows = [];
-    if(mob?.score) mobRows.push(row("⭐","Score mobilité", mob.score+"/10 · "+(mob.scoreLabel||"")));
-    if(mob?.stats){ const st=mob.stats; const parts=[]; if(st.metro>0)parts.push(st.metro+" métro/RER"); if(st.trams>0)parts.push(st.trams+" tram"); if(st.arretsBus>0)parts.push(st.arretsBus+" bus"); if(parts.length)mobRows.push(row("🚇","Transports", parts.join(" · "))); }
-    if(svc?.total) mobRows.push(row("🏪","Services & commerces", (svc.sante||0)+" santé · "+(svc.commerces||0)+" commerces · "+(svc.autres||0)+" services"));
-    if(eco?.total) mobRows.push(row("🏫","Établissements scolaires", eco.total+" établ. · "+(eco.types?.ecoles||0)+" éc. · "+(eco.types?.college||0)+" coll. · "+(eco.types?.lycee||0)+" lyc."));
-    if(fibre?.fibre?.eligible!=null) mobRows.push(row("📶","Fibre FTTH", fibre.fibre.eligible?"✅ Éligible"+(fibre.fibre.operateurs?.length?" · "+fibre.fibre.operateurs.slice(0,2).join(", "):""):"❌ Non éligible"));
+    if(mob?.score){ const mDot=mob.score>=7?G:mob.score>=5?O:R; mobRows.push(row("⭐","Score mobilité", mob.score+"/10 · "+(mob.scoreLabel||""), mDot)); }
+    if(mob?.stats){ const st=mob.stats; const parts=[]; if(st.metro>0)parts.push(st.metro+" métro/RER"); if(st.trams>0)parts.push(st.trams+" tram"); if(st.arretsBus>0)parts.push(st.arretsBus+" bus"); if(parts.length)mobRows.push(row("🚇","Transports", parts.join(" · "), null)); }
+    if(svc?.total) mobRows.push(row("🏪","Services & commerces", (svc.sante||0)+" santé · "+(svc.commerces||0)+" commerces · "+(svc.autres||0)+" services", svc.total>50?G:svc.total>20?O:R));
+    if(eco?.total) mobRows.push(row("🏫","Établissements scolaires", eco.total+" établ. · "+(eco.types?.ecoles||0)+" éc. · "+(eco.types?.college||0)+" coll. · "+(eco.types?.lycee||0)+" lyc.", eco.total>=5?G:eco.total>=2?O:R));
+    if(fibre?.fibre?.eligible!=null){ const fDot=fibre.fibre.eligible?G:R; mobRows.push(row("📶","Fibre FTTH", fibre.fibre.eligible?"✅ Éligible"+(fibre.fibre.operateurs?.length?" · "+fibre.fibre.operateurs.slice(0,2).join(", "):""):"❌ Non éligible", fDot)); }
 
     // ── Section logement ──
     const logRows = [];
-    if(mel?.pctPropri!=null){ const diffPro=nat?.pctPropri!=null?Math.round(mel.pctPropri-nat.pctPropri):null; logRows.push(row("🏠","Propriétaires"+(mel.anneeLogement?" "+mel.anneeLogement:""), mel.pctPropri+"%"+(diffPro!=null?" ("+(diffPro>=0?"+":"")+diffPro+"pt nat.)":""))); }
-    if(mel?.nbVacants!=null&&mel.nbResidPrinc){ const pV=Math.round(mel.nbVacants/(mel.nbResidPrinc+mel.nbVacants)*100); const diffV=nat?.pctVac!=null?Math.round(pV-nat.pctVac):null; logRows.push(row("🏚️","Logements vacants"+(mel.anneeLogement?" "+mel.anneeLogement:""), pV+"%"+(diffV!=null?" ("+(diffV>=0?"+":"")+diffV+"pt nat.)":""))); }
-    if(mel?.nbResidPrinc) logRows.push(row("🏘️","Résidences principales", mel.nbResidPrinc.toLocaleString("fr-FR")));
-    if(mel?.pctSeuls!=null){ const diffSe=nat?.pctSeuls!=null?Math.round(mel.pctSeuls-nat.pctSeuls):null; logRows.push(row("👤","Ménages seuls"+(mel.anneeLogement?" "+mel.anneeLogement:""), mel.pctSeuls+"%"+(diffSe!=null?" ("+(diffSe>=0?"+":"")+diffSe+"pt nat.)":""))); }
+    if(mel?.pctPropri!=null){ const diffPro=nat?.pctPropri!=null?Math.round(mel.pctPropri-nat.pctPropri):null; const pDot=diffPro==null?null:diffPro>=5?G:diffPro>=-5?O:R; logRows.push(row("🏠","Propriétaires"+(mel.anneeLogement?" "+mel.anneeLogement:""), mel.pctPropri+"%"+(diffPro!=null?" ("+(diffPro>=0?"+":"")+diffPro+"pt nat.)":""), pDot)); }
+    if(mel?.nbVacants!=null&&mel.nbResidPrinc){ const pV=Math.round(mel.nbVacants/(mel.nbResidPrinc+mel.nbVacants)*100); const diffV=nat?.pctVac!=null?Math.round(pV-nat.pctVac):null; const vDot=pV<=5?R:pV<=10?O:G; logRows.push(row("🏚️","Logements vacants"+(mel.anneeLogement?" "+mel.anneeLogement:""), pV+"%"+(diffV!=null?" ("+(diffV>=0?"+":"")+diffV+"pt nat.)":""), vDot)); }
+    if(mel?.nbResidPrinc) logRows.push(row("🏘️","Résidences principales", mel.nbResidPrinc.toLocaleString("fr-FR"), null));
+    if(mel?.pctSeuls!=null){ const diffSe=nat?.pctSeuls!=null?Math.round(mel.pctSeuls-nat.pctSeuls):null; const seDot=null; logRows.push(row("👤","Ménages seuls"+(mel.anneeLogement?" "+mel.anneeLogement:""), mel.pctSeuls+"%"+(diffSe!=null?" ("+(diffSe>=0?"+":"")+diffSe+"pt nat.)":""), seDot)); }
 
     // ── Section dynamisme ──
     const dynRows = [];
-    if(demo?.rows?.length>=2){ const rows=demo.rows; const evol=((rows[rows.length-1].pop-rows[0].pop)/rows[0].pop*100).toFixed(1); dynRows.push(row("📈","Évolution population", (evol>=0?"+":"")+evol+"% ("+rows[0].year+"→"+rows[rows.length-1].year+")")); }
-    if(mel?.pyramideAges){ const pyr=mel.pyramideAges; const tot=Object.values(pyr).reduce((s,v)=>s+v,0); if(tot>0){ const young=Math.round(((pyr.Y_LT15||0)+(pyr.Y15T24||0))/tot*100); const senior=Math.round(((pyr.Y65T79||0)+(pyr.Y_GE80||0))/tot*100); const actif=Math.round(((pyr.Y25T39||0)+(pyr.Y40T54||0)+(pyr.Y55T64||0))/tot*100); dynRows.push(row("👶","Profil démographique", "Jeunes "+young+"% · Actifs "+actif+"% · Seniors "+senior+"%")); }}
-    if(mel?.pctMigArrivals!=null) dynRows.push(row("🔄","Renouvellement résidentiel", mel.pctMigArrivals+"% d'arrivants"+(mel.migAnnee?" "+mel.migAnnee:"")));
+    if(demo?.rows?.length>=2){ const rows2=demo.rows; const evol=((rows2[rows2.length-1].pop-rows2[0].pop)/rows2[0].pop*100).toFixed(1); const eDot2=evol>2?G:evol>=-1?O:R; dynRows.push(row("📈","Évolution population", (evol>=0?"+":"")+evol+"% ("+rows2[0].year+"→"+rows2[rows2.length-1].year+")", eDot2)); }
+    if(mel?.pyramideAges){ const pyr=mel.pyramideAges; const tot=Object.values(pyr).reduce((s,v)=>s+v,0); if(tot>0){ const young=Math.round(((pyr.Y_LT15||0)+(pyr.Y15T24||0))/tot*100); const senior=Math.round(((pyr.Y65T79||0)+(pyr.Y_GE80||0))/tot*100); const actif=Math.round(((pyr.Y25T39||0)+(pyr.Y40T54||0)+(pyr.Y55T64||0))/tot*100); dynRows.push(row("👶","Profil démographique", "Jeunes "+young+"% · Actifs "+actif+"% · Seniors "+senior+"%", null)); }}
+    if(mel?.pctMigArrivals!=null){ const migDot=mel.pctMigArrivals>25?G:mel.pctMigArrivals>15?O:R; dynRows.push(row("🔄","Renouvellement résidentiel", mel.pctMigArrivals+"% d'arrivants"+(mel.migAnnee?" "+mel.migAnnee:""), migDot)); }
 
     // ── Points forts / vigilance ──
     const fortsTags = forts.map(i=>tag(i.icon+" "+i.label+" "+i.val.toFixed(1)+"/10","#27ae60")).join("");
@@ -3879,9 +3894,37 @@ function showScoreDetail() {
 
     if(!sections.length && !fortsTags) return "";
 
+    // ── Phrases narratives ──
+    const narratif = (function(){
+      const parts = [];
+      if(ins?.population && ins?.densite){
+        const densLbl=ins.densite>10000?"très dense":ins.densite>5000?"dense":ins.densite>2000?"urbaine":"peu dense";
+        parts.push((ins.nom||"Cette commune")+" est une commune <strong>"+densLbl+"</strong> de "+ins.population.toLocaleString("fr-FR")+" habitants"+(ins.superficie?" sur "+Math.round(ins.superficie)+" km²":"")+".");
+      }
+      if(dvf?.stats?.medianM2){
+        const p=dvf.stats.medianM2.toLocaleString("fr-FR");
+        const dept2=dept?.medianM2;
+        const diffD2=dept2?Math.round((dvf.stats.medianM2-dept2)/dept2*100):null;
+        parts.push("Le marché immobilier affiche un prix médian de <strong>"+p+" €/m²</strong>"+(diffD2!=null?" ("+(diffD2>=0?"+":"")+diffD2+"% vs département)":"")+".");
+      }
+      if(mel?.revenuMedian && nat?.revenuMedian){
+        const diff=Math.round((mel.revenuMedian-nat.revenuMedian)/nat.revenuMedian*100);
+        const dir=diff>=0?"au-dessus":"en dessous";
+        const revM=Math.round(mel.revenuMedian/12).toLocaleString("fr-FR");
+        parts.push("Le revenu médian ("+revM+" €/mois) est <strong>"+Math.abs(diff)+"% "+dir+"</strong> de la moyenne nationale"+(mel.tauxChomage!=null?", avec un taux de chômage de "+mel.tauxChomage+"%":"")+".");
+      }
+      if(mob?.score && meteo?.ensoleillement?.heuresAnnuelles){
+        const mobLbl=mob.score>=8?"excellente":mob.score>=6?"bonne":"correcte";
+        const h=meteo.ensoleillement.heuresAnnuelles;
+        parts.push("La mobilité est <strong>"+mobLbl+"</strong> ("+mob.score+"/10) et l'ensoleillement atteint "+h.toLocaleString("fr-FR")+" h/an.");
+      }
+      return parts.length ? '<p style="font-size:.76rem;color:var(--text);line-height:1.7;margin:.3rem 0 .6rem">'+parts.join(" ")+'</p>' : "";
+    })();
+
     return '<div style="margin:.8rem 0">'
       +'<div style="padding:.65rem .8rem;background:rgba(184,131,42,.07);border-left:3px solid var(--gold);border-radius:4px;font-size:.76rem;color:var(--text);line-height:1.65;margin-bottom:.8rem">'
       +'<div style="font-weight:700;margin-bottom:.35rem">📊 Synthèse — Quartier <strong style="color:'+ringColor+'">'+verdict+'</strong> ('+d.note.toFixed(1)+'/10)</div>'
+      +narratif
       +(fortsTags?'<div style="margin-bottom:.25rem"><span style="font-size:.68rem;color:var(--muted)">Points forts :</span> '+fortsTags+'</div>':"")
       +(faiblesTags?'<div><span style="font-size:.68rem;color:var(--muted)">Vigilance :</span> '+faiblesTags+'</div>':"")
       +'</div>'
