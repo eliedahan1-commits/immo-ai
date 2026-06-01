@@ -626,18 +626,18 @@ path.leaflet-interactive:focus{outline:none;}
 }
 .map-stats{
   display:grid;grid-template-columns:repeat(4,1fr);
-  gap:.5rem;margin-bottom:.75rem;
+  gap:.85rem;margin-bottom:1.5rem;
 }
 .map-stat{
-  background:var(--ink);border-radius:4px;
-  padding:.6rem;text-align:center;
+  background:var(--ink);border-radius:var(--r);
+  padding:1.1rem;text-align:center;
 }
 .map-stat-n{
   font-family:'DM Serif Display',serif;
-  font-size:1.3rem;color:var(--gold2);display:block;
+  font-size:1.65rem;color:var(--gold2);display:block;
 }
 .map-stat-l{
-  font-size:.58rem;color:rgba(255,255,255,.68);
+  font-size:.62rem;color:rgba(255,255,255,.55);
   text-transform:uppercase;letter-spacing:.08em;
 }
 
@@ -3107,7 +3107,7 @@ async function loadMelodi(codeInsee){
   window._melodiNational = null;
   if(!codeInsee) return;
   try{
-    const r = await fetch('/api/insee?action=melodi&codeInsee='+codeInsee+'&v=11', {signal:AbortSignal.timeout(12000)});
+    const r = await fetch('/api/insee?action=melodi&codeInsee='+codeInsee+'&v=12', {signal:AbortSignal.timeout(12000)});
     if(!r.ok) throw new Error('melodi '+r.status);
     const d = await r.json();
     if(!d.success) throw new Error();
@@ -4103,7 +4103,7 @@ function showDemographieDetail() {
     ${window._melodiData?.pyramideAges && Object.keys(window._melodiData.pyramideAges).length >= 5 ? `
     <div style="margin-top:1.2rem">
       <p style="font-size:.74rem;font-weight:700;color:var(--text);margin-bottom:.6rem">📊 Pyramide des âges${window._melodiData.pyramideAnnee?' · '+window._melodiData.pyramideAnnee:''}</p>
-      <div id="pyramideAgesChart" style="position:relative;height:200px;margin-bottom:.5rem"></div>
+      <div id="pyramideAgesChart" style="position:relative;height:280px;margin-bottom:.5rem"></div>
     </div>` : ''}
     ${window._melodiData?.pctMigArrivals != null ? `
     <div style="margin-top:1rem;padding:.6rem .8rem;background:rgba(184,131,42,.06);border-left:3px solid var(--gold);border-radius:4px;font-size:.76rem">
@@ -4168,18 +4168,29 @@ function showDemographieDetail() {
     const total = AGE_KEYS.reduce((s,k)=>s+(pyr[k]||0),0);
     const data = AGE_KEYS.map(k => total ? Math.round((pyr[k]||0)/total*1000)/10 : 0);
     const colors = AGE_KEYS.map(k => k==='Y_LT15'||k==='Y15T24'?'#3498db':k==='Y65T79'||k==='Y_GE80'?'#e74c3c':'#b8832a');
-    container.innerHTML = '<canvas id="pyramideCanvas" height="180"></canvas>';
+    const cw = container.offsetWidth || 500;
+    container.innerHTML = '<canvas id="pyramideCanvas" width="'+cw+'" height="260"></canvas>';
     if (window._pyramideChart) { window._pyramideChart.destroy(); window._pyramideChart = null; }
     const ctx = document.getElementById('pyramideCanvas');
     if (!ctx) return;
     window._pyramideChart = new Chart(ctx, {
       type: 'bar',
-      data: { labels: AGE_LABELS, datasets: [{ data, backgroundColor: colors, borderRadius: 3, borderSkipped: false }] },
+      data: { labels: AGE_LABELS, datasets: [{ data, backgroundColor: colors, borderRadius: 4, borderSkipped: false }] },
       options: {
         responsive: false,
+        layout: { padding: { top: 22 } },
         plugins: {
           legend: { display: false },
-          tooltip: { callbacks: { label: c => c.raw + '%' } }
+          tooltip: { callbacks: { label: c => c.raw + '%' } },
+          datalabels: {
+            display: true,
+            anchor: 'end',
+            align: 'top',
+            color: '#5a4d3e',
+            font: { size: 10, weight: '600' },
+            formatter: v => v + '%',
+            offset: 2
+          }
         },
         scales: {
           x: { ticks: { color: '#8a7d68', font: { size: 10 } }, grid: { display: false } },
@@ -4445,6 +4456,7 @@ function genSynth(cardId) {
 
       gaugeHtml = '<div style="margin-bottom:.75rem"><div style="display:flex;justify-content:space-between;font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.3rem"><span>💰 vs département</span><span style="color:'+colD+'">'+Math.abs(diffD)+"% "+dirD+' du dept</span></div>'+gHtml+'</div>'+gaugeNatHtml+'<p style="font-size:.7rem;color:#777;margin:.2rem 0">Trait foncé = référence · Source DVF DGFiP</p>';
       s.push("Prix <strong>"+Math.abs(diffD)+"% "+dirD+"</strong> de la médiane du département ("+dept.medianM2.toLocaleString("fr-FR")+" €/m²).");
+      s.push("Par rapport à la <strong>médiane nationale (~2 800 €/m²)</strong> : <strong>"+Math.abs(diffN)+"% "+dirN+"</strong> — "+(diffN>50?"marché premium, bien au-dessus de la moyenne française":diffN>0?"marché au-dessus de la moyenne française":"marché en dessous de la moyenne française")+"."); 
     }
     var mel = window._melodiData;
     if(mel && mel.revenuMedian && st.medianM2) {
@@ -4498,9 +4510,23 @@ function genSynth(cardId) {
       var mobLabel = d.score>=7?"réseau très développé":d.score>=5?"réseau correct":"réseau à développer";
       s.push(mobLabel+" — "+mel2.tauxChomage+"% de chômage local (bonne accessibilité = atout emploi).");
     }
-    // Données navettes Melodi si disponibles
-    var nav = window._melodiData;
-    if(nav && nav.pctNavetteurs!=null) s.push(nav.pctNavetteurs+"% des actifs travaillent hors commune — dépendance aux transports.");
+    // Données navettes Melodi
+    var navD = window._melodiData?.navettes;
+    if(navD && navD['_T']) {
+      var totN = navD['_T'];
+      var pctVoit = navD['5'] ? Math.round(navD['5']/totN*100) : null;
+      var pctTC   = navD['6'] ? Math.round(navD['6']/totN*100) : null;
+      var pctDom  = navD['1'] ? Math.round(navD['1']/totN*100) : null;
+      var pctVelo = navD['4'] ? Math.round(navD['4']/totN*100) : null;
+      var navParts = [];
+      if(pctVoit) navParts.push(pctVoit+"% voiture");
+      if(pctTC)   navParts.push(pctTC+"% transports en commun");
+      if(pctDom)  navParts.push(pctDom+"% télétravail");
+      if(pctVelo) navParts.push(pctVelo+"% vélo");
+      if(navParts.length) s.push("Modes de transport domicile-travail (INSEE) : "+navParts.join(", ")+".");
+      if(pctTC && pctTC>40) s.push("Commune bien desservie : <strong>"+pctTC+"% des actifs</strong> utilisent les transports en commun.");
+      else if(pctVoit && pctVoit>60) s.push("Forte dépendance à la voiture ("+pctVoit+"%) — accessibilité en transports à vérifier.");
+    }
     return synthBlock(s, "🚇", "Synthèse — Transports & mobilité");
   }
 
@@ -4669,6 +4695,22 @@ function genSynth(cardId) {
     else if(evolPct > evolNatRef) s.push("Croissance légèrement <strong>supérieure à la tendance nationale</strong> — commune attractive.");
     else if(evolPct < 0) s.push("Légère <strong>perte de population</strong> — marché immobilier à surveiller.");
     else s.push("Évolution démographique <strong>stable</strong>, dans la moyenne nationale.");
+    var pyr = window._melodiData?.pyramideAges;
+    if(pyr) {
+      var seniors = (pyr["Y65T79"]||0)+(pyr["Y_GE80"]||0);
+      var jeunes = (pyr["Y_LT15"]||0)+(pyr["Y15T24"]||0);
+      var actifs = (pyr["Y25T39"]||0)+(pyr["Y40T54"]||0)+(pyr["Y55T64"]||0);
+      var tot = seniors+jeunes+actifs;
+      if(tot>0) {
+        var pctSen = Math.round(seniors/tot*100);
+        var pctJeu = Math.round(jeunes/tot*100);
+        if(pctSen>25) s.push("Population vieillissante ("+pctSen+"% de 65 ans et +) — demande de logements adaptés, petites surfaces.");
+        else if(pctJeu>25) s.push("Population jeune ("+pctJeu+"% de moins de 25 ans) — forte demande locative, studios et T2.");
+        else s.push("Pyramide des âges <strong>équilibrée</strong> — demande diversifiée en logements.");
+      }
+    }
+    var migP = window._melodiData?.pctMigArrivals;
+    if(migP!=null) s.push(migP>25?"<strong>Commune attractive</strong> : "+migP+"% de résidents arrivés d'une autre commune — fort renouvellement de population.":migP>15?"Part de nouveaux résidents notable ("+migP+"%) — commune dynamique.":"Population <strong>stable</strong> ("+migP+"% d'arrivants) — faible mobilité résidentielle.");
     // Jauge évolution population vs croissance nationale
     var demoGauge = "";
     var natEvol = evolNatRef || Math.round((last2.year-first2.year)*0.4);
@@ -4730,6 +4772,15 @@ function genSynth(cardId) {
     else if(mel.pctPropri<40) s.push("Commune à <strong>forte proportion de locataires</strong> — forte demande locative, potentiel investissement locatif.");
     else s.push("Répartition <strong>équilibrée</strong> entre propriétaires ("+mel.pctPropri+"%) et locataires.");
     if(pctVacL!=null) { if(pctVacL>10) s.push("Taux de vacance élevé (<strong>"+pctVacL+"%</strong>) — tensions modérées, opportunités d'acquisition possibles."); else s.push("Taux de vacance faible (<strong>"+pctVacL+"%</strong>) — marché tendu, peu de biens disponibles."); }
+    var natLog = window._melodiNational;
+    if(natLog && natLog.pctPropri!=null && mel.pctPropri!=null) {
+      var diffPro = mel.pctPropri - natLog.pctPropri;
+      s.push("Taux de propriétaires <strong>"+(diffPro>=0?diffPro+"pt au-dessus":Math.abs(diffPro)+"pt en dessous")+"</strong> de la moyenne nationale ("+natLog.pctPropri+"%).");
+    }
+    if(natLog && natLog.pctVac!=null && pctVacL!=null) {
+      var diffVac = pctVacL - natLog.pctVac;
+      s.push("Taux de vacance <strong>"+(diffVac<=0?Math.abs(diffVac)+"pt en dessous":diffVac+"pt au-dessus")+"</strong> de la moyenne nationale ("+natLog.pctVac+"%) — "+(diffVac<=0?"marché tendu":"offre plus abondante")+"."); 
+    }
     if(!s.length) return "";
     return synthBlock(s, "🏠", "Synthèse — Logement & habitat");
   }
@@ -5036,9 +5087,9 @@ function showDVFDetail(){
     <div style="margin-bottom:.7rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Afficher :</span>${btnsFiltres}
     </div>
+    <div id="dvfMapContainer" style="margin-bottom:1.2rem;height:370px;border-radius:8px;overflow:hidden;border:1px solid var(--border)"></div>
     <div style="margin-bottom:1.2rem;height:320px;position:relative"><canvas id="dvfHistChart"></canvas></div>
     <div style="margin-bottom:1.2rem;height:350px;position:relative"><canvas id="dvfEvolutionChart"></canvas></div>
-    <div id="dvfMapContainer" style="margin-bottom:1.2rem;height:370px;border-radius:8px;overflow:hidden;border:1px solid var(--border)"></div>
     <button id="dvfListeToggle" onclick="var w=document.getElementById('dvfListeWrap');var show=w.style.display==='none';w.style.display=show?'block':'none';this.textContent=show?'▲ Masquer la liste':'📋 Afficher la liste';" style="margin-top:.5rem;margin-bottom:.5rem;padding:.4rem 1rem;background:var(--surface2);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:600;color:var(--text)">📋 Afficher la liste</button>
     <div id="dvfListeWrap" style="display:none">
     <table class="tbl"><thead><tr>
@@ -6906,7 +6957,7 @@ function showINSEEDetail(){
         // Chargement Melodi en parallèle
         let revStr='', chomStr='';
         try{
-          const rM=await fetch(`/api/insee?action=melodi&codeInsee=${com.code}&v=11`,{signal:AbortSignal.timeout(8000)});
+          const rM=await fetch(`/api/insee?action=melodi&codeInsee=${com.code}&v=12`,{signal:AbortSignal.timeout(8000)});
           if(rM.ok){
             const mD=await rM.json();
             const eco=mD.economie||{};
