@@ -63,7 +63,7 @@ export default async function handler(req, res) {
           return r.ok ? r.json() : null;
         } catch(e) { return null; }
       };
-      const [dFilosofi, dEmploi, dFilosofiNat, dEmploiActifsNat, dEmploiChomNat, dLogement, dMenages, dDiplomes, dLogNat, dMenNat, dPopulation, dNavettes, dMigres] = await Promise.all([
+      const [dFilosofi, dEmploi, dFilosofiNat, dEmploiActifsNat, dEmploiChomNat, dLogement, dMenages, dDiplomes, dLogNat, dMenNat, dPopulation, dNavettes, dMigres, dDipNat] = await Promise.all([
         fetchMelodiDataset('DS_FILOSOFI_CC', code),
         fetchMelodiDataset('DS_RP_EMPLOI_LR_PRINC', code),
         fetchMelodiNational('DS_FILOSOFI_CC'),
@@ -77,6 +77,7 @@ export default async function handler(req, res) {
         fetchMelodiDataset('DS_RP_POPULATION_PRINC', code),
         fetchMelodiDataset('DS_RP_NAVETTES_PRINC', code),
         fetchMelodiDataset('DS_RP_MIGRES_PRINC', code),
+        fetchMelodiNational('DS_RP_DIPLOMES_PRINC'),
       ]);
 
       // Revenu disponible médian net (MED_SL) — dernière année disponible
@@ -224,6 +225,20 @@ export default async function handler(req, res) {
       const pctMigArrivals = (migTotal && migArrivals) ? Math.round(migArrivals/migTotal*100) : null;
       const migAnnee = migTotObs?.dimensions?.TIME_PERIOD || null;
 
+      // ── Diplômes nationaux ──
+      const dipNatObs = dDipNat?.observations || [];
+      const dipNatFilter = o => o.dimensions?.SEX==='_T' && o.dimensions?.AGE==='Y_GE15' && o.dimensions?.RP_MEASURE==='POP';
+      const dipNatTotal = findLatest(dipNatObs, o => dipNatFilter(o) && o.dimensions?.EDUC==='_T');
+      const nbDipNatTotal = dipNatTotal?.measures?.OBS_VALUE_NIVEAU?.value || null;
+      const pctN = (obs) => (nbDipNatTotal && obs?.measures?.OBS_VALUE_NIVEAU?.value) ? Math.round(obs.measures.OBS_VALUE_NIVEAU.value / nbDipNatTotal * 100) : null;
+      const pctBac5Nat    = pctN(findLatest(dipNatObs, o => dipNatFilter(o) && o.dimensions?.EDUC==='700_RP'));
+      const pctLicenceNat = pctN(findLatest(dipNatObs, o => dipNatFilter(o) && o.dimensions?.EDUC==='600_RP'));
+      const pctBtsNat     = pctN(findLatest(dipNatObs, o => dipNatFilter(o) && o.dimensions?.EDUC==='500_RP'));
+      const pctBacNat     = pctN(findLatest(dipNatObs, o => dipNatFilter(o) && o.dimensions?.EDUC==='350T351_RP'));
+      const pctCapBepNat  = pctN(findLatest(dipNatObs, o => dipNatFilter(o) && o.dimensions?.EDUC==='200_RP'));
+      const pctBrevetNat  = pctN(findLatest(dipNatObs, o => dipNatFilter(o) && o.dimensions?.EDUC==='300_RP'));
+      const pctSansDipNat = pctN(findLatest(dipNatObs, o => dipNatFilter(o) && o.dimensions?.EDUC==='001T100_RP'));
+
       res.setHeader('Cache-Control', 'public, max-age=86400');
       return res.status(200).json({
         success: true,
@@ -235,7 +250,7 @@ export default async function handler(req, res) {
           pctBac5, pctLicence, pctBts, pctBac, pctCapBep, pctBrevet, pctSansDip, anneeDiplomes,
           pyramideAges, pyramideAnnee, navettes, navetteAnnee, pctMigArrivals, migAnnee
         },
-        melodiNational: { revenuMedian: revenuMedianNat, tauxChomage: tauxChomageNat, anneeFilosofi: anneeFilosofiNat, anneeEmploi: anneeEmploiNat, pctPropri: pctPropriNat, pctVac: pctVacNat, pctSeuls: pctSeulsNat, anneeLogement: anneeLogementNat }
+        melodiNational: { revenuMedian: revenuMedianNat, tauxChomage: tauxChomageNat, anneeFilosofi: anneeFilosofiNat, anneeEmploi: anneeEmploiNat, pctPropri: pctPropriNat, pctVac: pctVacNat, pctSeuls: pctSeulsNat, anneeLogement: anneeLogementNat, pctBac5Nat, pctLicenceNat, pctBtsNat, pctBacNat, pctCapBepNat, pctBrevetNat, pctSansDipNat }
       });
     } catch (e) {
       return res.status(500).json({ success: false, error: e.message });

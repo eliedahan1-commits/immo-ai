@@ -3395,28 +3395,36 @@ function renderMelodiGauges(eco, nat){
 function renderDiplomes(eco){
   const wrap = document.getElementById("inseeDiplomesWrap");
   if(!wrap) return;
+  const nat = window._melodiNational;
   const yr = eco.anneeDiplomes ? " "+eco.anneeDiplomes : "";
-  if(eco.pctBac5==null && eco.pctBac2==null){ wrap.innerHTML=""; return; }
+  if(eco.pctBac5==null && eco.pctBts==null){ wrap.innerHTML=""; return; }
   const bars = [
-    {label:"Bac+5 et +",   pct:eco.pctBac5,    color:"#27ae60"},
-    {label:"Bac+3/4",      pct:eco.pctLicence, color:"#52be80"},
-    {label:"Bac+2",        pct:eco.pctBts,     color:"#f1c40f"},
-    {label:"Bac",          pct:eco.pctBac,     color:"#f39c12"},
-    {label:"Brevet",       pct:eco.pctBrevet,  color:"#e67e22"},
-    {label:"CAP / BEP",    pct:eco.pctCapBep,  color:"#dc7633"},
-    {label:"Sans diplôme", pct:eco.pctSansDip, color:"#e74c3c"},
+    {label:"Bac+5 et +",   pct:eco.pctBac5,    nat:nat?.pctBac5Nat,    color:"#27ae60"},
+    {label:"Bac+3/4",      pct:eco.pctLicence, nat:nat?.pctLicenceNat, color:"#52be80"},
+    {label:"Bac+2",        pct:eco.pctBts,     nat:nat?.pctBtsNat,     color:"#f1c40f"},
+    {label:"Bac",          pct:eco.pctBac,     nat:nat?.pctBacNat,     color:"#f39c12"},
+    {label:"Brevet",       pct:eco.pctBrevet,  nat:nat?.pctBrevetNat,  color:"#e67e22"},
+    {label:"CAP / BEP",    pct:eco.pctCapBep,  nat:nat?.pctCapBepNat,  color:"#dc7633"},
+    {label:"Sans diplôme", pct:eco.pctSansDip, nat:nat?.pctSansDipNat, color:"#e74c3c"},
   ];
   let html = "<div style=\"margin-top:.8rem;padding-top:.75rem;border-top:1px solid var(--border)\">";
   html += "<div style=\"font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.55rem\">🎓 Niveau d'éducation" + yr + "</div>";
+  const hasNat = bars.some(b => b.nat != null);
+  if(hasNat) html += "<div style=\"font-size:.64rem;color:var(--muted);margin-bottom:.4rem\">Trait vertical = moyenne nationale</div>";
   bars.forEach(b => {
-    if(b.pct == null || b.pct === 0 || b.pct == undefined) return;
-    html += "<div style=\"margin-bottom:.4rem\">";
+    if(b.pct == null || b.pct === 0) return;
+    const diff = b.nat != null ? b.pct - b.nat : null;
+    const diffStr = diff != null ? (diff>=0?'<span style=\"color:#27ae60\">+'+diff+'pt</span>':'<span style=\"color:#e74c3c\">'+diff+'pt</span>') : '';
+    html += "<div style=\"margin-bottom:.5rem\">";
     html += "<div style=\"display:flex;justify-content:space-between;font-size:.72rem;color:var(--text);margin-bottom:.15rem\">";
-    html += "<span>" + b.label + "</span><span style=\"font-weight:600\">" + b.pct + "%</span>";
+    html += "<span>" + b.label + "</span><span style=\"font-weight:600\">" + b.pct + "% " + diffStr + "</span>";
     html += "</div>";
-    html += "<div style=\"height:7px;background:rgba(128,128,128,.12);border-radius:4px\">";
+    html += "<div style=\"position:relative;height:8px;background:rgba(128,128,128,.12);border-radius:4px\">";
     html += "<div style=\"width:" + Math.min(b.pct,100) + "%;height:100%;background:" + b.color + ";border-radius:4px\"></div>";
-    html += "</div></div>";
+    if(b.nat != null) html += "<div style=\"position:absolute;top:-2px;left:calc("+Math.min(b.nat,100)+"% - 1px);width:2px;height:12px;background:#555;border-radius:1px\" title=\"Nat. "+b.nat+"%\"></div>";
+    html += "</div>";
+    if(b.nat != null) html += "<div style=\"text-align:right;font-size:.62rem;color:var(--muted);margin-top:.1rem\">Nat. "+b.nat+"%</div>";
+    html += "</div>";
   });
   html += "</div>";
   wrap.innerHTML = html;
@@ -4095,7 +4103,7 @@ function showDemographieDetail() {
     ${window._melodiData?.pyramideAges && Object.keys(window._melodiData.pyramideAges).length >= 5 ? `
     <div style="margin-top:1.2rem">
       <p style="font-size:.74rem;font-weight:700;color:var(--text);margin-bottom:.6rem">📊 Pyramide des âges${window._melodiData.pyramideAnnee?' · '+window._melodiData.pyramideAnnee:''}</p>
-      <div id="pyramideAgesChart" style="font-size:.72rem"></div>
+      <div id="pyramideAgesChart" style="position:relative;height:200px;margin-bottom:.5rem"></div>
     </div>` : ''}
     ${window._melodiData?.pctMigArrivals != null ? `
     <div style="margin-top:1rem;padding:.6rem .8rem;background:rgba(184,131,42,.06);border-left:3px solid var(--gold);border-radius:4px;font-size:.76rem">
@@ -4149,30 +4157,36 @@ function showDemographieDetail() {
     });
   }, 100);
 
-  // Rendu pyramide des âges
+  // Rendu pyramide des âges — chart vertical Chart.js
   setTimeout(() => {
     const pyr = window._melodiData?.pyramideAges;
-    if (!pyr || !Object.keys(pyr).length) return;
+    if (!pyr || !Object.keys(pyr).length || !window.Chart) return;
     const container = document.getElementById('pyramideAgesChart');
     if (!container) return;
-    const AGE_LABELS = {'Y_LT15':'0-14 ans','Y15T24':'15-24 ans','Y25T39':'25-39 ans','Y40T54':'40-54 ans','Y55T64':'55-64 ans','Y65T79':'65-79 ans','Y_GE80':'80+ ans'};
-    const total = Object.values(pyr).reduce((s,v)=>s+v,0);
-    const maxVal = Math.max(...Object.values(pyr));
-    let html = '';
-    Object.keys(AGE_LABELS).forEach(k => {
-      const v = pyr[k] || 0;
-      const pct = total ? Math.round(v/total*100) : 0;
-      const barW = maxVal ? Math.round(v/maxVal*100) : 0;
-      const color = k==='Y_LT15'||k==='Y15T24'?'#3498db':k==='Y65T79'||k==='Y_GE80'?'#e74c3c':'#b8832a';
-      html += `<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.3rem">
-        <span style="width:5.5rem;font-size:.68rem;color:var(--muted);text-align:right;flex-shrink:0">${AGE_LABELS[k]}</span>
-        <div style="flex:1;background:rgba(0,0,0,.06);border-radius:3px;height:14px;overflow:hidden">
-          <div style="height:100%;width:${barW}%;background:${color};border-radius:3px;transition:width .4s"></div>
-        </div>
-        <span style="width:2.5rem;font-size:.68rem;color:var(--text);font-weight:600">${pct}%</span>
-      </div>`;
+    const AGE_KEYS = ['Y_LT15','Y15T24','Y25T39','Y40T54','Y55T64','Y65T79','Y_GE80'];
+    const AGE_LABELS = ['0-14','15-24','25-39','40-54','55-64','65-79','80+'];
+    const total = AGE_KEYS.reduce((s,k)=>s+(pyr[k]||0),0);
+    const data = AGE_KEYS.map(k => total ? Math.round((pyr[k]||0)/total*1000)/10 : 0);
+    const colors = AGE_KEYS.map(k => k==='Y_LT15'||k==='Y15T24'?'#3498db':k==='Y65T79'||k==='Y_GE80'?'#e74c3c':'#b8832a');
+    container.innerHTML = '<canvas id="pyramideCanvas" height="180"></canvas>';
+    if (window._pyramideChart) { window._pyramideChart.destroy(); window._pyramideChart = null; }
+    const ctx = document.getElementById('pyramideCanvas');
+    if (!ctx) return;
+    window._pyramideChart = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: AGE_LABELS, datasets: [{ data, backgroundColor: colors, borderRadius: 3, borderSkipped: false }] },
+      options: {
+        responsive: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: c => c.raw + '%' } }
+        },
+        scales: {
+          x: { ticks: { color: '#8a7d68', font: { size: 10 } }, grid: { display: false } },
+          y: { ticks: { color: '#8a7d68', font: { size: 10 }, callback: v => v + '%' }, grid: { color: 'rgba(0,0,0,.05)' }, beginAtZero: true }
+        }
+      }
     });
-    container.innerHTML = html;
   }, 200);
 }
 
@@ -4364,7 +4378,10 @@ function appendSynth(cardId) {
   const div = document.createElement('div');
   div.className = 'card-synth-block';
   div.innerHTML = html;
-  body.appendChild(div);
+  // Insérer juste après les tuiles noires si elles existent, sinon en premier
+  const anchor = body.querySelector('.stat-grid, .map-stats');
+  if(anchor) anchor.insertAdjacentElement('afterend', div);
+  else body.prepend(div);
 }
 
 function synthBlock(sentences, icon, title) {
@@ -4410,7 +4427,23 @@ function genSynth(cardId) {
       gHtml += '<span style="color:var(--text)">Ce secteur : <strong>'+st.medianM2.toLocaleString("fr-FR")+" €/m²"+'</strong></span>';
       gHtml += '<span style="color:#555">Dept "+dept.dept+" : '+dept.medianM2.toLocaleString("fr-FR")+' €/m²</span>';
       gHtml += '</div>';
-      gaugeHtml = '<div style="margin-bottom:.75rem"><div style="display:flex;justify-content:space-between;font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.3rem"><span>💰 Prix au m²</span><span style="color:'+colD+'">'+Math.abs(diffD)+"% "+dirD+' du dept</span></div>'+gHtml+'<p style="font-size:.7rem;color:#777;margin:.2rem 0">Trait foncé = médiane département · Trait clair = médiane France (~2 800 €/m²) · Source DVF DGFiP</p></div>';
+      // 2e barre : commune vs national
+      var diffN = Math.round((st.medianM2-natRef)/natRef*100);
+      var dirN = diffN>=0?"au-dessus":"en dessous";
+      var colN = diffN>=0?"#e74c3c":"#27ae60";
+      var maxNat = Math.max(st.medianM2, natRef) * 1.15;
+      var gNat = '<div style="position:relative;height:12px;border-radius:6px;overflow:visible;margin-bottom:.35rem">';
+      gNat += '<div style="position:absolute;inset:0;background:'+gradDVF+';border-radius:6px;"></div>';
+      gNat += '<div style="position:absolute;top:0;left:'+Math.round(st.medianM2/maxNat*100)+'%;right:0;bottom:0;background:rgba(230,230,230,.75);border-radius:0 6px 6px 0;"></div>';
+      gNat += '<div style="position:absolute;top:-4px;left:calc('+Math.round(natRef/maxNat*100)+'% - 1px);width:3px;height:20px;background:#555;border-radius:2px;" title="Médiane nationale"></div>';
+      gNat += '</div>';
+      gNat += '<div style="display:flex;justify-content:space-between;font-size:.73rem;margin-top:.1rem">';
+      gNat += '<span style="color:var(--text)">Ce secteur : <strong>'+st.medianM2.toLocaleString("fr-FR")+" €/m²"+'</strong></span>';
+      gNat += '<span style="color:#555">France : ~2 800 €/m²</span>';
+      gNat += '</div>';
+      var gaugeNatHtml = '<div style="margin-bottom:.75rem"><div style="display:flex;justify-content:space-between;font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.3rem"><span>💰 vs nationale</span><span style="color:'+colN+'">'+Math.abs(diffN)+"% "+dirN+' de la France</span></div>'+gNat+'</div>';
+
+      gaugeHtml = '<div style="margin-bottom:.75rem"><div style="display:flex;justify-content:space-between;font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.3rem"><span>💰 vs département</span><span style="color:'+colD+'">'+Math.abs(diffD)+"% "+dirD+' du dept</span></div>'+gHtml+'</div>'+gaugeNatHtml+'<p style="font-size:.7rem;color:#777;margin:.2rem 0">Trait foncé = référence · Source DVF DGFiP</p>';
       s.push("Prix <strong>"+Math.abs(diffD)+"% "+dirD+"</strong> de la médiane du département ("+dept.medianM2.toLocaleString("fr-FR")+" €/m²).");
     }
     var mel = window._melodiData;
