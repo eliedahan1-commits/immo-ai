@@ -3935,7 +3935,7 @@ function showScoreDetail() {
       // Cadre de vie
       const vParts=[];
       if(mob?.score) vParts.push("une mobilité <strong>"+(mob.score>=8?"excellente":mob.score>=6?"bonne":"correcte")+"</strong> ("+mob.score+"/10"+(mob.stats?.metro>0?", "+mob.stats.metro+" métro/RER":"")+")");
-      if(meteo?.ensoleillement?.heuresAnnuelles) vParts.push("<strong>"+(meteo.ensoleillement.heuresAnnuelles>1800?"bon":meteo.ensoleillement.heuresAnnuelles>1300?"modéré":"faible")+" ensoleillement</strong> ("+meteo.ensoleillement.heuresAnnuelles.toLocaleString("fr-FR")+" h/an)");
+      if(meteo?.ensoleillement?.heuresAnnuelles) vParts.push("un ensoleillement <strong>"+(meteo.ensoleillement.heuresAnnuelles>1800?"bon":meteo.ensoleillement.heuresAnnuelles>1300?"modéré":"faible")+"</strong> ("+meteo.ensoleillement.heuresAnnuelles.toLocaleString("fr-FR")+" h/an)");
       if(bruit?.niveauCode){const sc3=Math.min((bruit.score||0)+(ins?.densite>10000?4:ins?.densite>5000?3:ins?.densite>2000?2:1),10);vParts.push("un bruit "+(sc3>=7?"élevé":sc3>=4?"modéré":"faible"));}
       if(aq?.aqi) vParts.push("une qualité de l'air <strong>"+(aq.aqi<=30?"bonne":aq.aqi<=60?"correcte":"préoccupante")+"</strong> (AQI "+aq.aqi+")");
       if(vParts.length) parts.push("Le cadre de vie se caractérise par "+vParts.join(", ")+".");
