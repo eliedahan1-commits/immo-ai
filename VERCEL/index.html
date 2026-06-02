@@ -1923,7 +1923,7 @@ path.leaflet-interactive:focus{outline:none;}
 // ══ STATE ══
 let groqKey = localStorage.getItem('immoai_groq') || '';
 let chatHistory = [];
-let currentAddress = null;
+var currentAddress = null;
 let currentCoords = null;
 
 // Détection local vs Netlify
@@ -3945,6 +3945,7 @@ function showScoreDetail() {
       const cr2=window._criminaliteData;
       if(cr2&&cr2.success&&cr2.indicateurs){function nS(v){return v.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");}const RF=[["vol sans violence",11],["vol avec violence",2.5],["violences physiques",9],["cambriolage",3.5],["vehicule",2.8],["escroquerie",6],["destruction",8],["stupefiants",4]];function nR(i){var l=nS(i);for(var j=0;j<RF.length;j++)if(l.indexOf(RF[j][0])>=0)return RF[j][1];return null;}var rs3=0,rc3=0;Object.entries(cr2.indicateurs).forEach(function(e){var r=nR(e[0]);if(r&&r>0&&e[1].taux!=null){rs3+=e[1].taux/r;rc3++;}});if(rc3>0){var sc4=Math.max(1,Math.min(10,Math.round(10*(2-Math.min(rs3/rc3,2))/2)));secParts.push("un risque sécurité <strong>"+(sc4>=7?"faible":sc4>=4?"modéré":"élevé")+"</strong> ("+sc4+"/10)");}}
       if(secParts.length) parts.push("En matière de risques : "+secParts.join(" et ")+".");
+      window._narratifParts = parts;
       return parts.length ? '<p style="font-size:.76rem;color:var(--text);line-height:1.75;margin:.3rem 0 .6rem">'+parts.map(p=>'<span style="display:block;margin-bottom:.3rem">'+p+'</span>').join("")+'</p>' : "";
     })();
 
@@ -9697,7 +9698,7 @@ if(navigator.permissions){
 }
 
 </script>
-<script src="/pdf-export.js?v=6"></script>
+<script src="/pdf-export.js?v=7"></script>
 <script src="/recherche-bien.js?v=3"></script>
 <script>
 /* ══ MOBILE NAV ══════════════════════════════════════════════════════════ */
