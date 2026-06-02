@@ -225,7 +225,7 @@ function generatePDF(){
   if(demo?.rows?.length>=2){
     const r=demo.rows;
     const ev=((r[r.length-1].pop-r[0].pop)/r[0].pop*100).toFixed(1);
-    kv('Évolution population', (ev>=0?'+':'')+ev+'% ('+r[0].year+'→'+r[r.length-1].year+')', ev>2?G:ev>=-1?O:R);
+    kv('Évolution population', (ev>=0?'+':'')+ev+'% ('+r[0].year+'->'+r[r.length-1].year+')', ev>2?G:ev>=-1?O:R);
   }
   if(mel?.pyramideAges){
     const pyr=mel.pyramideAges;

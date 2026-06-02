@@ -1450,7 +1450,7 @@ path.leaflet-interactive:focus{outline:none;}
         <div class="card">
           <div class="ctitle">📊 Paramètres de comparaison</div>
           <label class="lbl">Loyer mensuel CC (€)</label>
-          <input class="inp" id="locLoyerMens" type="number" placeholder="1200" />
+          <input class="inp" id="locLoyerMens" type="number" placeholder="1200" oninput="this._userModified=true" />
           <label class="lbl">Prix d'achat équivalent (€)</label>
           <input class="inp" id="locPrixAchat" type="number" placeholder="300000" />
           <label class="lbl">Apport (€)</label>
@@ -8549,6 +8549,8 @@ function calcLocBudget(){
   const cap20 = capacites.find(function(c){ return c.d===20; });
   const elPrix = document.getElementById("locPrixAchat");
   if(elPrix && cap20 && !elPrix._userModified){ elPrix.value = cap20.prix; }
+  const elLoyer = document.getElementById("locLoyerMens");
+  if(elLoyer && !elLoyer._userModified){ elLoyer.value = loyerReel; }
 
   const capRows = capacites.map(function(c){
     return "<div class=\"result-row\"><span>Achat sur "+c.d+" ans</span><span style=\"color:#7ef0c0\">"+fmt(c.prix)+"</span></div>";
@@ -9698,7 +9700,7 @@ if(navigator.permissions){
 }
 
 </script>
-<script src="/pdf-export.js?v=11"></script>
+<script src="/pdf-export.js?v=12"></script>
 <script src="/recherche-bien.js?v=3"></script>
 <script>
 /* ══ MOBILE NAV ══════════════════════════════════════════════════════════ */
@@ -9813,7 +9815,4 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(panelEl && panelEl.innerHTML.trim()){
       var btn = panelEl.querySelector('.back-btn'); if(btn) btn.click(); else closePanel(); return;
     }
-    if(document.getElementById('p-home')?.classList.contains('on')){ _showExitConfirm(); return; }
-    if(document.getElementById('p-analyse')?.classList.contains('on')){ go('home'); return; }
-    _goPage('analyse');
- 
+    if(document.getElementById('p-home')?.classList.con
