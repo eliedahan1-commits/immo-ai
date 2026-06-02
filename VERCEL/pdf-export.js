@@ -18,24 +18,20 @@ function generatePDF(){
 
   const safeRect=(x,y,w,h,s)=>{ if(!isFinite(x)||!isFinite(y)||w<=0||h<=0)return; doc.rect(Math.round(x*10)/10,Math.round(y*10)/10,Math.round(w*10)/10,Math.round(h*10)/10,s); };
   const safeRRect=(x,y,w,h,r,s)=>{ if(!isFinite(x)||!isFinite(y)||w<=0||h<=0)return; const rr=Math.min(r,w/2-.1,h/2-.1); if(rr<=0){safeRect(x,y,w,h,s);return;} doc.roundedRect(Math.round(x*10)/10,Math.round(y*10)/10,Math.round(w*10)/10,Math.round(h*10)/10,rr,rr,s); };
-  const fmt=n=>Number(n).toLocaleString('fr-FR').replace(/[   ]/g,' ');
+  // Nettoie les espaces non-standards (fine insecable u202F, etc.) que jsPDF remplace par /
+  const cleanSpaces=s=>String(s||'').replace(/[     ⁠]/g,' ');
+  const fmt=n=>cleanSpaces(Number(n).toLocaleString('fr-FR'));
   const np=(n=20)=>{ if(y+n>H-12){doc.addPage();y=MT;} };
-
-  // Strip HTML tags, HTML entities et emojis
+  // Strip HTML, entites, emojis + espaces non-standards
   const strip=s=>{
     if(!s) return '';
-    return String(s)
+    return cleanSpaces(String(s)
       .replace(/<[^>]+>/g,'')
       .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#x2019;/g,"'").replace(/&quot;/g,'"').replace(/&nbsp;/g,' ')
       .replace(/[\u{1F300}-\u{1FFFF}]|[\u{2600}-\u{27BF}]|[\u{FE00}-\u{FEFF}]|[\u{1F000}-\u{1F02F}]/gu,'')
-      .replace(/[^\x00-\xFF]/g, function(c){
-        // Transliteration basique pour les caractères hors Latin-1 restants
-        return c;
-      })
-      .trim();
+      .trim());
   };
 
-  // hexRgb helper
   function hexRgb(hex){ hex=hex.replace('#',''); return [parseInt(hex.slice(0,2),16),parseInt(hex.slice(2,4),16),parseInt(hex.slice(4,6),16)]; }
 
   // ── Helpers mise en page ──
@@ -59,7 +55,7 @@ function generatePDF(){
   };
   const divider=()=>{ np(5); doc.setDrawColor(220,205,175); doc.setLineWidth(.2); doc.line(ML,y,W-MR,y); y+=4; };
 
-  // ══ PAGE 1 : EN-TÊTE ══
+  // ══ EN-TETE ══
   doc.setFillColor(26,22,16); safeRect(0,0,W,52,'F');
   doc.setFillColor(184,131,42); safeRect(0,51,W,1.5,'F');
   doc.setFont('helvetica','bold'); doc.setFontSize(24); doc.setTextColor(184,131,42);
@@ -68,7 +64,6 @@ function generatePDF(){
   doc.setFontSize(13); doc.setTextColor(26,22,16); doc.text('AI',64,30.5,{align:'center'});
   doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(220,205,175);
   doc.text("Rapport d'analyse du quartier", 17, 46);
-  // Date
   doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(160,140,100);
   const dateStr=new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});
   doc.text(dateStr, W-MR, 46, {align:'right'});
@@ -93,7 +88,7 @@ function generatePDF(){
     doc.setDrawColor(...ringCol); doc.setLineWidth(2.5);
     doc.circle(ML+12,y+10,10,'S');
     doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(...ringCol);
-    doc.text(note.toFixed(1), ML+12, y+10+1.5,{align:'center'});
+    doc.text(note.toFixed(1), ML+12, y+11.5,{align:'center'});
     doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(130,110,80);
     doc.text('/10', ML+12, y+14,{align:'center'});
     doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(...ringCol);
@@ -105,18 +100,18 @@ function generatePDF(){
 
   divider();
 
-  // ══ NARRATIF (texte identique à la carte Score) ══
+  // ══ NARRATIF (meme texte que la carte Score) ══
   const narratifParts = window._narratifParts || [];
   if(narratifParts.length){
     doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(184,131,42);
     doc.text('Portrait du quartier', ML+3, y); y+=6;
     narratifParts.forEach(p=>{
-      const txt = '- ' + strip(p);
       np(10);
-      const lines = doc.splitTextToSize(txt, CW-8);
+      const txt = '- ' + strip(p);
+      const lines = doc.splitTextToSize(txt, CW-6);
       doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(50,45,35);
       doc.text(lines, ML+3, y);
-      y += lines.length * 4.8 + 1.5;
+      y += lines.length * 4.8 + 2;
     });
     y+=3;
     divider();
@@ -137,14 +132,12 @@ function generatePDF(){
     { title:'Dynamisme', color:'#1abc9c', rows:[] },
   ];
 
-  // Marché immobilier
   const s0=sections[0].rows;
-  if(dvf?.stats?.medianM2) s0.push(['Prix median m2',fmt(dvf.stats.medianM2)+' EUR/m2',null]);
+  if(dvf?.stats?.medianM2) s0.push(['Prix median /m2',fmt(dvf.stats.medianM2)+' EUR/m2',null]);
   if(dvf?.stats?.medianM2&&dept?.medianM2){const d=Math.round((dvf.stats.medianM2-dept.medianM2)/dept.medianM2*100);s0.push(['vs departement',(d>=0?'+':'')+d+'%',d<=-20?'G':d<=10?'O':'R']);}
   if(dvf?.count) s0.push(['Transactions',dvf.count+' ventes',null]);
   if(mel?.revenuMedian&&dvf?.stats?.medianM2){const e=Math.round(dvf.stats.medianM2*50/(mel.revenuMedian/12));s0.push(['Effort achat 50m2',e+' mois',e<60?'G':e<180?'O':'R']);}
 
-  // Population & économie
   const s1=sections[1].rows;
   if(ins?.population) s1.push(['Habitants',fmt(ins.population),null]);
   if(ins?.densite) s1.push(['Densite',fmt(ins.densite)+' hab/km2',null]);
@@ -152,7 +145,6 @@ function generatePDF(){
   if(mel?.tauxChomage!=null){const d=nat?.tauxChomage!=null?Math.round((mel.tauxChomage-nat.tauxChomage)*10)/10:null;s1.push(['Chomage',mel.tauxChomage+'%'+(d!=null?' ('+(d>=0?'+':'')+d+'pt)':''),d==null?null:d<=-1?'G':d<=1?'O':'R']);}
   if(mel?.pctBac5!=null) s1.push(['Bac+5 et +',mel.pctBac5+'%',mel.pctBac5>=30?'G':mel.pctBac5>=15?'O':'R']);
 
-  // Cadre de vie
   const s2=sections[2].rows;
   if(meteo?.ensoleillement?.heuresAnnuelles){const h=meteo.ensoleillement.heuresAnnuelles;s2.push(['Ensoleillement',fmt(h)+' h/an - '+strip(meteo.ensoleillement.label||''),h>1800?'G':h>1300?'O':'R']);}
   if(meteo?.temperatures?.maxMoyenne) s2.push(['Temperatures','Max '+meteo.temperatures.maxMoyenne+'C / Min '+meteo.temperatures.minMoyenne+'C',null]);
@@ -160,27 +152,23 @@ function generatePDF(){
   if(aq?.aqi) s2.push(['Qualite de l\'air','AQI '+aq.aqi+' - '+strip(aq.label||''),aq.aqi<=30?'G':aq.aqi<=60?'O':'R']);
   if(risques?.total!=null) s2.push(['Risques naturels',risques.total+' risque(s)',risques.total===0?'G':risques.total<=2?'O':'R']);
 
-  // Mobilité & services
   const s3=sections[3].rows;
   if(mob?.score) s3.push(['Score mobilite',mob.score+'/10',mob.score>=7?'G':mob.score>=5?'O':'R']);
   if(mob?.stats){const st=mob.stats,p=[];if(st.metro>0)p.push(st.metro+' metro/RER');if(st.arretsBus>0)p.push(st.arretsBus+' bus');if(p.length)s3.push(['Transports',p.join(' - '),null]);}
-  if(svc?.total) s3.push(['Services',svc.sante+' sante - '+svc.commerces+' commerces',svc.total>50?'G':svc.total>20?'O':'R']);
-  if(eco2?.total) s3.push(['Etablissements scolaires',eco2.total+' etablissements',eco2.total>=5?'G':eco2.total>=2?'O':'R']);
+  if(svc?.total) s3.push(['Services',(svc.stats?.sante||svc.sante||'?')+' sante - '+(svc.stats?.commerce||svc.commerces||'?')+' commerces',svc.total>50?'G':svc.total>20?'O':'R']);
+  if(eco2?.total) s3.push(['Etablissements scol.',eco2.total+' etablissements',eco2.total>=5?'G':eco2.total>=2?'O':'R']);
   if(fibre?.fibre?.eligible!=null) s3.push(['Fibre FTTH',fibre.fibre.eligible?'Eligible':'Non eligible',fibre.fibre.eligible?'G':'R']);
 
-  // Logement
   const s4=sections[4].rows;
   if(mel?.pctPropri!=null){const d=nat?.pctPropri!=null?Math.round(mel.pctPropri-nat.pctPropri):null;s4.push(['Proprietaires',mel.pctPropri+'%'+(d!=null?' ('+(d>=0?'+':'')+d+'pt nat.)':''),null]);}
   if(mel?.nbVacants!=null&&mel.nbResidPrinc){const pV=Math.round(mel.nbVacants/(mel.nbResidPrinc+mel.nbVacants)*100);s4.push(['Logements vacants',pV+'%',pV<=5?'R':pV<=10?'O':'G']);}
   if(mel?.nbResidPrinc) s4.push(['Res. principales',fmt(mel.nbResidPrinc),null]);
   if(mel?.pctSeuls!=null) s4.push(['Menages seuls',mel.pctSeuls+'%',null]);
 
-  // Dynamisme
   const s5=sections[5].rows;
   if(demo?.rows?.length>=2){const r=demo.rows;const ev=((r[r.length-1].pop-r[0].pop)/r[0].pop*100).toFixed(1);s5.push(['Evolution pop.',(ev>=0?'+':'')+ev+'% ('+r[0].year+'-'+r[r.length-1].year+')',ev>2?'G':ev>=-1?'O':'R']);}
   if(mel?.pyramideAges){const pyr=mel.pyramideAges;const tot=Object.values(pyr).reduce((a,v)=>a+v,0);if(tot>0){const yj=Math.round(((pyr.Y_LT15||0)+(pyr.Y15T24||0))/tot*100);const se=Math.round(((pyr.Y65T79||0)+(pyr.Y_GE80||0))/tot*100);const ac=100-yj-se;s5.push(['Profil demographique','Jeunes '+yj+'% - Actifs '+ac+'% - Seniors '+se+'%',null]);}}
 
-  // Rendu 1 colonne
   sections.forEach(s=>{
     if(!s.rows.length) return;
     secBar(s.title, s.color);
@@ -215,7 +203,7 @@ function generatePDF(){
   for(let i=1;i<=pageCount;i++){
     doc.setPage(i);
     doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(160,140,110);
-    doc.text('IMMO-AI - Intelligence immobiliere - Sources : DVF DGFiP - INSEE Melodi - Georisques - OSM - ARCEP - Open-Meteo', ML, H-8);
+    doc.text('IMMO-AI - Sources : DVF DGFiP - INSEE Melodi - Georisques - OSM - ARCEP - Open-Meteo', ML, H-8);
     doc.text(i+'/'+pageCount, W-MR, H-8, {align:'right'});
     doc.setDrawColor(184,131,42); doc.setLineWidth(.4); doc.line(ML,H-10,W-MR,H-10);
   }
