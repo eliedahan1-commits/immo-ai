@@ -34,7 +34,7 @@ function init(){
   injectHTML();
   injectStyles();
   setupFloatingButton();
-  if(!prefs.configured) setTimeout(showSetup, 500);
+  // La modale s'ouvre au premier clic sur l'avatar, pas au chargement
 }
 
 // ── Préférences ──
@@ -238,8 +238,10 @@ function injectStyles(){
   #av-setup-modal {
     display:none; position:fixed; inset:0; z-index:10000;
     background:rgba(0,0,0,.75); align-items:center; justify-content:center;
+    pointer-events:none;
   }
-  #av-setup-modal.open { display:flex; }
+  #av-setup-modal.open { display:flex; pointer-events:auto; }
+  #av-setup-box { pointer-events:auto; }
   #av-setup-box {
     background:#1a1610; border:1px solid #b8832a44;
     border-radius:12px; padding:1.5rem; width:min(380px,90vw);
@@ -287,6 +289,10 @@ function setupFloatingButton(){
 }
 
 function togglePanel(){
+  if(!prefs.configured){
+    showSetup();
+    return;
+  }
   panelOpen = !panelOpen;
   document.getElementById('av-panel').classList.toggle('open', panelOpen);
   if(panelOpen && !avatarModel) setTimeout(initThree, 100);
@@ -704,6 +710,8 @@ function saveSetup(){
   savePrefs();
   closeSetup();
   updateNameBadge();
+  // Ouvrir le panneau après configuration
+  if(!panelOpen) togglePanel();
   if(genreChange && avatarModel){
     // Recharger l'avatar avec le nouveau genre
     scene.remove(avatarModel);
@@ -714,6 +722,18 @@ function saveSetup(){
 
 // ── Utilitaires ──
 function setStatus(txt){
+  const el = document.getElementById('av-status');
+  if(el) el.textContent = txt;
+}
+
+// ── Démarrage ──
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+
+})();txt){
   const el = document.getElementById('av-status');
   if(el) el.textContent = txt;
 }
