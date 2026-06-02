@@ -733,16 +733,4 @@ if(document.readyState === 'loading'){
   init();
 }
 
-})();txt){
-  const el = document.getElementById('av-status');
-  if(el) el.textContent = txt;
-}
-
-// ── Démarrage ──
-if(document.readyState === 'loading'){
-  document.addEventListener('DOMContentLoaded', init);
-} else {
-  init();
-}
-
 })();
