@@ -945,8 +945,8 @@ path.leaflet-interactive:focus{outline:none;}
   <button class="btab" id="btab-financement" onclick="go('emprunt');setActiveTab('financement')">
     <span class="btab-icon">💳</span><span>Financement</span>
   </button>
-  <button class="btab" id="btab-strategie" onclick="go('offre');setActiveTab('strategie')">
-    <span class="btab-icon">🎯</span><span>Stratégie</span>
+  <button class="btab" id="btab-ia" onclick="window._avatarToggle&&window._avatarToggle()">
+    <span class="btab-icon" style="font-size:.85rem;font-weight:900;color:var(--gold2)">◈ IA</span><span>Assistant</span>
   </button>
 </div>
 
@@ -965,7 +965,7 @@ path.leaflet-interactive:focus{outline:none;}
       <div class="topbar-addr" id="topAddr"></div>
     </div>
     <div class="topbar-right">
-      <span id="versionBadge" style="font-size:.62rem;color:var(--muted);opacity:.55;align-self:center;margin-right:.4rem" title="Version déployée"></span>
+      <span id="versionBadge" style="font-size:.62rem;color:var(--muted);opacity:.55;align-self:center;margin-right:.4rem;cursor:pointer;user-select:none" title="Version déployée" onclick="window._adminTap&&window._adminTap()"></span>
       <button class="tb-btn primary" onclick="go('annonces')">🏠 Annonces</button>
     </div>
   </div>
@@ -9700,7 +9700,7 @@ if(navigator.permissions){
 
 </script>
 <script src="/pdf-export.js?v=12"></script>
-<script src="/avatar.js?v=5"></script>
+<script src="/avatar.js?v=6"></script>
 <script src="/recherche-bien.js?v=3"></script>
 <script>
 /* ══ MOBILE NAV ══════════════════════════════════════════════════════════ */
@@ -9817,10 +9817,4 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
     if(document.getElementById('p-home')?.classList.contains('on')){ _showExitConfirm(); return; }
     if(document.getElementById('p-analyse')?.classList.contains('on')){ go('home'); return; }
-    _goPage('analyse');
-  });
-})();
-
-</script>
-</body>
-</html>                                                                                 
+   

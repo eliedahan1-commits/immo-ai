@@ -12,8 +12,8 @@ const MAX_HISTORY = 20;
 
 // Avatars RPM publics (homme/femme)
 const AVATARS = {
-  femme: 'https://models.readyplayer.me/64bfa15f0e72c63d7c3934a6.glb',
-  homme: 'https://models.readyplayer.me/64c3f4a6d72bffc6fa17943c.glb'
+  femme: 'https://threejs.org/examples/models/gltf/Michelle.glb',
+  homme: 'https://threejs.org/examples/models/gltf/Soldier.glb'
 };
 
 // ── État ──
@@ -63,6 +63,7 @@ function injectHTML(){
     <div id="av-header">
       <div id="av-name-badge"></div>
       <div style="display:flex;gap:.5rem">
+        <button class="av-icon-btn" id="av-stop-btn" onclick="window._avatarStop&&window._avatarStop()" title="Arrêter">⏹</button>
         <button class="av-icon-btn" id="av-settings-btn" onclick="window._avatarSettings()" title="Préférences">⚙️</button>
         <button class="av-icon-btn" onclick="window._avatarToggle()" title="Fermer">✕</button>
       </div>
@@ -255,9 +256,8 @@ function injectStyles(){
     50%{box-shadow:0 0 0 6px rgba(184,131,42,.0);}
   }
 
-  @media(max-width:600px){
-    #av-panel { width:100vw; }
-    #av-trigger-lbl { display:none; }
+  @media(max-width:1024px){
+    #av-trigger { display:none !important; }
   }
   `;
   document.head.appendChild(s);
@@ -268,10 +268,12 @@ function setupFloatingButton(){
   window._avatarToggle = togglePanel;
   window._avatarSend = sendMessage;
   window._avatarMic = toggleMic;
+  window._avatarStop = stopSpeak;
   window._avatarSettings = showSetup;
   window._avatarSaveSetup = saveSetup;
   window._avatarCloseSetup = closeSetup;
   window._avatarQuick = quickAction;
+  window._adminTap = adminTap;
   updateNameBadge();
 }
 
@@ -282,6 +284,7 @@ function togglePanel(){
   }
   panelOpen = !panelOpen;
   document.getElementById('av-panel').classList.toggle('open', panelOpen);
+  if(!panelOpen){ stopSpeak(); return; }
   if(panelOpen && !avatarModel) setTimeout(initThree, 100);
   if(panelOpen && history.length===0) setTimeout(()=>avatarGreet(), 800);
 }
@@ -825,6 +828,49 @@ function saveSetup(){
 function setStatus(txt){
   const el = document.getElementById('av-status');
   if(el) el.textContent = txt;
+}
+
+
+// ── Console Admin (5 clics sur version badge) ──
+let _adminTaps = 0, _adminTimer = null;
+function adminTap(){
+  _adminTaps++;
+  clearTimeout(_adminTimer);
+  if(_adminTaps >= 5){
+    _adminTaps = 0;
+    showAdminConsole();
+  } else {
+    _adminTimer = setTimeout(()=>{ _adminTaps=0; }, 2000);
+  }
+}
+function showAdminConsole(){
+  const existing = document.getElementById('admin-console');
+  if(existing){ existing.remove(); return; }
+  const el = document.createElement('div');
+  el.id = 'admin-console';
+  el.style.cssText = 'position:fixed;bottom:80px;right:16px;z-index:99999;background:#1a1610;border:1px solid #b8832a;border-radius:12px;padding:1rem;width:280px;box-shadow:0 8px 32px rgba(0,0,0,.6);font-size:.78rem;color:#e8d8b0';
+  const currentKey = window.groqKey || localStorage.getItem('immoai_groq') || '';
+  el.innerHTML = `
+    <div style="font-weight:700;color:#dcc87a;margin-bottom:.75rem;font-size:.82rem">⚙️ Console Admin</div>
+    <label style="font-size:.7rem;color:#8a7755;display:block;margin-bottom:.3rem">Clé Groq API</label>
+    <input id="admin-groq-key" type="password" value="${currentKey}"
+      style="width:100%;background:#100e0b;border:1px solid #2a2218;color:#e8d8b0;padding:.4rem .6rem;border-radius:6px;font-size:.75rem;box-sizing:border-box;margin-bottom:.6rem"/>
+    <div style="display:flex;gap:.5rem">
+      <button onclick="
+        const k=document.getElementById('admin-groq-key').value.trim();
+        if(k){localStorage.setItem('immoai_groq',k);window.groqKey=k;}
+        document.getElementById('admin-console').remove();
+        const dot=document.getElementById('aiDot');
+        const lbl=document.getElementById('aiLbl');
+        if(dot)dot.className='ai-dot on';
+        if(lbl)lbl.textContent='Groq · IA automatique';
+      " style="flex:1;padding:.4rem;background:linear-gradient(135deg,#b8832a,#8a6020);border:none;border-radius:6px;color:#fff;font-weight:600;cursor:pointer;font-size:.75rem">Sauvegarder</button>
+      <button onclick="document.getElementById('admin-console').remove()"
+        style="padding:.4rem .7rem;background:#1e180f;border:1px solid #2a2218;border-radius:6px;color:#8a7755;cursor:pointer;font-size:.75rem">✕</button>
+    </div>
+  `;
+  document.body.appendChild(el);
+  setTimeout(()=>{ const inp=document.getElementById('admin-groq-key'); if(inp)inp.focus(); }, 50);
 }
 
 // ── Démarrage ──
