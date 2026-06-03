@@ -420,7 +420,7 @@ function showFallbackAvatar(wrap){
   const img = document.createElement('img');
   img.id = 'av-img';
   img.alt = prefs.nom || 'Assistant';
-  img.style.cssText = 'height:100%;width:auto;max-width:none;object-fit:contain;object-position:top center;display:block;';
+  img.style.cssText = 'height:100%;width:auto;max-width:none;object-fit:contain;object-position:top center;display:block;background:#0a0806;';
   img.src = imgSrc;
 
   fb.appendChild(img);
@@ -463,12 +463,34 @@ function speak(text){
   currentUtterance.rate = parseFloat(prefs.vitesse) || 1;
   currentUtterance.pitch = parseFloat(prefs.pitch) || 1;
 
-  // Choisir une voix française si disponible
-  const voices = window.speechSynthesis.getVoices();
-  const frVoice = voices.find(function(v){
-    return v.lang.startsWith('fr') && (prefs.genre==='femme' ? !v.name.toLowerCase().includes('thomas') : true);
-  });
-  if(frVoice) currentUtterance.voice = frVoice;
+  // Choisir une voix française adaptée au genre
+  function applyVoice(utt){
+    const voices = window.speechSynthesis.getVoices();
+    if(!voices.length) return;
+    const frVoices = voices.filter(v=>v.lang.startsWith('fr'));
+    if(!frVoices.length) return;
+    const isMale = prefs.genre === 'homme';
+    // Mots-clés voix masculine/féminine
+    const maleKeys = ['thomas','nicolas','pierre','male','homme'];
+    const femaleKeys = ['marie','audrey','amélie','female','femme','siri'];
+    let found = null;
+    if(isMale){
+      found = frVoices.find(v=>maleKeys.some(k=>v.name.toLowerCase().includes(k)));
+    } else {
+      found = frVoices.find(v=>femaleKeys.some(k=>v.name.toLowerCase().includes(k)));
+    }
+    utt.voice = found || frVoices[isMale ? frVoices.length-1 : 0];
+    // Ajuster pitch si aucune voix genrée trouvée
+    if(!found && isMale && utt.pitch >= 1) utt.pitch = Math.min(utt.pitch, 0.8);
+  }
+  const voicesFr = window.speechSynthesis.getVoices();
+  if(voicesFr.length){ applyVoice(currentUtterance); }
+  else {
+    window.speechSynthesis.onvoiceschanged = function(){
+      applyVoice(currentUtterance);
+      window.speechSynthesis.onvoiceschanged = null;
+    };
+  }
 
   currentUtterance.onstart = function(){ isSpeaking=true; startMouthAnim(); setStatus('Parle…'); };
   currentUtterance.onend = function(){ isSpeaking=false; stopMouthAnim(); setStatus(''); };
@@ -608,7 +630,9 @@ Tu connais parfaitement l'application IMMO·AI et ses sections :
 - Outils financiers : budget loyer, louer vs acheter, mensualités, PTZ, DPE, investissement
 - PDF Export : rapport complet téléchargeable
 ${ctx ? '\nDonnées de l\'analyse en cours :'+ctx : ''}
-Tu peux commenter, conseiller, expliquer, comparer. Sois directe et professionnelle.`;
+RÈGLE ABSOLUE : Tu dois UNIQUEMENT répondre en te basant sur les données de l'analyse IMMO·AI affichée ci-dessus.
+Tu n'as PAS accès à Internet. Si une information (météo en temps réel, actualité, prix en direct...) n'est pas dans les données fournies, dis clairement : "Cette information n'est pas dans l'analyse IMMO·AI de cette adresse."
+Ne cherche JAMAIS d'informations générales extérieures. Concentre-toi sur commenter, interpréter et conseiller à partir des données affichées.`;
 }
 
 function buildMessages(userMsg){
