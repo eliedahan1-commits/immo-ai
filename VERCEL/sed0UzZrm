@@ -212,10 +212,10 @@ function injectStyles(){
     transition:border-color .2s;
   }
   #av-text-input:focus { border-color:#b8832a; }
-  #av-text-input::placeholder { color:#7a6a50; }
+  #av-text-input::placeholder { color:#4a4030; }
   #av-mic-btn, #av-send-btn {
     background:#1a1610; border:1px solid #2a2218;
-    color:#c8a85a; padding:.5rem .65rem; border-radius:8px;
+    color:#8a7755; padding:.5rem .65rem; border-radius:8px;
     cursor:pointer; font-size:1rem; transition:all .2s;
   }
   #av-mic-btn:hover, #av-send-btn:hover { border-color:#b8832a; color:#dcc87a; }
