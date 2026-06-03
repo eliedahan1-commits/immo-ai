@@ -411,7 +411,7 @@ function showFallbackAvatar(wrap){
 
   const fb = document.createElement('div');
   fb.id = 'av-fallback';
-  fb.style.cssText = 'position:absolute;inset:0;display:flex;align-items:flex-start;justify-content:center;background:#0a0806;overflow:hidden;';
+  fb.style.cssText = 'position:absolute;inset:0;display:block;background:#000;overflow:hidden;';
 
   const imgSrc = (prefs.genre === 'homme')
     ? '/images/avatar-m.png'
@@ -425,7 +425,7 @@ function showFallbackAvatar(wrap){
   const img = document.createElement('img');
   img.id = 'av-img';
   img.alt = prefs.nom || 'Assistant';
-  img.style.cssText = 'position:relative;z-index:1;height:100%;width:auto;max-width:none;object-fit:contain;object-position:top center;display:block;';
+  img.style.cssText = 'position:relative;z-index:1;width:100%;height:auto;display:block;object-position:top center;';
   img.src = imgSrc;
 
   fb.appendChild(img);
