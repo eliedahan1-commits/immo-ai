@@ -425,7 +425,7 @@ function showFallbackAvatar(wrap){
   const img = document.createElement('img');
   img.id = 'av-img';
   img.alt = prefs.nom || 'Assistant';
-  img.style.cssText = 'position:relative;z-index:1;width:100%;height:auto;display:block;object-position:top center;';
+  img.style.cssText = 'position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:contain;object-position:top center;display:block;';
   img.src = imgSrc;
 
   fb.appendChild(img);
