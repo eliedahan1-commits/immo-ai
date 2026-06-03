@@ -54,8 +54,8 @@ function injectHTML(){
   div.innerHTML = `
   <!-- Bouton flottant -->
   <button id="av-trigger" title="Assistant IA" onclick="window._avatarToggle()">
-    <span id="av-trigger-icon">🤖</span>
-    <span id="av-trigger-lbl">Assistant</span>
+    <span id="av-trigger-icon">◈</span>
+    <span id="av-trigger-lbl">Sofia IA</span>
   </button>
 
   <!-- Panneau latéral -->
@@ -79,12 +79,7 @@ function injectHTML(){
           onkeydown="if(event.key==='Enter')window._avatarSend()" />
         <button id="av-send-btn" onclick="window._avatarSend()">➤</button>
       </div>
-      <div id="av-quick-btns">
-        <button onclick="window._avatarQuick('analyse')">📊 Analyser</button>
-        <button onclick="window._avatarQuick('guide')">📖 Guide</button>
-        <button onclick="window._avatarQuick('score')">⭐ Score</button>
-        <button onclick="window._avatarQuick('prix')">💰 Prix</button>
-      </div>
+
     </div>
   </div>
 
@@ -225,15 +220,7 @@ function injectStyles(){
   #av-mic-btn:hover, #av-send-btn:hover { border-color:#b8832a; color:#dcc87a; }
   #av-mic-btn.active { background:#b8832a22; border-color:#b8832a; color:#dcc87a; animation:av-pulse 1s infinite; }
 
-  #av-quick-btns {
-    display:flex; gap:.35rem; flex-wrap:wrap;
-  }
-  #av-quick-btns button {
-    background:#1a1610; border:1px solid #2a2218;
-    color:#8a7755; padding:.3rem .6rem; border-radius:6px;
-    font-size:.7rem; cursor:pointer; transition:all .2s;
-  }
-  #av-quick-btns button:hover { border-color:#b8832a44; color:#c8a860; }
+
 
   #av-setup-modal {
     display:none; position:fixed; inset:0; z-index:10000;
@@ -426,37 +413,147 @@ function buildScene(canvas, wrap){
 }
 
 function showFallbackAvatar(wrap){
-  // Avatar CSS de secours élégant
   const fb = document.createElement('div');
   fb.id = 'av-fallback';
-  fb.innerHTML = `
-    <div class="av-fb-body">
-      <div class="av-fb-head">
-        <div class="av-fb-face">
-          <div class="av-fb-eyes"><div class="av-fb-eye"></div><div class="av-fb-eye"></div></div>
-          <div class="av-fb-mouth" id="av-fb-mouth"></div>
-        </div>
-        <div class="av-fb-hair"></div>
-      </div>
-      <div class="av-fb-torso"></div>
-    </div>
-  `;
+  // SVG avatar professionnel plein pied
+  const isFemme = prefs.genre !== 'homme';
+  fb.innerHTML = isFemme ? `
+  <svg id="av-svg" viewBox="0 0 200 420" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;max-height:100%">
+    <defs>
+      <radialGradient id="skinG" cx="50%" cy="40%" r="60%"><stop offset="0%" stop-color="#f5d5b0"/><stop offset="100%" stop-color="#e8b888"/></radialGradient>
+      <linearGradient id="suitG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1e1a14"/><stop offset="100%" stop-color="#140f08"/></linearGradient>
+      <linearGradient id="hairG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3d2206"/><stop offset="100%" stop-color="#1a0e03"/></linearGradient>
+      <linearGradient id="bgG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1a1610"/><stop offset="100%" stop-color="#0a0806"/></linearGradient>
+      <filter id="softShadow"><feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.4"/></filter>
+    </defs>
+    <!-- Fond -->
+    <rect width="200" height="420" fill="url(#bgG)"/>
+    <!-- Reflet sol -->
+    <ellipse cx="100" cy="415" rx="55" ry="6" fill="rgba(184,131,42,0.12)"/>
+    <!-- Corps / costume -->
+    <path d="M45 230 Q40 320 38 420 L162 420 Q160 320 155 230 Q145 215 130 210 L100 218 L70 210 Q55 215 45 230Z" fill="url(#suitG)" filter="url(#softShadow)"/>
+    <!-- Revers costume doré -->
+    <path d="M100 218 L85 240 L75 280 L100 265 L125 280 L115 240Z" fill="#b8832a" opacity="0.9"/>
+    <path d="M100 218 L85 240 L75 280" fill="none" stroke="#8a5f1a" stroke-width="1"/>
+    <path d="M100 218 L115 240 L125 280" fill="none" stroke="#8a5f1a" stroke-width="1"/>
+    <!-- Chemise blanche -->
+    <path d="M100 218 L92 235 L100 250 L108 235Z" fill="#f0ece4"/>
+    <!-- Boutons costume -->
+    <circle cx="100" cy="270" r="2" fill="#b8832a" opacity="0.7"/>
+    <circle cx="100" cy="282" r="2" fill="#b8832a" opacity="0.7"/>
+    <!-- Cou -->
+    <rect x="88" y="185" width="24" height="30" rx="8" fill="url(#skinG)"/>
+    <!-- Tête -->
+    <ellipse cx="100" cy="160" rx="42" ry="50" fill="url(#skinG)" filter="url(#softShadow)"/>
+    <!-- Cheveux - chignon élégant -->
+    <path d="M58 145 Q58 95 100 95 Q142 95 142 145 Q142 120 100 112 Q58 120 58 145Z" fill="url(#hairG)"/>
+    <ellipse cx="100" cy="100" rx="28" ry="14" fill="url(#hairG)"/>
+    <path d="M75 130 Q72 115 80 108" fill="none" stroke="#2a1504" stroke-width="3" stroke-linecap="round"/>
+    <path d="M125 130 Q128 115 120 108" fill="none" stroke="#2a1504" stroke-width="3" stroke-linecap="round"/>
+    <!-- Sourcils -->
+    <path d="M78 138 Q88 133 95 136" fill="none" stroke="#5a3010" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M122 138 Q112 133 105 136" fill="none" stroke="#5a3010" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- Yeux -->
+    <ellipse cx="87" cy="150" rx="9" ry="7" fill="white"/>
+    <ellipse cx="113" cy="150" rx="9" ry="7" fill="white"/>
+    <ellipse cx="87" cy="151" rx="6" ry="5.5" fill="#3d2206"/>
+    <ellipse cx="113" cy="151" rx="6" ry="5.5" fill="#3d2206"/>
+    <ellipse cx="87" cy="151" rx="3.5" ry="3.5" fill="#1a0a00"/>
+    <ellipse cx="113" cy="151" rx="3.5" ry="3.5" fill="#1a0a00"/>
+    <ellipse cx="88.5" cy="149" rx="1.2" ry="1.2" fill="white" opacity="0.8"/>
+    <ellipse cx="114.5" cy="149" rx="1.2" ry="1.2" fill="white" opacity="0.8"/>
+    <!-- Paupières -->
+    <path d="M78 144 Q87 140 96 144" fill="none" stroke="#3d2206" stroke-width="1.5"/>
+    <path d="M104 144 Q113 140 122 144" fill="none" stroke="#3d2206" stroke-width="1.5"/>
+    <!-- Nez -->
+    <path d="M97 158 Q95 168 98 172 Q100 174 102 172 Q105 168 103 158" fill="none" stroke="#c8905a" stroke-width="1.2" stroke-linecap="round"/>
+    <!-- Bouche -->
+    <path id="av-mouth-top" d="M88 180 Q100 176 112 180" fill="none" stroke="#c07050" stroke-width="2" stroke-linecap="round"/>
+    <path id="av-mouth-bot" d="M88 180 Q100 183 112 180" fill="#d4806a" stroke="#c07050" stroke-width="1"/>
+    <!-- Lèvres -->
+    <path d="M88 180 Q94 178 100 177 Q106 178 112 180" fill="#e08870"/>
+    <!-- Joues -->
+    <ellipse cx="75" cy="165" rx="10" ry="6" fill="rgba(220,100,80,0.12)"/>
+    <ellipse cx="125" cy="165" rx="10" ry="6" fill="rgba(220,100,80,0.12)"/>
+    <!-- Boucles d'oreilles or -->
+    <circle cx="58" cy="163" r="4" fill="#b8832a"/>
+    <circle cx="142" cy="163" r="4" fill="#b8832a"/>
+    <!-- Bras -->
+    <path d="M55 230 Q42 270 44 310 Q48 318 56 310 Q58 275 68 242Z" fill="url(#suitG)"/>
+    <path d="M145 230 Q158 270 156 310 Q152 318 144 310 Q142 275 132 242Z" fill="url(#suitG)"/>
+    <!-- Mains -->
+    <ellipse cx="50" cy="318" rx="12" ry="9" fill="url(#skinG)"/>
+    <ellipse cx="150" cy="318" rx="12" ry="9" fill="url(#skinG)"/>
+    <!-- Jambes -->
+    <path d="M68 370 Q65 395 64 420 L80 420 L82 370Z" fill="#1a1208"/>
+    <path d="M132 370 Q135 395 136 420 L120 420 L118 370Z" fill="#1a1208"/>
+    <!-- Chaussures -->
+    <path d="M62 418 Q64 412 72 412 Q80 412 80 418Z" fill="#0a0806"/>
+    <path d="M138 418 Q136 412 128 412 Q120 412 120 418Z" fill="#0a0806"/>
+    <!-- Animation clignement -->
+    <style>
+      #av-svg .blink-l { animation: av-blink-l 5s infinite; transform-origin: 87px 151px; }
+      #av-svg .blink-r { animation: av-blink-l 5s infinite; transform-origin: 113px 151px; }
+      @keyframes av-blink-l { 0%,90%,100%{transform:scaleY(1)} 93%{transform:scaleY(0.05)} }
+    </style>
+    <!-- Paupières animées -->
+    <ellipse class="blink-l" cx="87" cy="150" rx="9" ry="7" fill="#e8b888" opacity="0"/>
+    <ellipse class="blink-r" cx="113" cy="150" rx="9" ry="7" fill="#e8b888" opacity="0"/>
+  </svg>` : `
+  <svg id="av-svg" viewBox="0 0 200 420" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;max-height:100%">
+    <defs>
+      <radialGradient id="skinG" cx="50%" cy="40%" r="60%"><stop offset="0%" stop-color="#f0c898"/><stop offset="100%" stop-color="#d8a070"/></radialGradient>
+      <linearGradient id="suitG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1e1a14"/><stop offset="100%" stop-color="#100c07"/></linearGradient>
+      <linearGradient id="hairG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#2a1a06"/><stop offset="100%" stop-color="#0e0802"/></linearGradient>
+      <linearGradient id="bgG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1a1610"/><stop offset="100%" stop-color="#0a0806"/></linearGradient>
+      <filter id="softShadow"><feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.4"/></filter>
+    </defs>
+    <rect width="200" height="420" fill="url(#bgG)"/>
+    <ellipse cx="100" cy="415" rx="55" ry="6" fill="rgba(184,131,42,0.12)"/>
+    <path d="M42 228 Q38 320 36 420 L164 420 Q162 320 158 228 Q148 212 130 207 L100 215 L70 207 Q52 212 42 228Z" fill="url(#suitG)" filter="url(#softShadow)"/>
+    <path d="M100 215 L87 238 L78 278 L100 262 L122 278 L113 238Z" fill="#b8832a" opacity="0.85"/>
+    <path d="M100 215 L92 232 L100 248 L108 232Z" fill="#f0ece4"/>
+    <circle cx="100" cy="268" r="2" fill="#b8832a" opacity="0.6"/>
+    <circle cx="100" cy="280" r="2" fill="#b8832a" opacity="0.6"/>
+    <rect x="86" y="182" width="28" height="32" rx="10" fill="url(#skinG)"/>
+    <ellipse cx="100" cy="155" rx="45" ry="52" fill="url(#skinG)" filter="url(#softShadow)"/>
+    <path d="M55 142 Q55 95 100 93 Q145 95 145 142 Q145 115 100 108 Q55 115 55 142Z" fill="url(#hairG)"/>
+    <path d="M78 136 Q75 118 82 108" fill="none" stroke="#1a0e02" stroke-width="3" stroke-linecap="round"/>
+    <path d="M122 136 Q125 118 118 108" fill="none" stroke="#1a0e02" stroke-width="3" stroke-linecap="round"/>
+    <path d="M76 136 Q88 130 96 133" fill="none" stroke="#4a2c0a" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M124 136 Q112 130 104 133" fill="none" stroke="#4a2c0a" stroke-width="2.5" stroke-linecap="round"/>
+    <ellipse cx="86" cy="148" rx="10" ry="7.5" fill="white"/>
+    <ellipse cx="114" cy="148" rx="10" ry="7.5" fill="white"/>
+    <ellipse cx="86" cy="149" rx="6.5" ry="6" fill="#3a2008"/>
+    <ellipse cx="114" cy="149" rx="6.5" ry="6" fill="#3a2008"/>
+    <ellipse cx="86" cy="149" rx="4" ry="4" fill="#100800"/>
+    <ellipse cx="114" cy="149" rx="4" ry="4" fill="#100800"/>
+    <ellipse cx="87.5" cy="147" rx="1.5" ry="1.5" fill="white" opacity="0.8"/>
+    <ellipse cx="115.5" cy="147" rx="1.5" ry="1.5" fill="white" opacity="0.8"/>
+    <path d="M76 142 Q86 138 96 142" fill="none" stroke="#3a2008" stroke-width="1.5"/>
+    <path d="M104 142 Q114 138 124 142" fill="none" stroke="#3a2008" stroke-width="1.5"/>
+    <path d="M96 158 Q94 168 97 173 Q100 175 103 173 Q106 168 104 158" fill="none" stroke="#b87840" stroke-width="1.2" stroke-linecap="round"/>
+    <path id="av-mouth-top" d="M87 180 Q100 175 113 180" fill="none" stroke="#a06040" stroke-width="2.5" stroke-linecap="round"/>
+    <path id="av-mouth-bot" d="M87 180 Q100 184 113 180" fill="#b07058" stroke="#a06040" stroke-width="1"/>
+    <path d="M52 228 Q40 272 42 315 Q46 323 55 314 Q57 278 68 240Z" fill="url(#suitG)"/>
+    <path d="M148 228 Q160 272 158 315 Q154 323 145 314 Q143 278 132 240Z" fill="url(#suitG)"/>
+    <ellipse cx="48" cy="320" rx="13" ry="9" fill="url(#skinG)"/>
+    <ellipse cx="152" cy="320" rx="13" ry="9" fill="url(#skinG)"/>
+    <path d="M68 368 Q65 393 64 420 L82 420 L83 368Z" fill="#161008"/>
+    <path d="M132 368 Q135 393 136 420 L118 420 L117 368Z" fill="#161008"/>
+    <path d="M61 418 Q63 410 74 410 Q83 412 82 418Z" fill="#0a0806"/>
+    <path d="M139 418 Q137 410 126 410 Q117 412 118 418Z" fill="#0a0806"/>
+    <style>
+      @keyframes av-blink-l { 0%,90%,100%{transform:scaleY(1)} 93%{transform:scaleY(0.05)} }
+    </style>
+  </svg>`;
   const style = document.createElement('style');
   style.textContent = `
-    #av-fallback { position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#1a1610,#0a0806); }
-    .av-fb-body { display:flex;flex-direction:column;align-items:center;gap:0; }
-    .av-fb-head { position:relative;width:90px;height:110px;background:linear-gradient(180deg,#e8c8a0,#d4a878);border-radius:50% 50% 45% 45%;display:flex;flex-direction:column;align-items:center;justify-content:center; }
-    .av-fb-hair { position:absolute;top:-8px;left:-5px;right:-5px;height:55px;background:#3d2810;border-radius:50% 50% 0 0;z-index:0; }
-    .av-fb-face { position:relative;z-index:1; }
-    .av-fb-eyes { display:flex;gap:20px;margin-bottom:12px; }
-    .av-fb-eye { width:10px;height:10px;background:#2d1a08;border-radius:50%;animation:av-blink 4s infinite; }
-    .av-fb-mouth { width:22px;height:8px;background:#c87050;border-radius:0 0 12px 12px;margin:0 auto;transition:height .1s; }
-    .av-fb-torso { width:70px;height:90px;background:linear-gradient(180deg,#2a3a5a,#1a2a4a);border-radius:8px 8px 0 0;margin-top:-2px; }
-    @keyframes av-blink { 0%,92%,100%{transform:scaleY(1)} 95%{transform:scaleY(0.1)} }
+    #av-fallback { position:absolute;inset:0;display:flex;align-items:center;justify-content:center; background:linear-gradient(180deg,#1a1610 0%,#0a0806 100%); overflow:hidden; }
+    #av-fallback svg { height:100%; width:auto; max-width:100%; }
   `;
   document.head.appendChild(style);
   wrap.appendChild(fb);
-  // Masquer le canvas
   const cv = document.getElementById('av-canvas');
   if(cv) cv.style.display='none';
 }
@@ -474,18 +571,22 @@ function startMouthAnim(){
   mouthInterval = setInterval(function(){
     t += 0.25;
     const v = Math.abs(Math.sin(t)) * 0.8;
+    // 3D morph targets
     mouthMorphs.forEach(function(m){ m.mesh.morphTargetInfluences[m.idx] = v; });
-    // Fallback CSS
-    const fb = document.getElementById('av-fb-mouth');
-    if(fb) fb.style.height = (8 + v*12)+'px';
+    // SVG fallback - animer la lèvre inférieure
+    const mBot = document.getElementById('av-mouth-bot');
+    if(mBot){
+      const open = Math.round(v * 8);
+      mBot.setAttribute('d', 'M88 180 Q100 '+(183+open)+' 112 180');
+    }
   }, 60);
 }
 
 function stopMouthAnim(){
   if(mouthInterval){ clearInterval(mouthInterval); mouthInterval=null; }
   mouthMorphs.forEach(function(m){ m.mesh.morphTargetInfluences[m.idx] = 0; });
-  const fb = document.getElementById('av-fb-mouth');
-  if(fb) fb.style.height = '8px';
+  const mBot = document.getElementById('av-mouth-bot');
+  if(mBot) mBot.setAttribute('d', 'M88 180 Q100 183 112 180');
 }
 
 // ── TTS ──
@@ -596,11 +697,11 @@ async function callAvatarAI(userMsg){
   const system = buildSystemPrompt();
   const msgs = buildMessages(userMsg);
   // Appel direct à l'API Groq avec historique
-  if(!window.groqKey) throw new Error('no_key');
+  const _gk = window.groqKey || localStorage.getItem('immoai_groq') || ''; if(!_gk) throw new Error('no_key');
   const model = 'llama-3.3-70b-versatile';
   const r = await fetch('https://api.groq.com/openai/v1/chat/completions',{
     method:'POST',
-    headers:{'Content-Type':'application/json','Authorization':'Bearer '+window.groqKey},
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+_gk},
     body:JSON.stringify({model, messages:msgs, max_tokens:500, temperature:0.75})
   });
   if(r.status===429) throw new Error('Limite API atteinte, réessayez dans un instant.');
