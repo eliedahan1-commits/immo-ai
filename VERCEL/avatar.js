@@ -294,23 +294,10 @@ function updateNameBadge(){
 
 // ── Three.js ──
 function initThree(){
-  const canvas = document.getElementById('av-canvas');
   const wrap = document.getElementById('av-canvas-wrap');
-  if(!canvas||!wrap) return;
-
-  // Check Three.js disponible
-  if(typeof THREE === 'undefined'){
-    setStatus('Chargement 3D…');
-    loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', function(){
-      loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js', function(){
-        loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js', function(){
-          buildScene(canvas, wrap);
-        });
-      });
-    });
-  } else {
-    buildScene(canvas, wrap);
-  }
+  if(!wrap) return;
+  // Pas de modèle 3D — aller directement à l'avatar image
+  showFallbackAvatar(wrap);
 }
 
 function loadScript(src, cb){
