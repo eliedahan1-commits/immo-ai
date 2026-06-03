@@ -8039,6 +8039,7 @@ function calcRenov(){
 
   document.getElementById('resRenov').innerHTML = html;
   setCard('renov', fmt(aide)+' MaPrimeRénov\'', tranche+' · DPE '+dpeAv+'→'+dpeAp, 'good');
+  window._renovResult = { aide, tranche, dpeAvant: dpeAv, dpeApres: dpeAp };
 }
 
 function calcAides(){
@@ -8154,6 +8155,7 @@ function calcCout(){
       ${[['Prix affiché',fmt(prix)],['Frais notaire (7.5%)',fmt(notaire)],[`Travaux DPE ${dpe}`,fmt(travaux)],[`Charges copro (${duree} ans)`,fmt(charges*moisPret)],[`Taxe foncière (${duree} ans)`,fmt(taxe*duree)],['Mensualité (capital+intérêts)',fmt(mens-mensAssurC)+'/mois'],['Assurance emprunteur',fmt(mensAssurC)+'/mois'],['Total remboursé banque',fmt(Math.round(totalBanque))],['dont intérêts',fmt(Math.max(0,Math.round(interetsTotaux)))]].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
     </div>`;
   setCard('cout', fmt(Math.round(total/1000)*1000), 'Coût total · '+fmt(mens)+'/mois', '');
+  window._coutResult = { prix, apport, duree, taux: tauxC*100, coutTotal: Math.round(total/1000)*1000, mensualite: mens, mensualiteAssurance: mensAssurC, notaire, travaux, emprunt: Math.round(emprunt) };
 
   // ── Tableau d'amortissement ──
   if(emprunt > 0) {
@@ -8388,6 +8390,7 @@ function calcMensualites(){
       ${[['Prix du bien estimé',fmt(montant+apport)],['dont apport',fmt(apport)],['dont emprunt',fmt(montant)]].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}`:''}
     </div>`;
   setCard('mensualites', fmt(mensTotal)+'/mois', 'Coût crédit : '+fmt(Math.round(coutCredit)), '');
+  window._mensualitesResult = { montantEmprunte: montantEff, duree, taux: taux*100, mensualiteTotal: mensTotal, mensualiteCredit: mensCredit, mensualiteAssurance: mensAssur, coutCredit: Math.round(coutCredit), coutAssurance: coutAssur, coutTotal: Math.round(coutTotal) };
   // Stocker pour calcVraiCout
   window._mCoutCredit    = Math.round(coutCredit);
   window._mCoutAssur     = coutAssur;
@@ -8888,6 +8891,7 @@ function calcLocation(){
       </div>
     </div>`;
   setCard('cout', rendNet.toFixed(1).replace('.',',')+' % net', 'Cash-flow net : '+(cashflowApresFisc>=0?'+':'')+fmt(cashflowApresFisc)+'/mois', rendNet>=5?'good':rendNet>=3?'':'warn');
+  window._investResult = { rendementNet: rendNet, rendementBrut: rendBrut, cashflowNet: cashflowApresFisc, cashflowBrut: cashflowAvantFisc, fiscaliteAn: fiscalAn };
 
   // ── Graphique cashflow sur la durée ──
   if(window.Chart && emprunt >= 0) {
@@ -9571,6 +9575,7 @@ function calcEmprunt(){
   autoFill('locApport', apport);
 
   setCard('emprunt', fmt(Math.round(prixMax/1000)*1000), 'Budget max · emprunt '+fmt(Math.round(empruntMax)), 'good');
+  window._empruntResult = { revenus: rev, charges, apport, duree, taux: taux*100, capaciteEmprunt: Math.round(empruntMax), budgetTotal: Math.round(prixMax/1000)*1000, mensualiteMax: Math.round(mensMax), mensualiteCredit: mensPret, mensualiteAssurance: mensAssur };
 }
 
 function calcDpe(){

@@ -562,9 +562,19 @@ function addMsg(role, text){
     cardMatches.forEach(m=>{
       const cardId = m[1];
       if(cardId === 'close'){
-        setTimeout(()=>{ if(typeof closePanel==='function') closePanel(); }, 400);
+        setTimeout(()=>{
+          // Si on est sur une page go() (financement, etc.), retour à l'analyse
+          const goPages = ['emprunt','mensualites','cout','location','offre','aides','renov','urbanisme','recherche','profil'];
+          const activePage = document.querySelector('.page.on');
+          const activeId = activePage?.id?.replace('p-','');
+          if(activeId && goPages.includes(activeId)){
+            if(typeof go==='function') go('analyse');
+          } else {
+            if(typeof closePanel==='function') closePanel();
+          }
+        }, 400);
       } else {
-        const goCards = ['emprunt','mensualites','cout','location','offre'];
+        const goCards = ['emprunt','mensualites','cout','location','offre','aides','renov','urbanisme','recherche','profil'];
         setTimeout(()=>{
           if(goCards.includes(cardId)){
             if(typeof go==='function') go(cardId);
@@ -656,11 +666,50 @@ function buildAllData(){
   const loyers = window._loyersData;
   const dpe = window._dpeData;
   const altData = window._altitudeData;
+  const empruntResult = window._empruntResult;
+  const mensualitesResult = window._mensualitesResult;
+  const coutResult = window._coutResult;
+  const investResult = window._investResult;
+  const renovResult = window._renovResult;
   const cr = window._criminaliteData;
   const addr = window.currentAddress || '';
 
   const lines = [];
   if(addr) lines.push('ADRESSE ANALYSEE: ' + addr);
+  if(empruntResult){
+    lines.push('SIMULATION CAPACITE EMPRUNT (calcule par utilisateur):');
+    lines.push('  Revenus mensuels nets: ' + empruntResult.revenus + ' EUR');
+    lines.push('  Charges credit en cours: ' + empruntResult.charges + ' EUR/mois');
+    lines.push('  Apport personnel: ' + empruntResult.apport + ' EUR');
+    lines.push('  Duree: ' + empruntResult.duree + ' ans a ' + empruntResult.taux.toFixed(2) + '%');
+    lines.push('  Capacite emprunt: ' + empruntResult.capaciteEmprunt + ' EUR');
+    lines.push('  Budget total (emprunt + apport): ' + empruntResult.budgetTotal + ' EUR');
+    lines.push('  Mensualite max (35%): ' + empruntResult.mensualiteMax + ' EUR/mois');
+    lines.push('  dont credit: ' + empruntResult.mensualiteCredit + ' + assurance: ' + empruntResult.mensualiteAssurance + ' EUR/mois');
+  }
+  if(mensualitesResult){
+    lines.push('SIMULATION MENSUALITES CREDIT (calcule par utilisateur):');
+    lines.push('  Montant emprunte: ' + mensualitesResult.montantEmprunte + ' EUR sur ' + mensualitesResult.duree + ' ans a ' + mensualitesResult.taux.toFixed(2) + '%');
+    lines.push('  Mensualite totale: ' + mensualitesResult.mensualiteTotal + ' EUR/mois (credit: ' + mensualitesResult.mensualiteCredit + ' + assurance: ' + mensualitesResult.mensualiteAssurance + ')');
+    lines.push('  Cout total credit: ' + mensualitesResult.coutTotal + ' EUR (dont interets: ' + mensualitesResult.coutCredit + ', assurance: ' + mensualitesResult.coutAssurance + ')');
+  }
+  if(coutResult){
+    lines.push('SIMULATION COUT REEL ACHAT (calcule par utilisateur):');
+    lines.push('  Prix: ' + coutResult.prix + ' EUR, apport: ' + coutResult.apport + ' EUR, emprunt: ' + coutResult.emprunt + ' EUR');
+    lines.push('  Duree: ' + coutResult.duree + ' ans a ' + coutResult.taux.toFixed(2) + '%, mensualite: ' + coutResult.mensualite + ' EUR/mois');
+    lines.push('  Cout total sur ' + coutResult.duree + ' ans: ' + coutResult.coutTotal + ' EUR (notaire: ' + coutResult.notaire + ', travaux: ' + coutResult.travaux + ')');
+  }
+  if(investResult){
+    lines.push('SIMULATION INVESTISSEMENT LOCATIF (calcule par utilisateur):');
+    lines.push('  Rendement brut: ' + investResult.rendementBrut?.toFixed(2) + '%, rendement net: ' + investResult.rendementNet?.toFixed(2) + '%');
+    lines.push('  Cash-flow brut: ' + (investResult.cashflowBrut>=0?'+':'') + investResult.cashflowBrut + ' EUR/mois');
+    lines.push('  Cash-flow net apres impots: ' + (investResult.cashflowNet>=0?'+':'') + investResult.cashflowNet + ' EUR/mois');
+  }
+  if(renovResult){
+    lines.push('SIMULATION MAPRIMERENOV (calcule par utilisateur):');
+    lines.push('  Aide estimee: ' + renovResult.aide + ' EUR, tranche: ' + renovResult.tranche);
+    lines.push('  DPE: ' + renovResult.dpeAvant + ' -> ' + renovResult.dpeApres + ' apres travaux');
+  }
   if(ins){
     lines.push('COMMUNE: ' + ins.nom + (ins.departement ? ', dep. ' + ins.departement : '') + (ins.region ? ', ' + ins.region : ''));
     if(ins.population) lines.push('Population: ' + ins.population.toLocaleString('fr-FR') + ' habitants');
