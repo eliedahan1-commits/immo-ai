@@ -61,6 +61,7 @@ function injectHTML(){
     <div id="av-header">
       <div id="av-name-badge"></div>
       <div style="display:flex;gap:.5rem">
+        <button class="av-icon-btn" id="av-play-btn" onclick="window._avatarPlay&&window._avatarPlay()" title="Relire">▶</button>
         <button class="av-icon-btn" id="av-stop-btn" onclick="window._avatarStop&&window._avatarStop()" title="Arrêter">⏹</button>
         <button class="av-icon-btn" id="av-settings-btn" onclick="window._avatarSettings()" title="Préférences">⚙️</button>
         <button class="av-icon-btn" onclick="window._avatarToggle()" title="Fermer">✕</button>
@@ -99,6 +100,7 @@ function injectHTML(){
       <input id="av-pref-pitch" type="range" min="0.5" max="2" step="0.1" value="1" />
       <div class="av-setup-actions">
         <button onclick="window._avatarSaveSetup()">Valider</button>
+        <button class="av-btn-secondary" onclick="window._avatarTestVoice&&window._avatarTestVoice()">🔊 Tester</button>
         <button class="av-btn-secondary" onclick="window._avatarCloseSetup()">Annuler</button>
       </div>
     </div>
@@ -267,6 +269,8 @@ function setupFloatingButton(){
   window._avatarSend = sendMessage;
   window._avatarMic = toggleMic;
   window._avatarStop = stopSpeak;
+  window._avatarPlay = replayLast;
+  window._avatarTestVoice = testVoice;
   window._avatarSettings = showSetup;
   window._avatarSaveSetup = saveSetup;
   window._avatarCloseSetup = closeSetup;
@@ -401,125 +405,52 @@ function buildScene(canvas, wrap){
 }
 
 function showFallbackAvatar(wrap){
-  const imgSrc = prefs.genre==='homme'
-    ? '/images/avatar-m.png'
-    : '/images/avatar-f.png';
+  // Supprimer ancien fallback si présent
+  const old = document.getElementById('av-fallback');
+  if(old) old.remove();
 
   const fb = document.createElement('div');
   fb.id = 'av-fallback';
+  fb.style.cssText = 'position:absolute;inset:0;display:flex;align-items:flex-start;justify-content:center;background:#0a0806;overflow:hidden;';
 
-  // Image + canvas overlay bouche
-  fb.innerHTML = `
-    <img id="av-img" src="${imgSrc}" alt="Assistant" />
-    <canvas id="av-mouth-canvas"></canvas>
-  `;
+  const imgSrc = (prefs.genre === 'homme')
+    ? '/images/avatar-m.png'
+    : '/images/avatar-f.png';
 
-  const style = document.createElement('style');
-  style.textContent = `
-    #av-fallback {
-      position:absolute; inset:0;
-      display:flex; align-items:flex-start; justify-content:center;
-      background:linear-gradient(180deg,#1a1610 0%,#0a0806 100%);
-      overflow:hidden;
-    }
-    #av-img {
-      height:100%; width:auto; max-width:none;
-      object-fit:contain; object-position:top center;
-      display:block;
-    }
-    #av-mouth-canvas {
-      position:absolute; top:0; left:0;
-      width:100%; height:100%;
-      pointer-events:none;
-    }
-  `;
-  document.head.appendChild(style);
+  const img = document.createElement('img');
+  img.id = 'av-img';
+  img.alt = prefs.nom || 'Assistant';
+  img.style.cssText = 'height:100%;width:auto;max-width:none;object-fit:contain;object-position:top center;display:block;';
+  img.src = imgSrc;
+
+  fb.appendChild(img);
   wrap.appendChild(fb);
 
-  // Masquer le canvas Three.js
   const cv = document.getElementById('av-canvas');
-  if(cv) cv.style.display='none';
-
-  // Setup overlay bouche sur canvas
-  setupMouthCanvas();
+  if(cv) cv.style.display = 'none';
 }
 
-function setupMouthCanvas(){
-  const img = document.getElementById('av-img');
-  const canvas = document.getElementById('av-mouth-canvas');
-  if(!img||!canvas) return;
 
-  // Ratio bouche dans l'image originale (22% du haut, centré)
-  const MOUTH_Y_RATIO = prefs.genre==='homme' ? 0.215 : 0.218;
-  const MOUTH_X_RATIO = 0.50;
-
-  function drawMouth(openRatio){
-    const wrap = document.getElementById('av-canvas-wrap');
-    if(!wrap||!canvas) return;
-    const W = wrap.clientWidth;
-    const H = wrap.clientHeight;
-    canvas.width = W;
-    canvas.height = H;
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0,0,W,H);
-
-    // Dimensions image affichée (fit par hauteur, centré)
-    const imgNatW = prefs.genre==='homme'?560:544;
-    const imgNatH = prefs.genre==='homme'?1878:1901;
-    const scale = H / imgNatH;
-    const dispW = imgNatW * scale;
-    const xOffset = (W - dispW) / 2;
-
-    // Position bouche dans l'espace canvas
-    const mx = xOffset + dispW * MOUTH_X_RATIO;
-    const my = H * MOUTH_Y_RATIO;
-    const mw = dispW * 0.10;
-    const mh = 3 + openRatio * 12;
-
-    ctx.fillStyle = 'rgba(180,80,60,0.85)';
-    ctx.beginPath();
-    ctx.ellipse(mx, my, mw, mh, 0, 0, Math.PI*2);
-    ctx.fill();
-
-    // Lèvre supérieure
-    ctx.strokeStyle = 'rgba(140,50,40,0.6)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(mx-mw, my);
-    ctx.quadraticCurveTo(mx, my-mh*0.5, mx+mw, my);
-    ctx.stroke();
-  }
-
-  // Redessiner à chaque resize
-  window.addEventListener('resize', ()=>drawMouth(0));
-  img.onload = ()=>drawMouth(0);
-  if(img.complete) drawMouth(0);
-  // Exposer pour l'animation
-  window._avatarDrawMouth = drawMouth;
+function replayLast(){
+  // Relire le dernier message de l'assistant
+  const msgs = document.querySelectorAll('.av-msg.assistant');
+  if(!msgs.length) return;
+  const last = msgs[msgs.length-1].textContent;
+  if(last) speak(last);
 }
 
-function animate(){
-  requestAnimationFrame(animate);
-  if(mixer) mixer.update(clock.getDelta());
-  if(renderer && scene && camera) renderer.render(scene, camera);
-}
-
-// ── Animation bouche ──
-function startMouthAnim(){
-  if(mouthInterval) return;
-  let t=0;
-  mouthInterval = setInterval(function(){
-    t += 0.25;
-    const v = Math.abs(Math.sin(t)) * 0.8;
-    mouthMorphs.forEach(function(m){ m.mesh.morphTargetInfluences[m.idx] = v; });
-    if(window._avatarDrawMouth) window._avatarDrawMouth(v);
-  }, 60);
-}
-
-function stopMouthAnim(){
-  if(mouthInterval){ clearInterval(mouthInterval); mouthInterval=null; }
-  mouthMorphs.forEach(function(m){ m.mesh.morphTargetInfluences[m.idx] = 0; });
-  if(window._avatarDrawMouth) window._avatarDrawMouth(0);
+function testVoice(){
+  // Lire les valeurs courantes des sliders avant de sauvegarder
+  const v = parseFloat(document.getElementById('av-pref-vitesse')?.value||'1');
+  const p = parseFloat(document.getElementById('av-pref-pitch')?.value||'1');
+  const nom = document.getElementById('av-pref-nom')?.value || prefs.nom || 'Sofia';
+  if(currentUtterance) window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance('Bonjour, je suis ' + nom + '. Je suis votre assistante IMMO AI.');
+  utt.lang = 'fr-FR'; utt.rate = v; utt.pitch = p;
+  const voices = window.speechSynthesis.getVoices();
+  const frVoice = voices.find(v=>v.lang.startsWith('fr'));
+  if(frVoice) utt.voice = frVoice;
+  window.speechSynthesis.speak(utt);
 }
 
 // ── TTS ──
@@ -746,11 +677,9 @@ function saveSetup(){
   updateNameBadge();
   // Ouvrir le panneau après configuration
   if(!panelOpen) togglePanel();
-  if(genreChange && avatarModel){
-    // Recharger l'avatar avec le nouveau genre
-    scene.remove(avatarModel);
-    avatarModel = null; mouthMorphs = [];
-    initThree();
+  if(genreChange){
+    const wrap = document.getElementById('av-canvas-wrap');
+    if(wrap) showFallbackAvatar(wrap);
   }
 }
 
