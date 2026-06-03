@@ -417,10 +417,15 @@ function showFallbackAvatar(wrap){
     ? '/images/avatar-m.png'
     : '/images/avatar-f.png';
 
+  // Div fond solide derrière l'image (background-color sur <img> n'affecte pas les px transparents)
+  const bgDiv = document.createElement('div');
+  bgDiv.style.cssText = 'position:absolute;inset:0;background:#0a0806;z-index:0;';
+  fb.appendChild(bgDiv);
+
   const img = document.createElement('img');
   img.id = 'av-img';
   img.alt = prefs.nom || 'Assistant';
-  img.style.cssText = 'height:100%;width:auto;max-width:none;object-fit:contain;object-position:top center;display:block;background:#0a0806;';
+  img.style.cssText = 'position:relative;z-index:1;height:100%;width:auto;max-width:none;object-fit:contain;object-position:top center;display:block;';
   img.src = imgSrc;
 
   fb.appendChild(img);
@@ -432,25 +437,40 @@ function showFallbackAvatar(wrap){
 
 
 function replayLast(){
-  // Relire le dernier message de l'assistant
   const msgs = document.querySelectorAll('.av-msg.assistant');
-  if(!msgs.length) return;
+  if(!msgs.length){
+    // Pas encore de message : lancer le salut
+    avatarGreet();
+    return;
+  }
   const last = msgs[msgs.length-1].textContent;
   if(last) speak(last);
 }
 
 function testVoice(){
-  // Lire les valeurs courantes des sliders avant de sauvegarder
   const v = parseFloat(document.getElementById('av-pref-vitesse')?.value||'1');
   const p = parseFloat(document.getElementById('av-pref-pitch')?.value||'1');
   const nom = document.getElementById('av-pref-nom')?.value || prefs.nom || 'Sofia';
-  if(currentUtterance) window.speechSynthesis.cancel();
-  const utt = new SpeechSynthesisUtterance('Bonjour, je suis ' + nom + '. Je suis votre assistante IMMO AI.');
-  utt.lang = 'fr-FR'; utt.rate = v; utt.pitch = p;
+  const genre = document.querySelector('input[name="av-genre"]:checked')?.value || prefs.genre;
+  window.speechSynthesis.cancel();
+  function doSpeak(){
+    const utt = new SpeechSynthesisUtterance('Bonjour, je suis ' + nom + '. Je suis votre assistant IMMO AI, specialiste de l immobilier.');
+    utt.lang = 'fr-FR'; utt.rate = v; utt.pitch = p;
+    const voices = window.speechSynthesis.getVoices();
+    const frVoices = voices.filter(v=>v.lang.startsWith('fr'));
+    if(frVoices.length){
+      const maleKeys=['thomas','nicolas','pierre'];
+      const femaleKeys=['marie','audrey','amelie','juliette'];
+      const isMale = genre==='homme';
+      let found = frVoices.find(v=>( isMale?maleKeys:femaleKeys ).some(k=>v.name.toLowerCase().includes(k)));
+      utt.voice = found || frVoices[0];
+      if(!found && isMale) utt.pitch = Math.min(p, 0.75);
+    }
+    window.speechSynthesis.speak(utt);
+  }
   const voices = window.speechSynthesis.getVoices();
-  const frVoice = voices.find(v=>v.lang.startsWith('fr'));
-  if(frVoice) utt.voice = frVoice;
-  window.speechSynthesis.speak(utt);
+  if(voices.length){ doSpeak(); }
+  else { window.speechSynthesis.onvoiceschanged = function(){ window.speechSynthesis.onvoiceschanged=null; doSpeak(); }; }
 }
 
 // ── TTS ──
