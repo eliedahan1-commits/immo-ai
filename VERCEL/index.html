@@ -9700,7 +9700,7 @@ if(navigator.permissions){
 
 </script>
 <script src="/pdf-export.js?v=12"></script>
-<script src="/avatar.js?v=6"></script>
+<script src="/avatar.js?v=8"></script>
 <script src="/recherche-bien.js?v=3"></script>
 <script>
 /* ══ MOBILE NAV ══════════════════════════════════════════════════════════ */
@@ -9817,4 +9817,10 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
     if(document.getElementById('p-home')?.classList.contains('on')){ _showExitConfirm(); return; }
     if(document.getElementById('p-analyse')?.classList.contains('on')){ go('home'); return; }
-   
+    _goPage('analyse');
+  });
+})();
+
+</script>
+</body>
+</html>
