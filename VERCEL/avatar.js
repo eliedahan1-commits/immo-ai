@@ -564,9 +564,14 @@ function addMsg(role, text){
       if(cardId === 'close'){
         setTimeout(()=>{ if(typeof closePanel==='function') closePanel(); }, 400);
       } else {
+        const goCards = ['emprunt','mensualites','cout','location','offre'];
         setTimeout(()=>{
-          if(typeof go==='function') go('analyse');
-          setTimeout(()=>{ if(typeof showDetail==='function') showDetail(cardId); }, 350);
+          if(goCards.includes(cardId)){
+            if(typeof go==='function') go(cardId);
+          } else {
+            if(typeof go==='function') go('analyse');
+            setTimeout(()=>{ if(typeof showDetail==='function') showDetail(cardId); }, 350);
+          }
         }, 600);
       }
     });
@@ -605,7 +610,7 @@ async function sendMessage(){
     const response = await callAvatarAI(txt);
     removeThinking();
     addMsg('assistant', response);
-    speak(response);
+    speak(response.replace(/\[CARD:[a-z]+\]/g, "").trim());
   } catch(e){
     removeThinking();
     const err = e.message==='no_key'
@@ -650,6 +655,7 @@ function buildAllData(){
   const aq = window._qualiteAirData;
   const loyers = window._loyersData;
   const dpe = window._dpeData;
+  const altData = window._altitudeData;
   const cr = window._criminaliteData;
   const addr = window.currentAddress || '';
 
@@ -663,6 +669,7 @@ function buildAllData(){
     if(ins.codePostal) lines.push('Code postal: ' + ins.codePostal);
     if(ins.codeInsee) lines.push('Code INSEE: ' + ins.codeInsee);
     if(ins.altitude) lines.push('Altitude: ' + ins.altitude + ' m');
+    else if(altData?.altitude!=null) lines.push('Altitude: ' + altData.altitude + ' m (IGN RGE Alti)');
   }
   if(sd){
     lines.push('SCORE GLOBAL: ' + sd.note?.toFixed(1) + '/10 - ' + (sd.label||''));
@@ -761,24 +768,32 @@ function buildSystemPrompt(){
 
   return "Tu es " + nom + ", l'assistante IA experte en immobilier de IMMO·AI. Tu parles en francais, de facon naturelle, concise et professionnelle (3-5 phrases max sauf si detail demande).\n" +
 "\n" +
-"Tu connais parfaitement l'application IMMO·AI et ses sections :\n" +
-"- Score global (score), Carte interactive, Marche immobilier/DVF (dvf), Loyers estimes (loyers)\n" +
-"- Population & economie/INSEE (insee), Logement/Melodi (logement), Mobilite & transports (mobilite)\n" +
-"- Cadre de vie : Ensoleillement (soleil), Bruit (bruit), Qualite air (qualiteair), Risques naturels (risques)\n" +
-"- Etablissements scolaires (ecoles), Services & commerces (services), Fibre (fibre), DPE (dpe)\n" +
-"- Securite/criminalite (criminalite), Demographie (demographique)\n" +
-"- Outils : Budget loyer, Louer vs acheter, Mensualites credit, PTZ, Investissement locatif, Coaching offre\n" +
+"Tu connais parfaitement l'application IMMO·AI et ses sections (IDs exacts entre parentheses) :\n" +
+"- [CARD:score] Score global, [CARD:dvf] Marche immobilier/DVF, [CARD:loyers] Loyers estimes\n" +
+"- [CARD:insee] Population & economie INSEE, [CARD:logement] Logement/Melodi, [CARD:mobilite] Mobilite & transports\n" +
+"- [CARD:meteo] Ensoleillement & meteo, [CARD:bruit] Bruit, [CARD:risques] Risques naturels\n" +
+"- [CARD:ecoles] Etablissements scolaires, [CARD:services] Services & commerces, [CARD:fibre] Fibre optique\n" +
+"- [CARD:demographie] Demographie, [CARD:altitude] Altitude & topographie\n" +
+"- [CARD:aides] Aides & subventions, [CARD:renov] Renovation energetique, [CARD:urbanisme] Urbanisme & PLU\n" +
+"- [CARD:profil] Mon profil investisseur, [CARD:recherche] Recherche avancee\n" +
+"- Section Mon Financement (simulateurs interactifs, orienter avec [CARD:id] pour ouvrir) :\n" +
+"  [CARD:emprunt] = Capacite d'emprunt (revenus, apport, duree) \n" +
+"  [CARD:mensualites] = Mensualites & cout total credit \n" +
+"  [CARD:cout] = Investissement locatif (rendement, cashflow, fiscalite) \n" +
+"  [CARD:location] = Budget loyer & louer vs acheter \n" +
+"  [CARD:offre] = Coaching offre & negociation \n" +
 "\n" +
 "DONNEES DE L'ANALYSE EN COURS :\n" +
 dataCtx + "\n" +
 "\n" +
 "INSTRUCTIONS IMPORTANTES :\n" +
 "1. Tu connais TOUTES les donnees ci-dessus par coeur. Utilise-les pour repondre avec precision.\n" +
-"2. Si une donnee n'est PAS dans les donnees ci-dessus (ex: altitude precise, prix d'un bien specifique), dis-le clairement sans inventer.\n" +
+"2. Si une donnee n'est PAS dans les donnees ci-dessus (ex: prix d'un bien specifique), dis-le clairement sans inventer.\n" +
 "3. Quand tu parles d'une section specifique, ajoute en fin de reponse [CARD:id] pour l'ouvrir. Ex: [CARD:score] [CARD:dvf] [CARD:mobilite]\n" +
 "4. Pour fermer une carte : [CARD:close]\n" +
 "5. Tu peux mentionner plusieurs cartes dans une meme reponse.\n" +
-"6. JAMAIS d'information exterieure ou inventee. Si absent des donnees = 'Cette information n'est pas dans l'analyse IMMO-AI.'";
+"6. JAMAIS d'information exterieure ou inventee. Si absent des donnees = 'Cette information n'est pas dans l'analyse IMMO-AI.'\n" +
+"7. Si une donnee demandee n'est pas encore chargee ou renseignee (simulateur vide, carte non ouverte), ouvre la carte correspondante avec [CARD:id] et invite l'utilisateur a la consulter ou renseigner ses informations.";
 }
 
 
