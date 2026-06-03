@@ -477,7 +477,15 @@ function testVoice(){
 function speak(text){
   if(!text) return;
   if(currentUtterance) window.speechSynthesis.cancel();
-  const clean = text.replace(/<[^>]+>/g,'').replace(/\*\*/g,'').replace(/\*/g,'');
+  const clean = text
+    .replace(/<[^>]+>/g,'')
+    .replace(/\*\*/g,'').replace(/\*/g,'')
+    .replace(/\/10/g,' sur 10')
+    .replace(/\/mois/g,' par mois')
+    .replace(/\/an/g,' par an')
+    .replace(/\/m2/g,' au mètre carré')
+    .replace(/\/km2/g,' au km carré')
+    .replace(/\//g,' ');
   currentUtterance = new SpeechSynthesisUtterance(clean);
   currentUtterance.lang = 'fr-FR';
   currentUtterance.rate = parseFloat(prefs.vitesse) || 1;
