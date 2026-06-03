@@ -555,13 +555,30 @@ function stopListening(){
 
 // ── Chat ──
 function addMsg(role, text){
+  // Parser [CARD:id] dans les réponses assistant
+  let displayText = text;
+  if(role === 'assistant'){
+    const cardMatches = [...(text.matchAll(/\[CARD:([a-z]+)\]/g)||[])];
+    cardMatches.forEach(m=>{
+      const cardId = m[1];
+      if(cardId === 'close'){
+        setTimeout(()=>{ if(typeof closePanel==='function') closePanel(); }, 400);
+      } else {
+        setTimeout(()=>{
+          if(typeof go==='function') go('analyse');
+          setTimeout(()=>{ if(typeof showDetail==='function') showDetail(cardId); }, 350);
+        }, 600);
+      }
+    });
+    displayText = text.replace(/\[CARD:[a-z]+\]/g, '').trim();
+  }
   const el = document.createElement('div');
   el.className = 'av-msg ' + role;
-  el.innerHTML = role==='assistant' ? mdLight(text) : escHtml(text);
+  el.innerHTML = role==='assistant' ? mdLight(displayText) : escHtml(text);
   const msgs = document.getElementById('av-messages');
   msgs.appendChild(el);
   msgs.scrollTop = msgs.scrollHeight;
-  if(role!=='thinking') history.push({role:role==='user'?'user':'assistant', content:text});
+  if(role!=='thinking') history.push({role:role==='user'?'user':'assistant', content:displayText});
   saveHistory();
   return el;
 }
@@ -615,45 +632,155 @@ async function callAvatarAI(userMsg){
   return (await r.json()).choices[0].message.content;
 }
 
-function buildSystemPrompt(){
+function buildAllData(){
   const ins = window._inseeData?.commune;
   const sd = window._scoreData;
   const dvf = window._dvfData;
+  const dept = window._dvfDeptData;
   const mel = window._melodiData;
+  const nat = window._melodiNational;
+  const mob = window._mobiliteData;
+  const svc = window._servicesData;
+  const eco = window._ecolesData;
+  const meteo = window._meteoData;
+  const bruit = window._bruitData;
+  const fibre = window._fibreData;
+  const risques = window._risquesData;
+  const demo = window._demographieData;
+  const aq = window._qualiteAirData;
+  const loyers = window._loyersData;
+  const dpe = window._dpeData;
+  const cr = window._criminaliteData;
   const addr = window.currentAddress || '';
 
-  let ctx = '';
-  if(addr) ctx += `\nAdresse analysée : ${addr}`;
-  if(ins) ctx += `\nCommune : ${ins.nom}, ${ins.population?.toLocaleString('fr-FR')} hab., densité ${ins.densite?.toLocaleString('fr-FR')} hab/km²`;
-  if(sd) ctx += `\nScore global : ${sd.note?.toFixed(1)}/10 (${sd.label})`;
-  if(dvf?.stats?.medianM2) ctx += `\nPrix médian : ${dvf.stats.medianM2.toLocaleString('fr-FR')} €/m²`;
-  if(mel?.revenuMedian) ctx += `\nRevenu médian net : ${Math.round(mel.revenuMedian/12).toLocaleString('fr-FR')} €/mois`;
-  if(sd?.items?.length){
-    const top3 = [...sd.items].sort((a,b)=>b.val-a.val).slice(0,3).map(i=>i.label+' ('+i.val.toFixed(1)+'/10)').join(', ');
-    const bot3 = [...sd.items].sort((a,b)=>a.val-b.val).slice(0,3).map(i=>i.label+' ('+i.val.toFixed(1)+'/10)').join(', ');
-    ctx += `\nPoints forts : ${top3}`;
-    ctx += `\nPoints de vigilance : ${bot3}`;
+  const lines = [];
+  if(addr) lines.push('ADRESSE ANALYSEE: ' + addr);
+  if(ins){
+    lines.push('COMMUNE: ' + ins.nom + (ins.departement ? ', dep. ' + ins.departement : '') + (ins.region ? ', ' + ins.region : ''));
+    if(ins.population) lines.push('Population: ' + ins.population.toLocaleString('fr-FR') + ' habitants');
+    if(ins.densite) lines.push('Densite: ' + ins.densite.toLocaleString('fr-FR') + ' hab/km2 (' + (ins.densite>10000?'Tres dense':ins.densite>5000?'Dense':ins.densite>2000?'Urbaine':'Peri-urbaine') + ')');
+    if(ins.superficie) lines.push('Superficie: ' + Math.round(ins.superficie) + ' km2');
+    if(ins.codePostal) lines.push('Code postal: ' + ins.codePostal);
+    if(ins.codeInsee) lines.push('Code INSEE: ' + ins.codeInsee);
+    if(ins.altitude) lines.push('Altitude: ' + ins.altitude + ' m');
   }
-
-  return `Tu es ${prefs.nom}, l'assistante IA experte en immobilier de IMMO·AI.
-Tu es professionnelle, chaleureuse et précise. Tu parles en français naturellement.
-Tes réponses sont concises (3-5 phrases max) sauf si on te demande un détail.
-Tu connais parfaitement l'application IMMO·AI et ses sections :
-- Score global : synthèse de tous les critères notés sur 10
-- Carte interactive : visualisation de l'adresse et du quartier
-- Marché immobilier (DVF) : prix réels des transactions, loyers estimés
-- Population & économie (INSEE) : revenus, chômage, diplômes
-- Mobilité & transports : métro, bus, vélos, score de déplacement
-- Cadre de vie : ensoleillement, bruit, qualité de l'air, risques
-- Logement (Melodi) : propriétaires, vacance, résidences principales
-- Dynamisme : évolution de la population, pyramide des âges
-- Outils financiers : budget loyer, louer vs acheter, mensualités, PTZ, DPE, investissement
-- PDF Export : rapport complet téléchargeable
-${ctx ? '\nDonnées de l\'analyse en cours :'+ctx : ''}
-RÈGLE ABSOLUE : Tu dois UNIQUEMENT répondre en te basant sur les données de l'analyse IMMO·AI affichée ci-dessus.
-Tu n'as PAS accès à Internet. Si une information (météo en temps réel, actualité, prix en direct...) n'est pas dans les données fournies, dis clairement : "Cette information n'est pas dans l'analyse IMMO·AI de cette adresse."
-Ne cherche JAMAIS d'informations générales extérieures. Concentre-toi sur commenter, interpréter et conseiller à partir des données affichées.`;
+  if(sd){
+    lines.push('SCORE GLOBAL: ' + sd.note?.toFixed(1) + '/10 - ' + (sd.label||''));
+    if(sd.items?.length) sd.items.forEach(item=>{
+      lines.push('  Score ' + item.label + ': ' + item.val?.toFixed(1) + '/10' + (item.sub ? ' (' + item.sub + ')' : ''));
+    });
+  }
+  if(dvf?.stats){
+    lines.push('MARCHE IMMOBILIER (DVF):');
+    if(dvf.stats.medianM2) lines.push('  Prix median: ' + dvf.stats.medianM2.toLocaleString('fr-FR') + ' EUR/m2');
+    if(dvf.stats.moyenneM2) lines.push('  Prix moyen: ' + dvf.stats.moyenneM2.toLocaleString('fr-FR') + ' EUR/m2');
+    if(dvf.count) lines.push('  Transactions analysees: ' + dvf.count);
+    if(dept?.medianM2){
+      const d=Math.round((dvf.stats.medianM2-dept.medianM2)/dept.medianM2*100);
+      lines.push('  vs departement: ' + (d>=0?'+':'') + d + '%');
+    }
+    if(dvf.stats.minM2) lines.push('  Prix min: ' + dvf.stats.minM2.toLocaleString('fr-FR') + ' EUR/m2');
+    if(dvf.stats.maxM2) lines.push('  Prix max: ' + dvf.stats.maxM2.toLocaleString('fr-FR') + ' EUR/m2');
+  }
+  if(loyers){
+    lines.push('LOYERS ESTIMES:');
+    if(loyers.estLoyer) Object.entries(loyers.estLoyer).forEach(([k,v])=>{ if(v) lines.push('  ' + k + ': ' + v.toLocaleString('fr-FR') + ' EUR/mois'); });
+    if(loyers.rendement) lines.push('  Rendement brut estime: ' + Math.round(loyers.rendement*100) + '%');
+  }
+  if(mel){
+    lines.push('POPULATION & ECONOMIE (INSEE Melodi - annee ' + (mel.anneeFilosofi||'?') + '):');
+    if(mel.revenuMedian) lines.push('  Revenu median net: ' + Math.round(mel.revenuMedian/12).toLocaleString('fr-FR') + ' EUR/mois (' + Math.round(mel.revenuMedian).toLocaleString('fr-FR') + ' EUR/an)');
+    if(nat?.revenuMedian && mel.revenuMedian) lines.push('  vs national: ' + (Math.round((mel.revenuMedian-nat.revenuMedian)/nat.revenuMedian*100)>=0?'+':'') + Math.round((mel.revenuMedian-nat.revenuMedian)/nat.revenuMedian*100) + '%');
+    if(mel.tauxChomage!=null) lines.push('  Chomage: ' + mel.tauxChomage + '% (national: ' + (nat?.tauxChomage||'?') + '%)');
+    if(mel.pctBac5!=null) lines.push('  Diplomes Bac+5: ' + mel.pctBac5 + '% (national: ' + (nat?.pctBac5Nat||'?') + '%)');
+    if(mel.pctPropri!=null) lines.push('  Proprietaires: ' + mel.pctPropri + '% (national: ' + (nat?.pctPropri||'?') + '%)');
+    if(mel.nbResidPrinc) lines.push('  Residences principales: ' + mel.nbResidPrinc.toLocaleString('fr-FR'));
+    if(mel.nbVacants) lines.push('  Logements vacants: ' + mel.nbVacants.toLocaleString('fr-FR'));
+    if(mel.pctSeuls!=null) lines.push('  Menages seuls: ' + mel.pctSeuls + '%');
+    if(mel.pyramideAges){
+      const pyr=mel.pyramideAges; const tot=Object.values(pyr).reduce((s,v)=>s+v,0);
+      if(tot>0){
+        const yj=Math.round(((pyr.Y_LT15||0)+(pyr.Y15T24||0))/tot*100);
+        const se=Math.round(((pyr.Y65T79||0)+(pyr.Y_GE80||0))/tot*100);
+        lines.push('  Pyramide ages: Jeunes ' + yj + '%, Actifs ' + (100-yj-se) + '%, Seniors ' + se + '%');
+      }
+    }
+  }
+  if(mob){
+    lines.push('MOBILITE (score: ' + mob.score + '/10 - ' + (mob.scoreLabel||'') + '):');
+    if(mob.stats){
+      if(mob.stats.metro>0) lines.push('  Metro/RER: ' + mob.stats.metro + ' stations');
+      if(mob.stats.trams>0) lines.push('  Tramways: ' + mob.stats.trams);
+      if(mob.stats.arretsBus>0) lines.push('  Arrets bus: ' + mob.stats.arretsBus);
+      if(mob.stats.gares>0) lines.push('  Gares: ' + mob.stats.gares);
+      if(mob.stats.velos>0) lines.push('  Velos/trottinettes: ' + mob.stats.velos);
+    }
+  }
+  if(svc){
+    lines.push('SERVICES & COMMERCES (total: ' + svc.total + '):');
+    if(svc.sante) lines.push('  Sante: ' + svc.sante);
+    if(svc.commerces) lines.push('  Commerces: ' + svc.commerces);
+    if(svc.autres) lines.push('  Autres services: ' + svc.autres);
+  }
+  if(eco){
+    lines.push('ETABLISSEMENTS SCOLAIRES (' + eco.total + ' etablissements):');
+    if(eco.types) lines.push('  Ecoles: ' + (eco.types.ecoles||0) + ', Colleges: ' + (eco.types.college||0) + ', Lycees: ' + (eco.types.lycee||0));
+    if(eco.ips!=null) lines.push('  Indice Positionnement Social moyen: ' + eco.ips);
+  }
+  if(meteo){
+    lines.push('METEO & CLIMAT:');
+    if(meteo.ensoleillement) lines.push('  Ensoleillement: ' + meteo.ensoleillement.heuresAnnuelles + ' h/an (' + meteo.ensoleillement.label + ')');
+    if(meteo.temperatures) lines.push('  Temperatures: max moy ' + meteo.temperatures.maxMoyenne + 'C, min moy ' + meteo.temperatures.minMoyenne + 'C');
+    if(meteo.precipitations) lines.push('  Precipitations: ' + meteo.precipitations.annuelles + ' mm/an');
+  }
+  if(bruit?.niveauCode){
+    const bonus=ins?.densite>10000?4:ins?.densite>5000?3:ins?.densite>2000?2:0;
+    const sc=Math.min((bruit.score||0)+bonus,10);
+    lines.push('BRUIT ESTIME: ' + (sc>=7?'Eleve':sc>=4?'Modere':'Faible') + ' (score ' + sc + '/10)');
+  }
+  if(aq) lines.push('QUALITE AIR: AQI ' + aq.aqi + ' - ' + (aq.label||'') + (aq.pm25?', PM2.5: '+aq.pm25:'') + (aq.pm10?', PM10: '+aq.pm10:''));
+  if(risques) lines.push('RISQUES NATURELS: ' + risques.total + ' risque(s) identifie(s)' + (risques.score?' (score: '+risques.score+')':''));
+  if(fibre?.fibre) lines.push('FIBRE FTTH: ' + (fibre.fibre.eligible?'Eligible':'Non eligible') + (fibre.fibre.operateurs?.length?' - '+fibre.fibre.operateurs.join(', '):''));
+  if(dpe) lines.push('DPE: ' + (dpe.pctAB?dpe.pctAB+'% classes A-B':'') + (dpe.pctFG?', '+dpe.pctFG+'% passoires F-G':''));
+  if(cr?.success && cr.indicateurs){
+    lines.push('SECURITE/CRIMINALITE:');
+    Object.entries(cr.indicateurs).slice(0,6).forEach(([k,v])=>{
+      if(v.taux!=null) lines.push('  ' + k + ': ' + v.taux + ' pour 1000 hab');
+    });
+  }
+  if(demo?.rows?.length>=2){
+    const r=demo.rows; const ev=((r[r.length-1].pop-r[0].pop)/r[0].pop*100).toFixed(1);
+    lines.push('EVOLUTION POPULATION: ' + (ev>=0?'+':'') + ev + '% entre ' + r[0].year + ' et ' + r[r.length-1].year);
+  }
+  return lines.join('\n');
 }
+
+function buildSystemPrompt(){
+  const dataCtx = buildAllData();
+  const nom = prefs.nom || 'Sofia';
+
+  return "Tu es " + nom + ", l'assistante IA experte en immobilier de IMMO·AI. Tu parles en francais, de facon naturelle, concise et professionnelle (3-5 phrases max sauf si detail demande).\n" +
+"\n" +
+"Tu connais parfaitement l'application IMMO·AI et ses sections :\n" +
+"- Score global (score), Carte interactive, Marche immobilier/DVF (dvf), Loyers estimes (loyers)\n" +
+"- Population & economie/INSEE (insee), Logement/Melodi (logement), Mobilite & transports (mobilite)\n" +
+"- Cadre de vie : Ensoleillement (soleil), Bruit (bruit), Qualite air (qualiteair), Risques naturels (risques)\n" +
+"- Etablissements scolaires (ecoles), Services & commerces (services), Fibre (fibre), DPE (dpe)\n" +
+"- Securite/criminalite (criminalite), Demographie (demographique)\n" +
+"- Outils : Budget loyer, Louer vs acheter, Mensualites credit, PTZ, Investissement locatif, Coaching offre\n" +
+"\n" +
+"DONNEES DE L'ANALYSE EN COURS :\n" +
+dataCtx + "\n" +
+"\n" +
+"INSTRUCTIONS IMPORTANTES :\n" +
+"1. Tu connais TOUTES les donnees ci-dessus par coeur. Utilise-les pour repondre avec precision.\n" +
+"2. Si une donnee n'est PAS dans les donnees ci-dessus (ex: altitude precise, prix d'un bien specifique), dis-le clairement sans inventer.\n" +
+"3. Quand tu parles d'une section specifique, ajoute en fin de reponse [CARD:id] pour l'ouvrir. Ex: [CARD:score] [CARD:dvf] [CARD:mobilite]\n" +
+"4. Pour fermer une carte : [CARD:close]\n" +
+"5. Tu peux mentionner plusieurs cartes dans une meme reponse.\n" +
+"6. JAMAIS d'information exterieure ou inventee. Si absent des donnees = 'Cette information n'est pas dans l'analyse IMMO-AI.'";
+}
+
 
 function buildMessages(userMsg){
   const system = buildSystemPrompt();
