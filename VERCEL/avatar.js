@@ -21,15 +21,31 @@ let scene, camera, renderer, mixer, clock, avatarModel;
 let _docCache = null;
 
 const CARD_NAMES = {
-  score:'Score global', dvf:'Marché immobilier', loyers:'Loyers estimés',
-  insee:'Population & économie', logement:'Logement', mobilite:'Mobilité & transports',
-  meteo:'Météo & ensoleillement', bruit:'Bruit', risques:'Risques naturels',
-  ecoles:'Établissements scolaires', services:'Services & commerces', fibre:'Fibre optique',
-  demographie:'Démographie', altitude:'Altitude', urbanisme:'Urbanisme & PLU',
-  aides:'Aides à l\'achat', renov:'MaPrimeRénov\'', profil:'Profil investisseur',
-  recherche:'Recherche de biens', emprunt:'Capacité d\'emprunt',
-  mensualites:'Mensualités crédit', cout:'Investissement locatif',
-  location:'Budget loyer', offre:'Coaching de l\'offre', close:'fermer'
+  score:"Score global du quartier",
+  dvf:"Prix des dernières transactions",
+  loyers:"Estimation des loyers",
+  insee:"Population, économie & société",
+  logement:"Logement & habitat",
+  mobilite:"Transports & mobilité douce",
+  meteo:"Météo et qualité de l'air",
+  bruit:"Carte du bruit",
+  risques:"Risques naturels & industriels",
+  ecoles:"Écoles & niveau scolaire",
+  services:"Commerces, services & santé",
+  fibre:"Connexion internet & fibre",
+  demographie:"Démographie & attractivité",
+  altitude:"Altitude & topographie",
+  urbanisme:"Zonage, PLU & réglementation",
+  aides:"Aides à l'achat (PTZ, APL…)",
+  renov:"MaPrimeRénov' & aides travaux",
+  profil:"Compatibilité de vie",
+  recherche:"Trouver un bien",
+  emprunt:"Capacité d'emprunt",
+  mensualites:"Achat : Mensualités & coût total du crédit",
+  cout:"Investissement locatif",
+  location:"Location : budget & comparaison",
+  offre:"Coaching de l'offre",
+  close:""
 };
 let isSpeaking = false;
 let isListening = false;
@@ -613,9 +629,14 @@ function addMsg(role, text){
         }, 600);
       }
     });
-    displayText = text.replace(/\[CARD:([a-z]+)\]/g, (m, id) => {
+    displayText = text.replace(/\[CARD:([a-z]+)\]/g, (m, id, offset, str) => {
       if(id === 'close') return '';
-      return CARD_NAMES[id] ? '<strong>'+CARD_NAMES[id]+'</strong>' : '';
+      const name = CARD_NAMES[id];
+      if(!name) return '';
+      // Si le nom apparaît déjà dans les ~40 chars précédents, ne pas le répéter
+      const before = str.substring(Math.max(0, offset-40), offset);
+      if(before.toLowerCase().includes(name.toLowerCase())) return '';
+      return '<strong>'+name+'</strong>';
     }).trim();
   }
   const el = document.createElement('div');
@@ -969,10 +990,9 @@ function avatarGreet(){
 function populateVoiceSelect(){
   const sel = document.getElementById('av-pref-voix');
   if(!sel) return;
-  function fill(){
-    const voices = window.speechSynthesis.getVoices();
+  function fill(voices){
     const frVoices = voices.filter(v=>v.lang.startsWith('fr'));
-    if(frVoices.length===0 && voices.length===0) return false; // pas encore chargées
+    if(!frVoices.length) return false;
     sel.innerHTML = '<option value="">Auto (par défaut)</option>';
     frVoices.forEach(v=>{
       const opt = document.createElement('option');
@@ -981,17 +1001,22 @@ function populateVoiceSelect(){
       if(prefs.voix===v.name) opt.selected=true;
       sel.appendChild(opt);
     });
-    if(frVoices.length===0) sel.innerHTML += '<option disabled>— Aucune voix française détectée —</option>';
     return true;
   }
-  if(!fill()){
-    window.speechSynthesis.onvoiceschanged = function(){
-      window.speechSynthesis.onvoiceschanged = null;
-      fill();
-    };
-    // Forcer le chargement sur Chrome
-    window.speechSynthesis.getVoices();
-  }
+  // Essai immédiat
+  const v0 = window.speechSynthesis.getVoices();
+  if(fill(v0)) return;
+  // Attendre voiceschanged
+  window.speechSynthesis.onvoiceschanged = function(){
+    window.speechSynthesis.onvoiceschanged = null;
+    fill(window.speechSynthesis.getVoices());
+  };
+  // Retry toutes les 300ms pendant 3s (fallback iOS/Safari)
+  let tries = 0;
+  const retry = setInterval(function(){
+    const vv = window.speechSynthesis.getVoices();
+    if(fill(vv) || ++tries > 10) clearInterval(retry);
+  }, 300);
 }
 
 function showSetup(){

@@ -3607,7 +3607,7 @@ function computeScoreQuartier() {
   const svc = window._servicesData;
   if (svc?.score != null)
     items.push({ label:'Commerces, services & santé', icon:'🏥', val:svc.score, max:10,
-      action:"closePanel();setTimeout(()=>showDetail('services'),120)",
+      action:"showDetail('services')",
       sub: svc.stats ? `${svc.stats.sante} santé · ${svc.stats.commerce} commerces · ${svc.total} services` : '' });
 
   // 2. Écoles
@@ -3616,7 +3616,7 @@ function computeScoreQuartier() {
     const t = ecoles.total, ty = ecoles.types||{};
     const eScore = t===0?1 : t<=3?4 : t<=7?6 : t<=14?8 : 9.5;
     items.push({ label:'Écoles & niveau scolaire', icon:'🏫', val:eScore, max:10,
-      action:"closePanel();setTimeout(()=>showDetail('ecoles'),120)",
+      action:"showDetail('ecoles')",
       sub:`${t} établissements · ${ty.ecoles||0} éc. · ${ty.college||0} coll. · ${ty.lycee||0} lyc.` });
   }
 
@@ -3632,7 +3632,7 @@ function computeScoreQuartier() {
       st.velos>0    ? `${st.velos} vélo`        : null,
     ].filter(Boolean).join(' · ') || mob.scoreLabel || '';
     items.push({ label:'Transports & mobilité douce', icon:'🚇', val:mob.score, max:10,
-      action:"closePanel();setTimeout(()=>showDetail('mobilite'),120)",
+      action:"showDetail('mobilite')",
       sub: `${mob.scoreLabel} · ${mobSub}` });
   }
 
@@ -3650,7 +3650,7 @@ function computeScoreQuartier() {
   if (risques?.total != null) {
     const rScore = Math.max(0, 10 - risques.total);
     items.push({ label:'Risques naturels & industriels', icon:'⚠️', val:rScore, max:10,
-      action:"closePanel();setTimeout(()=>showDetail('risques'),120)",
+      action:"showDetail('risques')",
       sub:`${risques.total} risque${risques.total>1?'s':''} identifié${risques.total>1?'s':''}` });
   }
 
@@ -3668,7 +3668,7 @@ function computeScoreQuartier() {
   if (bruit?.success && bruit.niveauCode) {
     const bruitScore = bruit.niveauCode==='eleve'?2 : bruit.niveauCode==='modere'?5.5 : 9;
     items.push({ label:'Carte du bruit', icon:'🔊', val:bruitScore, max:10,
-      action:"closePanel();setTimeout(()=>showDetail('bruit'),120)",
+      action:"showDetail('bruit')",
       sub: bruit.niveau || '' });
   }
 
@@ -3678,7 +3678,7 @@ function computeScoreQuartier() {
     const h = meteo.ensoleillement.heuresAnnuelles;
     const meteoScore = h>1800?9 : h>1400?7 : h>1000?5 : 3;
     items.push({ label:'Ensoleillement', icon:'☀️', val:meteoScore, max:10,
-      action:"closePanel();setTimeout(()=>showDetail('meteo'),120)",
+      action:"showDetail('meteo')",
       sub:`${h.toLocaleString('fr-FR')} h/an · moy. max ${meteo.temperatures?.maxMoyenne||'—'}°C` });
   }
 
@@ -3687,7 +3687,7 @@ function computeScoreQuartier() {
   if (fibre?.fibre) {
     const fibreScore = fibre.fibre.eligible===true?10 : fibre.fibre.eligible===false?3 : 5;
     items.push({ label:'Connexion internet & fibre', icon:'📶', val:fibreScore, max:10,
-      action:"closePanel();setTimeout(()=>showDetail('fibre'),120)",
+      action:"showDetail('fibre')",
       sub: fibre.fibre.eligible===true ? `Éligible FTTH · ${fibre.fibre.operateurs?.join(', ')||''}` : fibre.fibre.eligible===false ? 'Non éligible fibre' : 'À vérifier' });
   }
 
@@ -3699,7 +3699,7 @@ function computeScoreQuartier() {
     const densScore = dens>15000?4 : dens>8000?6 : dens>3000?9 : dens>1000?8 : dens>300?6 : 4;
     const densLabel = dens>10000?'Très dense':dens>5000?'Dense':dens>2000?'Urbain':dens>500?'Péri-urbain':'Rural';
     items.push({ label:'Population, économie & société', icon:'🏙️', val:densScore, max:10,
-      action:"closePanel();setTimeout(()=>showDetail('insee'),120)",
+      action:"showDetail('insee')",
       sub:`${dens.toLocaleString('fr-FR')} hab/km² · ${densLabel}` });
   }
 
