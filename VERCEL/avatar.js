@@ -629,15 +629,7 @@ function addMsg(role, text){
         }, 600);
       }
     });
-    displayText = text.replace(/\[CARD:([a-z]+)\]/g, (m, id, offset, str) => {
-      if(id === 'close') return '';
-      const name = CARD_NAMES[id];
-      if(!name) return '';
-      // Si le nom apparaît déjà dans les ~40 chars précédents, ne pas le répéter
-      const before = str.substring(Math.max(0, offset-40), offset);
-      if(before.toLowerCase().includes(name.toLowerCase())) return '';
-      return '<strong>'+name+'</strong>';
-    }).trim();
+    displayText = text.replace(/\[CARD:[a-z]+\]/g, '').replace(/\s{2,}/g,' ').trim();
   }
   const el = document.createElement('div');
   el.className = 'av-msg ' + role;
@@ -937,7 +929,7 @@ dataCtx + "\n" +
 "INSTRUCTIONS IMPORTANTES :\n" +
 "1. Tu connais TOUTES les donnees ci-dessus par coeur. Utilise-les pour repondre avec precision.\n" +
 "2. Si une donnee n'est PAS dans les donnees ci-dessus (ex: prix d'un bien specifique), dis-le clairement sans inventer.\n" +
-"3. Quand tu parles d'une section specifique, ajoute en fin de reponse [CARD:id] pour l'ouvrir. Ex: [CARD:score] [CARD:dvf] [CARD:mobilite]\n" +
+"3. Ecris toujours le NOM COMPLET de la section dans ton texte (ex: Marche immobilier DVF, Score global du quartier). PUIS ajoute [CARD:id] EN TOUTE FIN de reponse UNIQUEMENT (apres le dernier mot), jamais au milieu du texte. Max 2 cartes par reponse.\n" +
 "4. Pour fermer une carte : [CARD:close]\n" +
 "5. Tu peux mentionner plusieurs cartes dans une meme reponse.\n" +
 "6. JAMAIS d'information exterieure ou inventee. Si absent des donnees = 'Cette information n'est pas dans l'analyse IMMO-AI.'\n" +
@@ -1004,19 +996,22 @@ function populateVoiceSelect(){
     return true;
   }
   // Essai immédiat
-  const v0 = window.speechSynthesis.getVoices();
-  if(fill(v0)) return;
-  // Attendre voiceschanged
+  if(fill(window.speechSynthesis.getVoices())) return;
+  // Chrome nécessite un appel speak() pour charger les voix
+  const silent = new SpeechSynthesisUtterance('');
+  silent.volume = 0;
+  window.speechSynthesis.speak(silent);
+  // Retry toutes les 200ms pendant 4s
+  let tries = 0;
+  const retry = setInterval(function(){
+    if(fill(window.speechSynthesis.getVoices()) || ++tries > 20) clearInterval(retry);
+  }, 200);
+  // Fallback voiceschanged
   window.speechSynthesis.onvoiceschanged = function(){
     window.speechSynthesis.onvoiceschanged = null;
     fill(window.speechSynthesis.getVoices());
+    clearInterval(retry);
   };
-  // Retry toutes les 300ms pendant 3s (fallback iOS/Safari)
-  let tries = 0;
-  const retry = setInterval(function(){
-    const vv = window.speechSynthesis.getVoices();
-    if(fill(vv) || ++tries > 10) clearInterval(retry);
-  }, 300);
 }
 
 function showSetup(){
