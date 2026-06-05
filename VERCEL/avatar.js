@@ -19,6 +19,18 @@ let prefs = null;
 let history = [];
 let scene, camera, renderer, mixer, clock, avatarModel;
 let _docCache = null;
+
+const CARD_NAMES = {
+  score:'Score global', dvf:'Marché immobilier', loyers:'Loyers estimés',
+  insee:'Population & économie', logement:'Logement', mobilite:'Mobilité & transports',
+  meteo:'Météo & ensoleillement', bruit:'Bruit', risques:'Risques naturels',
+  ecoles:'Établissements scolaires', services:'Services & commerces', fibre:'Fibre optique',
+  demographie:'Démographie', altitude:'Altitude', urbanisme:'Urbanisme & PLU',
+  aides:'Aides à l\'achat', renov:'MaPrimeRénov\'', profil:'Profil investisseur',
+  recherche:'Recherche de biens', emprunt:'Capacité d\'emprunt',
+  mensualites:'Mensualités crédit', cout:'Investissement locatif',
+  location:'Budget loyer', offre:'Coaching de l\'offre', close:'fermer'
+};
 let isSpeaking = false;
 let isListening = false;
 let recognition = null;
@@ -594,7 +606,10 @@ function addMsg(role, text){
         }, 600);
       }
     });
-    displayText = text.replace(/\[CARD:[a-z]+\]/g, '').trim();
+    displayText = text.replace(/\[CARD:([a-z]+)\]/g, (m, id) => {
+      if(id === 'close') return '';
+      return CARD_NAMES[id] ? '<strong>'+CARD_NAMES[id]+'</strong>' : '';
+    }).trim();
   }
   const el = document.createElement('div');
   el.className = 'av-msg ' + role;
