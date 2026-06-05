@@ -9540,15 +9540,15 @@ function calcEmprunt(){
     return;
   }
   const assur=((v=>isNaN(v)?0.25:v)(parseFloat(document.getElementById('eAssur').value)))/100;
-  const notairePct=(parseFloat(document.getElementById('eTypeBien')?.value)||7.5)/100;
-  const fraisNotaire=notairePct>0?Math.round(prixMax*notairePct/(1+notairePct)):0; // frais estimés sur le prix net vendeur
-  const prixMaxNet=Math.round((prixMax-fraisNotaire)/1000)*1000; // budget hors frais de notaire
   const t=taux/12,n=duree*12;
   const factorAmort=t/(1-Math.pow(1+t,-n));
   const empruntMax=mensMax/(factorAmort+assur/12);
   const mensAssur=Math.round(empruntMax*assur/12);
   const mensPret=Math.round(empruntMax*factorAmort);
   const prixMax=empruntMax+apport;
+  const notairePct=(parseFloat(document.getElementById('eTypeBien')?.value)||7.5)/100;
+  const fraisNotaire=notairePct>0?Math.round(prixMax*notairePct/(1+notairePct)):0;
+  const prixMaxNet=Math.round((prixMax-fraisNotaire)/1000)*1000;
   function stressEmpr(ts){ const fa=ts/12/(1-Math.pow(1+ts/12,-n)); return Math.round(mensMax/(fa+assur/12)); }
   const stress_m2=taux>=0.01?stressEmpr(taux-0.01):null;
   const stress_m1=taux>=0.005?stressEmpr(taux-0.005):null;
