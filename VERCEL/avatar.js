@@ -494,12 +494,19 @@ function testVoice(){
     const voices = window.speechSynthesis.getVoices();
     const frVoices = voices.filter(v=>v.lang.startsWith('fr'));
     if(frVoices.length){
-      const maleKeys=['thomas','nicolas','pierre'];
-      const femaleKeys=['marie','audrey','amelie','juliette'];
-      const isMale = genre==='homme';
-      let found = frVoices.find(v=>( isMale?maleKeys:femaleKeys ).some(k=>v.name.toLowerCase().includes(k)));
-      utt.voice = found || frVoices[0];
-      if(!found && isMale) utt.pitch = Math.min(p, 0.75);
+      // Voix choisie manuellement en priorité
+      const selVoix = document.getElementById('av-pref-voix')?.value || prefs.voix || '';
+      if(selVoix){
+        const chosen = voices.find(v=>v.name===selVoix);
+        if(chosen){ utt.voice=chosen; }
+      } else {
+        const isMale = genre==='homme';
+        const maleKeys=['thomas','nicolas','pierre','paul'];
+        const femaleKeys=['marie','audrey','amelie','hortense','julie','google'];
+        let found = frVoices.find(v=>(isMale?maleKeys:femaleKeys).some(k=>v.name.toLowerCase().includes(k)));
+        utt.voice = found || frVoices[0];
+        if(!found && isMale) utt.pitch = Math.min(p, 0.75);
+      }
     }
     window.speechSynthesis.speak(utt);
   }
@@ -527,24 +534,28 @@ function speak(text){
   currentUtterance.pitch = parseFloat(prefs.pitch) || 1;
   currentUtterance.volume = parseFloat(prefs.volume) || 1;
 
-  // Choisir une voix française adaptée au genre
+  // Choisir une voix française adaptée au genre ou à la sélection manuelle
   function applyVoice(utt){
     const voices = window.speechSynthesis.getVoices();
     if(!voices.length) return;
+    // 1. Voix choisie manuellement par l'utilisateur
+    if(prefs.voix){
+      const chosen = voices.find(v=>v.name===prefs.voix);
+      if(chosen){ utt.voice=chosen; return; }
+    }
+    // 2. Auto selon genre
     const frVoices = voices.filter(v=>v.lang.startsWith('fr'));
     if(!frVoices.length) return;
     const isMale = prefs.genre === 'homme';
-    // Mots-clés voix masculine/féminine
-    const maleKeys = ['thomas','nicolas','pierre','male','homme'];
-    const femaleKeys = ['marie','audrey','amélie','female','femme','siri'];
+    const maleKeys = ['thomas','nicolas','pierre','paul','male','homme'];
+    const femaleKeys = ['marie','audrey','amélie','hortense','julie','female','femme','siri','google'];
     let found = null;
     if(isMale){
       found = frVoices.find(v=>maleKeys.some(k=>v.name.toLowerCase().includes(k)));
     } else {
       found = frVoices.find(v=>femaleKeys.some(k=>v.name.toLowerCase().includes(k)));
     }
-    utt.voice = found || frVoices[isMale ? frVoices.length-1 : 0];
-    // Ajuster pitch si aucune voix genrée trouvée
+    utt.voice = found || frVoices[0];
     if(!found && isMale && utt.pitch >= 1) utt.pitch = Math.min(utt.pitch, 0.8);
   }
   const voicesFr = window.speechSynthesis.getVoices();
@@ -925,13 +936,13 @@ function buildSystemPrompt(){
 "\n" +
 "Tu connais parfaitement l'application IMMO·AI et ses sections. Pour ouvrir une section, utilise [CARD:id] UNIQUEMENT en fin de reponse, jamais dans le texte visible.\n" +
 "Sections disponibles (nom → id) :\n" +
-"  Score global → score | Marche immobilier DVF → dvf | Loyers estimes → loyers\n" +
-"  Population & economie INSEE → insee | Logement → logement | Mobilite & transports → mobilite\n" +
-"  Meteo & ensoleillement → meteo | Bruit → bruit | Risques naturels → risques\n" +
-"  Etablissements scolaires → ecoles | Services & commerces → services | Fibre optique → fibre\n" +
-"  Demographie → demographie | Altitude → altitude | Urbanisme PLU → urbanisme\n" +
-"  Aides achat PTZ → aides | MaPrimeRenov travaux → renov\n" +
-"  Profil investisseur → profil | Recherche de biens → recherche\n" +
+"  Score global du quartier → score | Prix des dernieres transactions → dvf | Estimation des loyers → loyers\n" +
+"  Population, economie & societe → insee | Logement & habitat → logement | Transports & mobilite douce → mobilite\n" +
+"  Meteo et qualite de l'air → meteo | Carte du bruit → bruit | Risques naturels & industriels → risques\n" +
+"  Ecoles & niveau scolaire → ecoles | Commerces, services & sante → services | Connexion internet & fibre → fibre\n" +
+"  Demographie & attractivite → demographie | Altitude & topographie → altitude | Zonage, PLU & reglementation → urbanisme\n" +
+"  Aides a l'achat (PTZ, APL) → aides | MaPrimeRenov & aides travaux → renov\n" +
+"  Compatibilite de vie → profil | Trouver un bien → recherche\n" +
 "Simulateurs Mon Financement (a ouvrir avec [CARD:id]) :\n" +
 "  Capacite emprunt → emprunt | Mensualites credit → mensualites | Investissement locatif → cout\n" +
 "  Budget loyer / louer vs acheter → location | Coaching offre → offre\n" +
@@ -942,7 +953,7 @@ dataCtx + "\n" +
 "INSTRUCTIONS IMPORTANTES :\n" +
 "1. Tu connais TOUTES les donnees ci-dessus par coeur. Utilise-les pour repondre avec precision.\n" +
 "2. Si une donnee n'est PAS dans les donnees ci-dessus (ex: prix d'un bien specifique), dis-le clairement sans inventer.\n" +
-"3. Ecris toujours le NOM COMPLET de la section dans ton texte (ex: Marche immobilier DVF, Score global du quartier). PUIS ajoute [CARD:id] EN TOUTE FIN de reponse UNIQUEMENT (apres le dernier mot), jamais au milieu du texte. Max 2 cartes par reponse.\n" +
+"3. Ecris toujours le NOM COMPLET de la section dans ton texte (ex: Prix des dernieres transactions, Score global du quartier, Transports & mobilite douce). PUIS ajoute [CARD:id] EN TOUTE FIN de reponse UNIQUEMENT (apres le dernier mot), jamais au milieu du texte. Max 2 cartes par reponse.\n" +
 "4. Pour fermer une carte : [CARD:close]\n" +
 "5. Tu peux mentionner plusieurs cartes dans une meme reponse.\n" +
 "6. JAMAIS d'information exterieure ou inventee. Si absent des donnees = 'Cette information n'est pas dans l'analyse IMMO-AI.'\n" +
