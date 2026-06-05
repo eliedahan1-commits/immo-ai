@@ -509,7 +509,7 @@ function speak(text){
   currentUtterance.lang = 'fr-FR';
   currentUtterance.rate = parseFloat(prefs.vitesse) || 1;
   currentUtterance.pitch = parseFloat(prefs.pitch) || 1;
-  currentUtterance.volume = parseFloat(prefs.volume) ?? 1;
+  currentUtterance.volume = parseFloat(prefs.volume) || 1;
 
   // Choisir une voix française adaptée au genre
   function applyVoice(utt){
@@ -540,15 +540,15 @@ function speak(text){
     };
   }
 
-  currentUtterance.onstart = function(){ isSpeaking=true; startMouthAnim(); setStatus('Parle…'); };
-  currentUtterance.onend = function(){ isSpeaking=false; stopMouthAnim(); setStatus(''); };
-  currentUtterance.onerror = function(){ isSpeaking=false; stopMouthAnim(); setStatus(''); };
+  currentUtterance.onstart = function(){ isSpeaking=true; setStatus('Parle…'); };
+  currentUtterance.onend = function(){ isSpeaking=false; setStatus(''); };
+  currentUtterance.onerror = function(){ isSpeaking=false; setStatus(''); };
   window.speechSynthesis.speak(currentUtterance);
 }
 
 function stopSpeak(){
   window.speechSynthesis.cancel();
-  isSpeaking=false; stopMouthAnim(); setStatus('');
+  isSpeaking=false; setStatus('');
 }
 
 // ── STT ──
@@ -969,17 +969,29 @@ function avatarGreet(){
 function populateVoiceSelect(){
   const sel = document.getElementById('av-pref-voix');
   if(!sel) return;
-  const voices = window.speechSynthesis.getVoices();
-  const frVoices = voices.filter(v=>v.lang.startsWith('fr'));
-  sel.innerHTML = '<option value="">Auto (par défaut)</option>';
-  frVoices.forEach(v=>{
-    const opt = document.createElement('option');
-    opt.value = v.name;
-    opt.textContent = v.name + (v.localService?' (locale)':' (réseau)');
-    if(prefs.voix===v.name) opt.selected=true;
-    sel.appendChild(opt);
-  });
-  if(frVoices.length===0) sel.innerHTML = '<option value="">Aucune voix française détectée</option>';
+  function fill(){
+    const voices = window.speechSynthesis.getVoices();
+    const frVoices = voices.filter(v=>v.lang.startsWith('fr'));
+    if(frVoices.length===0 && voices.length===0) return false; // pas encore chargées
+    sel.innerHTML = '<option value="">Auto (par défaut)</option>';
+    frVoices.forEach(v=>{
+      const opt = document.createElement('option');
+      opt.value = v.name;
+      opt.textContent = v.name + (v.localService?' 💾':' 🌐');
+      if(prefs.voix===v.name) opt.selected=true;
+      sel.appendChild(opt);
+    });
+    if(frVoices.length===0) sel.innerHTML += '<option disabled>— Aucune voix française détectée —</option>';
+    return true;
+  }
+  if(!fill()){
+    window.speechSynthesis.onvoiceschanged = function(){
+      window.speechSynthesis.onvoiceschanged = null;
+      fill();
+    };
+    // Forcer le chargement sur Chrome
+    window.speechSynthesis.getVoices();
+  }
 }
 
 function showSetup(){
