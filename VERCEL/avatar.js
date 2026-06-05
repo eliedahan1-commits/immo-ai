@@ -18,6 +18,7 @@ const AVATARS = {};
 let prefs = null;
 let history = [];
 let scene, camera, renderer, mixer, clock, avatarModel;
+let _docCache = null;
 let isSpeaking = false;
 let isListening = false;
 let recognition = null;
@@ -616,6 +617,21 @@ function mdLight(t){
 }
 function escHtml(t){ return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+async function fetchDoc(){
+  if(_docCache) return _docCache;
+  try {
+    const r = await fetch('/documentation/doc.txt');
+    if(r.ok){ _docCache = await r.text(); return _docCache; }
+  } catch(e){}
+  return null;
+}
+
+function needsDoc(txt){
+  const kw = ['comment','utiliser','fonctionne','comment faire','aide-moi','guide','documentation','expliquer','tutoriel','étapes','comment ça','comment accéder','comment ouvrir','comment calculer','comment saisir','comment renseigner','c'est quoi','qu'est-ce','à quoi sert','comment trouver','comment simuler','comment obtenir'];
+  const t = txt.toLowerCase();
+  return kw.some(k => t.includes(k));
+}
+
 async function sendMessage(){
   const inp = document.getElementById('av-text-input');
   const txt = (inp.value||'').trim();
@@ -624,8 +640,13 @@ async function sendMessage(){
   if(isSpeaking) stopSpeak();
   addMsg('user', txt);
   const thinking = addMsg('thinking', prefs.nom + ' réfléchit…');
+  let docCtx = '';
+  if(needsDoc(txt)){
+    const doc = await fetchDoc();
+    if(doc) docCtx = '\n\nDOCUMENTATION IMMO·AI (utiliser pour répondre aux questions d\'utilisation) :\n' + doc;
+  }
   try {
-    const response = await callAvatarAI(txt);
+    const response = await callAvatarAI(txt, docCtx);
     removeThinking();
     addMsg('assistant', response);
     speak(response.replace(/\[CARD:[a-z]+\]/g, "").trim());
@@ -638,10 +659,10 @@ async function sendMessage(){
   }
 }
 
-async function callAvatarAI(userMsg){
+async function callAvatarAI(userMsg, docCtx=''){
   if(typeof callAI !== 'function') throw new Error('callAI non disponible');
   const system = buildSystemPrompt();
-  const msgs = buildMessages(userMsg);
+  const msgs = buildMessages(userMsg, docCtx);
   // Appel direct à l'API Groq avec historique
   const _gk = window.groqKey || localStorage.getItem('immoai_groq') || ''; if(!_gk) throw new Error('no_key');
   const model = 'llama-3.3-70b-versatile';
@@ -854,9 +875,9 @@ dataCtx + "\n" +
 }
 
 
-function buildMessages(userMsg){
+function buildMessages(userMsg, docCtx=''){
   const system = buildSystemPrompt();
-  const msgs = [{role:'system', content:system}];
+  const msgs = [{role:'system', content:system + docCtx}];
   // Inclure les 6 derniers échanges pour le contexte
   const recent = history.filter(function(h){ return h.role==='user'||h.role==='assistant'; }).slice(-6);
   recent.forEach(function(h){ msgs.push({role:h.role, content:h.content}); });

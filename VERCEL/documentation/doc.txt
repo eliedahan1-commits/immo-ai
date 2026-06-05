@@ -1,0 +1,227 @@
+IMMO·AI — DOCUMENTATION FONCTIONNELLE COMPLÈTE
+================================================
+Version : Juin 2026
+
+IMMO·AI est une application web d'analyse immobilière. Elle permet d'analyser n'importe quelle adresse en France et fournit des données sur le quartier, les prix, le financement et la stratégie d'achat ou d'investissement.
+
+═══════════════════════════════════════════════
+1. PRISE EN MAIN — PREMIÈRE ÉTAPE OBLIGATOIRE
+═══════════════════════════════════════════════
+Avant toute chose, l'utilisateur doit saisir une adresse à analyser.
+
+Comment faire :
+- Sur la page d'accueil (onglet 🏠 Accueil), taper une adresse dans le champ de recherche.
+- Sélectionner la suggestion dans la liste déroulante.
+- L'application charge automatiquement toutes les données disponibles pour cette adresse.
+- Une fois chargée, la page "Mon bien" (onglet 🏡) s'ouvre avec le tableau de bord de l'analyse.
+
+Sans adresse renseignée, aucune donnée n'est disponible. Toutes les sections affichent "N/A" ou un bouton de chargement.
+
+═══════════════════════════════════════════════
+2. NAVIGATION
+═══════════════════════════════════════════════
+L'application dispose de deux systèmes de navigation :
+
+A) BARRE D'ONGLETS EN BAS (mobile) ou EN HAUT :
+   - 🏠 Accueil : page de démarrage et recherche d'adresse
+   - 🏡 Mon bien : tableau de bord de l'analyse (toutes les cartes)
+   - 💳 Financement : accès direct au simulateur de capacité d'emprunt
+   - 🤖 Avatar : ouvre l'assistante IA (Sofia)
+
+B) MENU LATÉRAL GAUCHE (hamburger ☰) :
+   Organisé en 4 sections dépliables :
+   - 🏘️ Mon quartier
+   - 🏠 Prix des biens
+   - 💰 Mon financement
+   - 🎯 Ma stratégie
+
+═══════════════════════════════════════════════
+3. SECTION "MON BIEN" — TABLEAU DE BORD
+═══════════════════════════════════════════════
+Une fois une adresse analysée, la page "Mon bien" affiche des cartes thématiques.
+Cliquer sur une carte l'ouvre en détail avec toutes les données.
+
+CARTES DISPONIBLES :
+
+▶ SCORE GLOBAL (score)
+  Score de 0 à 10 calculé par IMMO·AI, synthétisant tous les critères.
+  Cliquer sur la carte affiche le détail de chaque sous-score.
+
+▶ MARCHÉ IMMOBILIER / DVF (dvf)
+  Prix des dernières transactions issues des données DVF (Direction des Finances Publiques).
+  Affiche : prix médian, moyen, min, max au m², nombre de transactions, comparaison avec le département.
+
+▶ LOYERS ESTIMÉS (loyers)
+  Estimation des loyers mensuels selon la surface (studio, T2, T3, T4+).
+  Calcule aussi le rendement locatif brut estimé.
+
+▶ POPULATION & ÉCONOMIE (insee)
+  Données INSEE : revenus médians vs national, taux de chômage, diplômes Bac+5, propriétaires, résidences principales, logements vacants.
+
+▶ LOGEMENT & HABITAT (logement)
+  Données Melodi : types de logements, ancienneté, vacance, copropriétés.
+
+▶ MOBILITÉ & TRANSPORTS (mobilite)
+  Accès aux transports en commun, vélos, distances à pied depuis l'adresse.
+
+▶ MÉTÉO & ENSOLEILLEMENT (meteo)
+  Données météo : ensoleillement annuel, précipitations, températures. Source Météo-France.
+
+▶ BRUIT (bruit)
+  Carte du bruit issue des données officielles. Niveaux de bruit routier, ferroviaire, aérien.
+
+▶ QUALITÉ DE L'AIR
+  Concentrations PM2.5 et PM10 (particules fines). Source : données officielles.
+
+▶ RISQUES NATURELS & INDUSTRIELS (risques)
+  Synthèse des risques : inondation, séisme, retrait-gonflement des argiles, risques industriels.
+
+▶ ALTITUDE & TOPOGRAPHIE (altitude)
+  Altitude NGF en mètres. Source : IGN RGE Alti (précision 1m).
+
+▶ ÉTABLISSEMENTS SCOLAIRES (ecoles)
+  Liste des écoles, collèges, lycées proches avec leur IPS (Indice de Position Sociale).
+
+▶ SERVICES & COMMERCES (services)
+  Commerces, santé, loisirs à proximité.
+
+▶ FIBRE OPTIQUE (fibre)
+  Éligibilité à la fibre optique. Source : Arcep.
+
+▶ DÉMOGRAPHIE (demographie)
+  Pyramide des âges, évolution de la population, attractivité de la commune.
+
+▶ URBANISME & PLU (urbanisme)
+  Zonage PLU, règles d'urbanisme applicables à la parcelle.
+
+▶ AIDES À L'ACHAT (aides)
+  Simulateur PTZ (Prêt à Taux Zéro), APL et autres aides selon profil.
+
+▶ MAPRIMERÉNOV' (renov)
+  Simulateur des aides travaux de rénovation énergétique selon le DPE actuel et cible.
+
+═══════════════════════════════════════════════
+4. SECTION "MON FINANCEMENT"
+═══════════════════════════════════════════════
+Outils de simulation financière. Chaque simulateur est indépendant mais les résultats se propagent automatiquement d'un outil à l'autre.
+
+▶ CAPACITÉ D'EMPRUNT (emprunt)
+  Calcule le budget d'achat maximum en fonction des revenus.
+  Champs à renseigner :
+  - Revenus mensuels nets (emprunteur 1 + emprunteur 2 si couple)
+  - Crédits en cours (mensualités existantes)
+  - Apport personnel
+  - Durée souhaitée (10 à 25 ans)
+  - Taux d'intérêt (pré-rempli avec le taux du marché)
+  - Taux d'assurance emprunteur
+  Résultats : capacité d'emprunt, budget total, mensualité max (règle des 35%), stress test selon variation de taux.
+  → Appuyer sur "Calculer" pour lancer.
+
+▶ MENSUALITÉS & COÛT TOTAL DU CRÉDIT (mensualites)
+  Calcule les mensualités et le coût réel du crédit.
+  Champs : montant emprunté, durée, taux, assurance, frais de notaire (option), travaux financés (option).
+  Résultats : mensualité totale, détail capital/intérêts/assurance, coût total, TAEG.
+
+▶ INVESTISSEMENT LOCATIF (cout)
+  Simulateur complet pour évaluer la rentabilité d'un investissement locatif.
+  Champs : prix du bien, DPE (travaux estimés automatiquement), apport, durée, taux, loyer estimé, charges, taxe foncière, régime fiscal (micro-foncier, réel, LMNP).
+  Résultats : rendement brut, rendement net, cash-flow avant et après impôts, stress test.
+
+▶ LOCATION : BUDGET & COMPARAISON (location)
+  Deux outils :
+  1. Budget loyer : calcule le loyer max selon revenus (règle des 33%)
+  2. Louer vs Acheter : compare sur X années le coût total de chaque option.
+
+▶ AIDES À L'ACHAT / PTZ (aides)
+  Voir section Mon quartier ci-dessus.
+
+▶ MAPRIMERÉNOV' (renov)
+  Voir section Mon quartier ci-dessus.
+
+═══════════════════════════════════════════════
+5. SECTION "MA STRATÉGIE"
+═══════════════════════════════════════════════
+
+▶ TROUVER UN BIEN (recherche)
+  Liens vers 5 sites immobiliers pré-filtrés avec la ville analysée (SeLoger, LeBonCoin, PAP, Bien'ici, Logic-Immo).
+
+▶ COACHING DE L'OFFRE (offre)
+  Outil IA pour préparer une offre d'achat. Analyse le bien, le marché local, et conseille sur le prix à proposer, les arguments de négociation, les clauses suspensives à inclure.
+  Étapes : renseigner l'adresse du bien, le prix affiché, vos infos, puis demander le coaching IA.
+
+▶ COMPATIBILITÉ DE VIE (profil)
+  Teste la compatibilité entre votre profil de vie (famille, célibataire, retraité, etc.) et le quartier analysé. Utilise les données du score global pour un match personnalisé.
+
+▶ CONSEILLER IA 24H/24 (conseil)
+  Chatbot IA généraliste immobilier. Peut répondre à toutes les questions sur l'immobilier, la fiscalité, le financement, les stratégies d'achat. Connait le marché local et national.
+
+▶ GUIDE JURIDIQUE (juridique)
+  Guide des étapes juridiques d'une transaction immobilière (offre, compromis, acte authentique), délais légaux, droits et obligations.
+
+═══════════════════════════════════════════════
+6. L'ASSISTANTE IA — SOFIA (avatar)
+═══════════════════════════════════════════════
+Sofia est l'assistante vocale d'IMMO·AI. Elle connaît toutes les données de l'analyse en cours.
+
+Comment l'activer :
+- Cliquer sur l'onglet 🤖 en bas à droite, ou sur le bouton flottant de l'avatar.
+
+Ce qu'elle peut faire :
+- Répondre à toutes les questions sur les données de l'adresse analysée.
+- Ouvrir automatiquement la carte correspondante à votre question.
+- Interpréter vos résultats de simulation (capacité d'emprunt, mensualités, investissement locatif).
+- Vous expliquer comment utiliser n'importe quelle fonctionnalité de l'application.
+- Parler à voix haute (synthèse vocale).
+- Écouter vos questions (reconnaissance vocale, bouton microphone 🎙️).
+
+Paramètres (⚙️) :
+- Choisir le prénom et le genre de l'avatar.
+- Régler la vitesse et le ton de la voix.
+- Saisir la clé API Groq (obligatoire pour activer l'IA).
+
+Comment obtenir une clé API Groq :
+1. Aller sur https://console.groq.com
+2. Créer un compte gratuit
+3. Générer une clé API (gratuit, très rapide)
+4. La coller dans les paramètres ⚙️ de l'avatar
+
+═══════════════════════════════════════════════
+7. DONNÉES ET SOURCES
+═══════════════════════════════════════════════
+- DVF (prix transactions) : data.gouv.fr / Direction des Finances Publiques
+- INSEE / Melodi : data.insee.fr — revenus, population, logement
+- IGN RGE Alti : data.geopf.fr — altitude
+- Météo-France : open-meteo.com
+- Risques : georisques.gouv.fr
+- Fibre : arcep.fr
+- Écoles / IPS : data.education.gouv.fr
+- Qualité de l'air : données officielles Atmo
+
+═══════════════════════════════════════════════
+8. CONSEILS D'UTILISATION
+═══════════════════════════════════════════════
+1. Commencer par saisir l'adresse exacte du bien qui vous intéresse.
+2. Consulter d'abord le Score Global pour une vue d'ensemble.
+3. Aller dans "Mon financement" → "Capacité d'emprunt" pour cadrer votre budget.
+4. Les résultats de l'emprunt se propagent automatiquement aux autres simulateurs.
+5. Utiliser "Investissement locatif" si vous achetez pour louer.
+6. Demander à Sofia (avatar IA) d'interpréter les données et de vous guider.
+7. Utiliser "Coaching de l'offre" avant de faire une proposition au vendeur.
+
+═══════════════════════════════════════════════
+9. QUESTIONS FRÉQUENTES
+═══════════════════════════════════════════════
+Q : Les données sont-elles à jour ?
+R : Les données DVF sont mises à jour trimestriellement. Les données INSEE ont un décalage d'environ 2 ans. La météo et la qualité de l'air sont en temps quasi-réel.
+
+Q : L'application fonctionne-t-elle pour toute la France ?
+R : Oui, pour toutes les communes françaises. La qualité des données varie selon la taille de la commune (les petites communes ont moins de transactions DVF).
+
+Q : Le score est-il fiable ?
+R : Le score synthétise des données officielles mais reste un indicateur. Il ne remplace pas une visite du bien ni l'avis d'un professionnel.
+
+Q : Mes simulations financières sont-elles sauvegardées ?
+R : Les simulations sont conservées le temps de la session. Fermez et rouvrez l'onglet et elles seront réinitialisées.
+
+Q : La clé API Groq est-elle payante ?
+R : Groq propose un niveau gratuit généreux. Pour une utilisation normale d'IMMO·AI, le plan gratuit est suffisant.
