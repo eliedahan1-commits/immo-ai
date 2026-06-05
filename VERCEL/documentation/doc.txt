@@ -115,6 +115,7 @@ Outils de simulation financière. Chaque simulateur est indépendant mais les r�
   - Taux d'intérêt (pré-rempli avec le taux du marché)
   - Taux d'assurance emprunteur
   Résultats : capacité d'emprunt, budget total, mensualité max (règle des 35%), stress test selon variation de taux.
+  - Type de bien (Ancien ~7,5% / Neuf ~2,5% / Financement sur emprunt)
   → Appuyer sur "Calculer" pour lancer.
 
 ▶ MENSUALITÉS & COÛT TOTAL DU CRÉDIT (mensualites)

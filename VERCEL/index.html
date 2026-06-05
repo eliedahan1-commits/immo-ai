@@ -1074,6 +1074,12 @@ path.leaflet-interactive:focus{outline:none;}
         <div id="eTauxSrc" style="font-size:.62rem;color:var(--muted);margin-bottom:.3rem"></div>
         <label class="lbl">Assurance emprunteur (%/an) <span style="font-weight:400;color:var(--muted);font-size:.75em">— 0,25% par défaut</span></label>
         <input class="inp" id="eAssur" type="number" value="0.25" step="0.05" />
+        <label class="lbl">Type de bien <span style="font-weight:400;color:var(--muted);font-size:.75em">— pour frais de notaire</span></label>
+        <select class="inp" id="eTypeBien">
+          <option value="7.5">Ancien (~7,5%)</option>
+          <option value="2.5">Neuf / VEFA (~2,5%)</option>
+          <option value="0">Je finance les frais sur l'emprunt</option>
+        </select>
         <button class="btn btn-dark btn-full" onclick="calcEmprunt()">✦ Calculer ma capacité</button>
       </div>
       <div id="resEmprunt"><div class="result-dark"><p style="color:rgba(255,255,255,.65);font-size:.82rem">Renseignez vos revenus pour calculer.</p></div></div>
@@ -4451,6 +4457,8 @@ async function loadBruit(lat, lng){
 
 // ══ DÉTAIL CARTE — Panel inline ══
 function showDetail(cardId){
+  window._previousDetail = window._currentDetail || null;
+  window._currentDetail = cardId;
   const container = document.getElementById('detailContainer');
   const data = {
     dvf:        () => showDVFDetail(),
@@ -4524,6 +4532,16 @@ function closePanel(){
   window._demographiePanelOpen = false;
   ['_dvfChart','_dvfEvoChart','_risquesChart','_mobiliteChart','_radarChart','_radarProfilChart','_servicesChart','_inseeNeighborChart','_meteoMensuelChart','_meteoEvoChart','_aqHistChart0','_aqHistChart4','_demographieChart'].forEach(k=>{if(window[k]){window[k].destroy();window[k]=null;}});
   document.getElementById('detailContainer').innerHTML = '';
+  // Si on vient du score global, y retourner
+  if(window._previousDetail === 'score'){
+    window._previousDetail = null;
+    window._currentDetail = null;
+    document.getElementById('cardsGrid').style.display = 'none';
+    setTimeout(()=>showDetail('score'), 50);
+    return;
+  }
+  window._previousDetail = null;
+  window._currentDetail = null;
   document.getElementById('cardsGrid').style.display = 'grid';
   if(window._leafletMap){window._leafletMap.remove();window._leafletMap=null;}
   if(window._leafletMapMobilite){window._leafletMapMobilite.remove();window._leafletMapMobilite=null;}
@@ -5247,7 +5265,8 @@ function showDVFDetail(){
     <div style="margin-bottom:1.2rem;height:350px;position:relative"><canvas id="dvfEvolutionChart"></canvas></div>
     <button id="dvfListeToggle" onclick="var w=document.getElementById('dvfListeWrap');var show=w.style.display==='none';w.style.display=show?'block':'none';this.textContent=show?'▲ Masquer la liste':'📋 Afficher la liste';" style="margin-top:.5rem;margin-bottom:.5rem;padding:.4rem 1rem;background:var(--surface2);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:600;color:var(--text)">📋 Afficher la liste</button>
     <div id="dvfListeWrap" style="display:none">
-    <table class="tbl"><thead><tr>
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%">
+    <table class="tbl" style="min-width:520px"><thead><tr>
       <th class="dvf-th" data-col="date"  onclick="sortDVF('date')"  style="cursor:pointer;user-select:none">Date<span class="sort-ind"> ▼</span></th>
       <th class="dvf-th" data-col="type"  onclick="sortDVF('type')"  style="cursor:pointer;user-select:none">Type / Adresse<span class="sort-ind"> ⇅</span></th>
       <th class="dvf-th" data-col="surf"  onclick="sortDVF('surf')"  style="cursor:pointer;user-select:none">Surface<span class="sort-ind"> ⇅</span></th>
@@ -5256,6 +5275,7 @@ function showDVFDetail(){
       <th class="dvf-th" data-col="prix"  onclick="sortDVF('prix')"  style="cursor:pointer;user-select:none">Prix total<span class="sort-ind"> ⇅</span></th>
     </tr></thead>
     <tbody id="dvfTbody"></tbody></table>
+    </div>
     </div>
     <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">${periodeLabel?periodeLabel+' · ':''}Source : ${d.source}</p>`);
   renderDVFRows();
@@ -8572,6 +8592,8 @@ function calcLocBudget(){
     "<div style=\"font-size:.62rem;color:rgba(255,255,255,.35);margin-top:.4rem\">Prix affiché = emprunt + apport. Sur 20 ans pré-rempli ci-contre.</div>"+
     "</div>"+
     "</div>";
+  setCard("location", fmt(loyerReel)+"/mois", "Budget logement : "+fmt(budgetTotal)+" ("+pct+"%)", loyerReel<500?"warn":"good");
+  window._locationBudgetResult = { revenus: rev, loyerMax33, loyerReel, budgetTotal, pct, charges, assur, parking, capacites };
 }
 
 function toggleLocFiscalite(){
@@ -8712,6 +8734,9 @@ function calcLocVsAchat(){
       "<div style=\"font-size:.66rem;color:var(--muted)\">"+fiscalNote+" Frais de revente : "+(Math.round(fraisRevPct*10000)/100).toString().replace('.',',')+"%.</div>"+
       "</div>";
   }
+
+  setCard("location", (gain>=0?"Achat":"Location")+" avantageux", fmt(Math.abs(gain))+" sur "+duree+" ans", gain>=0?"good":"");
+  window._locationVsAchatResult = { loyer: loyer0, prixAchat: prix, duree, gain, gainFaveur: gain>=0?"achat":"location", crossoverAn: crossoverYr, coutNetAchat, loyersCumules: lastLoc, patrimoineNet };
 
   // Graphique 3 courbes
   const wrap = document.getElementById("locCompChartWrap");
@@ -9515,6 +9540,9 @@ function calcEmprunt(){
     return;
   }
   const assur=((v=>isNaN(v)?0.25:v)(parseFloat(document.getElementById('eAssur').value)))/100;
+  const notairePct=(parseFloat(document.getElementById('eTypeBien')?.value)||7.5)/100;
+  const fraisNotaire=notairePct>0?Math.round(prixMax*notairePct/(1+notairePct)):0; // frais estimés sur le prix net vendeur
+  const prixMaxNet=Math.round((prixMax-fraisNotaire)/1000)*1000; // budget hors frais de notaire
   const t=taux/12,n=duree*12;
   const factorAmort=t/(1-Math.pow(1+t,-n));
   const empruntMax=mensMax/(factorAmort+assur/12);
@@ -9533,9 +9561,10 @@ function calcEmprunt(){
   document.getElementById('resEmprunt').innerHTML=`
     <div class="result-dark">
       <div style="font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem">🏦 Votre capacité</div>
-      <div class="result-n">${fmt(Math.round(prixMax/1000)*1000)}</div>
-      <div style="font-size:.7rem;color:rgba(255,255,255,.7);text-align:center;margin-bottom:1rem">Budget d'achat total estimé (emprunt + apport)</div>
-      ${[['Mensualité max (35%)',fmt(Math.round(mensMax))+'/mois'],['dont capital + intérêts',fmt(mensPret)+'/mois'],['dont assurance emprunteur',fmt(mensAssur)+'/mois'],['Capacité d\'emprunt (hors apport)',fmt(Math.round(empruntMax))],['Apport personnel',fmt(apport)]].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
+      <div class="result-n">${fmt(prixMaxNet)}</div>
+      <div style="font-size:.7rem;color:rgba(255,255,255,.7);text-align:center;margin-bottom:1rem">Prix max du bien (après frais de notaire)</div>
+      ${notairePct>0?`<div style="margin-bottom:.6rem;padding:.5rem;border-radius:6px;background:rgba(184,131,42,.12);border:1px solid rgba(184,131,42,.3);font-size:.72rem;color:rgba(255,255,255,.75)">📋 Frais de notaire estimés : <strong>${fmt(fraisNotaire)}</strong> (${(notairePct*100).toFixed(1)}%) — déduits de votre apport<br><span style="font-size:.65rem;opacity:.6">Budget brut emprunt + apport : ${fmt(Math.round(prixMax/1000)*1000)}</span></div>`:''}
+      ${[['Mensualité max (35%)',fmt(Math.round(mensMax))+'/mois'],['dont capital + intérêts',fmt(mensPret)+'/mois'],['dont assurance emprunteur',fmt(mensAssur)+'/mois'],['Capacité d\'emprunt (hors apport)',fmt(Math.round(empruntMax))],['Apport personnel',fmt(apport)],['Frais de notaire estimés',notairePct>0?fmt(fraisNotaire)+' ('+( notairePct*100).toFixed(1)+'%)':'Financés sur emprunt']].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
       <div style="margin:.8rem 0 .2rem;font-size:.62rem;color:rgba(255,255,255,.5);letter-spacing:.1em;text-transform:uppercase">📊 Stress test — capacité d'emprunt selon le taux</div>
       <div style="font-size:.67rem;color:rgba(255,255,255,.38);margin-bottom:.45rem">À mensualité identique, combien pouvez-vous emprunter si les taux bougent ?</div>
       ${[
@@ -9546,7 +9575,7 @@ function calcEmprunt(){
         ['Taux +1% → '+pct(taux+0.01)+' (hausse)', fmt(stress2)+diffStr(stress2,Math.round(empruntMax))],
       ].filter(Boolean).map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}
       ${manque20>0?`<div style="margin:.8rem 0 .4rem;font-size:.62rem;color:rgba(255,255,255,.5);letter-spacing:.1em;text-transform:uppercase">💡 Il vous manque <strong>${fmt(manque20)}</strong> pour atteindre 20% d'apport</div><div style="font-size:.62rem;color:rgba(255,255,255,.4);margin-bottom:.4rem">Les banques exigent généralement 20% en apport personnel pour obtenir les meilleures conditions.</div>${[['Pour y arriver en 2 ans',fmt(epargne2a)+'/mois à épargner'],['Pour y arriver en 3 ans',fmt(epargne3a)+'/mois à épargner']].map(([l,v])=>`<div class="result-row"><span>${l}</span><span>${v}</span></div>`).join('')}`:''}
-      <div class="result-insight">Budget de <strong>${fmt(Math.round(prixMax/1000)*1000)}</strong> — consultez la page <strong>Prix des dernières transactions</strong> pour voir ce que vous pouvez acheter dans votre ville cible.</div>
+      <div class="result-insight">Budget achat net de <strong>${fmt(prixMaxNet)}</strong>${notairePct>0?" (frais de notaire déjà déduits)":""} — consultez la page <strong>Prix des dernières transactions</strong> pour voir ce que vous pouvez acheter dans votre ville cible.</div>
     </div>`;
   // ── Propagation vers les autres cartes (seulement si pas modifié manuellement) ──
   function autoFill(id, val, forceFlag){
@@ -9574,8 +9603,8 @@ function calcEmprunt(){
   if(locPrixEl && !locPrixEl._userModified) locPrixEl.value = prixArrondi;
   autoFill('locApport', apport);
 
-  setCard('emprunt', fmt(Math.round(prixMax/1000)*1000), 'Budget max · emprunt '+fmt(Math.round(empruntMax)), 'good');
-  window._empruntResult = { revenus: rev, charges, apport, duree, taux: taux*100, capaciteEmprunt: Math.round(empruntMax), budgetTotal: Math.round(prixMax/1000)*1000, mensualiteMax: Math.round(mensMax), mensualiteCredit: mensPret, mensualiteAssurance: mensAssur };
+  setCard('emprunt', fmt(prixMaxNet), 'Net notaire · emprunt '+fmt(Math.round(empruntMax)), 'good');
+  window._empruntResult = { revenus: rev, charges, apport, duree, taux: taux*100, capaciteEmprunt: Math.round(empruntMax), budgetBrut: Math.round(prixMax/1000)*1000, budgetNetNotaire: prixMaxNet, fraisNotaire, notairePct: notairePct*100, mensualiteMax: Math.round(mensMax), mensualiteCredit: mensPret, mensualiteAssurance: mensAssur };
 }
 
 function calcDpe(){
@@ -9672,9 +9701,11 @@ function geolocateUser(silent){
         const l2   = [cp, ville].filter(Boolean).join(" ");
         const addr = [l1, l2].filter(Boolean).join(", ") || data.display_name || (lat.toFixed(5)+", "+lon.toFixed(5));
         const heroInp = document.getElementById("heroSearch");
-        if(heroInp){ heroInp.value = addr; heroInp.focus(); }
+        if(heroInp){ heroInp.value = addr; }
         const sideInp = document.getElementById("sideSearch");
         if(sideInp) sideInp.value = addr;
+        // Lancer l'analyse automatiquement
+        if(typeof analyzeAddressFromInput === 'function') analyzeAddressFromInput(addr);
         if(window._franceMap){
           window._franceMap.setView([lat, lon], 14, {animate:true});
           if(window._franceMarker) window._franceMarker.remove();

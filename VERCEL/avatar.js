@@ -700,6 +700,8 @@ function buildAllData(){
   const coutResult = window._coutResult;
   const investResult = window._investResult;
   const renovResult = window._renovResult;
+  const locBudget = window._locationBudgetResult;
+  const locVsAchat = window._locationVsAchatResult;
   const cr = window._criminaliteData;
   const addr = window.currentAddress || '';
 
@@ -712,7 +714,9 @@ function buildAllData(){
     lines.push('  Apport personnel: ' + empruntResult.apport + ' EUR');
     lines.push('  Duree: ' + empruntResult.duree + ' ans a ' + empruntResult.taux.toFixed(2) + '%');
     lines.push('  Capacite emprunt: ' + empruntResult.capaciteEmprunt + ' EUR');
-    lines.push('  Budget total (emprunt + apport): ' + empruntResult.budgetTotal + ' EUR');
+    lines.push('  Budget brut (emprunt + apport): ' + empruntResult.budgetBrut + ' EUR');
+    if(empruntResult.fraisNotaire) lines.push('  Frais de notaire: ' + empruntResult.fraisNotaire + ' EUR (' + empruntResult.notairePct + '%) - deduits de l\'apport');
+    lines.push('  Budget net achat (apres notaire): ' + empruntResult.budgetNetNotaire + ' EUR');
     lines.push('  Mensualite max (35%): ' + empruntResult.mensualiteMax + ' EUR/mois');
     lines.push('  dont credit: ' + empruntResult.mensualiteCredit + ' + assurance: ' + empruntResult.mensualiteAssurance + ' EUR/mois');
   }
@@ -733,6 +737,21 @@ function buildAllData(){
     lines.push('  Rendement brut: ' + investResult.rendementBrut?.toFixed(2) + '%, rendement net: ' + investResult.rendementNet?.toFixed(2) + '%');
     lines.push('  Cash-flow brut: ' + (investResult.cashflowBrut>=0?'+':'') + investResult.cashflowBrut + ' EUR/mois');
     lines.push('  Cash-flow net apres impots: ' + (investResult.cashflowNet>=0?'+':'') + investResult.cashflowNet + ' EUR/mois');
+  }
+  if(locBudget){
+    lines.push('SIMULATION BUDGET LOYER (calcule par utilisateur):');
+    lines.push('  Revenus: ' + locBudget.revenus + ' EUR/mois');
+    lines.push('  Loyer max recommande (33%): ' + locBudget.loyerMax33 + ' EUR/mois');
+    lines.push('  Loyer pur max (apres deductions): ' + locBudget.loyerReel + ' EUR/mois');
+    lines.push('  Budget logement total: ' + locBudget.budgetTotal + ' EUR/mois (' + locBudget.pct + '% revenus)');
+    if(locBudget.capacites?.length) locBudget.capacites.forEach(c=>lines.push('  Capacite achat equivalente sur '+c.d+' ans: '+c.prix+' EUR'));
+  }
+  if(locVsAchat){
+    lines.push('SIMULATION LOUER VS ACHETER (calcule par utilisateur):');
+    lines.push('  Loyer mensuel: ' + locVsAchat.loyer + ' EUR | Prix achat: ' + locVsAchat.prixAchat + ' EUR | Duree: ' + locVsAchat.duree + ' ans');
+    lines.push('  Resultat: ' + (locVsAchat.gain>=0?'Achat':'Location') + ' avantageux de ' + Math.abs(locVsAchat.gain).toLocaleString('fr-FR') + ' EUR sur ' + locVsAchat.duree + ' ans');
+    if(locVsAchat.crossoverAn) lines.push('  Point de bascule: an ' + locVsAchat.crossoverAn + ' (avant = location moins chere, apres = achat plus rentable)');
+    else lines.push('  Pas de point de bascule sur la duree');
   }
   if(renovResult){
     lines.push('SIMULATION MAPRIMERENOV (calcule par utilisateur):');
@@ -766,6 +785,16 @@ function buildAllData(){
     }
     if(dvf.stats.minM2) lines.push('  Prix min: ' + dvf.stats.minM2.toLocaleString('fr-FR') + ' EUR/m2');
     if(dvf.stats.maxM2) lines.push('  Prix max: ' + dvf.stats.maxM2.toLocaleString('fr-FR') + ' EUR/m2');
+    if(dvf.recentes?.length){
+      lines.push("  Dernieres transactions (jusqu'a 8) :");
+      dvf.recentes.forEach(t=>{
+        const surf = t.surf ? t.surf+'m2' : '?m2';
+        const pieces = t.pieces ? t.pieces+'p' : '';
+        const pm2 = t.prixM2 ? t.prixM2.toLocaleString('fr-FR')+'EUR/m2' : '';
+        const prix = t.prix ? t.prix.toLocaleString('fr-FR')+'EUR' : '';
+        lines.push('    - ' + (t.date||'?') + ' | ' + (t.type||'?') + ' ' + surf + (pieces?' '+pieces:'') + ' | ' + pm2 + ' | ' + prix + (t.adresse?' | '+t.adresse:''));
+      });
+    }
   }
   if(loyers){
     lines.push('LOYERS ESTIMES:');
@@ -846,20 +875,18 @@ function buildSystemPrompt(){
 
   return "Tu es " + nom + ", l'assistante IA experte en immobilier de IMMO·AI. Tu parles en francais, de facon naturelle, concise et professionnelle (3-5 phrases max sauf si detail demande).\n" +
 "\n" +
-"Tu connais parfaitement l'application IMMO·AI et ses sections (IDs exacts entre parentheses) :\n" +
-"- [CARD:score] Score global, [CARD:dvf] Marche immobilier/DVF, [CARD:loyers] Loyers estimes\n" +
-"- [CARD:insee] Population & economie INSEE, [CARD:logement] Logement/Melodi, [CARD:mobilite] Mobilite & transports\n" +
-"- [CARD:meteo] Ensoleillement & meteo, [CARD:bruit] Bruit, [CARD:risques] Risques naturels\n" +
-"- [CARD:ecoles] Etablissements scolaires, [CARD:services] Services & commerces, [CARD:fibre] Fibre optique\n" +
-"- [CARD:demographie] Demographie, [CARD:altitude] Altitude & topographie\n" +
-"- [CARD:aides] Aides & subventions, [CARD:renov] Renovation energetique, [CARD:urbanisme] Urbanisme & PLU\n" +
-"- [CARD:profil] Mon profil investisseur, [CARD:recherche] Recherche avancee\n" +
-"- Section Mon Financement (simulateurs interactifs, orienter avec [CARD:id] pour ouvrir) :\n" +
-"  [CARD:emprunt] = Capacite d'emprunt (revenus, apport, duree) \n" +
-"  [CARD:mensualites] = Mensualites & cout total credit \n" +
-"  [CARD:cout] = Investissement locatif (rendement, cashflow, fiscalite) \n" +
-"  [CARD:location] = Budget loyer & louer vs acheter \n" +
-"  [CARD:offre] = Coaching offre & negociation \n" +
+"Tu connais parfaitement l'application IMMO·AI et ses sections. Pour ouvrir une section, utilise [CARD:id] UNIQUEMENT en fin de reponse, jamais dans le texte visible.\n" +
+"Sections disponibles (nom → id) :\n" +
+"  Score global → score | Marche immobilier DVF → dvf | Loyers estimes → loyers\n" +
+"  Population & economie INSEE → insee | Logement → logement | Mobilite & transports → mobilite\n" +
+"  Meteo & ensoleillement → meteo | Bruit → bruit | Risques naturels → risques\n" +
+"  Etablissements scolaires → ecoles | Services & commerces → services | Fibre optique → fibre\n" +
+"  Demographie → demographie | Altitude → altitude | Urbanisme PLU → urbanisme\n" +
+"  Aides achat PTZ → aides | MaPrimeRenov travaux → renov\n" +
+"  Profil investisseur → profil | Recherche de biens → recherche\n" +
+"Simulateurs Mon Financement (a ouvrir avec [CARD:id]) :\n" +
+"  Capacite emprunt → emprunt | Mensualites credit → mensualites | Investissement locatif → cout\n" +
+"  Budget loyer / louer vs acheter → location | Coaching offre → offre\n" +
 "\n" +
 "DONNEES DE L'ANALYSE EN COURS :\n" +
 dataCtx + "\n" +
