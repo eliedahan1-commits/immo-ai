@@ -700,15 +700,28 @@ async function callAvatarAI(userMsg, docCtx=''){
   const msgs = buildMessages(userMsg, docCtx);
   // Appel direct à l'API Groq avec historique
   const _gk = window.groqKey || localStorage.getItem('immoai_groq') || ''; if(!_gk) throw new Error('no_key');
-  const model = 'llama-3.3-70b-versatile';
-  const r = await fetch('https://api.groq.com/openai/v1/chat/completions',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','Authorization':'Bearer '+_gk},
-    body:JSON.stringify({model, messages:msgs, max_tokens:500, temperature:0.75})
-  });
-  if(r.status===429) throw new Error('Limite API atteinte, réessayez dans un instant.');
-  if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.error?.message||'Erreur Groq'); }
-  return (await r.json()).choices[0].message.content;
+  // Modèles en cascade : si 429 sur l'un, on passe au suivant
+  const AVATAR_MODELS = [
+    'llama-3.1-8b-instant',
+    'llama-3.3-70b-versatile',
+    'meta-llama/llama-4-scout-17b-16e-instruct',
+    'groq/compound-mini'
+  ];
+  let _exhausted = JSON.parse(sessionStorage.getItem('avatar_ex')||'[]');
+  function _markEx(m){ if(!_exhausted.includes(m)){ _exhausted.push(m); sessionStorage.setItem('avatar_ex', JSON.stringify(_exhausted)); } }
+  let candidates = AVATAR_MODELS.filter(m=>!_exhausted.includes(m));
+  if(!candidates.length){ _exhausted=[]; sessionStorage.setItem('avatar_ex','[]'); candidates=[...AVATAR_MODELS]; }
+  for(const model of candidates){
+    const r = await fetch('https://api.groq.com/openai/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+_gk},
+      body:JSON.stringify({model, messages:msgs, max_tokens:600, temperature:0.75})
+    });
+    if(r.status===429){ _markEx(model); continue; }
+    if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.error?.message||'Erreur Groq'); }
+    return (await r.json()).choices[0].message.content;
+  }
+  throw new Error('rate_limit');
 }
 
 function buildAllData(){
@@ -1023,6 +1036,7 @@ function showSetup(){
   if(document.getElementById('av-pref-volume')) document.getElementById('av-pref-volume').value = prefs.volume || 1;
   document.getElementById('av-pref-pitch').value = prefs.pitch || 1;
   modal.classList.add('open');
+  populateVoiceSelect();
 }
 function closeSetup(){
   document.getElementById('av-setup-modal').classList.remove('open');
@@ -1032,8 +1046,10 @@ function saveSetup(){
   const genre = document.querySelector('input[name="av-genre"]:checked')?.value || 'femme';
   const vitesse = parseFloat(document.getElementById('av-pref-vitesse').value);
   const pitch = parseFloat(document.getElementById('av-pref-pitch').value);
+  const volume = parseFloat(document.getElementById('av-pref-volume')?.value) || 1;
+  const voix = document.getElementById('av-pref-voix')?.value || '';
   const genreChange = genre !== prefs.genre;
-  prefs = { configured:true, nom, genre, vitesse, pitch };
+  prefs = { configured:true, nom, genre, vitesse, pitch, volume, voix };
   savePrefs();
   closeSetup();
   updateNameBadge();
