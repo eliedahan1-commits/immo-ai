@@ -107,6 +107,12 @@ function injectHTML(){
         <label><input type="radio" name="av-genre" value="femme" checked /> Femme</label>
         <label><input type="radio" name="av-genre" value="homme" /> Homme</label>
       </div>
+      <label>Voix <span style="font-size:.72rem;color:#8a7755">(voix françaises disponibles sur cet appareil)</span></label>
+      <select id="av-pref-voix" style="width:100%;background:#100e0b;border:1px solid #2a2218;color:#e8d8b0;padding:.4rem .6rem;border-radius:6px;font-size:.78rem;margin-bottom:.5rem">
+        <option value="">Auto (par défaut)</option>
+      </select>
+      <label>Volume</label>
+      <input id="av-pref-volume" type="range" min="0" max="1" step="0.05" value="1" />
       <label>Vitesse de parole</label>
       <input id="av-pref-vitesse" type="range" min="0.6" max="1.6" step="0.1" value="1" />
       <label>Hauteur de voix</label>
@@ -503,6 +509,7 @@ function speak(text){
   currentUtterance.lang = 'fr-FR';
   currentUtterance.rate = parseFloat(prefs.vitesse) || 1;
   currentUtterance.pitch = parseFloat(prefs.pitch) || 1;
+  currentUtterance.volume = parseFloat(prefs.volume) ?? 1;
 
   // Choisir une voix française adaptée au genre
   function applyVoice(utt){
@@ -959,12 +966,29 @@ function avatarGreet(){
 }
 
 // ── Setup modal ──
+function populateVoiceSelect(){
+  const sel = document.getElementById('av-pref-voix');
+  if(!sel) return;
+  const voices = window.speechSynthesis.getVoices();
+  const frVoices = voices.filter(v=>v.lang.startsWith('fr'));
+  sel.innerHTML = '<option value="">Auto (par défaut)</option>';
+  frVoices.forEach(v=>{
+    const opt = document.createElement('option');
+    opt.value = v.name;
+    opt.textContent = v.name + (v.localService?' (locale)':' (réseau)');
+    if(prefs.voix===v.name) opt.selected=true;
+    sel.appendChild(opt);
+  });
+  if(frVoices.length===0) sel.innerHTML = '<option value="">Aucune voix française détectée</option>';
+}
+
 function showSetup(){
   const modal = document.getElementById('av-setup-modal');
   if(!modal) return;
   document.getElementById('av-pref-nom').value = prefs.nom || '';
   document.querySelector(`input[name="av-genre"][value="${prefs.genre}"]`).checked = true;
   document.getElementById('av-pref-vitesse').value = prefs.vitesse || 1;
+  if(document.getElementById('av-pref-volume')) document.getElementById('av-pref-volume').value = prefs.volume || 1;
   document.getElementById('av-pref-pitch').value = prefs.pitch || 1;
   modal.classList.add('open');
 }
