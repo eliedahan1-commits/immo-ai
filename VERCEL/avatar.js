@@ -713,9 +713,9 @@ async function callAvatarAI(userMsg, docCtx=''){
   const _gk = window.groqKey || localStorage.getItem('immoai_groq') || ''; if(!_gk) throw new Error('no_key');
   // Modèles en cascade : si 429 sur l'un, on passe au suivant
   const AVATAR_MODELS = [
-    'llama-3.1-8b-instant',
     'llama-3.3-70b-versatile',
     'meta-llama/llama-4-scout-17b-16e-instruct',
+    'llama-3.1-8b-instant',
     'groq/compound-mini'
   ];
   let _exhausted = JSON.parse(sessionStorage.getItem('avatar_ex')||'[]');
@@ -726,7 +726,7 @@ async function callAvatarAI(userMsg, docCtx=''){
     const r = await fetch('https://api.groq.com/openai/v1/chat/completions',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+_gk},
-      body:JSON.stringify({model, messages:msgs, max_tokens:600, temperature:0.75})
+      body:JSON.stringify({model, messages:msgs, max_tokens:400, temperature:0.7})
     });
     if(r.status===429){ _markEx(model); continue; }
     if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.error?.message||'Erreur Groq'); }
@@ -736,197 +736,58 @@ async function callAvatarAI(userMsg, docCtx=''){
 }
 
 function buildAllData(){
-  const ins = window._inseeData?.commune;
-  const sd = window._scoreData;
-  const dvf = window._dvfData;
-  const dept = window._dvfDeptData;
-  const mel = window._melodiData;
-  const nat = window._melodiNational;
-  const mob = window._mobiliteData;
-  const svc = window._servicesData;
-  const eco = window._ecolesData;
-  const meteo = window._meteoData;
-  const bruit = window._bruitData;
-  const fibre = window._fibreData;
-  const risques = window._risquesData;
-  const demo = window._demographieData;
-  const aq = window._qualiteAirData;
-  const loyers = window._loyersData;
-  const dpe = window._dpeData;
-  const altData = window._altitudeData;
-  const empruntResult = window._empruntResult;
-  const mensualitesResult = window._mensualitesResult;
-  const coutResult = window._coutResult;
-  const investResult = window._investResult;
-  const renovResult = window._renovResult;
-  const locBudget = window._locationBudgetResult;
-  const locVsAchat = window._locationVsAchatResult;
-  const cr = window._criminaliteData;
-  const addr = window.currentAddress || '';
+  const ins=window._inseeData?.commune, sd=window._scoreData, dvf=window._dvfData;
+  const dept=window._dvfDeptData, mel=window._melodiData, nat=window._melodiNational;
+  const mob=window._mobiliteData, svc=window._servicesData, eco=window._ecolesData;
+  const meteo=window._meteoData, bruit=window._bruitData, fibre=window._fibreData;
+  const risques=window._risquesData, demo=window._demographieData, aq=window._qualiteAirData;
+  const loyers=window._loyersData, altData=window._altitudeData, cr=window._criminaliteData;
+  const ER=window._empruntResult, MR=window._mensualitesResult, CR=window._coutResult;
+  const IR=window._investResult, RR=window._renovResult;
+  const LB=window._locationBudgetResult, LV=window._locationVsAchatResult;
+  const addr=window.currentAddress||'';
+  const L=[];
+  const fmt=n=>n!=null?Math.round(n).toLocaleString('fr-FR'):null;
+  const p=(label,val)=>{if(val!=null&&val!=='')L.push(label+': '+val);};
 
-  const lines = [];
-  if(addr) lines.push('ADRESSE ANALYSEE: ' + addr);
-  if(empruntResult){
-    lines.push('SIMULATION CAPACITE EMPRUNT (calcule par utilisateur):');
-    lines.push('  Revenus mensuels nets: ' + empruntResult.revenus + ' EUR');
-    lines.push('  Charges credit en cours: ' + empruntResult.charges + ' EUR/mois');
-    lines.push('  Apport personnel: ' + empruntResult.apport + ' EUR');
-    lines.push('  Duree: ' + empruntResult.duree + ' ans a ' + empruntResult.taux.toFixed(2) + '%');
-    lines.push('  Capacite emprunt: ' + empruntResult.capaciteEmprunt + ' EUR');
-    lines.push('  Budget brut (emprunt + apport): ' + empruntResult.budgetBrut + ' EUR');
-    if(empruntResult.fraisNotaire) lines.push('  Frais de notaire: ' + empruntResult.fraisNotaire + ' EUR (' + empruntResult.notairePct + '%) - deduits de l\'apport');
-    lines.push('  Budget net achat (apres notaire): ' + empruntResult.budgetNetNotaire + ' EUR');
-    lines.push('  Mensualite max (35%): ' + empruntResult.mensualiteMax + ' EUR/mois');
-    lines.push('  dont credit: ' + empruntResult.mensualiteCredit + ' + assurance: ' + empruntResult.mensualiteAssurance + ' EUR/mois');
-  }
-  if(mensualitesResult){
-    lines.push('SIMULATION MENSUALITES CREDIT (calcule par utilisateur):');
-    lines.push('  Montant emprunte: ' + mensualitesResult.montantEmprunte + ' EUR sur ' + mensualitesResult.duree + ' ans a ' + mensualitesResult.taux.toFixed(2) + '%');
-    lines.push('  Mensualite totale: ' + mensualitesResult.mensualiteTotal + ' EUR/mois (credit: ' + mensualitesResult.mensualiteCredit + ' + assurance: ' + mensualitesResult.mensualiteAssurance + ')');
-    lines.push('  Cout total credit: ' + mensualitesResult.coutTotal + ' EUR (dont interets: ' + mensualitesResult.coutCredit + ', assurance: ' + mensualitesResult.coutAssurance + ')');
-  }
-  if(coutResult){
-    lines.push('SIMULATION COUT REEL ACHAT (calcule par utilisateur):');
-    lines.push('  Prix: ' + coutResult.prix + ' EUR, apport: ' + coutResult.apport + ' EUR, emprunt: ' + coutResult.emprunt + ' EUR');
-    lines.push('  Duree: ' + coutResult.duree + ' ans a ' + coutResult.taux.toFixed(2) + '%, mensualite: ' + coutResult.mensualite + ' EUR/mois');
-    lines.push('  Cout total sur ' + coutResult.duree + ' ans: ' + coutResult.coutTotal + ' EUR (notaire: ' + coutResult.notaire + ', travaux: ' + coutResult.travaux + ')');
-  }
-  if(investResult){
-    lines.push('SIMULATION INVESTISSEMENT LOCATIF (calcule par utilisateur):');
-    lines.push('  Rendement brut: ' + investResult.rendementBrut?.toFixed(2) + '%, rendement net: ' + investResult.rendementNet?.toFixed(2) + '%');
-    lines.push('  Cash-flow brut: ' + (investResult.cashflowBrut>=0?'+':'') + investResult.cashflowBrut + ' EUR/mois');
-    lines.push('  Cash-flow net apres impots: ' + (investResult.cashflowNet>=0?'+':'') + investResult.cashflowNet + ' EUR/mois');
-  }
-  if(locBudget){
-    lines.push('SIMULATION BUDGET LOYER (calcule par utilisateur):');
-    lines.push('  Revenus: ' + locBudget.revenus + ' EUR/mois');
-    lines.push('  Loyer max recommande (33%): ' + locBudget.loyerMax33 + ' EUR/mois');
-    lines.push('  Loyer pur max (apres deductions): ' + locBudget.loyerReel + ' EUR/mois');
-    lines.push('  Budget logement total: ' + locBudget.budgetTotal + ' EUR/mois (' + locBudget.pct + '% revenus)');
-    if(locBudget.capacites?.length) locBudget.capacites.forEach(c=>lines.push('  Capacite achat equivalente sur '+c.d+' ans: '+c.prix+' EUR'));
-  }
-  if(locVsAchat){
-    lines.push('SIMULATION LOUER VS ACHETER (calcule par utilisateur):');
-    lines.push('  Loyer mensuel: ' + locVsAchat.loyer + ' EUR | Prix achat: ' + locVsAchat.prixAchat + ' EUR | Duree: ' + locVsAchat.duree + ' ans');
-    lines.push('  Resultat: ' + (locVsAchat.gain>=0?'Achat':'Location') + ' avantageux de ' + Math.abs(locVsAchat.gain).toLocaleString('fr-FR') + ' EUR sur ' + locVsAchat.duree + ' ans');
-    if(locVsAchat.crossoverAn) lines.push('  Point de bascule: an ' + locVsAchat.crossoverAn + ' (avant = location moins chere, apres = achat plus rentable)');
-    else lines.push('  Pas de point de bascule sur la duree');
-  }
-  if(renovResult){
-    lines.push('SIMULATION MAPRIMERENOV (calcule par utilisateur):');
-    lines.push('  Aide estimee: ' + renovResult.aide + ' EUR, tranche: ' + renovResult.tranche);
-    lines.push('  DPE: ' + renovResult.dpeAvant + ' -> ' + renovResult.dpeApres + ' apres travaux');
-  }
-  if(ins){
-    lines.push('COMMUNE: ' + ins.nom + (ins.departement ? ', dep. ' + ins.departement : '') + (ins.region ? ', ' + ins.region : ''));
-    if(ins.population) lines.push('Population: ' + ins.population.toLocaleString('fr-FR') + ' habitants');
-    if(ins.densite) lines.push('Densite: ' + ins.densite.toLocaleString('fr-FR') + ' hab/km2 (' + (ins.densite>10000?'Tres dense':ins.densite>5000?'Dense':ins.densite>2000?'Urbaine':'Peri-urbaine') + ')');
-    if(ins.superficie) lines.push('Superficie: ' + Math.round(ins.superficie) + ' km2');
-    if(ins.codePostal) lines.push('Code postal: ' + ins.codePostal);
-    if(ins.codeInsee) lines.push('Code INSEE: ' + ins.codeInsee);
-    if(ins.altitude) lines.push('Altitude: ' + ins.altitude + ' m');
-    else if(altData?.altitude!=null) lines.push('Altitude: ' + altData.altitude + ' m (IGN RGE Alti)');
-  }
-  if(sd){
-    lines.push('SCORE GLOBAL: ' + sd.note?.toFixed(1) + '/10 - ' + (sd.label||''));
-    if(sd.items?.length) sd.items.forEach(item=>{
-      lines.push('  Score ' + item.label + ': ' + item.val?.toFixed(1) + '/10' + (item.sub ? ' (' + item.sub + ')' : ''));
-    });
-  }
+  if(addr) p('Adresse',addr);
+  if(ins) p('Commune',ins.nom+(ins.departement?', dep.'+ins.departement:'')+(ins.region?', '+ins.region:'')+(ins.population?' pop='+fmt(ins.population):'')+(ins.codePostal?' CP='+ins.codePostal:'')+(ins.altitude?' alt='+ins.altitude+'m':altData?.altitude!=null?' alt='+altData.altitude+'m':''));
+
+  if(sd) p('Score global',sd.note?.toFixed(1)+'/10 '+( sd.items?.map(i=>i.label+':'+i.val?.toFixed(1)).join('|')||''));
+
   if(dvf?.stats){
-    lines.push('MARCHE IMMOBILIER (DVF):');
-    if(dvf.stats.medianM2) lines.push('  Prix median: ' + dvf.stats.medianM2.toLocaleString('fr-FR') + ' EUR/m2');
-    if(dvf.stats.moyenneM2) lines.push('  Prix moyen: ' + dvf.stats.moyenneM2.toLocaleString('fr-FR') + ' EUR/m2');
-    if(dvf.count) lines.push('  Transactions analysees: ' + dvf.count);
-    if(dept?.medianM2){
-      const d=Math.round((dvf.stats.medianM2-dept.medianM2)/dept.medianM2*100);
-      lines.push('  vs departement: ' + (d>=0?'+':'') + d + '%');
-    }
-    if(dvf.stats.minM2) lines.push('  Prix min: ' + dvf.stats.minM2.toLocaleString('fr-FR') + ' EUR/m2');
-    if(dvf.stats.maxM2) lines.push('  Prix max: ' + dvf.stats.maxM2.toLocaleString('fr-FR') + ' EUR/m2');
-    if(dvf.recentes?.length){
-      lines.push("  Dernieres transactions (jusqu'a 8) :");
-      dvf.recentes.forEach(t=>{
-        const surf = t.surf ? t.surf+'m2' : '?m2';
-        const pieces = t.pieces ? t.pieces+'p' : '';
-        const pm2 = t.prixM2 ? t.prixM2.toLocaleString('fr-FR')+'EUR/m2' : '';
-        const prix = t.prix ? t.prix.toLocaleString('fr-FR')+'EUR' : '';
-        lines.push('    - ' + (t.date||'?') + ' | ' + (t.type||'?') + ' ' + surf + (pieces?' '+pieces:'') + ' | ' + pm2 + ' | ' + prix + (t.adresse?' | '+t.adresse:''));
-      });
-    }
+    const vs=dept?.medianM2?(' vs_dept='+(Math.round((dvf.stats.medianM2-dept.medianM2)/dept.medianM2*100)>0?'+':'')+Math.round((dvf.stats.medianM2-dept.medianM2)/dept.medianM2*100)+'%'):'';
+    p('DVF','median='+fmt(dvf.stats.medianM2)+'€/m2 min='+fmt(dvf.stats.minM2)+' max='+fmt(dvf.stats.maxM2)+' nb='+dvf.count+vs);
+    if(dvf.recentes?.length) p('Transactions recentes',dvf.recentes.slice(0,4).map(t=>(t.date||'?')+' '+(t.type||'?')+' '+(t.surf||'?')+'m2 '+(t.prixM2||'?')+'€/m2 '+(t.prix||'?')+'€').join(' | '));
   }
-  if(loyers){
-    lines.push('LOYERS ESTIMES:');
-    if(loyers.estLoyer) Object.entries(loyers.estLoyer).forEach(([k,v])=>{ if(v) lines.push('  ' + k + ': ' + v.toLocaleString('fr-FR') + ' EUR/mois'); });
-    if(loyers.rendement) lines.push('  Rendement brut estime: ' + Math.round(loyers.rendement*100) + '%');
-  }
+  if(loyers?.estLoyer){const ly=Object.entries(loyers.estLoyer).filter(([k,v])=>v).map(([k,v])=>k+':'+fmt(v)+'€').join(' '); p('Loyers estimés',ly+(loyers.rendement?' rdt='+Math.round(loyers.rendement*100)+'%':''));}
   if(mel){
-    lines.push('POPULATION & ECONOMIE (INSEE Melodi - annee ' + (mel.anneeFilosofi||'?') + '):');
-    if(mel.revenuMedian) lines.push('  Revenu median net: ' + Math.round(mel.revenuMedian/12).toLocaleString('fr-FR') + ' EUR/mois (' + Math.round(mel.revenuMedian).toLocaleString('fr-FR') + ' EUR/an)');
-    if(nat?.revenuMedian && mel.revenuMedian) lines.push('  vs national: ' + (Math.round((mel.revenuMedian-nat.revenuMedian)/nat.revenuMedian*100)>=0?'+':'') + Math.round((mel.revenuMedian-nat.revenuMedian)/nat.revenuMedian*100) + '%');
-    if(mel.tauxChomage!=null) lines.push('  Chomage: ' + mel.tauxChomage + '% (national: ' + (nat?.tauxChomage||'?') + '%)');
-    if(mel.pctBac5!=null) lines.push('  Diplomes Bac+5: ' + mel.pctBac5 + '% (national: ' + (nat?.pctBac5Nat||'?') + '%)');
-    if(mel.pctPropri!=null) lines.push('  Proprietaires: ' + mel.pctPropri + '% (national: ' + (nat?.pctPropri||'?') + '%)');
-    if(mel.nbResidPrinc) lines.push('  Residences principales: ' + mel.nbResidPrinc.toLocaleString('fr-FR'));
-    if(mel.nbVacants) lines.push('  Logements vacants: ' + mel.nbVacants.toLocaleString('fr-FR'));
-    if(mel.pctSeuls!=null) lines.push('  Menages seuls: ' + mel.pctSeuls + '%');
-    if(mel.pyramideAges){
-      const pyr=mel.pyramideAges; const tot=Object.values(pyr).reduce((s,v)=>s+v,0);
-      if(tot>0){
-        const yj=Math.round(((pyr.Y_LT15||0)+(pyr.Y15T24||0))/tot*100);
-        const se=Math.round(((pyr.Y65T79||0)+(pyr.Y_GE80||0))/tot*100);
-        lines.push('  Pyramide ages: Jeunes ' + yj + '%, Actifs ' + (100-yj-se) + '%, Seniors ' + se + '%');
-      }
-    }
+    const vsR=nat?.revenuMedian&&mel.revenuMedian?(Math.round((mel.revenuMedian-nat.revenuMedian)/nat.revenuMedian*100)>0?'+':'')+Math.round((mel.revenuMedian-nat.revenuMedian)/nat.revenuMedian*100)+'%':'';
+    p('INSEE/Melodi','rev_median='+fmt(mel.revenuMedian/12)+'€/mois'+( vsR?' vs_nat='+vsR:'')+(mel.tauxChomage!=null?' chomage='+mel.tauxChomage+'%':'')+(mel.pctPropri!=null?' proprio='+mel.pctPropri+'%':'')+(mel.pctBac5!=null?' bac5='+mel.pctBac5+'%':''));
   }
-  if(mob){
-    lines.push('MOBILITE (score: ' + mob.score + '/10 - ' + (mob.scoreLabel||'') + '):');
-    if(mob.stats){
-      if(mob.stats.metro>0) lines.push('  Metro/RER: ' + mob.stats.metro + ' stations');
-      if(mob.stats.trams>0) lines.push('  Tramways: ' + mob.stats.trams);
-      if(mob.stats.arretsBus>0) lines.push('  Arrets bus: ' + mob.stats.arretsBus);
-      if(mob.stats.gares>0) lines.push('  Gares: ' + mob.stats.gares);
-      if(mob.stats.velos>0) lines.push('  Velos/trottinettes: ' + mob.stats.velos);
-    }
-  }
-  if(svc){
-    lines.push('SERVICES & COMMERCES (total: ' + svc.total + '):');
-    if(svc.sante) lines.push('  Sante: ' + svc.sante);
-    if(svc.commerces) lines.push('  Commerces: ' + svc.commerces);
-    if(svc.autres) lines.push('  Autres services: ' + svc.autres);
-  }
-  if(eco){
-    lines.push('ETABLISSEMENTS SCOLAIRES (' + eco.total + ' etablissements):');
-    if(eco.types) lines.push('  Ecoles: ' + (eco.types.ecoles||0) + ', Colleges: ' + (eco.types.college||0) + ', Lycees: ' + (eco.types.lycee||0));
-    if(eco.ips!=null) lines.push('  Indice Positionnement Social moyen: ' + eco.ips);
-  }
-  if(meteo){
-    lines.push('METEO & CLIMAT:');
-    if(meteo.ensoleillement) lines.push('  Ensoleillement: ' + meteo.ensoleillement.heuresAnnuelles + ' h/an (' + meteo.ensoleillement.label + ')');
-    if(meteo.temperatures) lines.push('  Temperatures: max moy ' + meteo.temperatures.maxMoyenne + 'C, min moy ' + meteo.temperatures.minMoyenne + 'C');
-    if(meteo.precipitations) lines.push('  Precipitations: ' + meteo.precipitations.annuelles + ' mm/an');
-  }
-  if(bruit?.niveauCode){
-    const bonus=ins?.densite>10000?4:ins?.densite>5000?3:ins?.densite>2000?2:0;
-    const sc=Math.min((bruit.score||0)+bonus,10);
-    lines.push('BRUIT ESTIME: ' + (sc>=7?'Eleve':sc>=4?'Modere':'Faible') + ' (score ' + sc + '/10)');
-  }
-  if(aq) lines.push('QUALITE AIR: AQI ' + aq.aqi + ' - ' + (aq.label||'') + (aq.pm25?', PM2.5: '+aq.pm25:'') + (aq.pm10?', PM10: '+aq.pm10:''));
-  if(risques) lines.push('RISQUES NATURELS: ' + risques.total + ' risque(s) identifie(s)' + (risques.score?' (score: '+risques.score+')':''));
-  if(fibre?.fibre) lines.push('FIBRE FTTH: ' + (fibre.fibre.eligible?'Eligible':'Non eligible') + (fibre.fibre.operateurs?.length?' - '+fibre.fibre.operateurs.join(', '):''));
-  if(dpe) lines.push('DPE: ' + (dpe.pctAB?dpe.pctAB+'% classes A-B':'') + (dpe.pctFG?', '+dpe.pctFG+'% passoires F-G':''));
-  if(cr?.success && cr.indicateurs){
-    lines.push('SECURITE/CRIMINALITE:');
-    Object.entries(cr.indicateurs).slice(0,6).forEach(([k,v])=>{
-      if(v.taux!=null) lines.push('  ' + k + ': ' + v.taux + ' pour 1000 hab');
-    });
-  }
-  if(demo?.rows?.length>=2){
-    const r=demo.rows; const ev=((r[r.length-1].pop-r[0].pop)/r[0].pop*100).toFixed(1);
-    lines.push('EVOLUTION POPULATION: ' + (ev>=0?'+':'') + ev + '% entre ' + r[0].year + ' et ' + r[r.length-1].year);
-  }
-  return lines.join('\n');
+  if(mob) p('Mobilite','score='+mob.score+'/10'+(mob.stats?.metro?' metro='+mob.stats.metro:'')+(mob.stats?.arretsBus?' bus='+mob.stats.arretsBus:'')+(mob.stats?.velos?' velos='+mob.stats.velos:''));
+  if(svc) p('Services','total='+svc.total+(svc.sante?' sante='+svc.sante:'')+(svc.commerces?' commerces='+svc.commerces:''));
+  if(eco) p('Ecoles','total='+eco.total+(eco.ips!=null?' IPS='+eco.ips:''));
+  if(meteo?.ensoleillement) p('Meteo',meteo.ensoleillement.heuresAnnuelles+'h/an '+(meteo.temperatures?'max='+meteo.temperatures.maxMoyenne+'C min='+meteo.temperatures.minMoyenne+'C ':'')+(meteo.precipitations?meteo.precipitations.annuelles+'mm/an':''));
+  if(aq) p('Qualite air','AQI='+aq.aqi+' '+( aq.label||'')+(aq.pm25?' PM2.5='+aq.pm25:'')+(aq.pm10?' PM10='+aq.pm10:''));
+  if(bruit?.niveauCode) p('Bruit',bruit.niveauCode+(bruit.score?' score='+bruit.score:''));
+  if(risques) p('Risques',risques.total+' identifie(s)'+(risques.score?' score='+risques.score:''));
+  if(fibre?.fibre) p('Fibre',fibre.fibre.eligible?'Eligible':'Non eligible');
+  if(cr?.success&&cr.indicateurs) p('Criminalite',Object.entries(cr.indicateurs).slice(0,4).map(([k,v])=>k+'='+v.taux).join(' '));
+  if(demo?.rows?.length>=2){const r=demo.rows;p('Evolution pop',((r[r.length-1].pop-r[0].pop)/r[0].pop*100).toFixed(1)+'% ('+r[0].year+'-'+r[r.length-1].year+')');}
+  if(altData?.altitude) p('Altitude',altData.altitude+'m');
+
+  if(ER) p('Simulation emprunt','rev='+ER.revenus+'€ apport='+ER.apport+'€ duree='+ER.duree+'ans taux='+ER.taux.toFixed(2)+'% capacite='+fmt(ER.capaciteEmprunt)+'€ budget_net='+fmt(ER.budgetNetNotaire)+'€ mens_max='+fmt(ER.mensualiteMax)+'€/mois');
+  if(MR) p('Simulation mensualites','montant='+fmt(MR.montantEmprunte)+'€ mens='+fmt(MR.mensualiteTotal)+'€/mois cout_total='+fmt(MR.coutTotal)+'€');
+  if(CR) p('Simulation cout achat','prix='+fmt(CR.prix)+'€ cout_total='+fmt(CR.coutTotal)+'€ mens='+fmt(CR.mensualite)+'€/mois');
+  if(IR) p('Simulation invest locatif','rdt_brut='+IR.rendementBrut?.toFixed(2)+'% rdt_net='+IR.rendementNet?.toFixed(2)+'% CF_net='+(IR.cashflowNet>=0?'+':'')+IR.cashflowNet+'€/mois');
+  if(LB) p('Simulation budget loyer','rev='+LB.revenus+'€ loyer_max='+LB.loyerMax33+'€ loyer_pur='+LB.loyerReel+'€ budget='+LB.budgetTotal+'€');
+  if(LV) p('Simulation louer vs acheter',(LV.gain>=0?'Achat':'Location')+' avantageux de '+fmt(Math.abs(LV.gain))+'€ sur '+LV.duree+'ans'+(LV.crossoverAn?' bascule=an'+LV.crossoverAn:''));
+  if(RR) p('Simulation MaPrimeRenov','aide='+fmt(RR.aide)+'€ tranche='+RR.tranche+' DPE:'+RR.dpeAvant+'->'+RR.dpeApres);
+
+  return L.join('\n');
 }
+
 
 function buildSystemPrompt(){
   const dataCtx = buildAllData();
@@ -965,7 +826,7 @@ function buildMessages(userMsg, docCtx=''){
   const system = buildSystemPrompt();
   const msgs = [{role:'system', content:system + docCtx}];
   // Inclure les 6 derniers échanges pour le contexte
-  const recent = history.filter(function(h){ return h.role==='user'||h.role==='assistant'; }).slice(-6);
+  const recent = history.filter(function(h){ return h.role==='user'||h.role==='assistant'; }).slice(-4);
   recent.forEach(function(h){ msgs.push({role:h.role, content:h.content}); });
   msgs.push({role:'user', content:userMsg});
   return msgs;
