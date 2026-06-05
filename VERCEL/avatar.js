@@ -627,7 +627,7 @@ async function fetchDoc(){
 }
 
 function needsDoc(txt){
-  const kw = ['comment','utiliser','fonctionne','comment faire','aide-moi','guide','documentation','expliquer','tutoriel','étapes','comment ça','comment accéder','comment ouvrir','comment calculer','comment saisir','comment renseigner','c'est quoi','qu'est-ce','à quoi sert','comment trouver','comment simuler','comment obtenir'];
+  const kw = ["comment","utiliser","fonctionne","comment faire","aide-moi","guide","documentation","expliquer","tutoriel","etapes","comment ca","comment acceder","comment ouvrir","comment calculer","comment saisir","comment renseigner","c'est quoi","qu'est-ce","a quoi sert","comment trouver","comment simuler","comment obtenir"];
   const t = txt.toLowerCase();
   return kw.some(k => t.includes(k));
 }
