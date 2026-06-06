@@ -874,7 +874,7 @@ body.imm-on #imm-bg-dark{opacity:0;}
 body.imm-on #imm-ring{display:block;}
 body.imm-on #imm-carousel-wrap{display:block;}
 body.imm-on #detailContainer{
-  display:none;position:fixed;left:45%;top:56px;right:0;bottom:0;z-index:20;
+  display:none;position:fixed;left:62%;top:56px;right:0;bottom:0;z-index:20;
   overflow-y:auto;background:rgba(3,10,22,.90);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
   padding:0;margin-left:0;}
 body.imm-on #detailContainer:empty{background:transparent;}
@@ -920,7 +920,7 @@ body.imm-on .results-header{
   border-bottom:none!important;padding-bottom:.5rem;}
 body.imm-on .results-header *{color:#fff!important;text-shadow:0 2px 10px rgba(0,0,0,.95)!important;font-weight:600!important;}
 body.imm-on .back-btn{border-color:rgba(79,195,247,.4)!important;color:#4fc3f7!important;}
-body.imm-on .results-addr{justify-content:center;gap:1rem;margin-bottom:0;padding:.4rem 1rem;}
+body.imm-on .results-addr{justify-content:flex-start!important;gap:.9rem!important;margin-bottom:0!important;padding:.4rem 1.5rem!important;max-width:44%;flex-wrap:nowrap;}
 body.imm-on #detailContainer .detail-panel{border-radius:0;min-height:calc(100vh - 56px);}
 body.imm-on #detailContainer .back-btn{margin:.75rem 1rem;}
 
@@ -9926,14 +9926,14 @@ const N        = IMM_ITEMS.length;
 const START    = -(N-1)*STEP/2;
 const VIS      = 118;
 const CARD_W   = 200;
-const CY_RATIO = 0.63;
+const CY_RATIO = 0.60;
 const R_RATIO  = 0.36;
 const SEC_OFF  = -100;
 const ROT_INIT = (N-1)*STEP/2;
 const PNL_W    = 360;   // largeur panneau carousel (px)
 
 let immRot = ROT_INIT, immTgt = ROT_INIT, immRaf = null, immActive = null;
-const immDrag = {on:false,sx:0,sr:0,vx:0,lx:0};
+const immDrag = {on:false,pending:false,sx:0,sr:0,vx:0,lx:0};
 
 function snapImmTgt(){
   const i = Math.round((ROT_INIT - immTgt) / STEP);
@@ -9946,7 +9946,7 @@ function immRender(){
   const W = window.innerWidth, H = window.innerHeight;
   const isSplit = document.body.classList.contains('imm-split');
   const R  = H * R_RATIO;
-  const cx = isSplit ? W * 0.28 : W * 0.5;
+  const cx = isSplit ? W * 0.30 : W * 0.5;
   const cy = H * CY_RATIO;
   const layer = document.getElementById('imm-cl');
   if (!layer) return;
@@ -10040,21 +10040,34 @@ function immGo(){ if (!immRaf) immRaf = requestAnimationFrame(immAnim); }
 
 // ── Drag souris (dans le panneau gauche uniquement) ─────────────────────
 const _cw = () => document.getElementById('imm-carousel-wrap');
-function _inCarousel(e){ const cw=_cw(); if(!cw) return false; const r=cw.getBoundingClientRect(); return e.clientX>=r.left&&e.clientX<=r.right; }
+function _inCarousel(e){
+  if (!document.body.classList.contains('imm-on')) return false;
+  // En split : seulement la zone gauche (hors panneau)
+  if (document.body.classList.contains('imm-split')) return e.clientX < window.innerWidth * 0.60;
+  // Full screen : tout sauf éléments UI interactifs
+  const tag = e.target?.tagName;
+  return tag !== 'BUTTON' && tag !== 'A' && tag !== 'INPUT' && tag !== 'SELECT';
+}
 
 document.addEventListener('mousedown', e => {
   if (!document.body.classList.contains('imm-on')) return;
   if (!_inCarousel(e)) return;
-  immDrag.on=true; immDrag.sx=e.clientX; immDrag.sr=immTgt; immDrag.vx=0; immDrag.lx=e.clientX;
-  document.body.style.cursor='grabbing';
+  immDrag.on=false; immDrag.pending=true;
+  immDrag.sx=e.clientX; immDrag.sr=immTgt; immDrag.vx=0; immDrag.lx=e.clientX;
 });
 document.addEventListener('mousemove', e => {
-  if (!immDrag.on) return;
-  immDrag.vx = e.clientX-immDrag.lx; immDrag.lx=e.clientX;
-  immRot = immTgt = immDrag.sr + (e.clientX-immDrag.sx)*(STEP/68);
-  immRender();
+  if (!immDrag.pending && !immDrag.on) return;
+  const moved = Math.abs(e.clientX - immDrag.sx);
+  if (!immDrag.on && moved > 6) { immDrag.on=true; document.body.style.cursor='grabbing'; }
+  if (immDrag.on) {
+    immDrag.vx=e.clientX-immDrag.lx;
+    immRot=immTgt=immDrag.sr+(e.clientX-immDrag.sx)*(STEP/68);
+    immRender();
+  }
+  immDrag.lx=e.clientX;
 });
 document.addEventListener('mouseup', () => {
+  immDrag.pending=false;
   if (!immDrag.on) return;
   immDrag.on=false; document.body.style.cursor='';
   immTgt += immDrag.vx*(STEP/26);
@@ -10086,6 +10099,7 @@ document.addEventListener('wheel', e => {
   if (!document.body.classList.contains('imm-on')) return;
   if (!_inCarousel(e)) return;
   immTgt -= e.deltaY*(STEP/95); snapImmTgt(); immGo();
+  e.stopPropagation();
 },{passive:true});
 
 // ── Anneau holographique ────────────────────────────────────────────────
