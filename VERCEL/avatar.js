@@ -768,7 +768,7 @@ function buildAllData(){
   if(mob) p('Mobilite','score='+mob.score+'/10'+(mob.stats?.metro?' metro='+mob.stats.metro:'')+(mob.stats?.arretsBus?' bus='+mob.stats.arretsBus:'')+(mob.stats?.velos?' velos='+mob.stats.velos:''));
   if(svc) p('Services','total='+svc.total+(svc.sante?' sante='+svc.sante:'')+(svc.commerces?' commerces='+svc.commerces:''));
   if(eco) p('Ecoles','total='+eco.total+(eco.ips!=null?' IPS='+eco.ips:''));
-  if(meteo?.ensoleillement) p('Meteo',meteo.ensoleillement.heuresAnnuelles+'h/an '+(meteo.temperatures?'max='+meteo.temperatures.maxMoyenne+'C min='+meteo.temperatures.minMoyenne+'C ':'')+(meteo.precipitations?meteo.precipitations.annuelles+'mm/an':''));
+  if(meteo?.ensoleillement) p('Meteo',meteo.ensoleillement.heuresAnnuelles+'h/an '+(meteo.temperatures?'max='+meteo.temperatures.maxMoyenne+'C min='+meteo.temperatures.minMoyenne+'C ':'')+(meteo.precipitations?meteo.precipitations.annuellesMm+'mm/an '+(meteo.precipitations.joursParAn||'')+'j-pluie/an':''));
   if(aq) p('Qualite air','AQI='+aq.aqi+' '+( aq.label||'')+(aq.pm25?' PM2.5='+aq.pm25:'')+(aq.pm10?' PM10='+aq.pm10:''));
   if(bruit?.niveauCode) p('Bruit',bruit.niveauCode+(bruit.score?' score='+bruit.score:''));
   if(risques) p('Risques',risques.total+' identifie(s)'+(risques.score?' score='+risques.score:''));
@@ -979,6 +979,7 @@ function showAdminConsole(){
         style="padding:.4rem .7rem;background:#1e180f;border:1px solid #2a2218;border-radius:6px;color:#8a7755;cursor:pointer;font-size:.75rem">✕</button>
     </div>
   `;
+  document.body.appendChild(el);
   setTimeout(()=>{ const inp=document.getElementById('admin-groq-key'); if(inp)inp.focus(); }, 50);
 }
 
