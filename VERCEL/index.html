@@ -1116,7 +1116,7 @@ body.imm-on #detailContainer .back-btn{margin:.75rem 1rem;}
 
   <!-- ══ ÉLÉMENTS MODE IMMERSIF ══ -->
   <div id="imm-bg">
-    <img id="imm-bg-img" src="Images/avatar-f-fond.png" alt="">
+    <img id="imm-bg-img" src="images/avatar-f-fond.png" alt="">
     <div id="imm-bg-dark"></div>
     <div id="imm-bg-vign"></div>
   </div>
@@ -2651,6 +2651,8 @@ function loadAllData(props, coords){
     document.getElementById('addrBadge').textContent = '✓ Analyse complète';
     computeLoyersEstimates();
     computeScoreQuartier();
+    window._analysisReady = true;
+    if (typeof immRefresh === 'function') immRefresh();
   });
 }
 
@@ -9939,8 +9941,8 @@ function snapImmTgt(){
 // ── Rendu carousel (dans le panneau gauche 360px) ────────────────────────
 function immRender(){
   const H  = window.innerHeight;
-  const R  = H * R_RATIO;
-  const cx = PNL_W * 0.5;
+  const R  = PNL_W * 0.70;
+  const cx = PNL_W * 0.28;
   const cy = (H - 56) * CY_RATIO + 56;   // offset header 56px
   const layer = document.getElementById('imm-cl');
   if (!layer) return;
@@ -10076,9 +10078,9 @@ document.addEventListener('wheel', e => {
 // ── Anneau holographique ────────────────────────────────────────────────
 function immSizeRing(){
   const H = window.innerHeight;
-  const sz = Math.round(H * R_RATIO * 2 * 0.95);
+  const sz = Math.round(PNL_W * 0.70 * 2 * 0.95);
   const rw = document.getElementById('imm-ring');
-  if (rw) rw.style.cssText = `width:${sz}px;height:${sz}px;left:${PNL_W*0.5}px;top:${(H-56)*CY_RATIO+56}px;`;
+  if (rw) rw.style.cssText = `width:${sz}px;height:${sz}px;left:${PNL_W*0.28}px;top:${(H-56)*CY_RATIO+56}px;`;
 }
 
 // ── Toggle ON/OFF ───────────────────────────────────────────────────────
@@ -10102,8 +10104,8 @@ function _immApply(){
   if (bgImg) {
     try {
       const prefs = JSON.parse(localStorage.getItem('immoai_avatar_prefs') || '{}');
-      bgImg.src = (prefs.genre === 'homme') ? 'Images/avatar-m-fond.png' : 'Images/avatar-f-fond.png';
-    } catch(e) { bgImg.src = 'Images/avatar-f-fond.png'; }
+      bgImg.src = (prefs.genre === 'homme') ? 'images/avatar-m-fond.png' : 'images/avatar-f-fond.png';
+    } catch(e) { bgImg.src = 'images/avatar-f-fond.png'; }
   }
 
   // Afficher le toggle seulement sur desktop et sur la page résultats
