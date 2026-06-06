@@ -863,23 +863,21 @@ path.leaflet-interactive:focus{outline:none;}
 @keyframes immSp{to{transform:rotate(360deg);}}
 
 #imm-carousel-wrap{display:none;position:fixed;top:56px;left:0;bottom:0;z-index:10;
-  width:360px;pointer-events:none;overflow:hidden;}
+  width:45vw;min-width:380px;pointer-events:none;overflow:hidden;}
 #imm-cl{position:absolute;inset:0;pointer-events:none;}
 
-body.imm-on #p-analyse{
-  display:flex!important;flex-direction:row;
-  position:fixed;top:56px;left:0;right:0;bottom:0;z-index:5;overflow:hidden;
-  background:transparent;}
+body.imm-on #p-analyse{display:block!important;}
 body.imm-on #analyse-page-header{display:none!important;}
 body.imm-on #cardsGrid{display:none!important;}
 body.imm-on #imm-bg{display:block;}
 body.imm-on #imm-ring{display:block;}
 body.imm-on #imm-carousel-wrap{display:block;}
 body.imm-on #detailContainer{
-  margin-left:360px;flex:1;overflow-y:auto;
-  background:rgba(3,10,22,.88);backdrop-filter:blur(22px);
-  border-left:1px solid rgba(79,195,247,.18);padding:0;min-height:0;}
+  display:none;position:fixed;left:45vw;top:56px;right:0;bottom:0;z-index:15;
+  overflow-y:auto;background:rgba(3,10,22,.88);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
+  border-left:1px solid rgba(79,195,247,.18);padding:0;margin-left:0;}
 body.imm-on #detailContainer:empty{background:transparent;border:none;}
+body.imm-on.imm-split #detailContainer{display:block;}
 
 .imm-hc{
   position:absolute;pointer-events:auto;
@@ -914,15 +912,15 @@ body.imm-on #detailContainer:empty{background:transparent;border:none;}
   text-shadow:0 0 12px currentColor;transform:translate(-50%,-50%);}
 
 body.imm-on .results-header{
-  position:fixed;top:0;left:0;right:0;z-index:20;
-  background:rgba(3,10,22,.88)!important;backdrop-filter:blur(14px);
+  position:fixed;top:56px;left:0;right:0;z-index:100;
+  background:rgba(3,10,22,.88)!important;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
   border-bottom:1px solid rgba(79,195,247,.18);}
 body.imm-on .results-header *{color:#c8e8ff!important;}
 body.imm-on .back-btn{border-color:rgba(79,195,247,.4)!important;color:#4fc3f7!important;}
 body.imm-on #detailContainer .detail-panel{border-radius:0;min-height:calc(100vh - 56px);}
 body.imm-on #detailContainer .back-btn{margin:.75rem 1rem;}
 
-#imm-hint{display:none;position:fixed;bottom:14px;left:180px;transform:translateX(-50%);
+#imm-hint{display:none;position:fixed;bottom:14px;left:22vw;transform:translateX(-50%);
   color:rgba(79,195,247,.35);font-size:.65rem;letter-spacing:.1em;pointer-events:none;
   z-index:11;animation:immFh .7s ease 5s forwards;}
 @keyframes immFh{to{opacity:0;}}
@@ -4661,7 +4659,8 @@ function closePanel(){
   ['_dvfChart','_dvfEvoChart','_risquesChart','_mobiliteChart','_radarChart','_radarProfilChart','_servicesChart','_inseeNeighborChart','_meteoMensuelChart','_meteoEvoChart','_aqHistChart0','_aqHistChart4','_demographieChart'].forEach(k=>{if(window[k]){window[k].destroy();window[k]=null;}});
   document.getElementById('detailContainer').innerHTML = '';
   if(document.body.classList.contains('imm-on')){
-    // En mode immersif : ne pas toucher cardsGrid, juste mettre à jour le carousel
+    // En mode immersif : retirer split, mettre à jour le carousel
+    document.body.classList.remove('imm-split');
     if(typeof immRefresh==='function') immRefresh();
   }
   // Si on vient du score global, y retourner
@@ -9923,7 +9922,7 @@ const N        = IMM_ITEMS.length;
 const START    = -(N-1)*STEP/2;
 const VIS      = 118;
 const CARD_W   = 120;
-const CY_RATIO = 0.35;
+const CY_RATIO = 0.48;
 const R_RATIO  = 0.38;
 const SEC_OFF  = -100;
 const ROT_INIT = (N-1)*STEP/2;
@@ -9941,8 +9940,11 @@ function snapImmTgt(){
 // ── Rendu carousel (dans le panneau gauche 360px) ────────────────────────
 function immRender(){
   const H  = window.innerHeight;
-  const R  = PNL_W * 0.70;
-  const cx = PNL_W * 0.28;
+  const _wrapEl = document.getElementById('imm-carousel-wrap');
+  const wrapW = (_wrapEl && _wrapEl.getBoundingClientRect().width > 0)
+    ? _wrapEl.getBoundingClientRect().width : window.innerWidth * 0.45;
+  const R  = H * R_RATIO;
+  const cx = wrapW * 0.50;
   const cy = (H - 56) * CY_RATIO + 56;   // offset header 56px
   const layer = document.getElementById('imm-cl');
   if (!layer) return;
@@ -10010,6 +10012,8 @@ function immOpenCard(item) {
   if (typeof window[item.fn] === 'function') {
     window[item.fn]();
   }
+  // Passer en split-screen
+  document.body.classList.add('imm-split');
   // Marquer la carte active dans le carousel
   immActive = item.fn;
   immRender();
@@ -10078,9 +10082,11 @@ document.addEventListener('wheel', e => {
 // ── Anneau holographique ────────────────────────────────────────────────
 function immSizeRing(){
   const H = window.innerHeight;
-  const sz = Math.round(PNL_W * 0.70 * 2 * 0.95);
+  const _we = document.getElementById('imm-carousel-wrap');
+  const _ww = (_we && _we.getBoundingClientRect().width > 0) ? _we.getBoundingClientRect().width : window.innerWidth * 0.45;
+  const sz = Math.round(H * R_RATIO * 2 * 0.95);
   const rw = document.getElementById('imm-ring');
-  if (rw) rw.style.cssText = `width:${sz}px;height:${sz}px;left:${PNL_W*0.28}px;top:${(H-56)*CY_RATIO+56}px;`;
+  if (rw) rw.style.cssText = `width:${sz}px;height:${sz}px;left:${_ww*0.50}px;top:${(H-56)*CY_RATIO+56}px;`;
 }
 
 // ── Toggle ON/OFF ───────────────────────────────────────────────────────
@@ -10147,7 +10153,7 @@ window.immShowToggle = function(){
 window.immHideToggle = function(){
   const tog = document.getElementById('imm-toggle');
   if (tog) tog.style.display = 'none';
-  if (_immOn) { _immOn=false; document.body.classList.remove('imm-on'); }
+  if (_immOn) { _immOn=false; document.body.classList.remove('imm-on','imm-split'); }
 };
 
 })(); // fin IIFE
