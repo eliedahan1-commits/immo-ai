@@ -9585,7 +9585,7 @@ function calcEmprunt(){
   const prixArrondi = Math.round(prixMax / 1000) * 1000;
   const empruntArrondi = Math.round(empruntMax / 1000) * 1000;
   // Mensualités
-  autoFill('mMontant', empruntArrondi);
+  autoFill('mMontant', Math.round(empruntMax));
   autoFill('mApport',  apport);
   const mDureeEl = document.getElementById('mDuree');
   if(mDureeEl) mDureeEl.value = duree;

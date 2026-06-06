@@ -613,9 +613,9 @@ function addMsg(role, text){
   // Parser [CARD:id] dans les réponses assistant
   let displayText = text;
   if(role === 'assistant'){
-    const cardMatches = [...(text.matchAll(/\[CARD:([a-z]+)\]/g)||[])];
+    const cardMatches = [...(text.matchAll(/\[CARD:([a-zA-Z]+)\]/gi)||[])];
     cardMatches.forEach(m=>{
-      const cardId = m[1];
+      const cardId = m[1].toLowerCase();
       if(cardId === 'close'){
         setTimeout(()=>{
           // Si on est sur une page go() (financement, etc.), retour à l'analyse
@@ -818,7 +818,8 @@ dataCtx + "\n" +
 "4. Pour fermer une carte : [CARD:close]\n" +
 "5. Tu peux mentionner plusieurs cartes dans une meme reponse.\n" +
 "6. JAMAIS d'information exterieure ou inventee. Si absent des donnees = 'Cette information n'est pas dans l'analyse IMMO-AI.'\n" +
-"7. Si une donnee demandee n'est pas encore chargee ou renseignee (simulateur vide, carte non ouverte), ouvre la carte correspondante avec [CARD:id] et invite l'utilisateur a la consulter ou renseigner ses informations.";
+"7. Si une donnee demandee n'est pas encore chargee ou renseignee (simulateur vide, carte non ouverte), ouvre la carte correspondante avec [CARD:id] et invite l'utilisateur a la consulter ou renseigner ses informations.\n" +
+"REGLE ABSOLUE : Des que tu mentionnes une section ou un simulateur, tu DOIS terminer ta reponse par [CARD:id] correspondant. TOUJOURS. Sans exception. Exemple : '...consultez la carte Score global du quartier [CARD:score]'";
 }
 
 
@@ -978,7 +979,6 @@ function showAdminConsole(){
         style="padding:.4rem .7rem;background:#1e180f;border:1px solid #2a2218;border-radius:6px;color:#8a7755;cursor:pointer;font-size:.75rem">✕</button>
     </div>
   `;
-  document.body.appendChild(el);
   setTimeout(()=>{ const inp=document.getElementById('admin-groq-key'); if(inp)inp.focus(); }, 50);
 }
 
