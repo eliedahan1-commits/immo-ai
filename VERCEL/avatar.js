@@ -510,15 +510,13 @@ function testVoice(){
     }
     window.speechSynthesis.speak(utt);
   }
-  const voices = window.speechSynthesis.getVoices();
-  if(voices.length){ doSpeak(); }
-  else { window.speechSynthesis.onvoiceschanged = function(){ window.speechSynthesis.onvoiceschanged=null; doSpeak(); }; }
+  doSpeak();
 }
 
 // ── TTS ──
 function speak(text){
   if(!text) return;
-  if(currentUtterance) window.speechSynthesis.cancel();
+  if(isSpeaking) window.speechSynthesis.cancel();
   const clean = text
     .replace(/<[^>]+>/g,'')
     .replace(/\*\*/g,'').replace(/\*/g,'')
@@ -558,18 +556,12 @@ function speak(text){
     utt.voice = found || frVoices[0];
     if(!found && isMale && utt.pitch >= 1) utt.pitch = Math.min(utt.pitch, 0.8);
   }
-  const voicesFr = window.speechSynthesis.getVoices();
-  if(voicesFr.length){ applyVoice(currentUtterance); }
-  else {
-    window.speechSynthesis.onvoiceschanged = function(){
-      applyVoice(currentUtterance);
-      window.speechSynthesis.onvoiceschanged = null;
-    };
-  }
+  // Appliquer la voix si disponible — pas de onvoiceschanged ici (conflit avec populateVoiceSelect)
+  applyVoice(currentUtterance);
 
   currentUtterance.onstart = function(){ isSpeaking=true; setStatus('Parle…'); };
-  currentUtterance.onend = function(){ isSpeaking=false; setStatus(''); };
-  currentUtterance.onerror = function(){ isSpeaking=false; setStatus(''); };
+  currentUtterance.onend = function(){ isSpeaking=false; currentUtterance=null; setStatus(''); };
+  currentUtterance.onerror = function(){ isSpeaking=false; currentUtterance=null; setStatus(''); };
   window.speechSynthesis.speak(currentUtterance);
 }
 
