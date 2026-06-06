@@ -323,6 +323,7 @@ function togglePanel(){
   document.getElementById('av-panel').classList.toggle('open', panelOpen);
   if(!panelOpen){ stopSpeak(); return; }
   if(panelOpen && !avatarModel) setTimeout(initThree, 100);
+  if(panelOpen) setTimeout(populateVoiceSelect, 200); // pré-charger voix dès l'ouverture
   if(panelOpen && history.length===0) setTimeout(()=>avatarGreet(), 800);
 }
 
@@ -516,7 +517,7 @@ function testVoice(){
 // ── TTS ──
 function speak(text){
   if(!text) return;
-  if(isSpeaking) window.speechSynthesis.cancel();
+  if(window.speechSynthesis.speaking||window.speechSynthesis.pending||isSpeaking) window.speechSynthesis.cancel();
   const clean = text
     .replace(/<[^>]+>/g,'')
     .replace(/\*\*/g,'').replace(/\*/g,'')
@@ -556,8 +557,15 @@ function speak(text){
     utt.voice = found || frVoices[0];
     if(!found && isMale && utt.pitch >= 1) utt.pitch = Math.min(utt.pitch, 0.8);
   }
-  // Appliquer la voix si disponible — pas de onvoiceschanged ici (conflit avec populateVoiceSelect)
-  applyVoice(currentUtterance);
+  // Appliquer la voix — addEventListener évite le conflit avec populateVoiceSelect
+  const _vNow = window.speechSynthesis.getVoices();
+  if(_vNow.length){ applyVoice(currentUtterance); }
+  else {
+    window.speechSynthesis.addEventListener('voiceschanged', function _hv(){
+      window.speechSynthesis.removeEventListener('voiceschanged', _hv);
+      applyVoice(currentUtterance);
+    });
+  }
 
   currentUtterance.onstart = function(){ isSpeaking=true; setStatus('Parle…'); };
   currentUtterance.onend = function(){ isSpeaking=false; currentUtterance=null; setStatus(''); };
@@ -887,11 +895,11 @@ function populateVoiceSelect(){
     if(fill(window.speechSynthesis.getVoices()) || ++tries > 20) clearInterval(retry);
   }, 200);
   // Fallback voiceschanged
-  window.speechSynthesis.onvoiceschanged = function(){
-    window.speechSynthesis.onvoiceschanged = null;
+  window.speechSynthesis.addEventListener('voiceschanged', function _hp(){
+    window.speechSynthesis.removeEventListener('voiceschanged', _hp);
     fill(window.speechSynthesis.getVoices());
     clearInterval(retry);
-  };
+  });
 }
 
 function showSetup(){
