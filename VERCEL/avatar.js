@@ -528,11 +528,22 @@ function speak(text){
     .replace(/\/m2/g,' au mètre carré')
     .replace(/\/km2/g,' au km carré')
     .replace(/\//g,' ');
-  // Fix accents perdus par le LLM (utilise CARD_NAMES comme référence)
-  Object.values(CARD_NAMES).filter(function(n){return n;}).forEach(function(name){
-    const stripped = name.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-    if(stripped !== name) clean = clean.split(stripped).join(name);
-  });
+  // Fix accents perdus par le LLM — regex case-insensitive
+  (function(){
+    var fixes = [
+      [/\bM[eé]t[eé]o\b/g,'Météo'],[/\bqualit[eé]\b/gi,'qualité'],
+      [/\bD[eé]mographie\b/gi,'Démographie'],[/\battractivit[eé]\b/gi,'attractivité'],
+      [/\bMobilit[eé]\b/gi,'Mobilité'],[/\bCompatibilit[eé]\b/gi,'Compatibilité'],
+      [/\bMensualit[eé]s\b/gi,'Mensualités'],[/\bco[uû]t\b/gi,'coût'],
+      [/\bcr[eé]dit\b/gi,'crédit'],[/\b[EÉ]coles\b/g,'Écoles'],
+      [/\[eé]conomie\b/gi,'économie'],[/\bfiscalit[eé]\b/gi,'fiscalité'],
+      [/\br[eé]glementation\b/gi,'réglementation'],[/\br[eé]novation\b/gi,'rénovation'],
+      [/\balt[iî]tude\b/gi,'altitude'],[/\burbanisme\b/gi,'urbanisme'],
+      [/\bLogement\b/g,'Logement'],[/\brisques\b/gi,'risques'],
+      [/\bservices\b/gi,'services'],[/\bfibre\b/gi,'fibre'],
+    ];
+    fixes.forEach(function(f){ clean = clean.replace(f[0], f[1]); });
+  })();
   // Fix °C / C seul après un nombre → "degrés" pour la TTS
   clean = clean.replace(/(\d+[,.]?\d*)\s*°?C\b/g,'$1 degrés');
   currentUtterance = new SpeechSynthesisUtterance(clean);
@@ -776,7 +787,7 @@ function buildAllData(){
   if(mob) p('Mobilite','score='+mob.score+'/10'+(mob.stats?.metro?' metro='+mob.stats.metro:'')+(mob.stats?.arretsBus?' bus='+mob.stats.arretsBus:'')+(mob.stats?.velos?' velos='+mob.stats.velos:''));
   if(svc) p('Services','total='+svc.total+(svc.sante?' sante='+svc.sante:'')+(svc.commerces?' commerces='+svc.commerces:''));
   if(eco) p('Ecoles','total='+eco.total+(eco.ips!=null?' IPS='+eco.ips:''));
-  if(meteo?.ensoleillement) p('Meteo',meteo.ensoleillement.heuresAnnuelles+'h/an '+(meteo.temperatures?'max='+meteo.temperatures.maxMoyenne+'C min='+meteo.temperatures.minMoyenne+'C ':'')+(meteo.precipitations?meteo.precipitations.annuellesMm+'mm/an '+(meteo.precipitations.joursParAn||'')+'j-pluie/an':''));
+  if(meteo?.ensoleillement) p('Meteo',meteo.ensoleillement.heuresAnnuelles+'h/an '+(meteo.temperatures?.maxMoyenne!=null?'max='+meteo.temperatures.maxMoyenne+'°C min='+meteo.temperatures.minMoyenne+'°C ':'')+(meteo.precipitations?meteo.precipitations.annuellesMm+'mm/an '+(meteo.precipitations.joursParAn||'')+'j-pluie/an':''));
   if(aq) p('Qualite air','AQI='+aq.aqi+' '+( aq.label||'')+(aq.pm25?' PM2.5='+aq.pm25:'')+(aq.pm10?' PM10='+aq.pm10:''));
   if(bruit?.niveauCode) p('Bruit',bruit.niveauCode+(bruit.score?' score='+bruit.score:''));
   if(risques) p('Risques',risques.total+' identifie(s)'+(risques.score?' score='+risques.score:''));
@@ -894,7 +905,7 @@ function populateVoiceSelect(){
   // Essai immédiat
   if(fill(window.speechSynthesis.getVoices())) return;
   // Chrome nécessite un appel speak() pour charger les voix
-  const silent = new SpeechSynthesisUtterance('');
+  const silent = new SpeechSynthesisUtterance(' ');
   silent.volume = 0;
   window.speechSynthesis.speak(silent);
   // Retry toutes les 200ms pendant 4s
