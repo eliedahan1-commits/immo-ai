@@ -836,6 +836,102 @@ path.leaflet-interactive:focus{outline:none;}
   .charts-grid-2col         { grid-template-columns:1fr !important; }
 }
 /* ══ FIN RESPONSIVE ═══════════════════════════════════════════════════════ */
+/* ══ MODE IMMERSIF ════════════════════════════════════════════════════════ */
+#imm-toggle{display:none;align-items:center;gap:.45rem;padding:.38rem .85rem .38rem .65rem;
+  border:1px solid var(--goldborder);border-radius:999px;background:transparent;
+  color:var(--gold);font-size:.74rem;font-weight:600;letter-spacing:.05em;cursor:pointer;
+  white-space:nowrap;transition:background .2s;flex-shrink:0;}
+#imm-toggle:hover{background:rgba(184,131,42,.12);}
+.imm-trk{width:30px;height:17px;border-radius:9px;background:rgba(184,131,42,.18);
+  border:1px solid var(--goldborder);position:relative;transition:background .3s;flex-shrink:0;}
+.imm-trk.on{background:rgba(184,131,42,.55);}
+.imm-thm{width:11px;height:11px;border-radius:50%;background:var(--gold2);
+  position:absolute;top:2px;left:2px;transition:left .22s;}
+.imm-trk.on .imm-thm{left:16px;}
+
+#imm-bg{display:none;position:fixed;inset:0;z-index:0;pointer-events:none;}
+#imm-bg img{width:100%;height:100%;object-fit:contain;object-position:center center;}
+#imm-bg-dark{position:absolute;inset:0;background:rgba(0,0,0,.32);}
+#imm-bg-vign{position:absolute;inset:0;
+  background:radial-gradient(ellipse 80% 65% at 50% 55%,transparent 35%,rgba(0,0,0,.68) 100%);}
+
+#imm-ring{display:none;position:fixed;transform:translate(-50%,-50%);pointer-events:none;z-index:1;}
+#imm-ring .irg {position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(79,195,247,.18);animation:immPr 4s ease-in-out infinite;}
+#imm-ring .irg2{position:absolute;inset:26px;border-radius:50%;border:1px solid rgba(220,200,122,.07);animation:immPr 4s ease-in-out infinite reverse;}
+#imm-ring .irg3{position:absolute;inset:-26px;border-radius:50%;border:1px dashed rgba(79,195,247,.05);animation:immSp 35s linear infinite;}
+@keyframes immPr{0%,100%{opacity:.4;}50%{opacity:.82;}}
+@keyframes immSp{to{transform:rotate(360deg);}}
+
+#imm-carousel-wrap{display:none;position:fixed;top:56px;left:0;bottom:0;z-index:10;
+  width:360px;pointer-events:none;overflow:hidden;}
+#imm-cl{position:absolute;inset:0;pointer-events:none;}
+
+body.imm-on #p-analyse{
+  display:flex!important;flex-direction:row;
+  position:fixed;top:56px;left:0;right:0;bottom:0;z-index:5;overflow:hidden;
+  background:transparent;}
+body.imm-on #analyse-page-header{display:none!important;}
+body.imm-on #cardsGrid{display:none!important;}
+body.imm-on #imm-bg{display:block;}
+body.imm-on #imm-ring{display:block;}
+body.imm-on #imm-carousel-wrap{display:block;}
+body.imm-on #detailContainer{
+  margin-left:360px;flex:1;overflow-y:auto;
+  background:rgba(3,10,22,.88);backdrop-filter:blur(22px);
+  border-left:1px solid rgba(79,195,247,.18);padding:0;min-height:0;}
+body.imm-on #detailContainer:empty{background:transparent;border:none;}
+
+.imm-hc{
+  position:absolute;pointer-events:auto;
+  background:linear-gradient(145deg,rgba(3,10,22,.91),rgba(5,15,34,.95));
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border:1.5px solid rgba(79,195,247,.34);border-radius:16px;
+  color:#ddf0ff;cursor:pointer;
+  box-shadow:0 5px 28px rgba(0,0,0,.60),0 0 14px rgba(79,195,247,.06);
+  display:flex;flex-direction:column;align-items:center;gap:.45rem;
+  text-align:center;padding:1.1rem 1.2rem 1rem;
+  will-change:transform;transition:box-shadow .18s,border-color .18s;}
+.imm-hc::before{content:'';position:absolute;inset:0;border-radius:16px;
+  background:linear-gradient(135deg,rgba(79,195,247,.06),transparent 55%);pointer-events:none;}
+.imm-hc:hover{border-color:rgba(79,195,247,.82);
+  box-shadow:0 8px 44px rgba(0,0,0,.70),0 0 55px rgba(79,195,247,.48);}
+.imm-hc-i{font-size:2rem;line-height:1;filter:drop-shadow(0 0 8px rgba(79,195,247,.6));}
+.imm-hc-n{font-size:.88rem;font-weight:700;letter-spacing:.02em;line-height:1.25;color:#e6f8ff;}
+.imm-hc-t{font-size:.7rem;color:rgba(79,195,247,.62);font-weight:300;}
+.imm-spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(79,195,247,.25);
+  border-top-color:rgba(79,195,247,.8);border-radius:50%;animation:immSpin .7s linear infinite;}
+@keyframes immSpin{to{transform:rotate(360deg);}}
+.imm-hc.score-good{border-color:rgba(72,200,120,.55)!important;}
+.imm-hc.score-mid {border-color:rgba(255,180,40,.55)!important;}
+.imm-hc.score-bad {border-color:rgba(240,80,60,.55)!important;}
+.imm-hc.imm-active{border-color:rgba(79,195,247,.96)!important;
+  box-shadow:0 8px 60px rgba(0,0,0,.80),0 0 80px rgba(79,195,247,.72),inset 0 0 40px rgba(79,195,247,.15)!important;}
+
+.imm-sec{position:absolute;pointer-events:none;z-index:12;
+  white-space:nowrap;font-size:.68rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
+  padding:.2rem .55rem;border-radius:6px;border:1px solid currentColor;
+  backdrop-filter:blur(8px);background:rgba(3,10,22,.84);
+  text-shadow:0 0 12px currentColor;transform:translate(-50%,-50%);}
+
+body.imm-on .results-header{
+  position:fixed;top:0;left:0;right:0;z-index:20;
+  background:rgba(3,10,22,.88)!important;backdrop-filter:blur(14px);
+  border-bottom:1px solid rgba(79,195,247,.18);}
+body.imm-on .results-header *{color:#c8e8ff!important;}
+body.imm-on .back-btn{border-color:rgba(79,195,247,.4)!important;color:#4fc3f7!important;}
+body.imm-on #detailContainer .detail-panel{border-radius:0;min-height:calc(100vh - 56px);}
+body.imm-on #detailContainer .back-btn{margin:.75rem 1rem;}
+
+#imm-hint{display:none;position:fixed;bottom:14px;left:180px;transform:translateX(-50%);
+  color:rgba(79,195,247,.35);font-size:.65rem;letter-spacing:.1em;pointer-events:none;
+  z-index:11;animation:immFh .7s ease 5s forwards;}
+@keyframes immFh{to{opacity:0;}}
+
+@media(max-width:1023px){
+  #imm-toggle{display:none!important;}
+}
+/* ══ FIN MODE IMMERSIF ════════════════════════════════════════════════════ */
+
 </style>
 </head>
 <body>
@@ -1009,9 +1105,24 @@ path.leaflet-interactive:focus{outline:none;}
       <button class="back-btn" onclick="goHome()" style="flex-shrink:0;font-size:.95rem;padding:.55rem 1.2rem">← Nouvelle recherche</button>
     <div style="display:none"><div id="addrMain"></div><div id="addrSub"></div></div>
     <div class="results-addr-badge" id="addrBadge">Analyse en cours…</div>
+      <button id="imm-toggle" onclick="immToggle()">
+        ✦ <span id="imm-toggle-lbl">Mode Immersif</span>
+        <div class="imm-trk" id="imm-trk"><div class="imm-thm"></div></div>
+      </button>
       <button onclick="generatePDF()" title="Exporter en PDF" style="flex-shrink:0;display:flex;align-items:center;gap:.4rem;padding:.45rem .9rem;border:1px solid var(--goldborder);background:transparent;color:var(--gold);border-radius:var(--r);font-size:.78rem;font-weight:600;cursor:pointer;transition:background .2s;white-space:nowrap" onmouseover="this.style.background='rgba(184,131,42,.12)'" onmouseout="this.style.background='transparent'">📄 Exporter PDF</button>
     </div>
     </div>
+
+
+  <!-- ══ ÉLÉMENTS MODE IMMERSIF ══ -->
+  <div id="imm-bg">
+    <img id="imm-bg-img" src="Images/avatar-f-fond.png" alt="">
+    <div id="imm-bg-dark"></div>
+    <div id="imm-bg-vign"></div>
+  </div>
+  <div id="imm-ring"><div class="irg"></div><div class="irg2"></div><div class="irg3"></div></div>
+  <div id="imm-carousel-wrap"><div id="imm-cl"></div></div>
+  <div id="imm-hint">← Glisser pour naviguer →</div>
 
   <!-- ══ ANALYSE COMPLÈTE ══ -->
   <div class="page" id="p-analyse">
@@ -1943,6 +2054,7 @@ function goHome(){
     const inp = document.getElementById('sideSearch');
     if(inp){ inp.value = currentAddress; }
   }
+  if(typeof immHideToggle==='function') immHideToggle();
 }
 
 // ── Cache-busting sur adresses en échec ──
@@ -2418,6 +2530,7 @@ async function analyzeAddressWithFeature(feature){
   document.getElementById('addrSub').textContent=`${props.postcode||''} ${props.city||''} · ${props.context||''}`;
   document.getElementById('addrBadge').textContent='Analyse en cours…';
   document.getElementById('resultsHeader').style.display='block';
+  if(typeof immShowToggle==='function') setTimeout(immShowToggle,200);
 
   // Aller sur la page analyse
   go('analyse');
@@ -4505,9 +4618,16 @@ function showPanel(title, html, backAction, backLabel){
       </div>
       <div class="detail-body">${html}</div>
     </div>`;
-  window.scrollTo({top:0, behavior:'smooth'});
-  // Masquer les cartes
-  document.getElementById('cardsGrid').style.display = 'none';
+  if(document.body.classList.contains('imm-on')){
+    const dc=document.getElementById('detailContainer');
+    if(dc) dc.scrollTo({top:0,behavior:'smooth'});
+  } else {
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+  // Masquer les cartes (mode classique uniquement)
+  if(!document.body.classList.contains('imm-on')){
+    document.getElementById('cardsGrid').style.display = 'none';
+  }
 }
 
 // Auto-synthèse : appelée automatiquement après chaque showPanel
@@ -4538,6 +4658,10 @@ function closePanel(){
   window._demographiePanelOpen = false;
   ['_dvfChart','_dvfEvoChart','_risquesChart','_mobiliteChart','_radarChart','_radarProfilChart','_servicesChart','_inseeNeighborChart','_meteoMensuelChart','_meteoEvoChart','_aqHistChart0','_aqHistChart4','_demographieChart'].forEach(k=>{if(window[k]){window[k].destroy();window[k]=null;}});
   document.getElementById('detailContainer').innerHTML = '';
+  if(document.body.classList.contains('imm-on')){
+    // En mode immersif : ne pas toucher cardsGrid, juste mettre à jour le carousel
+    if(typeof immRefresh==='function') immRefresh();
+  }
   // Si on vient du score global, y retourner
   if(window._previousDetail === 'score'){
     window._previousDetail = null;
@@ -9740,6 +9864,292 @@ if(navigator.permissions){
   }).catch(function(){});
 }
 
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MODE IMMERSIF — Carousel holographique
+   ═══════════════════════════════════════════════════════════════════════════ */
+(function(){
+
+// ── Sections (même ordre que la vue classique) ──────────────────────────
+const IMM_SECTIONS = [
+  { label:'Mon Quartier', color:'rgba(79,195,247,.95)', cards:[
+    { icon:'⭐', name:'Score global',              tag:'du quartier',        fn:'showScoreDetail' },
+    { icon:'🛒', name:'Commerces & santé',         tag:'services',           fn:'showServicesMap' },
+    { icon:'🚌', name:'Transports',                tag:'mobilité douce',     fn:'showMobiliteDetail' },
+    { icon:'🎓', name:'Écoles',                    tag:'niveau scolaire',    fn:'showEcolesDetail' },
+    { icon:'🌤️', name:'Météo & air',               tag:'climat local',       fn:'showMeteoDetail' },
+    { icon:'📈', name:'Population & société',      tag:'données INSEE',      fn:'showDemographieDetail' },
+    { icon:'👥', name:'Démographie',               tag:'attractivité',       fn:'showDemographieDetail' },
+    { icon:'🏘️', name:'Logement & habitat',        tag:'parc immobilier',    fn:'showLogementDetail' },
+    { icon:'⚠️', name:'Risques naturels',          tag:'Géorisques',         fn:'showRisquesDetail' },
+    { icon:'🏔️', name:'Altitude & topographie',   tag:'terrain',            fn:'showAltitudeDetail' },
+    { icon:'🔊', name:'Carte du bruit',            tag:'Bruitparif',         fn:'showBruitDetail' },
+    { icon:'📡', name:'Internet & fibre',          tag:'débit',              fn:'showFibreDetail' },
+    { icon:'🗺️', name:'PLU & réglementation',      tag:'zonage',             fn:'showUrbanismeDetail' },
+  ]},
+  { label:'Prix des Biens', color:'rgba(255,180,50,.95)', cards:[
+    { icon:'📊', name:'Prix & transactions',       tag:'DVF · DGFiP',        fn:'showDVFDetail' },
+    { icon:'💶', name:'Estimation des loyers',     tag:'marché local',       fn:'showLoyersDetail' },
+    { icon:'📍', name:'Prix au m² par commune',    tag:'carte interactive',  fn:'showPrixCarte' },
+  ]},
+  { label:'Mon Financement', color:'rgba(110,220,160,.95)', cards:[
+    { icon:'💰', name:"Capacité d'emprunt",        tag:'budget max',         fn:'showEmpruntDetail' },
+    { icon:'📅', name:'Mensualités & crédit',      tag:'coût total',         fn:'showCoutDetail' },
+    { icon:'🏠', name:'Investissement locatif',    tag:'rendement',          fn:'showInvestDetail' },
+    { icon:'🏢', name:'Location : budget',         tag:'comparaison',        fn:'showLocationDetail' },
+    { icon:'🎁', name:"Aides à l'achat",           tag:'PTZ · APL',          fn:'showAidesDetail' },
+    { icon:'🔨', name:"MaPrimeRénov'",             tag:'travaux',            fn:'showRenovDetail' },
+  ]},
+  { label:'Ma Stratégie', color:'rgba(200,130,255,.95)', cards:[
+    { icon:'🔍', name:'Trouver un bien',           tag:'annonces filtrées',  fn:'showAnnoncesDetail' },
+    { icon:'🤝', name:"Coaching de l'offre",       tag:'négociation',        fn:'showOffreDetail' },
+    { icon:'👤', name:'Compatibilité de vie',      tag:'votre profil',       fn:'showProfilDetail' },
+  ]},
+];
+
+// Aplatir
+const IMM_ITEMS = [];
+IMM_SECTIONS.forEach(sec => {
+  sec.cards.forEach((c, i) => {
+    IMM_ITEMS.push({ ...c, secLabel: i===0 ? sec.label : null, secColor: i===0 ? sec.color : null });
+  });
+});
+
+// ── Paramètres carousel ─────────────────────────────────────────────────
+const STEP     = 28;
+const N        = IMM_ITEMS.length;
+const START    = -(N-1)*STEP/2;
+const VIS      = 118;
+const CARD_W   = 160;
+const CY_RATIO = 0.50;
+const R_RATIO  = 0.38;
+const SEC_OFF  = -100;
+const ROT_INIT = (N-1)*STEP/2;
+const PNL_W    = 360;   // largeur panneau carousel (px)
+
+let immRot = ROT_INIT, immTgt = ROT_INIT, immRaf = null, immActive = null;
+const immDrag = {on:false,sx:0,sr:0,vx:0,lx:0};
+
+function snapImmTgt(){
+  const i = Math.round((ROT_INIT - immTgt) / STEP);
+  const c = Math.max(0, Math.min(N-1, i));
+  immTgt = ROT_INIT - c * STEP;
+}
+
+// ── Rendu carousel (dans le panneau gauche 360px) ────────────────────────
+function immRender(){
+  const H  = window.innerHeight;
+  const R  = H * R_RATIO;
+  const cx = PNL_W * 0.5;
+  const cy = (H - 56) * CY_RATIO + 56;   // offset header 56px
+  const layer = document.getElementById('imm-cl');
+  if (!layer) return;
+  layer.innerHTML = '';
+
+  IMM_ITEMS.forEach((item, i) => {
+    const ang  = START + i*STEP + immRot;
+    if (Math.abs(ang) > VIS + 20) return;
+    const rad  = ang * Math.PI / 180;
+    const x    = cx + R * Math.sin(rad);
+    const y    = cy - R * Math.cos(rad);
+    const fall = Math.max(0, Math.cos(ang * Math.PI / (2*VIS)));
+    const sc   = 0.38 + fall * 0.62;
+    const op   = 0.22 + fall * 0.78;
+    const zB   = Math.round(sc*100) + 10;
+
+    // Label section
+    if (item.secLabel) {
+      const lb = document.createElement('div');
+      lb.className = 'imm-sec';
+      lb.style.cssText = `left:${x}px;top:${y + SEC_OFF*sc}px;color:${item.secColor};`
+        + `border-color:${item.secColor};opacity:${op};z-index:${zB+2};`;
+      lb.textContent = item.secLabel;
+      layer.appendChild(lb);
+    }
+
+    // Carte
+    const isCenter = Math.abs(ang) < 9;
+    const w = Math.round(CARD_W * Math.max(0.65, sc));
+    const el = document.createElement('div');
+    el.className = 'imm-hc' + (isCenter ? ' imm-active' : '');
+    // Score color si données disponibles
+    const scoreClass = immGetScoreClass(item.fn);
+    if (scoreClass) el.classList.add(scoreClass);
+
+    el.style.cssText = `left:${x}px;top:${y}px;width:${w}px;`
+      + `transform:translate(-50%,-50%) scale(${sc});`
+      + `opacity:${op};z-index:${zB};`;
+
+    const loading = !window._analysisReady;
+    el.innerHTML = `<div class="imm-hc-i">${item.icon}</div>`
+      + `<div class="imm-hc-n">${item.name}</div>`
+      + (loading
+        ? `<span class="imm-spin"></span>`
+        : `<div class="imm-hc-t">${item.tag}</div>`);
+
+    el.addEventListener('click', () => immOpenCard(item));
+    layer.appendChild(el);
+  });
+}
+
+// ── Score color depuis les données globales ─────────────────────────────
+function immGetScoreClass(fn) {
+  try {
+    if (fn === 'showScoreDetail' && window._scoreGlobal != null) {
+      const s = window._scoreGlobal;
+      return s >= 7 ? 'score-good' : s >= 5 ? 'score-mid' : 'score-bad';
+    }
+  } catch(e){}
+  return null;
+}
+
+// ── Ouvrir une carte (appelle la fonction existante, puis marque active) ─
+function immOpenCard(item) {
+  if (typeof window[item.fn] === 'function') {
+    window[item.fn]();
+  }
+  // Marquer la carte active dans le carousel
+  immActive = item.fn;
+  immRender();
+}
+
+// ── Animation ──────────────────────────────────────────────────────────
+function immAnim(){
+  const d = immTgt - immRot;
+  if (Math.abs(d) < 0.03) { immRot = immTgt; immRender(); immRaf = null; return; }
+  immRot += d * 0.12;
+  immRender();
+  immRaf = requestAnimationFrame(immAnim);
+}
+function immGo(){ if (!immRaf) immRaf = requestAnimationFrame(immAnim); }
+
+// ── Drag souris (dans le panneau gauche uniquement) ─────────────────────
+const _cw = () => document.getElementById('imm-carousel-wrap');
+function _inCarousel(e){ const cw=_cw(); if(!cw) return false; const r=cw.getBoundingClientRect(); return e.clientX>=r.left&&e.clientX<=r.right; }
+
+document.addEventListener('mousedown', e => {
+  if (!document.body.classList.contains('imm-on')) return;
+  if (!_inCarousel(e)) return;
+  immDrag.on=true; immDrag.sx=e.clientX; immDrag.sr=immTgt; immDrag.vx=0; immDrag.lx=e.clientX;
+  document.body.style.cursor='grabbing';
+});
+document.addEventListener('mousemove', e => {
+  if (!immDrag.on) return;
+  immDrag.vx = e.clientX-immDrag.lx; immDrag.lx=e.clientX;
+  immRot = immTgt = immDrag.sr + (e.clientX-immDrag.sx)*(STEP/68);
+  immRender();
+});
+document.addEventListener('mouseup', () => {
+  if (!immDrag.on) return;
+  immDrag.on=false; document.body.style.cursor='';
+  immTgt += immDrag.vx*(STEP/26);
+  snapImmTgt(); immGo();
+});
+
+// ── Touch ──────────────────────────────────────────────────────────────
+document.addEventListener('touchstart', e => {
+  if (!document.body.classList.contains('imm-on')) return;
+  const cw=_cw(); if(!cw) return;
+  const r=cw.getBoundingClientRect(), t=e.touches[0];
+  if (t.clientX<r.left||t.clientX>r.right) return;
+  immDrag.on=true; immDrag.sx=t.clientX; immDrag.sr=immTgt; immDrag.vx=0; immDrag.lx=t.clientX;
+},{passive:true});
+document.addEventListener('touchmove', e => {
+  if (!immDrag.on) return;
+  const t=e.touches[0];
+  immDrag.vx=t.clientX-immDrag.lx; immDrag.lx=t.clientX;
+  immRot=immTgt=immDrag.sr+(t.clientX-immDrag.sx)*(STEP/68);
+  immRender();
+},{passive:true});
+document.addEventListener('touchend', () => {
+  if (!immDrag.on) return;
+  immDrag.on=false; immTgt+=immDrag.vx*(STEP/26); snapImmTgt(); immGo();
+},{passive:true});
+
+// ── Molette dans le carousel ────────────────────────────────────────────
+document.addEventListener('wheel', e => {
+  if (!document.body.classList.contains('imm-on')) return;
+  if (!_inCarousel(e)) return;
+  immTgt -= e.deltaY*(STEP/95); snapImmTgt(); immGo();
+},{passive:true});
+
+// ── Anneau holographique ────────────────────────────────────────────────
+function immSizeRing(){
+  const H = window.innerHeight;
+  const sz = Math.round(H * R_RATIO * 2 * 0.95);
+  const rw = document.getElementById('imm-ring');
+  if (rw) rw.style.cssText = `width:${sz}px;height:${sz}px;left:${PNL_W*0.5}px;top:${(H-56)*CY_RATIO+56}px;`;
+}
+
+// ── Toggle ON/OFF ───────────────────────────────────────────────────────
+let _immOn = (localStorage.getItem('immoai_imm_mode') === '1');
+
+window.immToggle = function(){
+  _immOn = !_immOn;
+  localStorage.setItem('immoai_imm_mode', _immOn ? '1' : '0');
+  _immApply();
+};
+
+function _immApply(){
+  const trk = document.getElementById('imm-trk');
+  const lbl = document.getElementById('imm-toggle-lbl');
+  document.body.classList.toggle('imm-on', _immOn);
+  if (trk) trk.classList.toggle('on', _immOn);
+  if (lbl) lbl.textContent = _immOn ? 'Mode Immersif ✦' : 'Mode Immersif';
+
+  // Image de fond selon genre avatar
+  const bgImg = document.getElementById('imm-bg-img');
+  if (bgImg) {
+    try {
+      const prefs = JSON.parse(localStorage.getItem('immoai_avatar_prefs') || '{}');
+      bgImg.src = (prefs.genre === 'homme') ? 'Images/avatar-m-fond.png' : 'Images/avatar-f-fond.png';
+    } catch(e) { bgImg.src = 'Images/avatar-f-fond.png'; }
+  }
+
+  // Afficher le toggle seulement sur desktop et sur la page résultats
+  const tog = document.getElementById('imm-toggle');
+  if (tog && window.innerWidth >= 1024) tog.style.display = 'flex';
+
+  if (_immOn) {
+    immSizeRing();
+    immRender();
+    document.getElementById('imm-hint').style.display = 'block';
+    // Intro Sofia TTS
+    if (typeof speak === 'function') {
+      setTimeout(() => speak("Bienvenue dans le mode immersif. Naviguez entre les cartes pour explorer l'analyse de votre bien."), 600);
+    }
+  } else {
+    document.getElementById('imm-hint').style.display = 'none';
+  }
+}
+
+// ── Exposer pour mise à jour depuis l'analyse ──────────────────────────
+window.immRefresh = function(){ if (_immOn) immRender(); };
+
+// ── Resize ─────────────────────────────────────────────────────────────
+window.addEventListener('resize', () => { if (_immOn) { immSizeRing(); immRender(); } });
+
+// ── Init (après chargement de la page résultats) ────────────────────────
+// Le toggle est caché jusqu'à ce que la page résultats soit affichée
+// On l'affiche via goHome/showResults — intercepter goHome pour le cacher
+const _origGoHome = typeof goHome === 'function' ? goHome : null;
+
+// showToggle — appelé quand on arrive sur la page résultats
+window.immShowToggle = function(){
+  const tog = document.getElementById('imm-toggle');
+  if (tog && window.innerWidth >= 1024) tog.style.display = 'flex';
+  // Appliquer le mode mémorisé
+  _immApply();
+};
+
+window.immHideToggle = function(){
+  const tog = document.getElementById('imm-toggle');
+  if (tog) tog.style.display = 'none';
+  if (_immOn) { _immOn=false; document.body.classList.remove('imm-on'); }
+};
+
+})(); // fin IIFE
+
 </script>
 <script src="/pdf-export.js?v=12"></script>
 <script src="/avatar.js?v=15"></script>
@@ -9851,7 +10261,6 @@ document.addEventListener('DOMContentLoaded',()=>{
     // Rebondir sur le sentinel
     _fwd = true;
     setTimeout(function(){ history.go(1); }, 0);
-
     // Navigation applicative
     var panelEl = document.getElementById('detailContainer');
     if(panelEl && panelEl.innerHTML.trim()){
