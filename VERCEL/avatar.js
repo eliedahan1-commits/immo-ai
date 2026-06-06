@@ -509,6 +509,7 @@ function testVoice(){
         if(!found && isMale) utt.pitch = Math.min(p, 0.75);
       }
     }
+    utt.onend = function(){ setTimeout(populateVoiceSelect, 300); };
     window.speechSynthesis.speak(utt);
   }
   doSpeak();
@@ -518,7 +519,7 @@ function testVoice(){
 function speak(text){
   if(!text) return;
   if(window.speechSynthesis.speaking||window.speechSynthesis.pending||isSpeaking) window.speechSynthesis.cancel();
-  const clean = text
+  let clean = text
     .replace(/<[^>]+>/g,'')
     .replace(/\*\*/g,'').replace(/\*/g,'')
     .replace(/\/10/g,' sur 10')
@@ -527,6 +528,13 @@ function speak(text){
     .replace(/\/m2/g,' au mètre carré')
     .replace(/\/km2/g,' au km carré')
     .replace(/\//g,' ');
+  // Fix accents perdus par le LLM (utilise CARD_NAMES comme référence)
+  Object.values(CARD_NAMES).filter(function(n){return n;}).forEach(function(name){
+    const stripped = name.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    if(stripped !== name) clean = clean.split(stripped).join(name);
+  });
+  // Fix °C / C seul après un nombre → "degrés" pour la TTS
+  clean = clean.replace(/(\d+[,.]?\d*)\s*°?C\b/g,'$1 degrés');
   currentUtterance = new SpeechSynthesisUtterance(clean);
   currentUtterance.lang = 'fr-FR';
   currentUtterance.rate = parseFloat(prefs.vitesse) || 1;
@@ -892,7 +900,7 @@ function populateVoiceSelect(){
   // Retry toutes les 200ms pendant 4s
   let tries = 0;
   const retry = setInterval(function(){
-    if(fill(window.speechSynthesis.getVoices()) || ++tries > 20) clearInterval(retry);
+    if(fill(window.speechSynthesis.getVoices()) || ++tries > 50) clearInterval(retry);
   }, 200);
   // Fallback voiceschanged
   window.speechSynthesis.addEventListener('voiceschanged', function _hp(){
