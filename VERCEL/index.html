@@ -870,6 +870,7 @@ body.imm-on #p-analyse{display:block!important;}
 body.imm-on #analyse-page-header{display:none!important;}
 body.imm-on #cardsGrid{display:none!important;}
 body.imm-on #imm-bg{display:block;}
+body.imm-on #imm-bg-dark{opacity:0;}
 body.imm-on #imm-ring{display:block;}
 body.imm-on #imm-carousel-wrap{display:block;}
 body.imm-on #detailContainer{
@@ -877,7 +878,7 @@ body.imm-on #detailContainer{
   overflow-y:auto;background:rgba(3,10,22,.90);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
   padding:0;margin-left:0;}
 body.imm-on #detailContainer:empty{background:transparent;}
-body.imm-on.imm-split #detailContainer{display:block;}
+body.imm-on.imm-split #detailContainer{display:block;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;}
 
 .imm-hc{
   position:absolute;pointer-events:auto;
@@ -886,17 +887,17 @@ body.imm-on.imm-split #detailContainer{display:block;}
   border:1.5px solid rgba(79,195,247,.34);border-radius:16px;
   color:#ddf0ff;cursor:pointer;
   box-shadow:0 5px 28px rgba(0,0,0,.60),0 0 14px rgba(79,195,247,.06);
-  display:flex;flex-direction:column;align-items:center;gap:.45rem;
-  text-align:center;padding:1.1rem 1.2rem 1rem;
+  display:flex;flex-direction:column;align-items:center;gap:.45em;
+  text-align:center;padding:1em 1.1em .9em;font-size:1rem;
   will-change:transform;transition:box-shadow .18s,border-color .18s;}
 .imm-hc::before{content:'';position:absolute;inset:0;border-radius:16px;
   background:linear-gradient(135deg,rgba(79,195,247,.06),transparent 55%);pointer-events:none;}
 .imm-hc:hover{border-color:rgba(79,195,247,.82);
   box-shadow:0 8px 44px rgba(0,0,0,.70),0 0 55px rgba(79,195,247,.48);}
-.imm-hc-i{font-size:2rem;line-height:1;filter:drop-shadow(0 0 8px rgba(79,195,247,.6));}
-.imm-hc-n{font-size:.88rem;font-weight:700;letter-spacing:.02em;line-height:1.25;color:#e6f8ff;}
-.imm-hc-t{font-size:.7rem;color:rgba(79,195,247,.62);font-weight:300;}
-.imm-hc-v{font-size:.82rem;font-weight:700;color:#e6f8ff;letter-spacing:.01em;}
+.imm-hc-i{font-size:2em;line-height:1;filter:drop-shadow(0 0 8px rgba(79,195,247,.6));}
+.imm-hc-n{font-size:.88em;font-weight:700;letter-spacing:.02em;line-height:1.25;color:#e6f8ff;}
+.imm-hc-t{font-size:.7em;color:rgba(79,195,247,.62);font-weight:300;}
+.imm-hc-v{font-size:.82em;font-weight:700;color:#e6f8ff;letter-spacing:.01em;}
 .imm-spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(79,195,247,.25);
   border-top-color:rgba(79,195,247,.8);border-radius:50%;animation:immSpin .7s linear infinite;}
 @keyframes immSpin{to{transform:rotate(360deg);}}
@@ -914,11 +915,12 @@ body.imm-on.imm-split #detailContainer{display:block;}
 
 body.imm-on .results-header{
   position:fixed;top:56px;left:0;right:0;z-index:100;
-  background:linear-gradient(to bottom,rgba(0,0,0,.50) 0%,transparent 100%)!important;
+  background:transparent!important;
   backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
   border-bottom:none!important;padding-bottom:.5rem;}
-body.imm-on .results-header *{color:#fff!important;text-shadow:0 1px 8px rgba(0,0,0,.9)!important;}
+body.imm-on .results-header *{color:#fff!important;text-shadow:0 2px 10px rgba(0,0,0,.95)!important;font-weight:600!important;}
 body.imm-on .back-btn{border-color:rgba(79,195,247,.4)!important;color:#4fc3f7!important;}
+body.imm-on .results-addr{justify-content:center;gap:1rem;margin-bottom:0;padding:.4rem 1rem;}
 body.imm-on #detailContainer .detail-panel{border-radius:0;min-height:calc(100vh - 56px);}
 body.imm-on #detailContainer .back-btn{margin:.75rem 1rem;}
 
@@ -1104,7 +1106,7 @@ body.imm-on #detailContainer .back-btn{margin:.75rem 1rem;}
     <div class="results-addr">
       <button class="back-btn" onclick="goHome()" style="flex-shrink:0;font-size:.95rem;padding:.55rem 1.2rem">← Nouvelle recherche</button>
     <div style="display:none"><div id="addrMain"></div><div id="addrSub"></div></div>
-    <div class="results-addr-badge" id="addrBadge">Analyse en cours…</div>
+
       <button id="imm-toggle" onclick="immToggle()">
         ✦ <span id="imm-toggle-lbl">Mode Immersif</span>
         <div class="imm-trk" id="imm-trk"><div class="imm-thm"></div></div>
@@ -2528,7 +2530,7 @@ async function analyzeAddressWithFeature(feature){
   document.getElementById('topAddr').textContent=props.label;
   document.getElementById('addrMain').textContent=props.label;
   document.getElementById('addrSub').textContent=`${props.postcode||''} ${props.city||''} · ${props.context||''}`;
-  document.getElementById('addrBadge').textContent='Analyse en cours…';
+
   document.getElementById('resultsHeader').style.display='block';
   if(typeof immShowToggle==='function') setTimeout(immShowToggle,200);
 
@@ -2648,7 +2650,7 @@ function loadAllData(props, coords){
     loadPrixCommunes(lat, lng),
     loadSeniors(lat, lng),
   ]).then(() => {
-    document.getElementById('addrBadge').textContent = '✓ Analyse complète';
+
     computeLoyersEstimates();
     computeScoreQuartier();
     window._analysisReady = true;
@@ -9923,10 +9925,10 @@ const STEP     = 28;
 const N        = IMM_ITEMS.length;
 const START    = -(N-1)*STEP/2;
 const VIS      = 118;
-const CARD_W   = 185;
-const CY_RATIO = 0.55;
-const R_RATIO  = 0.42;
-const SEC_OFF  = -112;
+const CARD_W   = 200;
+const CY_RATIO = 0.63;
+const R_RATIO  = 0.36;
+const SEC_OFF  = -100;
 const ROT_INIT = (N-1)*STEP/2;
 const PNL_W    = 360;   // largeur panneau carousel (px)
 
@@ -9942,8 +9944,9 @@ function snapImmTgt(){
 // ── Rendu carousel (dans le panneau gauche 360px) ────────────────────────
 function immRender(){
   const W = window.innerWidth, H = window.innerHeight;
+  const isSplit = document.body.classList.contains('imm-split');
   const R  = H * R_RATIO;
-  const cx = W * 0.5;
+  const cx = isSplit ? W * 0.28 : W * 0.5;
   const cy = H * CY_RATIO;
   const layer = document.getElementById('imm-cl');
   if (!layer) return;
@@ -9956,7 +9959,7 @@ function immRender(){
     const x    = cx + R * Math.sin(rad);
     const y    = cy - R * Math.cos(rad);
     const fall = Math.max(0, Math.cos(ang * Math.PI / (2*VIS)));
-    const sc   = 0.38 + fall * 0.62;
+    const sc   = 0.52 + fall * 0.48;
     const op   = 0.22 + fall * 0.78;
     const zB   = Math.round(sc*100) + 10;
 
@@ -9972,15 +9975,15 @@ function immRender(){
 
     // Carte
     const isCenter = Math.abs(ang) < 9;
-    const w = Math.round(CARD_W * Math.max(0.65, sc));
+    const w = Math.round(CARD_W * Math.max(0.70, sc));
+    const fSize = (0.55 + sc * 0.45).toFixed(2);
     const el = document.createElement('div');
     el.className = 'imm-hc' + (isCenter ? ' imm-active' : '');
-    // Score color si données disponibles
     const scoreClass = immGetScoreClass(item.fn);
     if (scoreClass) el.classList.add(scoreClass);
 
-    el.style.cssText = `left:${x}px;top:${y}px;width:${w}px;`
-      + `transform:translate(-50%,-50%) scale(${sc});`
+    el.style.cssText = `left:${x}px;top:${y}px;width:${w}px;font-size:${fSize}rem;`
+      + `transform:translate(-50%,-50%);`
       + `opacity:${op};z-index:${zB};`;
 
     const loading = !window._analysisReady;
@@ -10020,8 +10023,8 @@ function immOpenCard(item) {
   }
   // Passer en split-screen
   document.body.classList.add('imm-split');
-  // Marquer la carte active dans le carousel
   immActive = item.fn;
+  immSizeRing();
   immRender();
 }
 
@@ -10088,9 +10091,11 @@ document.addEventListener('wheel', e => {
 // ── Anneau holographique ────────────────────────────────────────────────
 function immSizeRing(){
   const W = window.innerWidth, H = window.innerHeight;
+  const isSplit = document.body.classList.contains('imm-split');
+  const cx = isSplit ? W * 0.28 : W * 0.5;
   const sz = Math.round(H * R_RATIO * 2 * 0.95);
   const rw = document.getElementById('imm-ring');
-  if (rw) rw.style.cssText = `width:${sz}px;height:${sz}px;left:${W*0.5}px;top:${H*CY_RATIO}px;`;
+  if (rw) rw.style.cssText = `width:${sz}px;height:${sz}px;left:${cx}px;top:${H*CY_RATIO}px;`;
 }
 
 // ── Toggle ON/OFF ───────────────────────────────────────────────────────
@@ -10150,7 +10155,8 @@ const _origGoHome = typeof goHome === 'function' ? goHome : null;
 window.immShowToggle = function(){
   const tog = document.getElementById('imm-toggle');
   if (tog && window.innerWidth >= 1024) tog.style.display = 'flex';
-  // Appliquer le mode mémorisé
+  // Restaurer depuis localStorage si l'utilisateur avait le mode actif
+  if (!_immOn && localStorage.getItem('immoai_imm_mode') === '1') _immOn = true;
   _immApply();
 };
 
