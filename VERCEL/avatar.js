@@ -323,16 +323,6 @@ function togglePanel(){
   document.getElementById('av-panel').classList.toggle('open', panelOpen);
   if(!panelOpen){ stopSpeak(); return; }
   if(panelOpen && !avatarModel) setTimeout(initThree, 100);
-  if(panelOpen && !window._audioActivated){
-    // Activer l'audio context au premier clic (requis iOS/Android)
-    try {
-      const _a = new SpeechSynthesisUtterance('');
-      _a.volume = 0; _a.rate = 10;
-      window.speechSynthesis.cancel();
-      window.speechSynthesis.speak(_a);
-      window._audioActivated = true;
-    } catch(e){}
-  }
   if(panelOpen && history.length===0) setTimeout(()=>avatarGreet(), 800);
 }
 
@@ -518,7 +508,6 @@ function testVoice(){
         if(!found && isMale) utt.pitch = Math.min(p, 0.75);
       }
     }
-    window.speechSynthesis.resume();
     window.speechSynthesis.speak(utt);
   }
   const voices = window.speechSynthesis.getVoices();
@@ -581,8 +570,6 @@ function speak(text){
   currentUtterance.onstart = function(){ isSpeaking=true; setStatus('Parle…'); };
   currentUtterance.onend = function(){ isSpeaking=false; setStatus(''); };
   currentUtterance.onerror = function(){ isSpeaking=false; setStatus(''); };
-  // Fix bug Chrome mobile : speechSynthesis peut se bloquer en pause
-  window.speechSynthesis.resume();
   window.speechSynthesis.speak(currentUtterance);
 }
 
@@ -832,7 +819,7 @@ dataCtx + "\n" +
 "5. Tu peux mentionner plusieurs cartes dans une meme reponse.\n" +
 "6. JAMAIS d'information exterieure ou inventee. Si absent des donnees = 'Cette information n'est pas dans l'analyse IMMO-AI.'\n" +
 "7. Si une donnee demandee n'est pas encore chargee ou renseignee (simulateur vide, carte non ouverte), ouvre la carte correspondante avec [CARD:id] et invite l'utilisateur a la consulter ou renseigner ses informations.\n" +
-"REGLE ABSOLUE : Des que tu mentionnes une section ou un simulateur, tu DOIS terminer ta reponse par [CARD:id] correspondant. TOUJOURS. Sans exception. Exemple : '...consultez la carte Score global du quartier [CARD:score]'";
+"REGLE ABSOLUE : Des que tu mentionnes une section ou un simulateur, tu DOIS terminer ta reponse par [CARD:id] correspondant. TOUJOURS. Sans exception.";
 }
 
 
@@ -884,12 +871,12 @@ function populateVoiceSelect(){
   function fill(voices){
     if(!voices.length) return false;
     const frVoices = voices.filter(v=>v.lang.startsWith('fr'));
-    const displayVoices = frVoices.length ? frVoices : voices; // fallback: toutes les voix si pas de fr
+    const displayVoices = frVoices.length ? frVoices : voices;
     sel.innerHTML = '<option value="">Auto (par défaut)</option>';
     displayVoices.forEach(v=>{
       const opt = document.createElement('option');
       opt.value = v.name;
-      const tag = v.lang.startsWith('fr') ? '' : ' ['+v.lang+']';
+      const tag = frVoices.length ? '' : ' ['+v.lang+']';
       opt.textContent = v.name + tag + (v.localService?' 💾':' 🌐');
       if(prefs.voix===v.name) opt.selected=true;
       sel.appendChild(opt);
