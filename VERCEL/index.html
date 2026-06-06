@@ -1020,6 +1020,11 @@ path.leaflet-interactive:focus{outline:none;}
   <!-- ══ ANALYSE COMPLÈTE ══ -->
   <div class="page" id="p-analyse">
 
+    <div id="analyse-page-header" style="padding:1rem 1rem .25rem;display:none">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:1.25rem;color:var(--gold2);font-weight:600;letter-spacing:.03em">Mon bien</div>
+      <div id="analyse-page-addr" style="font-size:.72rem;color:var(--muted);margin-top:.15rem"></div>
+    </div>
+
     <div class="cards-grid" id="cardsGrid">
       <!-- Cartes générées dynamiquement -->
     </div>
@@ -2406,6 +2411,11 @@ async function analyzeAddressWithFeature(feature){
   window._prixCommunesData = null;    // invalider le cache prix communes
   window._deptContoursCache = {};     // invalider le cache des contours (nouvelle adresse)
 
+  // Mettre à jour en-tête page analyse
+  const _ph = document.getElementById('analyse-page-header');
+  const _pa = document.getElementById('analyse-page-addr');
+  if(_ph) _ph.style.display = 'block';
+  if(_pa) _pa.textContent = props.label;
   // Mettre à jour topbar
   document.getElementById('topAddr').textContent=props.label;
   document.getElementById('addrMain').textContent=props.name||props.label;
