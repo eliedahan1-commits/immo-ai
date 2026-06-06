@@ -862,8 +862,8 @@ path.leaflet-interactive:focus{outline:none;}
 @keyframes immPr{0%,100%{opacity:.4;}50%{opacity:.82;}}
 @keyframes immSp{to{transform:rotate(360deg);}}
 
-#imm-carousel-wrap{display:none;position:fixed;top:56px;left:0;bottom:0;z-index:10;
-  width:45vw;min-width:380px;pointer-events:none;overflow:hidden;}
+#imm-carousel-wrap{display:none;position:fixed;inset:0;z-index:10;
+  pointer-events:none;overflow:hidden;}
 #imm-cl{position:absolute;inset:0;pointer-events:none;}
 
 body.imm-on #p-analyse{display:block!important;}
@@ -873,10 +873,10 @@ body.imm-on #imm-bg{display:block;}
 body.imm-on #imm-ring{display:block;}
 body.imm-on #imm-carousel-wrap{display:block;}
 body.imm-on #detailContainer{
-  display:none;position:fixed;left:45vw;top:56px;right:0;bottom:0;z-index:15;
-  overflow-y:auto;background:rgba(3,10,22,.88);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
-  border-left:1px solid rgba(79,195,247,.18);padding:0;margin-left:0;}
-body.imm-on #detailContainer:empty{background:transparent;border:none;}
+  display:none;position:fixed;left:45%;top:56px;right:0;bottom:0;z-index:20;
+  overflow-y:auto;background:rgba(3,10,22,.90);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
+  padding:0;margin-left:0;}
+body.imm-on #detailContainer:empty{background:transparent;}
 body.imm-on.imm-split #detailContainer{display:block;}
 
 .imm-hc{
@@ -896,6 +896,7 @@ body.imm-on.imm-split #detailContainer{display:block;}
 .imm-hc-i{font-size:2rem;line-height:1;filter:drop-shadow(0 0 8px rgba(79,195,247,.6));}
 .imm-hc-n{font-size:.88rem;font-weight:700;letter-spacing:.02em;line-height:1.25;color:#e6f8ff;}
 .imm-hc-t{font-size:.7rem;color:rgba(79,195,247,.62);font-weight:300;}
+.imm-hc-v{font-size:.82rem;font-weight:700;color:#e6f8ff;letter-spacing:.01em;}
 .imm-spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(79,195,247,.25);
   border-top-color:rgba(79,195,247,.8);border-radius:50%;animation:immSpin .7s linear infinite;}
 @keyframes immSpin{to{transform:rotate(360deg);}}
@@ -913,14 +914,15 @@ body.imm-on.imm-split #detailContainer{display:block;}
 
 body.imm-on .results-header{
   position:fixed;top:56px;left:0;right:0;z-index:100;
-  background:rgba(3,10,22,.88)!important;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
-  border-bottom:1px solid rgba(79,195,247,.18);}
-body.imm-on .results-header *{color:#c8e8ff!important;}
+  background:linear-gradient(to bottom,rgba(0,0,0,.50) 0%,transparent 100%)!important;
+  backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+  border-bottom:none!important;padding-bottom:.5rem;}
+body.imm-on .results-header *{color:#fff!important;text-shadow:0 1px 8px rgba(0,0,0,.9)!important;}
 body.imm-on .back-btn{border-color:rgba(79,195,247,.4)!important;color:#4fc3f7!important;}
 body.imm-on #detailContainer .detail-panel{border-radius:0;min-height:calc(100vh - 56px);}
 body.imm-on #detailContainer .back-btn{margin:.75rem 1rem;}
 
-#imm-hint{display:none;position:fixed;bottom:14px;left:22vw;transform:translateX(-50%);
+#imm-hint{display:none;position:fixed;bottom:14px;left:50%;transform:translateX(-50%);
   color:rgba(79,195,247,.35);font-size:.65rem;letter-spacing:.1em;pointer-events:none;
   z-index:11;animation:immFh .7s ease 5s forwards;}
 @keyframes immFh{to{opacity:0;}}
@@ -9874,37 +9876,37 @@ if(navigator.permissions){
 // ── Sections (même ordre que la vue classique) ──────────────────────────
 const IMM_SECTIONS = [
   { label:'Mon Quartier', color:'rgba(79,195,247,.95)', cards:[
-    { icon:'⭐', name:'Score global',              tag:'du quartier',        fn:'showScoreDetail' },
-    { icon:'🛒', name:'Commerces & santé',         tag:'services',           fn:'showServicesMap' },
-    { icon:'🚌', name:'Transports',                tag:'mobilité douce',     fn:'showMobiliteDetail' },
-    { icon:'🎓', name:'Écoles',                    tag:'niveau scolaire',    fn:'showEcolesDetail' },
-    { icon:'🌤️', name:'Météo & air',               tag:'climat local',       fn:'showMeteoDetail' },
-    { icon:'📈', name:'Population & société',      tag:'données INSEE',      fn:'showDemographieDetail' },
-    { icon:'👥', name:'Démographie',               tag:'attractivité',       fn:'showDemographieDetail' },
-    { icon:'🏘️', name:'Logement & habitat',        tag:'parc immobilier',    fn:'showLogementDetail' },
-    { icon:'⚠️', name:'Risques naturels',          tag:'Géorisques',         fn:'showRisquesDetail' },
-    { icon:'🏔️', name:'Altitude & topographie',   tag:'terrain',            fn:'showAltitudeDetail' },
-    { icon:'🔊', name:'Carte du bruit',            tag:'Bruitparif',         fn:'showBruitDetail' },
-    { icon:'📡', name:'Internet & fibre',          tag:'débit',              fn:'showFibreDetail' },
-    { icon:'🗺️', name:'PLU & réglementation',      tag:'zonage',             fn:'showUrbanismeDetail' },
+    { icon:'⭐', name:'Score global',              tag:'du quartier',        fn:'showScoreDetail',    valId:'score' },
+    { icon:'🛒', name:'Commerces & santé',         tag:'services',           fn:'showServicesMap',    valId:'services' },
+    { icon:'🚌', name:'Transports',                tag:'mobilité douce',     fn:'showMobiliteDetail', valId:'mobilite' },
+    { icon:'🎓', name:'Écoles',                    tag:'niveau scolaire',    fn:'showEcolesDetail',   valId:'ecoles' },
+    { icon:'🌤️', name:'Météo & air',               tag:'climat local',       fn:'showMeteoDetail',    valId:'meteo' },
+    { icon:'📈', name:'Population & société',      tag:'données INSEE',      fn:'showDemographieDetail', valId:'insee' },
+    { icon:'👥', name:'Démographie',               tag:'attractivité',       fn:'showDemographieDetail', valId:'demographie' },
+    { icon:'🏘️', name:'Logement & habitat',        tag:'parc immobilier',    fn:'showLogementDetail', valId:'logement' },
+    { icon:'⚠️', name:'Risques naturels',          tag:'Géorisques',         fn:'showRisquesDetail',  valId:'risques' },
+    { icon:'🏔️', name:'Altitude & topographie',   tag:'terrain',            fn:'showAltitudeDetail', valId:'altitude' },
+    { icon:'🔊', name:'Carte du bruit',            tag:'Bruitparif',         fn:'showBruitDetail',    valId:'bruit' },
+    { icon:'📡', name:'Internet & fibre',          tag:'débit',              fn:'showFibreDetail',    valId:'fibre' },
+    { icon:'🗺️', name:'PLU & réglementation',      tag:'zonage',             fn:'showUrbanismeDetail', valId:'urbanisme' },
   ]},
   { label:'Prix des Biens', color:'rgba(255,180,50,.95)', cards:[
-    { icon:'📊', name:'Prix & transactions',       tag:'DVF · DGFiP',        fn:'showDVFDetail' },
-    { icon:'💶', name:'Estimation des loyers',     tag:'marché local',       fn:'showLoyersDetail' },
-    { icon:'📍', name:'Prix au m² par commune',    tag:'carte interactive',  fn:'showPrixCarte' },
+    { icon:'📊', name:'Prix & transactions',       tag:'DVF · DGFiP',        fn:'showDVFDetail',      valId:'dvf' },
+    { icon:'💶', name:'Estimation des loyers',     tag:'marché local',       fn:'showLoyersDetail',   valId:'loyers' },
+    { icon:'📍', name:'Prix au m² par commune',    tag:'carte interactive',  fn:'showPrixCarte',      valId:'prixCommunes' },
   ]},
   { label:'Mon Financement', color:'rgba(110,220,160,.95)', cards:[
-    { icon:'💰', name:"Capacité d'emprunt",        tag:'budget max',         fn:'showEmpruntDetail' },
-    { icon:'📅', name:'Mensualités & crédit',      tag:'coût total',         fn:'showCoutDetail' },
-    { icon:'🏠', name:'Investissement locatif',    tag:'rendement',          fn:'showInvestDetail' },
-    { icon:'🏢', name:'Location : budget',         tag:'comparaison',        fn:'showLocationDetail' },
-    { icon:'🎁', name:"Aides à l'achat",           tag:'PTZ · APL',          fn:'showAidesDetail' },
-    { icon:'🔨', name:"MaPrimeRénov'",             tag:'travaux',            fn:'showRenovDetail' },
+    { icon:'💰', name:"Capacité d'emprunt",        tag:'budget max',         fn:'showEmpruntDetail',  valId:'emprunt' },
+    { icon:'📅', name:'Mensualités & crédit',      tag:'coût total',         fn:'showCoutDetail',     valId:'mensualites' },
+    { icon:'🏠', name:'Investissement locatif',    tag:'rendement',          fn:'showInvestDetail',   valId:'cout' },
+    { icon:'🏢', name:'Location : budget',         tag:'comparaison',        fn:'showLocationDetail', valId:'location' },
+    { icon:'🎁', name:"Aides à l'achat",           tag:'PTZ · APL',          fn:'showAidesDetail',    valId:'aides' },
+    { icon:'🔨', name:"MaPrimeRénov'",             tag:'travaux',            fn:'showRenovDetail',    valId:'renov' },
   ]},
   { label:'Ma Stratégie', color:'rgba(200,130,255,.95)', cards:[
-    { icon:'🔍', name:'Trouver un bien',           tag:'annonces filtrées',  fn:'showAnnoncesDetail' },
-    { icon:'🤝', name:"Coaching de l'offre",       tag:'négociation',        fn:'showOffreDetail' },
-    { icon:'👤', name:'Compatibilité de vie',      tag:'votre profil',       fn:'showProfilDetail' },
+    { icon:'🔍', name:'Trouver un bien',           tag:'annonces filtrées',  fn:'showAnnoncesDetail', valId:'recherche' },
+    { icon:'🤝', name:"Coaching de l'offre",       tag:'négociation',        fn:'showOffreDetail',    valId:'offre' },
+    { icon:'👤', name:'Compatibilité de vie',      tag:'votre profil',       fn:'showProfilDetail',   valId:'profil' },
   ]},
 ];
 
@@ -9921,10 +9923,10 @@ const STEP     = 28;
 const N        = IMM_ITEMS.length;
 const START    = -(N-1)*STEP/2;
 const VIS      = 118;
-const CARD_W   = 120;
-const CY_RATIO = 0.48;
-const R_RATIO  = 0.38;
-const SEC_OFF  = -100;
+const CARD_W   = 185;
+const CY_RATIO = 0.55;
+const R_RATIO  = 0.42;
+const SEC_OFF  = -112;
 const ROT_INIT = (N-1)*STEP/2;
 const PNL_W    = 360;   // largeur panneau carousel (px)
 
@@ -9939,13 +9941,10 @@ function snapImmTgt(){
 
 // ── Rendu carousel (dans le panneau gauche 360px) ────────────────────────
 function immRender(){
-  const H  = window.innerHeight;
-  const _wrapEl = document.getElementById('imm-carousel-wrap');
-  const wrapW = (_wrapEl && _wrapEl.getBoundingClientRect().width > 0)
-    ? _wrapEl.getBoundingClientRect().width : window.innerWidth * 0.45;
+  const W = window.innerWidth, H = window.innerHeight;
   const R  = H * R_RATIO;
-  const cx = wrapW * 0.50;
-  const cy = (H - 56) * CY_RATIO + 56;   // offset header 56px
+  const cx = W * 0.5;
+  const cy = H * CY_RATIO;
   const layer = document.getElementById('imm-cl');
   if (!layer) return;
   layer.innerHTML = '';
@@ -9985,11 +9984,18 @@ function immRender(){
       + `opacity:${op};z-index:${zB};`;
 
     const loading = !window._analysisReady;
+    let _immVal = '';
+    if (!loading && item.valId) {
+      const _ve = document.getElementById('val-' + item.valId);
+      if (_ve) { const _t = _ve.textContent.trim(); if (_t && !_t.endsWith('\u2192')) _immVal = _t; }
+    }
     el.innerHTML = `<div class="imm-hc-i">${item.icon}</div>`
       + `<div class="imm-hc-n">${item.name}</div>`
       + (loading
         ? `<span class="imm-spin"></span>`
-        : `<div class="imm-hc-t">${item.tag}</div>`);
+        : (_immVal
+          ? `<div class="imm-hc-v">${_immVal}</div>`
+          : `<div class="imm-hc-t">${item.tag}</div>`));
 
     el.addEventListener('click', () => immOpenCard(item));
     layer.appendChild(el);
@@ -10081,12 +10087,10 @@ document.addEventListener('wheel', e => {
 
 // ── Anneau holographique ────────────────────────────────────────────────
 function immSizeRing(){
-  const H = window.innerHeight;
-  const _we = document.getElementById('imm-carousel-wrap');
-  const _ww = (_we && _we.getBoundingClientRect().width > 0) ? _we.getBoundingClientRect().width : window.innerWidth * 0.45;
+  const W = window.innerWidth, H = window.innerHeight;
   const sz = Math.round(H * R_RATIO * 2 * 0.95);
   const rw = document.getElementById('imm-ring');
-  if (rw) rw.style.cssText = `width:${sz}px;height:${sz}px;left:${_ww*0.50}px;top:${(H-56)*CY_RATIO+56}px;`;
+  if (rw) rw.style.cssText = `width:${sz}px;height:${sz}px;left:${W*0.5}px;top:${H*CY_RATIO}px;`;
 }
 
 // ── Toggle ON/OFF ───────────────────────────────────────────────────────
