@@ -323,6 +323,16 @@ function togglePanel(){
   document.getElementById('av-panel').classList.toggle('open', panelOpen);
   if(!panelOpen){ stopSpeak(); return; }
   if(panelOpen && !avatarModel) setTimeout(initThree, 100);
+  if(panelOpen && !window._audioActivated){
+    // Activer l'audio context au premier clic (requis iOS/Android)
+    try {
+      const _a = new SpeechSynthesisUtterance('');
+      _a.volume = 0; _a.rate = 10;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(_a);
+      window._audioActivated = true;
+    } catch(e){}
+  }
   if(panelOpen && history.length===0) setTimeout(()=>avatarGreet(), 800);
 }
 
@@ -508,6 +518,7 @@ function testVoice(){
         if(!found && isMale) utt.pitch = Math.min(p, 0.75);
       }
     }
+    window.speechSynthesis.resume();
     window.speechSynthesis.speak(utt);
   }
   const voices = window.speechSynthesis.getVoices();
@@ -570,6 +581,8 @@ function speak(text){
   currentUtterance.onstart = function(){ isSpeaking=true; setStatus('Parle…'); };
   currentUtterance.onend = function(){ isSpeaking=false; setStatus(''); };
   currentUtterance.onerror = function(){ isSpeaking=false; setStatus(''); };
+  // Fix bug Chrome mobile : speechSynthesis peut se bloquer en pause
+  window.speechSynthesis.resume();
   window.speechSynthesis.speak(currentUtterance);
 }
 
@@ -869,13 +882,15 @@ function populateVoiceSelect(){
   const sel = document.getElementById('av-pref-voix');
   if(!sel) return;
   function fill(voices){
+    if(!voices.length) return false;
     const frVoices = voices.filter(v=>v.lang.startsWith('fr'));
-    if(!frVoices.length) return false;
+    const displayVoices = frVoices.length ? frVoices : voices; // fallback: toutes les voix si pas de fr
     sel.innerHTML = '<option value="">Auto (par défaut)</option>';
-    frVoices.forEach(v=>{
+    displayVoices.forEach(v=>{
       const opt = document.createElement('option');
       opt.value = v.name;
-      opt.textContent = v.name + (v.localService?' 💾':' 🌐');
+      const tag = v.lang.startsWith('fr') ? '' : ' ['+v.lang+']';
+      opt.textContent = v.name + tag + (v.localService?' 💾':' 🌐');
       if(prefs.voix===v.name) opt.selected=true;
       sel.appendChild(opt);
     });

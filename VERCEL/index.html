@@ -805,7 +805,7 @@ path.leaflet-interactive:focus{outline:none;}
   .results-addr-icon     { order:99; display:none; }
   .results-addr-text     { order:3; width:100%; }
   .results-addr-main     { font-size:.85rem; }
-  .results-addr-sub      { font-size:.62rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+  .results-addr-sub      { font-size:.62rem; white-space:normal; overflow:visible; max-width:100%; }
 
   /* Titres encore plus compacts */
   .ptitle                { font-size:1.25rem; }
@@ -2418,7 +2418,7 @@ async function analyzeAddressWithFeature(feature){
   if(_pa) _pa.textContent = props.label;
   // Mettre à jour topbar
   document.getElementById('topAddr').textContent=props.label;
-  document.getElementById('addrMain').textContent=props.name||props.label;
+  document.getElementById('addrMain').textContent=props.label;
   document.getElementById('addrSub').textContent=`${props.postcode||''} ${props.city||''} · ${props.context||''}`;
   document.getElementById('addrBadge').textContent='Analyse en cours…';
   document.getElementById('resultsHeader').style.display='block';
