@@ -924,6 +924,7 @@ body.imm-on .back-btn{border-color:rgba(79,195,247,.4)!important;color:#4fc3f7!i
 body.imm-on #hamburgerBtn{display:none!important;}
 body.imm-on .results-addr{justify-content:flex-start!important;gap:.9rem!important;margin-bottom:0!important;padding:.4rem 1.5rem!important;max-width:44%;flex-wrap:nowrap;pointer-events:auto!important;}
 body.imm-on .results-addr .back-btn{padding:.38rem .85rem!important;}
+.results-addr>button{height:34px;box-sizing:border-box;display:flex;align-items:center;}
 body.imm-on .card-retry-btn{border-color:rgba(79,195,247,.45)!important;color:rgba(79,195,247,.85)!important;background:rgba(5,15,34,.6)!important;}
 body.imm-on .card-retry-btn:hover{border-color:#4fc3f7!important;color:#4fc3f7!important;}
 body.imm-on #detailContainer .detail-panel{border-radius:0;min-height:calc(100vh - 56px);}
@@ -1109,7 +1110,7 @@ body.imm-on #detailContainer .back-btn{margin:.75rem 1rem;}
   <!-- ══ BANDEAU ADRESSE (persistant) ══ -->
   <div class="results-header" id="resultsHeader" style="display:none">
     <div class="results-addr">
-      <button class="back-btn" onclick="goHome()" style="flex-shrink:0;font-size:.82rem;padding:.38rem 1rem;display:flex;align-items:center">← Nouvelle recherche</button>
+      <button class="back-btn" onclick="goHome()" style="flex-shrink:0;font-size:.78rem;padding:.38rem 1rem">← Nouvelle recherche</button>
     <div style="display:none"><div id="addrMain"></div><div id="addrSub"></div></div>
 
       <button id="imm-toggle" onclick="immToggle()">
