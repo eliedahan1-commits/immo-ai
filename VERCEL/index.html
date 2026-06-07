@@ -1632,6 +1632,22 @@ body.imm-on #detailContainer .back-btn{margin:.75rem 1rem;}
           <div id="locFiscaliteRP" style="font-size:.68rem;color:var(--muted);margin:.3rem 0 .5rem;padding:.5rem .6rem;background:var(--warm);border-radius:var(--r);border:1px solid var(--border)">
             ✅ Résidence principale : exonération totale d'impôt sur la plus-value en France.
           </div>
+          <div style="border-top:1px solid var(--border);margin:.75rem 0 .5rem"></div>
+          <div class="ctitle" style="font-size:.7rem;margin-bottom:.4rem">🏦 Assurance & frais annexes achat</div>
+          <label class="lbl">Assurance emprunteur (%/an) <span style="font-weight:400;color:var(--muted);font-size:.75em">— défaut 0,25%</span></label>
+          <input class="inp" id="locAssur" type="number" value="0.25" step="0.05" min="0" max="2" />
+          <label class="lbl">Garantie de prêt (%/montant emprunté) <span style="font-weight:400;color:var(--muted);font-size:.75em">— caution, ~1%</span></label>
+          <input class="inp" id="locGarantie" type="number" value="1" step="0.1" min="0" max="3" />
+          <label class="lbl">Travaux initiaux (€) <span style="font-weight:400;color:var(--muted);font-size:.75em">— repris depuis DPE si renseigné</span></label>
+          <input class="inp" id="locTravaux" type="number" placeholder="0" value="0" />
+          <label class="lbl">Entretien & réparations (%/an valeur bien) <span style="font-weight:400;color:var(--muted);font-size:.75em">— ~0,75%/an</span></label>
+          <input class="inp" id="locEntretien" type="number" value="0.75" step="0.25" min="0" max="3" />
+          <label class="lbl">Inflation charges & taxe foncière (%/an)</label>
+          <input class="inp" id="locInflatCharges" type="number" value="2" step="0.5" min="0" max="5" />
+          <div style="border-top:1px solid var(--border);margin:.75rem 0 .5rem"></div>
+          <div class="ctitle" style="font-size:.7rem;margin-bottom:.4rem">📈 Coût d'opportunité</div>
+          <label class="lbl">Rendement placement alternatif (%/an) <span style="font-weight:400;color:var(--muted);font-size:.75em">— ETF, SCPI... défaut 4%</span></label>
+          <input class="inp" id="locRendPlacement" type="number" value="4" step="0.5" min="0" max="15" />
           <button class="btn btn-dark btn-full" onclick="calcLocVsAchat()" style="margin-top:.5rem">✦ Comparer</button>
         </div>
         <div id="resLocVsAchat">
@@ -8711,6 +8727,12 @@ function initLocationPage(){
     const prixEstime = Math.round(prixM2 * surf);
     const elP = document.getElementById("locPrixAchat"); if(elP && !elP._userModified) elP.value = prixEstime;
   }
+  // Assurance depuis mensualités
+  const assur = parseFloat(document.getElementById("mAssur")?.value)||0.25;
+  const elA = document.getElementById("locAssur"); if(elA && !elA._userModified) elA.value = assur;
+  // Travaux depuis vrai coût du bien (DPE)
+  const travaux = window._coutResult?.travaux || 0;
+  const elT = document.getElementById("locTravaux"); if(elT && !elT._userModified && travaux>0) elT.value = travaux;
   // Checklist
   renderLocChecklist();
 }
@@ -8790,24 +8812,32 @@ function calcLocVsAchat(){
   const loyer0   = pf("locLoyerMens", 0);
   const prix     = pf("locPrixAchat", 0);
   if(!loyer0 || !prix){ toast("Renseignez le loyer et le prix d'achat.","err"); return; }
-  const apport   = pf("locApport", 0);
-  const taux     = pf("locTaux", 3.42)/100;
-  const duree    = pf("locDuree", 20);
-  const notPct   = pf("locNotaire", 7.5)/100;
-  const chargesAchatAn = pf("locChargesAchat", 0);
-  const revaloBien = pf("locRevaloBien", 2)/100;
-  const inflatLoyer= pf("locInflatLoyer", 1.5)/100;
-  const situation  = document.getElementById("locSituation").value;
-  const fraisRevPct= pf("locFraisRevente", 5)/100;
+  const apport        = pf("locApport", 0);
+  const taux          = pf("locTaux", 3.42)/100;
+  const duree         = pf("locDuree", 20);
+  const notPct        = pf("locNotaire", 7.5)/100;
+  const chargesAchatAn= pf("locChargesAchat", 3000);
+  const revaloBien    = pf("locRevaloBien", 2)/100;
+  const inflatLoyer   = pf("locInflatLoyer", 1.5)/100;
+  const situation     = document.getElementById("locSituation").value;
+  const fraisRevPct   = pf("locFraisRevente", 5)/100;
+  // Nouveaux paramètres
+  const assurPct      = pf("locAssur", 0.25)/100;
+  const garantiePct   = pf("locGarantie", 1)/100;
+  const travaux       = pf("locTravaux", 0);
+  const entretienPct  = pf("locEntretien", 0.75)/100;
+  const inflatCharges = pf("locInflatCharges", 2)/100;
+  const rendPlacement = pf("locRendPlacement", 4)/100;
 
   const montant  = prix - apport;
   const notaire  = Math.round(prix * notPct);
+  const garantie = Math.round(montant * garantiePct);
   const n = duree * 12;
   const t = taux / 12;
   const factor = t > 0 ? t / (1 - Math.pow(1+t,-n)) : 1/n;
-  const mens    = Math.round(montant * factor);
-  const assurMens = Math.round(montant * 0.0025 / 12);
-  const mensTot = mens + assurMens;
+  const mens      = Math.round(montant * factor);
+  const assurMens = Math.round(montant * assurPct / 12);
+  const mensTot   = mens + assurMens;
 
   function calcTaxePV(pvBrute, annees){
     if(situation === "rp" || pvBrute <= 0) return 0;
@@ -8823,42 +8853,70 @@ function calcLocVsAchat(){
   }
 
   const labelsYr = [], cumLoc = [], cumAch = [], valBienArr = [];
-  let totalLoc = 0, totalAch = apport + notaire, restant = montant;
-  let crossoverYr = null;
+  // Achat : frais initiaux (apport + notaire + garantie + travaux)
+  let totalLoc = 0;
+  let totalAch = apport + notaire + garantie + travaux;
+  let restant = montant;
+  let entretienCumul = 0;
+  let chargesCumul   = 0;
+  let crossoverYr    = null;
+
+  // Portefeuilles d'investissement
+  // Locataire : investit l'apport dès le départ
+  // Acheteur  : investit uniquement les surplus mensuels s'il en a
+  let portLoc = apport;
+  let portAch = 0;
 
   for(let yr = 1; yr <= duree; yr++){
-    const loyerAn = Math.round(loyer0 * 12 * Math.pow(1+inflatLoyer, yr-1));
+    const loyerAn    = Math.round(loyer0 * 12 * Math.pow(1+inflatLoyer, yr-1));
+    const chargesAn  = Math.round(chargesAchatAn * Math.pow(1+inflatCharges, yr-1));
+    const valBienYr  = prix * Math.pow(1+revaloBien, yr);
+    const entretienAn= Math.round(valBienYr * entretienPct);
+
     totalLoc += loyerAn;
-    totalAch += mensTot * 12 + chargesAchatAn;
+    const achatAn = mensTot*12 + chargesAn + entretienAn;
+    totalAch += achatAn;
+    entretienCumul += entretienAn;
+    chargesCumul   += chargesAn;
+
+    // Remboursement capital
     for(let m=0; m<12; m++){
       const intM = restant * t;
-      const capM = mens - intM;
-      restant = Math.max(0, restant - capM);
+      restant = Math.max(0, restant - (mens - intM));
     }
-    const valBien = Math.round(prix * Math.pow(1+revaloBien, yr));
-    const valApresFrais = Math.round(valBien * (1 - fraisRevPct));
-    const pvBrute     = Math.max(0, valApresFrais - prix);
-    const taxePV      = calcTaxePV(pvBrute, yr);
-    const netRevente  = valApresFrais - taxePV - Math.max(0, restant);
-    const coutNetAch  = totalAch - Math.max(0, netRevente);
+
+    // Différence annuelle : > 0 = achat coûte plus → locataire épargne davantage
+    const diffAn = achatAn - loyerAn;
+    portLoc = (portLoc + Math.max(0,  diffAn)) * (1 + rendPlacement);
+    portAch = (portAch  + Math.max(0, -diffAn)) * (1 + rendPlacement);
+
+    // Patrimoine immobilier acheteur
+    const valBien      = Math.round(valBienYr);
+    const valApresFrais= Math.round(valBien * (1 - fraisRevPct));
+    const pvBrute      = Math.max(0, valApresFrais - prix);
+    const taxePV       = calcTaxePV(pvBrute, yr);
+    const patrimoineNet= Math.max(0, valApresFrais - taxePV - Math.max(0, restant));
+
+    // Coût net réel (après déduction des actifs constitués)
+    const coutNetAch = totalAch - patrimoineNet - portAch;
+    const coutNetLoc = totalLoc - portLoc;
 
     labelsYr.push("An "+yr);
-    cumLoc.push(Math.round(totalLoc));
+    cumLoc.push(Math.round(coutNetLoc));
     cumAch.push(Math.round(coutNetAch));
     valBienArr.push(valBien);
-    if(!crossoverYr && coutNetAch < totalLoc) crossoverYr = yr;
+    if(!crossoverYr && coutNetAch < coutNetLoc) crossoverYr = yr;
   }
 
-  const lastLoc = cumLoc[cumLoc.length-1];
-  const lastAch = cumAch[cumAch.length-1];
-  const lastValBien = valBienArr[valBienArr.length-1];
-  const lastValApresFrais = Math.round(lastValBien * (1 - fraisRevPct));
-  const lastPvBrute       = Math.max(0, lastValApresFrais - prix);
-  const lastTaxePV        = calcTaxePV(lastPvBrute, duree);
-  const patrimoineNet     = Math.max(0, lastValApresFrais - lastTaxePV - restant);
-  const coutNetAchat      = Math.round(lastAch);
-  const gain = lastLoc - lastAch;
-  const gainSign = gain >= 0 ? "+" : "";
+  const lastLoc        = cumLoc[cumLoc.length-1];
+  const lastAch        = cumAch[cumAch.length-1];
+  const lastValBien    = valBienArr[valBienArr.length-1];
+  const lastValApres   = Math.round(lastValBien * (1-fraisRevPct));
+  const lastPvBrute    = Math.max(0, lastValApres - prix);
+  const lastTaxePV     = calcTaxePV(lastPvBrute, duree);
+  const patrimoineNet  = Math.max(0, lastValApres - lastTaxePV - Math.max(0, restant));
+  const gain           = lastLoc - lastAch; // > 0 = achat plus avantageux
+  const gainSign       = gain >= 0 ? "+" : "";
 
   const crossoverTxt = crossoverYr
     ? "<span style=\"color:var(--text)\">✅ Acheter devient rentable à l'an <strong>"+crossoverYr+"</strong></span>"
@@ -8867,27 +8925,42 @@ function calcLocVsAchat(){
   function row(label, val, bold){
     return "<div class=\"result-row\">"+(bold?"<span style=\"font-weight:700\">":"<span>")+label+"</span>"+(bold?"<span style=\"font-weight:700\">":"<span>")+val+"</span></div>";
   }
+  function sep(label){
+    return "<div style=\"font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.1em;text-transform:uppercase;margin:.8rem 0 .3rem;border-top:1px solid rgba(255,255,255,.1);padding-top:.6rem\">"+label+"</div>";
+  }
 
-  const fiscalLabel = situation === "rp" ? "RP (exonéré)" : "Invest. ("+(Math.round(fraisRevPct*10000)/100).toString().replace('.',',')+"% frais)";
+  const assurCumul   = Math.round(assurMens * 12 * duree);
+  const creditCumul  = Math.round(mens * 12 * duree);
+  const fiscalLabel  = situation === "rp" ? "RP (exonéré)" : "Invest. ("+Math.round(fraisRevPct*100)+"% frais)";
+  const loyersCumuls = Math.round(loyer0 * 12 * ((Math.pow(1+inflatLoyer,duree)-1)/inflatLoyer||duree));
 
   document.getElementById("resLocVsAchat").innerHTML =
     "<div class=\"result-dark\">"+
     "<div style=\"font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem\">⚖️ Bilan sur "+duree+" ans · "+fiscalLabel+"</div>"+
     "<div class=\"result-n\" style=\"font-size:1.6rem\">"+gainSign+fmt(Math.abs(gain))+" <span style=\"font-size:.9rem;font-weight:400\">"+(gain>=0?"en faveur de l'achat":"en faveur de la location")+"</span></div>"+
     "<div style=\"margin:.6rem 0 1rem;font-size:.78rem\">"+crossoverTxt+"</div>"+
-    "<div style=\"font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.1em;text-transform:uppercase;margin:.8rem 0 .3rem;border-top:1px solid rgba(255,255,255,.1);padding-top:.6rem\">🏠 Location</div>"+
+
+    sep("🏠 Location")+
     row("Loyer mensuel an 1", fmt(loyer0)+" / mois")+
-    row("Loyers cumulés sur "+duree+" ans", fmt(lastLoc), true)+
-    "<div style=\"font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.1em;text-transform:uppercase;margin:.8rem 0 .3rem;border-top:1px solid rgba(255,255,255,.1);padding-top:.6rem\">🔑 Achat</div>"+
-    row("Mensualité crédit + assurance", fmt(mensTot)+" / mois")+
-    row("Frais de notaire (~"+Math.round(notPct*100)+"%)", fmt(notaire))+
-    row("Valeur du bien à l'an "+duree+" (+"+(Math.round(revaloBien*10000)/100).toString().replace('.',',')+"% / an)", fmt(lastValBien))+
-    row("− Frais de revente ("+(Math.round(fraisRevPct*10000)/100).toString().replace('.',',')+"%) ", "− "+fmt(Math.round(lastValBien*fraisRevPct)))+
-    (lastTaxePV > 0 ? row("− Impôt sur plus-value (après abattements)", "− "+fmt(lastTaxePV)) : "")+
+    row("Loyers cumulés (inflation "+Math.round(inflatLoyer*1000)/10+"%/an)", fmt(loyersCumuls))+
+    row("Apport + épargnes investis ("+Math.round(rendPlacement*100)+"% / an)", "− "+fmt(Math.round(portLoc)), true)+
+    row("Coût net réel location", fmt(Math.round(lastLoc)), true)+
+
+    sep("🔑 Achat")+
+    row("Frais initiaux (notaire + garantie + travaux)", fmt(notaire+garantie+travaux))+
+    row("Mensualités crédit sur "+duree+" ans", fmt(creditCumul))+
+    row("Assurance emprunteur ("+Math.round(assurPct*1000)/10+"%/an)", fmt(assurCumul))+
+    row("Charges cumulées (inflation "+Math.round(inflatCharges*100)/100+"%/an)", fmt(chargesCumul))+
+    row("Entretien cumulé ("+Math.round(entretienPct*1000)/10+"%/an valeur bien)", fmt(entretienCumul))+
+    "<div class=\"result-row\"><span style=\"font-size:.72rem\">Valeur bien an "+duree+" (+"+Math.round(revaloBien*1000)/10+"%/an)</span><span style=\"color:#2a9d8f\">"+fmt(lastValBien)+"</span></div>"+
+    (lastTaxePV > 0 ? row("− Impôt plus-value (abattements progressifs)", "− "+fmt(lastTaxePV)) : "")+
     (restant > 100 ? row("− Capital restant dû", "− "+fmt(Math.round(restant))) : "")+
-    row("Patrimoine net récupéré", fmt(patrimoineNet), true)+
-    row("Coût net achat", fmt(coutNetAchat), true)+
-    "<div style=\"margin-top:.6rem;font-size:.62rem;color:rgba(255,255,255,.4)\">Hypothèses : +"+(Math.round(revaloBien*10000)/100).toString().replace('.',',')+"% / an · loyer +"+(Math.round(inflatLoyer*10000)/100).toString().replace('.',',')+"% / an · frais revente "+(Math.round(fraisRevPct*10000)/100).toString().replace('.',',')+"% · "+fiscalLabel+"</div>"+
+    row("Patrimoine immobilier net", fmt(patrimoineNet))+
+    (portAch > 0 ? row("Épargne mensuelle investie (acheteur)", "− "+fmt(Math.round(portAch))) : "")+
+    row("Coût net réel achat", fmt(Math.round(lastAch)), true)+
+    "<div style=\"margin-top:.6rem;font-size:.62rem;color:rgba(255,255,255,.4)\">"+
+    "Hypothèses : bien +"+Math.round(revaloBien*1000)/10+"%/an · loyer +"+Math.round(inflatLoyer*1000)/10+"%/an · charges +"+Math.round(inflatCharges*100)/100+"%/an · entretien "+Math.round(entretienPct*1000)/10+"%/an · placement "+Math.round(rendPlacement*100)+"%/an"+
+    "</div>"+
     "</div>";
 
   // Explication dynamique
@@ -8895,29 +8968,29 @@ function calcLocVsAchat(){
   if(explainEl){
     const concluColor = gain >= 0 ? "var(--text)" : "#c0730a";
     const concluText  = gain >= 0
-      ? "Sur <strong>"+duree+" ans</strong>, <strong>acheter est plus avantageux</strong> de <strong>"+fmt(Math.abs(gain))+"</strong>."
-      : "Sur <strong>"+duree+" ans</strong>, <strong>louer est moins coûteux</strong> de <strong>"+fmt(Math.abs(gain))+"</strong>.";
+      ? "Sur <strong>"+duree+" ans</strong>, <strong>acheter est plus avantageux</strong> de <strong>"+fmt(Math.abs(gain))+"</strong> en coût net."
+      : "Sur <strong>"+duree+" ans</strong>, <strong>louer est moins coûteux</strong> de <strong>"+fmt(Math.abs(gain))+"</strong> en coût net.";
     const crossInfo = crossoverYr
-      ? "Le point de bascule est à l'<strong>an "+crossoverYr+"</strong> : avant cette date, louer coûte moins cher ; après, l'achat est plus rentable."
-      : "Dans ces conditions, acheter ne devient jamais moins cher que louer sur "+duree+" ans.";
+      ? "Le point de bascule est à l'<strong>an "+crossoverYr+"</strong>."
+      : "Dans ces conditions, l'achat ne devient jamais moins coûteux que la location sur "+duree+" ans.";
     const fiscalNote = situation === "rp"
       ? "Résidence principale : <strong>aucun impôt sur la plus-value</strong>."
       : "Investissement locatif : plus-value taxée à <strong>36,2%</strong> avec abattements progressifs dès la 6ème année.";
     explainEl.style.display = "";
     explainEl.innerHTML =
       "<div style=\"background:var(--card,rgba(0,0,0,.04));border:1px solid var(--border);border-radius:var(--r);padding:1rem;font-size:.74rem;color:var(--text)\">"+
-      "<div style=\"font-weight:700;margin-bottom:.5rem;color:var(--text)\">📊 Lecture du graphique</div>"+
-      "<div style=\"margin-bottom:.4rem\"><span style=\"color:#e74c3c;font-weight:600\">─</span> <strong>Loyers cumulés</strong> : total des loyers versés, inflation "+(Math.round(inflatLoyer*10000)/100).toString().replace('.',',')+"% / an.</div>"+
-      "<div style=\"margin-bottom:.4rem\"><span style=\"color:#f39c12;font-weight:600\">─</span> <strong>Coût net achat</strong> : versements − patrimoine récupéré (valeur − frais − fiscalité).</div>"+
-      "<div style=\"margin-bottom:.4rem\"><span style=\"color:#2a9d8f;font-weight:600\">─ ─</span> <strong>Valeur du bien</strong> : revalorisation +"+(Math.round(revaloBien*10000)/100).toString().replace('.',',')+"% / an.</div>"+
+      "<div style=\"font-weight:700;margin-bottom:.5rem\">📊 Lecture du graphique</div>"+
+      "<div style=\"margin-bottom:.4rem\"><span style=\"color:#e74c3c;font-weight:600\">─</span> <strong>Coût net réel location</strong> : loyers cumulés − portefeuille locataire (apport + épargnes à "+Math.round(rendPlacement*100)+"%/an).</div>"+
+      "<div style=\"margin-bottom:.4rem\"><span style=\"color:#f39c12;font-weight:600\">─</span> <strong>Coût net réel achat</strong> : versements + frais − patrimoine immobilier − épargnes acheteur.</div>"+
+      "<div style=\"margin-bottom:.4rem\"><span style=\"color:#2a9d8f;font-weight:600\">─ ─</span> <strong>Valeur du bien</strong> : +"+Math.round(revaloBien*1000)/10+"%/an.</div>"+
       "<div style=\"margin-bottom:.6rem\">"+crossInfo+"</div>"+
       "<div style=\"font-weight:700;font-size:.9rem;color:"+concluColor+";margin-bottom:.4rem\">🏁 "+concluText+"</div>"+
-      "<div style=\"font-size:.66rem;color:var(--muted)\">"+fiscalNote+" Frais de revente : "+(Math.round(fraisRevPct*10000)/100).toString().replace('.',',')+"%.</div>"+
+      "<div style=\"font-size:.66rem;color:var(--muted)\">"+fiscalNote+"</div>"+
       "</div>";
   }
 
   setCard("location", (gain>=0?"Achat":"Location")+" avantageux", fmt(Math.abs(gain))+" sur "+duree+" ans", gain>=0?"good":"");
-  window._locationVsAchatResult = { loyer: loyer0, prixAchat: prix, duree, gain, gainFaveur: gain>=0?"achat":"location", crossoverAn: crossoverYr, coutNetAchat, loyersCumules: lastLoc, patrimoineNet };
+  window._locationVsAchatResult = { loyer: loyer0, prixAchat: prix, duree, gain, gainFaveur: gain>=0?"achat":"location", crossoverAn: crossoverYr, coutNetAchat: Math.round(lastAch), loyersCumules: Math.round(lastLoc), patrimoineNet, portLocataire: Math.round(portLoc) };
 
   // Graphique 3 courbes
   const wrap = document.getElementById("locCompChartWrap");
@@ -8927,9 +9000,9 @@ function calcLocVsAchat(){
   window._locVsAchatChart = new Chart(ctx, {
     type:"line",
     data:{ labels:labelsYr, datasets:[
-      { label:"Loyers cumulés",  data:cumLoc,     borderColor:"#e74c3c", backgroundColor:"rgba(231,76,60,.08)",  borderWidth:2.5, pointRadius:0, fill:false, tension:.4, datalabels:{display:false} },
-      { label:"Coût net achat",  data:cumAch,     borderColor:"#f39c12", backgroundColor:"rgba(243,156,18,.08)", borderWidth:2.5, pointRadius:0, fill:false, tension:.4, datalabels:{display:false} },
-      { label:"Valeur du bien",  data:valBienArr, borderColor:"#2a9d8f", backgroundColor:"rgba(42,157,143,.08)", borderWidth:2, pointRadius:0, fill:false, tension:.4, borderDash:[4,3], datalabels:{display:false} }
+      { label:"Coût net réel location", data:cumLoc,     borderColor:"#e74c3c", backgroundColor:"rgba(231,76,60,.08)",  borderWidth:2.5, pointRadius:0, fill:false, tension:.4, datalabels:{display:false} },
+      { label:"Coût net réel achat",    data:cumAch,     borderColor:"#f39c12", backgroundColor:"rgba(243,156,18,.08)", borderWidth:2.5, pointRadius:0, fill:false, tension:.4, datalabels:{display:false} },
+      { label:"Valeur du bien",         data:valBienArr, borderColor:"#2a9d8f", backgroundColor:"rgba(42,157,143,.08)", borderWidth:2, pointRadius:0, fill:false, tension:.4, borderDash:[4,3], datalabels:{display:false} }
     ]},
     options:{ responsive:true, maintainAspectRatio:false,
       interaction:{ mode:"index", intersect:false },
@@ -8943,6 +9016,7 @@ function calcLocVsAchat(){
     }
   });
 }
+
 
 function renderLocChecklist(){
   const ITEMS = [
