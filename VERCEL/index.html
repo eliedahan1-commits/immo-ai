@@ -2708,8 +2708,14 @@ function setCard(id, value, sub, cssClass=''){
   if(v)v.innerHTML=value;
   if(s&&sub)s.textContent=sub;
   if(cssClass&&v)v.className='card-value '+cssClass;
-  // Nettoyer le bouton retry à chaque mise à jour
+  // Nettoyer le bouton retry et l'état de chargement immersif
   document.getElementById('card-'+id)?.querySelectorAll('.card-retry-btn').forEach(b=>b.remove());
+  if (window._immRetrying) window._immRetrying.delete(id);
+  // Rafraîchir le carousel immersif si actif (debounce pour éviter les appels en rafale)
+  if(document.body.classList.contains('imm-on') && typeof immRefresh === 'function'){
+    clearTimeout(window._immRefreshTimer);
+    window._immRefreshTimer = setTimeout(immRefresh, 300);
+  }
 }
 
 // Ajoute un bouton ↻ discret sur une carte en échec (uniquement sur échec)
@@ -10054,6 +10060,7 @@ const PNL_W    = 360;   // largeur panneau carousel (px)
 
 let immRot = ROT_INIT, immTgt = ROT_INIT, immRaf = null, immActive = null;
 const immDrag = {on:false,pending:false,sx:0,sr:0,vx:0,lx:0};
+window._immRetrying = new Set(); // valIds en cours de rechargement
 
 function snapImmTgt(){
   const i = Math.round((ROT_INIT - immTgt) / STEP);
@@ -10107,15 +10114,16 @@ function immRender(){
       + `opacity:${op};z-index:${zB};`;
 
     const loading = !window._analysisReady;
+    const isRetrying = window._immRetrying && window._immRetrying.has(item.valId);
     let _immVal = '', _hasRetry = false;
-    if (!loading && item.valId) {
+    if (!loading && !isRetrying && item.valId) {
       const _ve = document.getElementById('val-' + item.valId);
       if (_ve) { const _t = _ve.textContent.trim(); if (_t && !_t.endsWith('\u2192')) _immVal = _t; }
       _hasRetry = !!document.getElementById('card-' + item.valId)?.querySelector('.card-retry-btn');
     }
     el.innerHTML = `<div class="imm-hc-i">${item.icon}</div>`
       + `<div class="imm-hc-n">${item.name}</div>`
-      + (loading
+      + (loading || isRetrying
         ? `<span class="imm-spin"></span>`
         : (_hasRetry
           ? `<button class="card-retry-btn">↻ Réessayer</button>`
@@ -10128,6 +10136,7 @@ function immRender(){
       if (_immRb) _immRb.addEventListener('click', (function(vid) {
         return function(e) {
           e.stopPropagation();
+          if (vid && window._immRetrying) { window._immRetrying.add(vid); immRender(); }
           var rb = vid ? document.getElementById('card-'+vid)?.querySelector('.card-retry-btn') : null;
           if (rb) rb.click();
         };
