@@ -3771,7 +3771,7 @@ function computeScoreQuartier() {
   if (air?.aqi != null && !air.error) {
     const airScore = Math.max(0, Math.min(10, Math.round((100 - air.aqi) / 10)));
     items.push({ label:"Qualité de l'air", icon:'💨', val:airScore, max:10,
-      action:"closePanel();setTimeout(()=>showQualiteAirDetail(),120)",
+      action:"_navPanel(()=>showQualiteAirDetail())",
       sub:`AQI ${air.aqi} · ${air.label}` });
   }
 
@@ -3789,7 +3789,7 @@ function computeScoreQuartier() {
   if (dpe && !dpe.error && dpe.pctEfficaces != null) {
     const dpeScore = Math.round(((dpe.pctEfficaces/100)*6 + ((100-dpe.pctPassoires)/100)*4) * 10) / 10;
     items.push({ label:'DPE secteur', icon:'🏷️', val:dpeScore, max:10,
-      action:"closePanel();setTimeout(()=>showDPESecteurDetail(),120)",
+      action:"_navPanel(()=>showDPESecteurDetail())",
       sub:`${dpe.pctEfficaces}% classes A-B · ${dpe.pctPassoires}% passoires (F-G)` });
   }
 
@@ -4694,6 +4694,22 @@ function closePanel(){
   if(window._leafletMapRisques){window._leafletMapRisques.remove();window._leafletMapRisques=null;}
 }
 
+
+// Navigation entre sous-panneaux sans reset du carousel en mode immersif
+function _navPanel(fn) {
+  ['_dvfChart','_dvfEvoChart','_risquesChart','_mobiliteChart','_radarChart','_radarProfilChart',
+   '_servicesChart','_inseeNeighborChart','_meteoMensuelChart','_meteoEvoChart',
+   '_aqHistChart0','_aqHistChart4','_demographieChart'].forEach(function(k){
+    if(window[k]){window[k].destroy();window[k]=null;}
+  });
+  if(document.body.classList.contains('imm-on')){
+    document.getElementById('detailContainer').innerHTML='';
+    fn();
+  } else {
+    closePanel();
+    setTimeout(fn, 120);
+  }
+}
 // ══ SYNTHÈSES PAR CARTE — stockées dans window._cardSyntheses ══
 window._cardSyntheses = window._cardSyntheses || {};
 
@@ -6840,7 +6856,7 @@ function showMeteoDetail(){
           <span style="font-size:.78rem;color:var(--muted);font-weight:500">🌬️ Qualité de l\'air :</span>
           <span style="background:${aq.color};color:#fff;font-size:.78rem;font-weight:700;padding:.25rem .7rem;border-radius:20px">${aq.label}</span>
           <span style="font-size:.72rem;color:var(--muted)">IQA ${aq.aqi} / 100+</span>
-          <button onclick="closePanel();setTimeout(()=>showQualiteAirDetail(),120)" style="margin-left:.4rem;font-size:.68rem;padding:.18rem .55rem;border:1px solid var(--border);border-radius:12px;background:transparent;color:var(--muted);cursor:pointer">Détail →</button>
+          <button onclick="_navPanel(()=>showQualiteAirDetail())" style="margin-left:.4rem;font-size:.68rem;padding:.18rem .55rem;border:1px solid var(--border);border-radius:12px;background:transparent;color:var(--muted);cursor:pointer">Détail →</button>
         </div>
         <div style="font-size:.65rem;color:var(--muted);margin-bottom:.3rem">Recommandations OMS 2021 (non réglementaires) · vert &lt;75% · orange 75-99% · rouge ≥100%</div>
         ${barHtml}
