@@ -10404,7 +10404,7 @@ function _immShowSimulateur(pageId, title, initFn) {
   var origParent = inner.parentNode;
   // Masquer le back-btn interne (prévu pour mode classique)
   var hiddenBtns = [];
-  inner.querySelectorAll('.back-btn').forEach(function(b){ b.style.display='none'; hiddenBtns.push(b); });
+  inner.querySelectorAll('.back-btn, .detail-close').forEach(function(b){ b.style.display='none'; hiddenBtns.push(b); });
   // Fonction de restauration
   window._immPanelRestore = function(){
     hiddenBtns.forEach(function(b){ b.style.display=''; });
