@@ -145,7 +145,7 @@ aside.open{transform:translateX(0);box-shadow:4px 0 32px rgba(0,0,0,.5);}
 }
 .topbar-left{display:flex;align-items:center;gap:.8rem;}
 .topbar-title{font-family:'Cormorant Garamond',serif;font-size:1.05rem;font-weight:600;color:var(--ink);}
-.topbar-addr{font-size:.72rem;color:var(--muted);font-style:italic;}
+.topbar-addr{font-size:.9rem;color:var(--muted);font-style:italic;}
 .topbar-right{display:flex;gap:.5rem;}
 .tb-btn{
   background:none;border:1px solid var(--border);
@@ -251,10 +251,10 @@ aside.open{transform:translateX(0);box-shadow:4px 0 32px rgba(0,0,0,.5);}
 .hero-stat-l{font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;margin-top:.2rem;}
 
 /* ══ CARTES RÉSULTATS ══ */
-.results-header{padding:1.8rem 2rem 0;max-width:min(1600px,96vw);margin:0 auto;}
+.results-header{padding:.7rem 2rem;max-width:min(1600px,96vw);margin:0 auto;}
 .results-addr{
   display:flex;align-items:center;gap:.75rem;
-  margin-bottom:1.5rem;
+  margin-bottom:.5rem;
   flex-wrap:wrap;
 }
 .results-addr-icon{
@@ -924,6 +924,8 @@ body.imm-on .back-btn{border-color:rgba(79,195,247,.4)!important;color:#4fc3f7!i
 body.imm-on #hamburgerBtn{display:none!important;}
 body.imm-on .results-addr{justify-content:flex-start!important;gap:.9rem!important;margin-bottom:0!important;padding:.4rem 1.5rem!important;max-width:44%;flex-wrap:nowrap;pointer-events:auto!important;}
 body.imm-on .results-addr .back-btn{padding:.38rem .85rem!important;}
+body.imm-on .card-retry-btn{border-color:rgba(79,195,247,.45)!important;color:rgba(79,195,247,.85)!important;background:rgba(5,15,34,.6)!important;}
+body.imm-on .card-retry-btn:hover{border-color:#4fc3f7!important;color:#4fc3f7!important;}
 body.imm-on #detailContainer .detail-panel{border-radius:0;min-height:calc(100vh - 56px);}
 body.imm-on #detailContainer .back-btn{margin:.75rem 1rem;}
 
@@ -1107,14 +1109,14 @@ body.imm-on #detailContainer .back-btn{margin:.75rem 1rem;}
   <!-- ══ BANDEAU ADRESSE (persistant) ══ -->
   <div class="results-header" id="resultsHeader" style="display:none">
     <div class="results-addr">
-      <button class="back-btn" onclick="goHome()" style="flex-shrink:0;font-size:.95rem;padding:.55rem 1.2rem">← Nouvelle recherche</button>
+      <button class="back-btn" onclick="goHome()" style="flex-shrink:0;font-size:.82rem;padding:.38rem 1rem;display:flex;align-items:center">← Nouvelle recherche</button>
     <div style="display:none"><div id="addrMain"></div><div id="addrSub"></div></div>
 
       <button id="imm-toggle" onclick="immToggle()">
         ✦ <span id="imm-toggle-lbl">Mode Immersif</span>
         <div class="imm-trk" id="imm-trk"><div class="imm-thm"></div></div>
       </button>
-      <button onclick="generatePDF()" title="Exporter en PDF" style="flex-shrink:0;display:flex;align-items:center;gap:.4rem;padding:.45rem .9rem;border:1px solid var(--goldborder);background:transparent;color:var(--gold);border-radius:var(--r);font-size:.78rem;font-weight:600;cursor:pointer;transition:background .2s;white-space:nowrap" onmouseover="this.style.background='rgba(184,131,42,.12)'" onmouseout="this.style.background='transparent'">📄 Exporter PDF</button>
+      <button onclick="generatePDF()" title="Exporter en PDF" style="flex-shrink:0;display:flex;align-items:center;gap:.4rem;padding:.38rem .9rem;border:1px solid var(--goldborder);background:transparent;color:var(--gold);border-radius:var(--r);font-size:.78rem;font-weight:600;cursor:pointer;transition:background .2s;white-space:nowrap" onmouseover="this.style.background='rgba(184,131,42,.12)'" onmouseout="this.style.background='transparent'">📄 Exporter PDF</button>
     </div>
     </div>
 
@@ -10003,17 +10005,24 @@ function immRender(){
       + (loading
         ? `<span class="imm-spin"></span>`
         : (_hasRetry
-          ? `<div class="imm-hc-t" style="color:#f87171;font-size:.65em">Erreur — cliquer pour réessayer</div>`
+          ? `<button class="card-retry-btn">↻ Réessayer</button>`
           : (_immVal
             ? `<div class="imm-hc-v">${_immVal}</div>`
             : `<div class="imm-hc-t">${item.tag}</div>`)));
 
+    if (_hasRetry) {
+      var _immRb = el.querySelector('.card-retry-btn');
+      if (_immRb) _immRb.addEventListener('click', (function(vid) {
+        return function(e) {
+          e.stopPropagation();
+          var rb = vid ? document.getElementById('card-'+vid)?.querySelector('.card-retry-btn') : null;
+          if (rb) rb.click();
+        };
+      })(item.valId));
+    }
+
     if (!el._immClickBound) {
-      el.addEventListener('click', () => {
-        const rb = item.valId ? document.getElementById('card-'+item.valId)?.querySelector('.card-retry-btn') : null;
-        if (rb) { rb.click(); return; }
-        immOpenCard(item);
-      });
+      el.addEventListener('click', () => { immOpenCard(item); });
       el._immClickBound = true;
     }
     layer.appendChild(el);
