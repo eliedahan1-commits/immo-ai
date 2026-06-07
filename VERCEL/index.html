@@ -1640,7 +1640,7 @@ body.imm-on #detailContainer .g2{grid-template-columns:1fr;}
           <label class="lbl">Garantie de prêt (%/montant emprunté) <span style="font-weight:400;color:var(--muted);font-size:.75em">— caution, ~1%</span></label>
           <input class="inp" id="locGarantie" type="number" value="1" step="0.1" min="0" max="3" />
           <label class="lbl">Travaux initiaux (€) <span style="font-weight:400;color:var(--muted);font-size:.75em">— repris depuis DPE si renseigné</span></label>
-          <input class="inp" id="locTravaux" type="number" placeholder="0" value="0" />
+          <input class="inp" id="locTravaux" type="number" placeholder="0" value="0" oninput="this._userModified=true" />
           <label class="lbl">Entretien & réparations (%/an valeur bien) <span style="font-weight:400;color:var(--muted);font-size:.75em">— ~0,75%/an</span></label>
           <input class="inp" id="locEntretien" type="number" value="0.75" step="0.25" min="0" max="3" />
           <label class="lbl">Inflation charges & taxe foncière (%/an)</label>
@@ -8737,8 +8737,8 @@ function initLocationPage(){
   // Assurance depuis mensualités
   const assur = parseFloat(document.getElementById("mAssur")?.value)||0.25;
   const elA = document.getElementById("locAssur"); if(elA && !elA._userModified) elA.value = assur;
-  // Travaux depuis vrai coût du bien (DPE)
-  const travaux = window._coutResult?.travaux || 0;
+  // Travaux depuis vrai coût du bien (DPE), fallback sur carte Achat
+  const travaux = window._coutResult?.travaux || window._mTravauxRaw || 0;
   const elT = document.getElementById("locTravaux"); if(elT && !elT._userModified && travaux>0) elT.value = travaux;
   // Checklist
   renderLocChecklist();
