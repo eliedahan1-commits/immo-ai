@@ -4668,6 +4668,7 @@ function showPanel(title, html, backAction, backLabel){
 
 function closePanel(){
   window._demographiePanelOpen = false;
+  if(typeof window._immPanelRestore==='function'){window._immPanelRestore();}
   ['_dvfChart','_dvfEvoChart','_risquesChart','_mobiliteChart','_radarChart','_radarProfilChart','_servicesChart','_inseeNeighborChart','_meteoMensuelChart','_meteoEvoChart','_aqHistChart0','_aqHistChart4','_demographieChart'].forEach(k=>{if(window[k]){window[k].destroy();window[k]=null;}});
   document.getElementById('detailContainer').innerHTML = '';
   if(document.body.classList.contains('imm-on')){
@@ -10183,6 +10184,7 @@ function _immApply(){
   if (tog && window.innerWidth >= 1024) tog.style.display = 'flex';
 
   if (_immOn) {
+    immRot = ROT_INIT; immTgt = ROT_INIT; // Recentrer le carousel à chaque activation
     immSizeRing();
     immRender();
     document.getElementById('imm-hint').style.display = 'block';
@@ -10221,22 +10223,45 @@ window.immHideToggle = function(){
   if (_immOn) { _immOn=false; document.body.classList.remove('imm-on','imm-split'); }
 };
 
-// Navigation directe : désactive le mode immersif et ouvre la page simulateur
-function _immGoSection(section) {
-  if (document.body.classList.contains('imm-on')) immToggle();
-  closePanel();
-  setTimeout(function(){ go(section); }, 200);
+// Affiche le simulateur directement dans le split-panel (sans quitter le mode immersif)
+function _immShowSimulateur(pageId, title, initFn) {
+  var page = document.getElementById(pageId);
+  if (!page) return;
+  var inner = page.querySelector('.inner');
+  if (!inner) return;
+  var dc = document.getElementById('detailContainer');
+  var origParent = inner.parentNode;
+  // Masquer le back-btn interne (prévu pour mode classique)
+  var hiddenBtns = [];
+  inner.querySelectorAll('.back-btn').forEach(function(b){ b.style.display='none'; hiddenBtns.push(b); });
+  // Fonction de restauration
+  window._immPanelRestore = function(){
+    hiddenBtns.forEach(function(b){ b.style.display=''; });
+    if(inner.parentNode !== origParent) origParent.appendChild(inner);
+    window._immPanelRestore = null;
+  };
+  // Construire le panel header
+  dc.innerHTML = '<div style="max-width:860px;margin:0 auto .75rem;width:100%">'
+    +'<button class="back-btn" onclick="closePanel()" style="margin:0">← Retour au carousel</button></div>'
+    +'<div class="detail-panel" id="_immSimPanel">'
+    +'<div class="detail-head"><div class="detail-title">'+title+'</div>'
+    +'<button class="detail-close" onclick="closePanel()">✕ Fermer</button></div>'
+    +'<div class="detail-body" id="_immSimBody"></div></div>';
+  document.getElementById('_immSimBody').appendChild(inner);
+  document.body.classList.add('imm-split');
+  dc.scrollTo({top:0,behavior:'smooth'});
+  if(typeof initFn==='function') setTimeout(initFn, 150);
 }
 window.showPrixCarte      = function(){ if(typeof showPrixCommunesDetail==='function') showPrixCommunesDetail(); };
-window.showEmpruntDetail  = function(){ _immGoSection('emprunt'); };
-window.showCoutDetail     = function(){ _immGoSection('mensualites'); };
-window.showInvestDetail   = function(){ _immGoSection('cout'); };
-window.showLocationDetail = function(){ _immGoSection('location'); };
-window.showAidesDetail    = function(){ _immGoSection('aides'); };
-window.showRenovDetail    = function(){ _immGoSection('renov'); };
-window.showAnnoncesDetail = function(){ _immGoSection('annonces'); };
-window.showOffreDetail    = function(){ _immGoSection('offre'); };
-window.showProfilDetail   = function(){ _immGoSection('profil'); };
+window.showEmpruntDetail  = function(){ _immShowSimulateur('p-emprunt','🏦 Capacité d\'emprunt',function(){ if(typeof initEmpruntPage==='function') initEmpruntPage(); }); };
+window.showCoutDetail     = function(){ _immShowSimulateur('p-mensualites','📅 Mensualités & crédit',function(){ if(typeof initMensualitesPage==='function') initMensualitesPage(); }); };
+window.showInvestDetail   = function(){ _immShowSimulateur('p-cout','🏠 Investissement locatif',function(){ var tm=window._tauxMarche&&window._tauxMarche.taux; if(tm){var t=(tm[20]||3.4).toFixed(2);['cTaux','lTaux'].forEach(function(id){var el=document.getElementById(id);if(el&&!el._userModified)el.value=t;});} }); };
+window.showLocationDetail = function(){ _immShowSimulateur('p-location','🏢 Location : budget',function(){ if(typeof initLocationPage==='function') initLocationPage(); }); };
+window.showAidesDetail    = function(){ _immShowSimulateur('p-aides','🎁 Aides à l\'achat',null); };
+window.showRenovDetail    = function(){ _immShowSimulateur('p-renov','🔨 MaPrimeRénov\'',null); };
+window.showAnnoncesDetail = function(){ _immShowSimulateur('p-annonces','🔍 Trouver un bien',null); };
+window.showOffreDetail    = function(){ _immShowSimulateur('p-offre','🤝 Coaching de l\'offre',function(){ if(window.currentAddress){var el=document.getElementById('oRue');if(el&&!el.value)el.value=window.currentAddress;} }); };
+window.showProfilDetail   = function(){ _immShowSimulateur('p-profil','👤 Compatibilité de vie',function(){ var l=document.getElementById('pAdresseLabel'); if(l&&window.currentAddress)l.innerHTML='📍 <strong>'+window.currentAddress+'</strong>'; if(typeof updatePoidsDisplay==='function')updatePoidsDisplay(); if(window.currentCoords&&typeof runProfil==='function')setTimeout(runProfil,150); }); };
 
 })(); // fin IIFE
 
