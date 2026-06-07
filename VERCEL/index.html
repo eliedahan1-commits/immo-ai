@@ -874,7 +874,7 @@ body.imm-on #imm-bg-dark{opacity:0;}
 body.imm-on #imm-ring{display:block;}
 body.imm-on #imm-carousel-wrap{display:block;}
 body.imm-on #detailContainer{
-  display:none;position:fixed;left:62%;top:56px;right:0;bottom:0;z-index:20;
+  display:none;position:fixed;left:55%;top:56px;right:0;bottom:0;z-index:20;
   overflow-y:auto;background:rgba(3,10,22,.90);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
   padding:0;margin-left:0;}
 body.imm-on #detailContainer:empty{background:transparent;}
@@ -929,6 +929,7 @@ body.imm-on .card-retry-btn{border-color:rgba(79,195,247,.45)!important;color:rg
 body.imm-on .card-retry-btn:hover{border-color:#4fc3f7!important;color:#4fc3f7!important;}
 body.imm-on #detailContainer .detail-panel{border-radius:0;min-height:calc(100vh - 56px);}
 body.imm-on #detailContainer .back-btn{margin:.75rem 1rem;}
+body.imm-on #detailContainer .g2{grid-template-columns:1fr;}
 
 #imm-hint{display:none;position:fixed;bottom:14px;left:50%;transform:translateX(-50%);
   color:rgba(79,195,247,.55);font-size:.7rem;letter-spacing:.12em;pointer-events:none;
@@ -10073,7 +10074,7 @@ function immRender(){
   const W = window.innerWidth, H = window.innerHeight;
   const isSplit = document.body.classList.contains('imm-split');
   const R  = H * R_RATIO;
-  const cx = isSplit ? W * 0.30 : W * 0.5;
+  const cx = isSplit ? Math.min(W * 0.28, 540) : W * 0.5;
   const cy = H * CY_RATIO;
   const layer = document.getElementById('imm-cl');
   if (!layer) return;
@@ -10258,7 +10259,7 @@ document.addEventListener('wheel', e => {
 function immSizeRing(){
   const W = window.innerWidth, H = window.innerHeight;
   const isSplit = document.body.classList.contains('imm-split');
-  const cx = isSplit ? W * 0.28 : W * 0.5;
+  const cx = isSplit ? Math.min(W * 0.28, 540) : W * 0.5;
   const sz = Math.round(H * R_RATIO * 2 * 0.95);
   const rw = document.getElementById('imm-ring');
   if (rw) rw.style.cssText = `width:${sz}px;height:${sz}px;left:${cx}px;top:${H*CY_RATIO}px;`;
