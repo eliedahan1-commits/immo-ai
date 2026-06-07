@@ -952,6 +952,8 @@ function saveSetup(){
   if(genreChange){
     const wrap = document.getElementById('av-canvas-wrap');
     if(wrap) showFallbackAvatar(wrap);
+    const bgImg = document.getElementById('imm-bg-img');
+    if(bgImg) bgImg.src = (prefs.genre === 'homme') ? 'images/avatar-m-fond.png' : 'images/avatar-f-fond.png';
   }
 }
 
