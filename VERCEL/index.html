@@ -10162,7 +10162,7 @@ window.immToggle = function(){
   var dc = document.getElementById('detailContainer');
   if (dc && dc.innerHTML.trim()) closePanel();
   var cg = document.getElementById('cardsGrid');
-  if (cg) cg.style.display = _immOn ? 'none' : 'grid'; // classique → grille visible, imm → masquée par CSS
+  if (cg) cg.style.display = 'grid'; // toujours reset à grid (CSS imm-on masque via !important si besoin)
   _immOn = !_immOn;
   localStorage.setItem('immoai_imm_mode', _immOn ? '1' : '0');
   _immApply();
