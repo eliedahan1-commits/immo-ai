@@ -10194,18 +10194,25 @@ window._toggleTauxFs = function() {
     document.addEventListener("keydown", w._fsKeyHandler);
   } else {
     w.classList.remove("taux-fs");
-    // Reset explicite du wrapper et du canvas avant resize
+    // Reset wrapper
     w.style.width = "";
     w.style.maxWidth = "";
     if (canvasDiv) {
       canvasDiv.style.height = canvasDiv._origH || "360px";
       canvasDiv.style.flex = "";
+      // Forcer le canvas à une petite taille pour que le container puisse
+      // recalculer sa largeur avant le resize() de Chart.js
       var cv = canvasDiv.querySelector("canvas");
-      if (cv) { cv.style.width = ""; cv.style.height = ""; }
+      if (cv) {
+        cv.style.width = "";
+        cv.style.height = "";
+        cv.width = 100;
+        cv.height = 100;
+      }
     }
     if (btn) btn.innerHTML = "⛶ Plein écran";
     if (w._fsKeyHandler) { document.removeEventListener("keydown", w._fsKeyHandler); w._fsKeyHandler = null; }
-    // Attendre le reflow complet avant de resize le chart
+    // 2 frames pour laisser le layout se recalculer, puis resize
     if (window._tauxHistChart) {
       requestAnimationFrame(function() {
         requestAnimationFrame(function() {
