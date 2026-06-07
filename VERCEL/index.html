@@ -10164,9 +10164,15 @@ function immGetScoreClass(fn) {
 
 // ── Ouvrir une carte (appelle la fonction existante, puis marque active) ─
 function immOpenCard(item) {
+  // Nettoyer le panel en cours sans retirer imm-split (évite le flash carousel)
+  var dc = document.getElementById('detailContainer');
+  if (dc && dc.innerHTML.trim()) {
+    window._demographiePanelOpen = false;
+    if (typeof window._immPanelRestore === 'function') window._immPanelRestore();
+    dc.innerHTML = '';
+  }
   if (typeof window[item.fn] === 'function') {
     window[item.fn]();
-    // Passer en split-screen
     document.body.classList.add('imm-split');
   }
   immActive = item.fn;
@@ -10405,6 +10411,8 @@ window.immHideToggle = function(){
 
 // Affiche le simulateur directement dans le split-panel (sans quitter le mode immersif)
 function _immShowSimulateur(pageId, title, initFn) {
+  // Restaurer un éventuel panel simulateur déjà ouvert avant d'en ouvrir un nouveau
+  if (typeof window._immPanelRestore === 'function') window._immPanelRestore();
   var page = document.getElementById(pageId);
   if (!page) return;
   var inner = page.querySelector('.inner');
