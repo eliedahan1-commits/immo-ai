@@ -10221,30 +10221,22 @@ window.immHideToggle = function(){
   if (_immOn) { _immOn=false; document.body.classList.remove('imm-on','imm-split'); }
 };
 
-// ── Stubs immersifs pour simulateurs non encore implémentés ───────────────
-function _immSimuStub(icon, name, valId, section) {
-  var el = valId ? document.getElementById('val-' + valId) : null;
-  var val = el ? el.textContent.trim().replace(/→$/, '').trim() : '';
-  var btn = '<div style="text-align:center"><button class="btn btn-dark" style="font-size:.82rem" '
-    + 'onclick="closePanel();document.body.classList.remove(&quot;imm-on&quot;,&quot;imm-split&quot;);'
-    + 'localStorage.removeItem(&quot;immoai_imm_mode&quot;);go(&quot;' + section + '&quot;)">'
-    + '↗️ Ouvrir le simulateur</button></div>';
-  showPanel(icon + ' ' + name,
-    (val ? '<div style="text-align:center;font-size:1.4rem;font-weight:700;color:#4fc3f7;padding:.5rem 0 .2rem">' + val + '</div>' : '') +
-    '<p style="text-align:center;color:var(--muted);font-size:.82rem;padding:.5rem 1rem 1rem">Simulateur interactif disponible en mode classique.</p>' +
-    btn
-  );
+// Navigation directe : désactive le mode immersif et ouvre la page simulateur
+function _immGoSection(section) {
+  if (document.body.classList.contains('imm-on')) immToggle();
+  closePanel();
+  setTimeout(function(){ go(section); }, 200);
 }
 window.showPrixCarte      = function(){ if(typeof showPrixCommunesDetail==='function') showPrixCommunesDetail(); };
-window.showEmpruntDetail  = function(){ _immSimuStub('💰',"Capacité d'emprunt",     'emprunt',    'emprunt'); };
-window.showCoutDetail     = function(){ _immSimuStub('📅','Mensualités & crédit','mensualites','emprunt'); };
-window.showInvestDetail   = function(){ _immSimuStub('🏠','Investissement locatif',        'cout',       'cout'); };
-window.showLocationDetail = function(){ _immSimuStub('🏢','Location : budget',             'location',   'location'); };
-window.showAidesDetail    = function(){ _immSimuStub('🎁',"Aides à l'achat",         'aides',      'aides'); };
-window.showRenovDetail    = function(){ _immSimuStub('🔨',"MaPrimeRénov'",           'renov',      'renov'); };
-window.showAnnoncesDetail = function(){ _immSimuStub('🔍','Trouver un bien',               'recherche',  'recherche'); };
-window.showOffreDetail    = function(){ _immSimuStub('🤝',"Coaching de l'offre",           'offre',      'offre'); };
-window.showProfilDetail   = function(){ _immSimuStub('👤','Compatibilité de vie',     'profil',     'profil'); };
+window.showEmpruntDetail  = function(){ _immGoSection('emprunt'); };
+window.showCoutDetail     = function(){ _immGoSection('mensualites'); };
+window.showInvestDetail   = function(){ _immGoSection('cout'); };
+window.showLocationDetail = function(){ _immGoSection('location'); };
+window.showAidesDetail    = function(){ _immGoSection('aides'); };
+window.showRenovDetail    = function(){ _immGoSection('renov'); };
+window.showAnnoncesDetail = function(){ _immGoSection('annonces'); };
+window.showOffreDetail    = function(){ _immGoSection('offre'); };
+window.showProfilDetail   = function(){ _immGoSection('profil'); };
 
 })(); // fin IIFE
 
