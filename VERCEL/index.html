@@ -931,8 +931,9 @@ body.imm-on #detailContainer .detail-panel{border-radius:0;min-height:calc(100vh
 body.imm-on #detailContainer .back-btn{margin:.75rem 1rem;}
 
 #imm-hint{display:none;position:fixed;bottom:14px;left:50%;transform:translateX(-50%);
-  color:rgba(79,195,247,.35);font-size:.65rem;letter-spacing:.1em;pointer-events:none;
-  z-index:11;animation:immFh .7s ease 5s forwards;}
+  color:rgba(79,195,247,.55);font-size:.7rem;letter-spacing:.12em;pointer-events:none;
+  z-index:11;opacity:1;transition:opacity .5s;}
+#imm-hint.fading{opacity:0;}
 @keyframes immFh{to{opacity:0;}}
 
 @media(max-width:1023px){
@@ -10193,9 +10194,26 @@ window._toggleTauxFs = function() {
     document.addEventListener("keydown", w._fsKeyHandler);
   } else {
     w.classList.remove("taux-fs");
-    if (canvasDiv) { canvasDiv.style.height = canvasDiv._origH || "360px"; }
+    // Reset explicite du wrapper et du canvas avant resize
+    w.style.width = "";
+    w.style.maxWidth = "";
+    if (canvasDiv) {
+      canvasDiv.style.height = canvasDiv._origH || "360px";
+      canvasDiv.style.flex = "";
+      var cv = canvasDiv.querySelector("canvas");
+      if (cv) { cv.style.width = ""; cv.style.height = ""; }
+    }
     if (btn) btn.innerHTML = "⛶ Plein écran";
     if (w._fsKeyHandler) { document.removeEventListener("keydown", w._fsKeyHandler); w._fsKeyHandler = null; }
+    // Attendre le reflow complet avant de resize le chart
+    if (window._tauxHistChart) {
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+          window._tauxHistChart.resize();
+        });
+      });
+    }
+    return;
   }
   if (window._tauxHistChart) setTimeout(function(){ window._tauxHistChart.resize(); }, 60);
 };
@@ -10234,13 +10252,38 @@ function _immApply(){
     immRot = ROT_INIT; immTgt = ROT_INIT; // Recentrer le carousel à chaque activation
     immSizeRing();
     immRender();
-    document.getElementById('imm-hint').style.display = 'block';
+    // Hint + wiggle : afficher max 3 fois
+    var _hintCount = parseInt(localStorage.getItem('immoai_imm_hint_count') || '0');
+    var hintEl = document.getElementById('imm-hint');
+    if (hintEl && _hintCount < 3) {
+      localStorage.setItem('immoai_imm_hint_count', _hintCount + 1);
+      hintEl.style.display = 'block';
+      hintEl.classList.remove('fading');
+      // Wiggle carousel : légère oscillation gauche-droite
+      setTimeout(function() {
+        immTgt = ROT_INIT + STEP * 0.38; immGo();
+        setTimeout(function() {
+          immTgt = ROT_INIT - STEP * 0.38; immGo();
+          setTimeout(function() {
+            immTgt = ROT_INIT; immGo();
+          }, 350);
+        }, 350);
+      }, 500);
+      // Fade out après 4.5s
+      setTimeout(function() {
+        hintEl.classList.add('fading');
+        setTimeout(function() { hintEl.style.display = 'none'; hintEl.classList.remove('fading'); }, 500);
+      }, 4500);
+    } else if (hintEl) {
+      hintEl.style.display = 'none';
+    }
     // Intro Sofia TTS
     if (typeof speak === 'function') {
       setTimeout(() => speak("Bienvenue dans le mode immersif. Naviguez entre les cartes pour explorer l'analyse de votre bien."), 600);
     }
   } else {
-    document.getElementById('imm-hint').style.display = 'none';
+    var hintEl2 = document.getElementById('imm-hint');
+    if (hintEl2) hintEl2.style.display = 'none';
   }
 }
 
