@@ -10199,12 +10199,14 @@ window.immHideToggle = function(){
 function _immSimuStub(icon, name, valId, section) {
   var el = valId ? document.getElementById('val-' + valId) : null;
   var val = el ? el.textContent.trim().replace(/→$/, '').trim() : '';
+  var btn = '<div style="text-align:center"><button class="btn btn-dark" style="font-size:.82rem" '
+    + 'onclick="closePanel();document.body.classList.remove(&quot;imm-on&quot;,&quot;imm-split&quot;);'
+    + 'localStorage.removeItem(&quot;immoai_imm_mode&quot;);go(&quot;' + section + '&quot;)">'
+    + '↗️ Ouvrir le simulateur</button></div>';
   showPanel(icon + ' ' + name,
     (val ? '<div style="text-align:center;font-size:1.4rem;font-weight:700;color:#4fc3f7;padding:.5rem 0 .2rem">' + val + '</div>' : '') +
     '<p style="text-align:center;color:var(--muted);font-size:.82rem;padding:.5rem 1rem 1rem">Simulateur interactif disponible en mode classique.</p>' +
-    '<div style="text-align:center"><button class="btn btn-dark" style="font-size:.82rem" ' +
-    'onclick="closePanel();document.body.classList.remove('imm-on','imm-split');localStorage.removeItem('immoai_imm_mode');go('' + section + '')">' +
-    '↗ Ouvrir le simulateur</button></div>'
+    btn
   );
 }
 window.showPrixCarte      = function(){ if(typeof showPrixCommunesDetail==='function') showPrixCommunesDetail(); };
