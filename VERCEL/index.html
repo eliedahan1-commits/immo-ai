@@ -921,6 +921,7 @@ body.imm-on .results-header{
   pointer-events:none;}
 body.imm-on .results-header *{color:#fff!important;text-shadow:0 2px 10px rgba(0,0,0,.95)!important;font-weight:600!important;}
 body.imm-on .back-btn{border-color:rgba(79,195,247,.4)!important;color:#4fc3f7!important;}
+body.imm-on #hamburgerBtn{display:none!important;}
 body.imm-on .results-addr{justify-content:flex-start!important;gap:.9rem!important;margin-bottom:0!important;padding:.4rem 1.5rem!important;max-width:44%;flex-wrap:nowrap;pointer-events:auto!important;}
 body.imm-on .results-addr .back-btn{padding:.38rem .85rem!important;}
 body.imm-on #detailContainer .detail-panel{border-radius:0;min-height:calc(100vh - 56px);}
@@ -2540,6 +2541,7 @@ async function analyzeAddressWithFeature(feature){
   go('analyse');
 
   // Générer les cartes
+  window._analysisReady = false;  // reset spinners carousel
   renderCards(props,coords);
 
   // Lancer toutes les APIs en parallèle
@@ -4625,6 +4627,7 @@ function showPanel(title, html, backAction, backLabel){
       <div class="detail-body">${html}</div>
     </div>`;
   if(document.body.classList.contains('imm-on')){
+    document.body.classList.add('imm-split');
     const dc=document.getElementById('detailContainer');
     if(dc) dc.scrollTo({top:0,behavior:'smooth'});
   } else {
@@ -9934,7 +9937,7 @@ const SEC_OFF  = -100;
 const ROT_INIT = (N-1)*STEP/2;
 const PNL_W    = 360;   // largeur panneau carousel (px)
 
-let immRot = ROT_INIT-4*STEP, immTgt = ROT_INIT-4*STEP, immRaf = null, immActive = null;
+let immRot = ROT_INIT, immTgt = ROT_INIT, immRaf = null, immActive = null;
 const immDrag = {on:false,pending:false,sx:0,sr:0,vx:0,lx:0};
 
 function snapImmTgt(){
@@ -9989,20 +9992,30 @@ function immRender(){
       + `opacity:${op};z-index:${zB};`;
 
     const loading = !window._analysisReady;
-    let _immVal = '';
+    let _immVal = '', _hasRetry = false;
     if (!loading && item.valId) {
       const _ve = document.getElementById('val-' + item.valId);
       if (_ve) { const _t = _ve.textContent.trim(); if (_t && !_t.endsWith('\u2192')) _immVal = _t; }
+      _hasRetry = !!document.getElementById('card-' + item.valId)?.querySelector('.card-retry-btn');
     }
     el.innerHTML = `<div class="imm-hc-i">${item.icon}</div>`
       + `<div class="imm-hc-n">${item.name}</div>`
       + (loading
         ? `<span class="imm-spin"></span>`
-        : (_immVal
-          ? `<div class="imm-hc-v">${_immVal}</div>`
-          : `<div class="imm-hc-t">${item.tag}</div>`));
+        : (_hasRetry
+          ? `<div class="imm-hc-t" style="color:#f87171;font-size:.65em">Erreur — cliquer pour réessayer</div>`
+          : (_immVal
+            ? `<div class="imm-hc-v">${_immVal}</div>`
+            : `<div class="imm-hc-t">${item.tag}</div>`)));
 
-    el.addEventListener('click', () => immOpenCard(item));
+    if (!el._immClickBound) {
+      el.addEventListener('click', () => {
+        const rb = item.valId ? document.getElementById('card-'+item.valId)?.querySelector('.card-retry-btn') : null;
+        if (rb) { rb.click(); return; }
+        immOpenCard(item);
+      });
+      el._immClickBound = true;
+    }
     layer.appendChild(el);
   });
 }
@@ -10157,7 +10170,7 @@ function _immApply(){
 }
 
 // ── Exposer pour mise à jour depuis l'analyse ──────────────────────────
-window.immRefresh = function(){ if (_immOn) immRender(); };
+window.immRefresh = function(){ if (_immOn) { immSizeRing(); immRender(); } };
 
 // ── Resize ─────────────────────────────────────────────────────────────
 window.addEventListener('resize', () => { if (_immOn) { immSizeRing(); immRender(); } });
@@ -10181,6 +10194,29 @@ window.immHideToggle = function(){
   if (tog) tog.style.display = 'none';
   if (_immOn) { _immOn=false; document.body.classList.remove('imm-on','imm-split'); }
 };
+
+// ── Stubs immersifs pour simulateurs non encore implémentés ───────────────
+function _immSimuStub(icon, name, valId, section) {
+  var el = valId ? document.getElementById('val-' + valId) : null;
+  var val = el ? el.textContent.trim().replace(/→$/, '').trim() : '';
+  showPanel(icon + ' ' + name,
+    (val ? '<div style="text-align:center;font-size:1.4rem;font-weight:700;color:#4fc3f7;padding:.5rem 0 .2rem">' + val + '</div>' : '') +
+    '<p style="text-align:center;color:var(--muted);font-size:.82rem;padding:.5rem 1rem 1rem">Simulateur interactif disponible en mode classique.</p>' +
+    '<div style="text-align:center"><button class="btn btn-dark" style="font-size:.82rem" ' +
+    'onclick="closePanel();document.body.classList.remove('imm-on','imm-split');localStorage.removeItem('immoai_imm_mode');go('' + section + '')">' +
+    '↗ Ouvrir le simulateur</button></div>'
+  );
+}
+window.showPrixCarte      = function(){ if(typeof showPrixCommunesDetail==='function') showPrixCommunesDetail(); };
+window.showEmpruntDetail  = function(){ _immSimuStub('💰',"Capacité d'emprunt",     'emprunt',    'emprunt'); };
+window.showCoutDetail     = function(){ _immSimuStub('📅','Mensualités & crédit','mensualites','emprunt'); };
+window.showInvestDetail   = function(){ _immSimuStub('🏠','Investissement locatif',        'cout',       'cout'); };
+window.showLocationDetail = function(){ _immSimuStub('🏢','Location : budget',             'location',   'location'); };
+window.showAidesDetail    = function(){ _immSimuStub('🎁',"Aides à l'achat",         'aides',      'aides'); };
+window.showRenovDetail    = function(){ _immSimuStub('🔨',"MaPrimeRénov'",           'renov',      'renov'); };
+window.showAnnoncesDetail = function(){ _immSimuStub('🔍','Trouver un bien',               'recherche',  'recherche'); };
+window.showOffreDetail    = function(){ _immSimuStub('🤝',"Coaching de l'offre",           'offre',      'offre'); };
+window.showProfilDetail   = function(){ _immSimuStub('👤','Compatibilité de vie',     'profil',     'profil'); };
 
 })(); // fin IIFE
 
