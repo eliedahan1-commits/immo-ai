@@ -917,10 +917,12 @@ body.imm-on .results-header{
   position:fixed;top:56px;left:0;right:0;z-index:100;
   background:transparent!important;
   backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
-  border-bottom:none!important;padding-bottom:.5rem;}
+  border-bottom:none!important;padding-top:0!important;padding-bottom:.5rem;
+  pointer-events:none;}
 body.imm-on .results-header *{color:#fff!important;text-shadow:0 2px 10px rgba(0,0,0,.95)!important;font-weight:600!important;}
 body.imm-on .back-btn{border-color:rgba(79,195,247,.4)!important;color:#4fc3f7!important;}
-body.imm-on .results-addr{justify-content:flex-start!important;gap:.9rem!important;margin-bottom:0!important;padding:.4rem 1.5rem!important;max-width:44%;flex-wrap:nowrap;}
+body.imm-on .results-addr{justify-content:flex-start!important;gap:.9rem!important;margin-bottom:0!important;padding:.4rem 1.5rem!important;max-width:44%;flex-wrap:nowrap;pointer-events:auto!important;}
+body.imm-on .results-addr .back-btn{padding:.38rem .85rem!important;}
 body.imm-on #detailContainer .detail-panel{border-radius:0;min-height:calc(100vh - 56px);}
 body.imm-on #detailContainer .back-btn{margin:.75rem 1rem;}
 
@@ -9926,13 +9928,13 @@ const N        = IMM_ITEMS.length;
 const START    = -(N-1)*STEP/2;
 const VIS      = 118;
 const CARD_W   = 200;
-const CY_RATIO = 0.60;
+const CY_RATIO = 0.55;
 const R_RATIO  = 0.36;
 const SEC_OFF  = -100;
 const ROT_INIT = (N-1)*STEP/2;
 const PNL_W    = 360;   // largeur panneau carousel (px)
 
-let immRot = ROT_INIT, immTgt = ROT_INIT, immRaf = null, immActive = null;
+let immRot = ROT_INIT-4*STEP, immTgt = ROT_INIT-4*STEP, immRaf = null, immActive = null;
 const immDrag = {on:false,pending:false,sx:0,sr:0,vx:0,lx:0};
 
 function snapImmTgt(){
@@ -10020,9 +10022,9 @@ function immGetScoreClass(fn) {
 function immOpenCard(item) {
   if (typeof window[item.fn] === 'function') {
     window[item.fn]();
+    // Passer en split-screen
+    document.body.classList.add('imm-split');
   }
-  // Passer en split-screen
-  document.body.classList.add('imm-split');
   immActive = item.fn;
   immSizeRing();
   immRender();
