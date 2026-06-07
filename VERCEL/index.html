@@ -10158,6 +10158,11 @@ function immSizeRing(){
 let _immOn = (localStorage.getItem('immoai_imm_mode') === '1');
 
 window.immToggle = function(){
+  // Fermer tout panel ouvert + remettre la grille avant de basculer
+  var dc = document.getElementById('detailContainer');
+  if (dc && dc.innerHTML.trim()) closePanel();
+  var cg = document.getElementById('cardsGrid');
+  if (cg) cg.style.display = _immOn ? 'none' : 'grid'; // classique → grille visible, imm → masquée par CSS
   _immOn = !_immOn;
   localStorage.setItem('immoai_imm_mode', _immOn ? '1' : '0');
   _immApply();
@@ -10242,7 +10247,7 @@ function _immShowSimulateur(pageId, title, initFn) {
   };
   // Construire le panel header
   dc.innerHTML = '<div style="max-width:860px;margin:0 auto .75rem;width:100%">'
-    +'<button class="back-btn" onclick="closePanel()" style="margin:0">← Retour au carousel</button></div>'
+    +'<button class="back-btn" onclick="closePanel()" style="margin:0">← Retour aux cartes</button></div>'
     +'<div class="detail-panel" id="_immSimPanel">'
     +'<div class="detail-head"><div class="detail-title">'+title+'</div>'
     +'<button class="detail-close" onclick="closePanel()">✕ Fermer</button></div>'
@@ -10259,7 +10264,7 @@ window.showInvestDetail   = function(){ _immShowSimulateur('p-cout','🏠 Invest
 window.showLocationDetail = function(){ _immShowSimulateur('p-location','🏢 Location : budget',function(){ if(typeof initLocationPage==='function') initLocationPage(); }); };
 window.showAidesDetail    = function(){ _immShowSimulateur('p-aides','🎁 Aides à l\'achat',null); };
 window.showRenovDetail    = function(){ _immShowSimulateur('p-renov','🔨 MaPrimeRénov\'',null); };
-window.showAnnoncesDetail = function(){ _immShowSimulateur('p-annonces','🔍 Trouver un bien',null); };
+window.showAnnoncesDetail = function(){ if(typeof showRecherchePanel==='function') showRecherchePanel(); };
 window.showOffreDetail    = function(){ _immShowSimulateur('p-offre','🤝 Coaching de l\'offre',function(){ if(window.currentAddress){var el=document.getElementById('oRue');if(el&&!el.value)el.value=window.currentAddress;} }); };
 window.showProfilDetail   = function(){ _immShowSimulateur('p-profil','👤 Compatibilité de vie',function(){ var l=document.getElementById('pAdresseLabel'); if(l&&window.currentAddress)l.innerHTML='📍 <strong>'+window.currentAddress+'</strong>'; if(typeof updatePoidsDisplay==='function')updatePoidsDisplay(); if(window.currentCoords&&typeof runProfil==='function')setTimeout(runProfil,150); }); };
 
