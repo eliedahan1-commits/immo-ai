@@ -67,7 +67,7 @@ function init(){
 // ── Préférences ──
 function loadPrefs(){
   try { prefs = JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'); } catch(e){ prefs={}; }
-  prefs = Object.assign({ configured:false, nom:'Sofia', genre:'femme', vitesse:1, pitch:1 }, prefs);
+  prefs = Object.assign({ configured:false, nom:'Sofia', genre:'femme', fond:'auto', vitesse:1, pitch:1 }, prefs);
   try { history = JSON.parse(sessionStorage.getItem(HISTORY_KEY)||'[]'); } catch(e){ history=[]; }
 }
 function savePrefs(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs)); }
@@ -122,6 +122,12 @@ function injectHTML(){
       <div class="av-radio-row">
         <label><input type="radio" name="av-genre" value="femme" checked /> Femme</label>
         <label><input type="radio" name="av-genre" value="homme" /> Homme</label>
+      </div>
+      <label>Fond immersif</label>
+      <div class="av-radio-row">
+        <label><input type="radio" name="av-fond" value="femme" /> 🖼️ Femme</label>
+        <label><input type="radio" name="av-fond" value="homme" /> 🖼️ Homme</label>
+        <label><input type="radio" name="av-fond" value="fire" /> 🔥 Vidéo</label>
       </div>
       <label>Voix <span style="font-size:.72rem;color:#8a7755">(voix françaises disponibles sur cet appareil)</span></label>
       <select id="av-pref-voix" style="width:100%;background:#100e0b;border:1px solid #2a2218;color:#e8d8b0;padding:.4rem .6rem;border-radius:6px;font-size:.78rem;margin-bottom:.5rem">
@@ -926,6 +932,9 @@ function showSetup(){
   if(!modal) return;
   document.getElementById('av-pref-nom').value = prefs.nom || '';
   document.querySelector(`input[name="av-genre"][value="${prefs.genre}"]`).checked = true;
+  const fondVal = prefs.fond === 'auto' ? prefs.genre : prefs.fond;
+  const fondEl = document.querySelector(`input[name="av-fond"][value="${fondVal}"]`);
+  if(fondEl) fondEl.checked = true;
   document.getElementById('av-pref-vitesse').value = prefs.vitesse || 1;
   if(document.getElementById('av-pref-volume')) document.getElementById('av-pref-volume').value = prefs.volume || 1;
   document.getElementById('av-pref-pitch').value = prefs.pitch || 1;
@@ -942,8 +951,10 @@ function saveSetup(){
   const pitch = parseFloat(document.getElementById('av-pref-pitch').value);
   const volume = parseFloat(document.getElementById('av-pref-volume')?.value) || 1;
   const voix = document.getElementById('av-pref-voix')?.value || '';
+  const fond = document.querySelector('input[name="av-fond"]:checked')?.value || prefs.fond || 'auto';
   const genreChange = genre !== prefs.genre;
-  prefs = { configured:true, nom, genre, vitesse, pitch, volume, voix };
+  const fondChange = fond !== prefs.fond;
+  prefs = { configured:true, nom, genre, fond, vitesse, pitch, volume, voix };
   savePrefs();
   closeSetup();
   updateNameBadge();
@@ -952,8 +963,9 @@ function saveSetup(){
   if(genreChange){
     const wrap = document.getElementById('av-canvas-wrap');
     if(wrap) showFallbackAvatar(wrap);
-    const bgImg = document.getElementById('imm-bg-img');
-    if(bgImg) bgImg.src = (prefs.genre === 'homme') ? 'images/avatar-m-fond.png' : 'images/avatar-f-fond.png';
+  }
+  if(genreChange || fondChange){
+    if(typeof window._immUpdateBg === 'function') window._immUpdateBg();
   }
 }
 
