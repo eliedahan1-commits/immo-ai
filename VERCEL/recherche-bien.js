@@ -482,4 +482,15 @@
       '<div class="detail-panel">' +
       '<div class="detail-head"><div class="detail-title">🔍 Trouver un bien</div>' +
       '<button class="detail-close" onclick="closePanel()">✕ Fermer</button></div>' +
+      renderPanel(_ctx.cityName, _ctx.cp, photoUrl) +
+      '</div>';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    window._rbSetMode('achat');
+    window._rbSetType('both');
+    window._rbUpdateSites();
+  };
+
+})();
+
   
