@@ -44,7 +44,6 @@ const CARD_NAMES = {
   mensualites:"Achat : Mensualités & coût total du crédit",
   cout:"Investissement locatif",
   location:"Location : budget & comparaison",
-  offre:"Coaching de l'offre",
   close:""
 };
 let isSpeaking = false;
@@ -644,7 +643,7 @@ function addMsg(role, text){
       if(cardId === 'close'){
         setTimeout(()=>{
           // Si on est sur une page go() (financement, etc.), retour à l'analyse
-          const goPages = ['emprunt','mensualites','cout','location','offre','aides','renov','urbanisme','recherche','profil'];
+          const goPages = ['emprunt','mensualites','cout','location','aides','renov','urbanisme','recherche','profil'];
           const activePage = document.querySelector('.page.on');
           const activeId = activePage?.id?.replace('p-','');
           if(activeId && goPages.includes(activeId)){
@@ -654,7 +653,7 @@ function addMsg(role, text){
           }
         }, 400);
       } else {
-        const goCards = ['emprunt','mensualites','cout','location','offre','aides','renov','urbanisme','recherche','profil'];
+        const goCards = ['emprunt','mensualites','cout','location','aides','renov','urbanisme','recherche','profil'];
         setTimeout(()=>{
           if(goCards.includes(cardId)){
             if(typeof go==='function') go(cardId);
@@ -831,7 +830,7 @@ function buildSystemPrompt(){
 "  Compatibilite de vie → profil | Trouver un bien → recherche\n" +
 "Simulateurs Mon Financement (a ouvrir avec [CARD:id]) :\n" +
 "  Capacite emprunt → emprunt | Mensualites credit → mensualites | Investissement locatif → cout\n" +
-"  Budget loyer / louer vs acheter → location | Coaching offre → offre\n" +
+"  Budget loyer / louer vs acheter → location\n" +
 "\n" +
 "DONNEES DE L'ANALYSE EN COURS :\n" +
 dataCtx + "\n" +
