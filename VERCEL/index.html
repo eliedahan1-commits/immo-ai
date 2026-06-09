@@ -874,7 +874,7 @@ body.imm-on #imm-bg-dark{opacity:0;}
 body.imm-on #imm-ring{display:block;}
 body.imm-on #imm-carousel-wrap{display:block;}
 body.imm-on #detailContainer{
-  display:none;position:fixed;left:40%;top:56px;right:440px;bottom:0;z-index:20;
+  display:none;position:fixed;left:55%;top:56px;right:440px;bottom:0;z-index:20;
   overflow-y:auto;background:rgba(3,10,22,.90);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
   padding:0;margin-left:0;}
 body.imm-on #detailContainer:empty{background:transparent;}
@@ -10047,7 +10047,7 @@ const _cw = () => document.getElementById('imm-carousel-wrap');
 function _inCarousel(e){
   if (!document.body.classList.contains('imm-on')) return false;
   // En split : seulement la zone gauche (hors panneau)
-  if (document.body.classList.contains('imm-split')) return e.clientX < window.innerWidth * 0.40;
+  if (document.body.classList.contains('imm-split')) return e.clientX < window.innerWidth * 0.55;
   // Full screen : tout sauf éléments UI interactifs
   const tag = e.target?.tagName;
   return tag !== 'BUTTON' && tag !== 'A' && tag !== 'INPUT' && tag !== 'SELECT';
@@ -10176,7 +10176,16 @@ window._immUpdateBg = function(){
       if (bgVid) { bgVid.style.display = 'block'; bgVid.play && bgVid.play(); }
     } else {
       if (bgVid) { bgVid.style.display = 'none'; bgVid.pause && bgVid.pause(); }
-      if (bgImg) { bgImg.style.display = 'block'; bgImg.src = (fond === 'homme') ? 'images/avatar-m-fond.png' : 'images/avatar-f-fond.png'; }
+      if (bgImg) {
+        bgImg.style.display = 'block';
+        const BG_MAP = {
+          'homme':       'images/avatar-m-fond.png',
+          'femme':       'images/avatar-f-fond.png',
+          'salon-futur': 'images/Salon futur.png',
+          'salon-today': 'images/Salon today.png',
+        };
+        bgImg.src = BG_MAP[fond] || BG_MAP['femme'];
+      }
     }
   } catch(e) {}
 };
