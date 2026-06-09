@@ -1050,7 +1050,6 @@ body.imm-on #detailContainer .g2{grid-template-columns:1fr;}
   <div class="nav-group-content collapsed">
     <div class="nav-sub">
       <div class="nav-item" onclick="setActiveNavItem(this);go('recherche')"><span class="nav-icon">🏠</span>Trouver un bien</div>
-      <div class="nav-item" onclick="setActiveNavItem(this);go('offre')"><span class="nav-icon">🤝</span>Coaching de l'offre</div>
       <div class="nav-item" onclick="setActiveNavItem(this);go('profil')"><span class="nav-icon">🎯</span>Compatibilité de vie</div>
       <div class="nav-item" onclick="setActiveNavItem(this);go('conseil')"><span class="nav-icon">🤖</span>Conseiller IA 24h/24</div>
       <div class="nav-item" onclick="setActiveNavItem(this);go('juridique')"><span class="nav-icon">📜</span>Guide juridique</div>
@@ -1673,61 +1672,6 @@ body.imm-on #detailContainer .g2{grid-template-columns:1fr;}
   </div></div>
 
   <!-- ══ COACHING OFFRE ══ -->
-  <div class="page" id="p-offre"><div class="inner">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 1rem 0">
-      <button class="back-btn" onclick="go('analyse')">← Retour aux cartes</button>
-      <button class="detail-close" onclick="go('analyse')" style="color:var(--muted);font-size:.9rem;padding:.3rem .5rem;border:1px solid var(--border);border-radius:var(--r)">✕ Fermer</button>
-    </div>
-    <div class="ph"><div class="ptag">✦ Stratégie</div><h2 class="ptitle">Coaching <em>de l'offre</em></h2></div>
-    <div class="card"><div class="ctitle">🤝 Décrivez le bien</div>
-      <div class="g2"><div><label class="lbl">Prix demandé (€)</label><input class="inp" id="oPrix" type="number" placeholder="650000" /></div><div><label class="lbl">Surface (m²)</label><input class="inp" id="oSurf" type="number" placeholder="75" /></div></div>
-      <label class="lbl">Adresse / ville</label><input class="inp" id="oRue" placeholder="Ex: 24 rue de la Paix, Paris…" />
-      <label class="lbl">En vente depuis ?</label>
-      <div class="toggles" id="tOJ"><button class="tog" onclick="tog('tOJ',this)">&lt; 15 j</button><button class="tog" onclick="tog('tOJ',this)">15–45 j</button><button class="tog on" onclick="tog('tOJ',this)">45–90 j</button><button class="tog" onclick="tog('tOJ',this)">&gt; 90 j</button></div>
-      <label class="lbl">Baisses de prix ?</label>
-      <div class="toggles" id="tOB"><button class="tog" onclick="tog('tOB',this)">Non</button><button class="tog" onclick="tog('tOB',this)">1 baisse</button><button class="tog on" onclick="tog('tOB',this)">2+ baisses</button></div>
-      <button class="btn btn-dark btn-full" onclick="runIA('offre')" id="btnOffre">✦ Obtenir ma stratégie d'offre</button>
-    </div>
-    <div class="aibox" id="boxOffre" style="display:none">
-      <div class="ailabel">✦ Stratégie IA — Conseil indicatif</div>
-      <div id="txtOffre" class="aitext"></div>
-      <div id="offreDvfLink" style="display:none;margin-top:1rem;padding:.75rem 1rem;background:rgba(184,131,42,.1);border:1px solid rgba(184,131,42,.2);border-radius:6px;font-size:.78rem">
-        📊 <strong>Prix DVF du quartier analysé :</strong> <span id="offreDvfVal">—</span> — à croiser avec cette recommandation.
-        <a href="#" onclick="go('prix');return false" style="color:var(--gold2);margin-left:.5rem">Voir le détail DVF ↗</a>
-      </div>
-      <div style="margin-top:.75rem;padding:.6rem 1rem;background:var(--warm);border-radius:6px;font-size:.75rem;color:var(--muted)">
-        ⚠️ Conseil indicatif basé sur les données saisies. À croiser impérativement avec les prix de marché réels avant toute offre.
-      </div>
-    </div>
-    <!-- Simulation négociation -->
-    <div style="margin-top:1.5rem">
-      <div style="font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem">🤝 Simulation impact négociation</div>
-      <div class="card" style="margin-bottom:1rem">
-        <div class="ctitle">Paramètres du financement</div>
-        <div class="g2">
-          <div>
-            <label class="lbl">Prix affiché (€) <span style="font-weight:400;color:var(--muted);font-size:.8em">— reprend le champ ci-dessus</span></label>
-            <input class="inp" id="negoOffrePrix" type="number" placeholder="350000" />
-          </div>
-          <div>
-            <label class="lbl">Apport personnel (€)</label>
-            <input class="inp" id="negoOffreApport" type="number" placeholder="50000" />
-          </div>
-          <div>
-            <label class="lbl">Durée prêt (ans)</label>
-            <input class="inp" id="negoOffreDuree" type="number" value="20" />
-          </div>
-          <div>
-            <label class="lbl">Taux (%)</label>
-            <input class="inp" id="negoOffreTaux" type="number" value="3.42" step="0.01" />
-          </div>
-        </div>
-        <button class="btn btn-dark btn-full" onclick="calcNegoOffre()" style="margin-top:.75rem">✦ Simuler les scénarios</button>
-      </div>
-      <div id="negoOffreGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem"></div>
-    </div>
-  </div></div>
-
   <!-- ══ PROFIL DE VIE ══ -->
   <div class="page" id="p-profil"><div class="inner">
     <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 1rem 0">
@@ -1910,7 +1854,6 @@ body.imm-on #detailContainer .g2{grid-template-columns:1fr;}
         <div class="card" style="padding:1rem"><div class="ctitle">✦ Outils rapides</div>
           <div style="display:flex;flex-direction:column;gap:.38rem">
             <span class="csug" style="border-radius:3px;display:block;text-align:left" onclick="go('emprunt')">🏦 Simuler mon emprunt</span>
-            <span class="csug" style="border-radius:3px;display:block;text-align:left" onclick="go('offre')">🤝 Coacher mon offre</span>
             <span class="csug" style="border-radius:3px;display:block;text-align:left" onclick="go('urbanisme')">⚡ Analyser le DPE</span>
             <span class="csug" style="border-radius:3px;display:block;text-align:left" onclick="go('juridique')">📜 Guide juridique</span>
           </div>
@@ -2128,7 +2071,7 @@ const PAGES = {
   urbanisme:'Urbanisme, PLU & Énergie', ecoles:'Écoles & IPS', mobilite:'Mobilité & transports',
   fibre:'Internet & fibre', services:'Services & santé', soleil:"Météo et qualité de l'air",
   emprunt:'Capacité d\'emprunt', cout:'Vrai coût du bien', aides:'Aides de l\'État',
-  renov:'Rénovation & MaPrimeRénov\'', mensualites:'Achat : Mensualités & crédit', cout:'Investissement locatif', location:'Location : budget & comparaison', offre:'Coaching de l\'offre',
+  renov:'Rénovation & MaPrimeRénov\'', mensualites:'Achat : Mensualités & crédit', cout:'Investissement locatif', location:'Location : budget & comparaison', 
   profil:'Compatibilité de vie',
   conseil:'Conseiller IA 24h/24', annonces:'Annonces', alertes:'Alertes intelligentes',
   pros:'Annuaire pros', juridique:'Guide juridique'
@@ -2197,7 +2140,6 @@ function go(id){
     const setFirst = (sel, val) => { const el=document.querySelector(sel); if(el && !el.value) el.value=val; };
     const extractVille = addr => { const m=addr.match(/\d{5}\s+(.+)$/); return m?m[1]:addr; };
     if(id === 'prix')     set('dvfAddr', currentAddress);
-    if(id === 'offre')    set('oRue',    currentAddress);
     if(id === 'profil')   {
       const pLbl=document.getElementById('pAdresseLabel');
       if(pLbl&&currentAddress) pLbl.innerHTML='📍 <strong>'+currentAddress+'</strong>';
@@ -2636,7 +2578,6 @@ function renderCards(props, coords){
       title: '🎯 Ma stratégie',
       cards: [
         {id:'recherche', icon:'🏠', label:'Trouver un bien',        value:'Rechercher →', sub:'5 sites pré-filtrés',      source:'ImmoAI', action:"go('recherche')"},
-        {id:'offre',    icon:'🤝', label:"Coaching de l'offre",   value:'Consulter →', sub:'Préparer votre offre',     source:'IA', action:"go('offre')"},
         {id:'profil',   icon:'🎯', label:'Compatibilité de vie',  value:'Tester →',    sub:'Match quartier / profil',  source:'IA', action:"go('profil')"},
       ]
     },
@@ -7509,7 +7450,7 @@ const GROQ_MODELS = {
   complex:['llama-3.3-70b-versatile','meta-llama/llama-4-scout-17b-16e-instruct','llama-3.1-8b-instant','groq/compound-mini','groq/compound'],
   simple:['llama-3.1-8b-instant','llama-3.3-70b-versatile','meta-llama/llama-4-scout-17b-16e-instruct','groq/compound-mini','groq/compound']
 };
-const COMPLEX=['profil','offre','conseil'];
+const COMPLEX=['profil','conseil'];
 let exhausted=JSON.parse(sessionStorage.getItem('groq_ex')||'[]');
 function markEx(m){if(!exhausted.includes(m)){exhausted.push(m);sessionStorage.setItem('groq_ex',JSON.stringify(exhausted));}}
 
@@ -7550,28 +7491,6 @@ async function runIA(type){
   const prompts={
     aides:()=>`Situation: ${togVal('tAideSit')}, revenus: ${document.getElementById('aRev').value||'?'}€/an, foyer: ${document.getElementById('aPers').value||'2'} pers, bien: ${document.getElementById('aPrix').value||'400000'}€ à ${document.getElementById('aVille').value||'France'}. Aides disponibles (PTZ, Pinel, MaPrimeRénov) avec montants précis.`,
     renov:()=>`Rénovation ${document.getElementById('rSurf').value||80}m², DPE ${document.getElementById('rDpeAv').value} → ${document.getElementById('rDpeAp').value}. Revenus: ${document.getElementById('rRev').value||60000}€/an. Coût travaux estimé, aides MaPrimeRénov, économies annuelles.`,
-    offre:()=>{
-      const p=parseFloat(document.getElementById('oPrix').value)||0;
-      const s=parseFloat(document.getElementById('oSurf').value)||0;
-      const r=document.getElementById('oRue').value;
-      const pm2=s?Math.round(p/s):null;
-      const dvf=window._dvfData;
-      let dvfCtx='', strategieBase='';
-      if(dvf?.stats?.medianM2 && pm2){
-        const med=dvf.stats.medianM2;
-        const ecartPct=Math.round((pm2-med)/med*100);
-        const sens=ecartPct>0?`${ecartPct}% AU-DESSUS`:`${Math.abs(ecartPct)}% EN DESSOUS`;
-        dvfCtx=`Données DVF officielles : médiane ${med.toLocaleString('fr-FR')} €/m² (fourchette ${dvf.stats.minM2.toLocaleString('fr-FR')}–${dvf.stats.maxM2.toLocaleString('fr-FR')} €/m², ${dvf.count} ventes${dvf.dateRange?' sur '+dvf.dateRange:''}). `
-          +`Le prix demandé (${pm2.toLocaleString('fr-FR')} €/m²) est ${sens} de la médiane. `;
-        if(ecartPct <= -5)
-          strategieBase=`RÈGLE ABSOLUE : le prix est déjà sous le marché. NE PAS proposer de forte baisse. Offre recommandée : 0 à 2% sous le prix demandé maximum, soit environ ${Math.round(p*0.98/1000)*1000} €. Stratégie : vitesse et solidité du financement, pas la négociation de prix.`;
-        else if(ecartPct >= 10)
-          strategieBase=`Le prix est au-dessus du marché. Négociation justifiée : propose une offre entre la médiane (${Math.round(med*s/1000)*1000} €) et le prix demandé.`;
-        else
-          strategieBase=`Prix dans la fourchette du marché. Marge de négociation limitée : 3 à 5% maximum.`;
-      }
-      return`Coaching offre : prix demandé ${p.toLocaleString('fr-FR')} € (${pm2?pm2.toLocaleString('fr-FR')+' €/m²':'?'}), surface ${s||'?'}m², adresse : ${r||'France'}, en vente ${togVal('tOJ')}, baisses de prix : ${togVal('tOB')}. ${dvfCtx}${strategieBase} Donne une stratégie précise avec montant d'offre chiffré, 3 arguments adaptés à la situation réelle, tactique concrète. Ne recalcule pas les données, utilise exactement les chiffres fournis.`;
-    },
     profil:()=>{
       if(!currentAddress){toast('Analysez d\'abord une adresse','err');return null;}
       const ville=currentAddress;
@@ -8175,16 +8094,6 @@ async function runDVF(){
 }
 
 // ══ CALCULS LOCAUX ══
-function injectDvfIntoOffre(){
-  const dvf = window._dvfData;
-  const link = document.getElementById('offreDvfLink');
-  const val = document.getElementById('offreDvfVal');
-  if(!link||!val) return;
-  if(dvf && dvf.stats && dvf.stats.medianM2){
-    val.textContent = dvf.stats.medianM2.toLocaleString('fr-FR') + ' €/m² médian · ' + dvf.count + ' ventes dans le secteur';
-    link.style.display = 'block';
-  }
-}
 function autoCalcAides(){if(parseFloat(document.getElementById('aRev').value)&&parseFloat(document.getElementById('aPrix').value))calcAides();}
 function calcRenov(){
   const dpeAv = document.getElementById('rDpeAv').value;
@@ -9609,65 +9518,6 @@ function toggleLAmort(){
   b.textContent   = open ? "Afficher" : "Masquer";
 }
 
-function calcNegoOffre(){
-  const prix   = parseFloat(document.getElementById('negoOffrePrix').value)||0;
-  const apport = parseFloat(document.getElementById('negoOffreApport').value)||0;
-  const duree  = parseFloat(document.getElementById('negoOffreDuree').value)||20;
-  const taux   = (parseFloat(document.getElementById('negoOffreTaux').value)||3.42)/100;
-  if(!prix){ toast('Veuillez saisir le prix affiché.','err'); return; }
-  const t = taux/12, n = duree*12;
-  const factor = t/(1-Math.pow(1+t,-n));
-  const notaire = prix*0.075;
-  const scenarios = [
-    {label:'Prix affiché',pct:0,color:'var(--muted)',badge:''},
-    {label:'Négociation −5%',pct:0.05,color:'#2a9d8f',badge:'−5%'},
-    {label:'Négociation −10%',pct:0.10,color:'#e8a020',badge:'−10%'},
-  ];
-  const cards = scenarios.map(s => {
-    const newPrix    = Math.round(prix*(1-s.pct));
-    const saving     = prix-newPrix;
-    const newNotaire = Math.round(newPrix*0.075);
-    const newEmprunt = Math.max(0, newPrix+newNotaire-apport);
-    const newMens    = newEmprunt>0 ? Math.round(newEmprunt*factor) : 0;
-    const newTotal   = newPrix+newNotaire;
-    const accent = s.pct===0?'var(--border)':s.color;
-    return `<div style="border:2px solid ${accent};border-radius:var(--r);padding:1rem;background:var(--white)">
-      <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.6rem">
-        ${s.badge?'<span style="background:'+s.color+';color:#fff;border-radius:99px;font-size:.65rem;font-weight:700;padding:.15rem .5rem">'+s.badge+'</span>':'<span style="font-size:.65rem;color:var(--muted);font-weight:600">REF</span>'}
-        <span style="font-size:.72rem;font-weight:600;color:var(--ink)">${s.label}</span>
-      </div>
-      <div style="font-size:1.1rem;font-weight:700;color:${s.pct===0?'var(--ink)':s.color};margin-bottom:.1rem">${fmt(newPrix)}</div>
-      ${s.pct>0?'<div style="font-size:.7rem;color:'+s.color+';font-weight:600;margin-bottom:.6rem">économie '+fmt(saving)+'</div>':'<div style="margin-bottom:.6rem"></div>'}
-      <div style="font-size:.72rem;color:var(--muted);display:flex;flex-direction:column;gap:.25rem">
-        <div style="display:flex;justify-content:space-between"><span>Frais notaire (~7,5%)</span><span style="font-weight:600;color:var(--ink)">${fmt(newNotaire)}</span></div>
-        <div style="display:flex;justify-content:space-between"><span>Emprunt (hors apport)</span><span style="font-weight:600;color:var(--ink)">${fmt(newEmprunt)}</span></div>
-        <div style="display:flex;justify-content:space-between"><span>Mensualité estimée</span><span style="font-weight:600;color:var(--ink)">${fmt(newMens)}/mois</span></div>
-        ${s.pct>0?'<div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:.25rem;margin-top:.1rem"><span>Économie sur le prix</span><span style="font-weight:700;color:'+s.color+'">'+fmt(saving)+'</span></div>':''}
-      </div>
-    </div>`;
-  });
-  document.getElementById('negoOffreGrid').innerHTML = cards.join('');
-}
-
-// Sync oPrix → negoOffrePrix when go('offre') is called
-const _origGoOffre = window._goOffre;
-document.addEventListener('DOMContentLoaded', ()=>{
-  const origGo = window.go;
-  if(origGo){
-    window.go = function(id){
-      origGo(id);
-      if(id==='offre'){
-        const p=document.getElementById('oPrix');
-        const n=document.getElementById('negoOffrePrix');
-        const tm=window._tauxMarche?.taux||{};
-        if(p&&p.value&&n) n.value=p.value;
-        const tEl=document.getElementById('negoOffreTaux');
-        if(tEl&&tm[20]) tEl.value=String(tm[20]);
-        setTimeout(function(){if(typeof calcNegoOffres==='function') calcNegoOffres();},80);
-      }
-    };
-  }
-});
 
 async function initEmpruntPage() {
   const tm = window._tauxMarche?.taux || { 10: 3.10, 15: 3.27, 20: 3.42, 25: 3.50 };
@@ -10035,7 +9885,6 @@ const IMM_SECTIONS = [
   ]},
   { label:'Ma Stratégie', color:'rgba(200,130,255,.95)', cards:[
     { icon:'🔍', name:'Trouver un bien',           tag:'annonces filtrées',  fn:'showAnnoncesDetail', valId:'recherche' },
-    { icon:'🤝', name:"Coaching de l'offre",       tag:'négociation',        fn:'showOffreDetail',    valId:'offre' },
     { icon:'👤', name:'Compatibilité de vie',      tag:'votre profil',       fn:'showProfilDetail',   valId:'profil' },
   ]},
 ];
@@ -10458,7 +10307,6 @@ window.showLocationDetail = function(){ _immShowSimulateur('p-location','🏢 Lo
 window.showAidesDetail    = function(){ _immShowSimulateur('p-aides','🎁 Aides à l\'achat',null); };
 window.showRenovDetail    = function(){ _immShowSimulateur('p-renov','🔨 MaPrimeRénov\'',null); };
 window.showAnnoncesDetail = function(){ if(typeof showRecherchePanel==='function') showRecherchePanel(); };
-window.showOffreDetail    = function(){ _immShowSimulateur('p-offre','🤝 Coaching de l\'offre',function(){ if(window.currentAddress){var el=document.getElementById('oRue');if(el&&!el.value)el.value=window.currentAddress;} }); };
 window.showProfilDetail   = function(){ _immShowSimulateur('p-profil','👤 Compatibilité de vie',function(){ var l=document.getElementById('pAdresseLabel'); if(l&&window.currentAddress)l.innerHTML='📍 <strong>'+window.currentAddress+'</strong>'; if(typeof updatePoidsDisplay==='function')updatePoidsDisplay(); if(window.currentCoords&&typeof runProfil==='function')setTimeout(runProfil,150); }); };
 
 })(); // fin IIFE
@@ -10493,7 +10341,7 @@ const _PAGE_TO_TAB={
   analyse:'bien',prix:'bien',risques:'bien',bruit:'bien',urbanisme:'bien',
   ecoles:'bien',mobilite:'bien',fibre:'bien',services:'bien',soleil:'bien',
   emprunt:'financement',cout:'financement',mensualites:'financement',aides:'financement',renov:'financement',location:'financement',
-  offre:'strategie',profil:'strategie',recherche:'strategie',conseil:'strategie',juridique:'strategie',
+  profil:'strategie',recherche:'strategie',conseil:'strategie',juridique:'strategie',
 };
 function setActiveTab(tabId){
   document.querySelectorAll('.btab').forEach(b=>b.classList.remove('active'));
