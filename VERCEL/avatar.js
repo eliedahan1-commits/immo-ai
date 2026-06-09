@@ -664,7 +664,7 @@ function addMsg(role, text){
         }, 600);
       }
     });
-    displayText = text.replace(/\[CARD:[a-z]+\]/g, '').replace(/\s{2,}/g,' ').trim();
+    displayText = text.replace(/\[CARD:[a-zA-Z]+\]/gi, '').replace(/\s{2,}/g,' ').trim();
   }
   const el = document.createElement('div');
   el.className = 'av-msg ' + role;
@@ -719,7 +719,7 @@ async function sendMessage(){
     const response = await callAvatarAI(txt, docCtx);
     removeThinking();
     addMsg('assistant', response);
-    speak(response.replace(/\[CARD:[a-z]+\]/g, "").trim());
+    speak(response.replace(/\[CARD:[a-zA-Z]+\]/gi, "").trim());
   } catch(e){
     removeThinking();
     const err = e.message==='no_key'
