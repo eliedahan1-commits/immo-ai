@@ -708,6 +708,16 @@ function needsDoc(txt){
   return kw.some(k => t.includes(k));
 }
 
+
+// Normalise les tags non-standard [Meteo], [DVF]... → [CARD:meteo]
+function normalizeCardTags(text){
+  return text.replace(/\[([A-Za-z][A-Za-z0-9]*)\]/g, function(match, name){
+    const key = name.toLowerCase();
+    if(key in CARD_NAMES) return '[CARD:' + key + ']';
+    return match;
+  });
+}
+
 async function sendMessage(){
   const inp = document.getElementById('av-text-input');
   const txt = (inp.value||'').trim();
@@ -724,8 +734,9 @@ async function sendMessage(){
   try {
     const response = await callAvatarAI(txt, docCtx);
     removeThinking();
-    addMsg('assistant', response);
-    speak(response.replace(/\[CARD:[^\]]+\]/gi, "").trim());
+    const normResponse = normalizeCardTags(response);
+    addMsg('assistant', normResponse);
+    speak(normResponse.replace(/\[CARD:[^\]]+\]/gi, "").trim());
   } catch(e){
     removeThinking();
     const err = e.message==='no_key'
