@@ -658,8 +658,12 @@ function addMsg(role, text){
           if(goCards.includes(cardId)){
             if(typeof go==='function') go(cardId);
           } else {
-            if(typeof go==='function') go('analyse');
-            setTimeout(()=>{ if(typeof showDetail==='function') showDetail(cardId); }, 350);
+            // En mode immersif, p-analyse est toujours visible — on saute go('analyse')
+            // pour éviter les effets de bord (scroll, nav) qui cassent le 2e appel en Edge
+            const isImm = document.body && document.body.classList.contains('imm-on');
+            if(!isImm && typeof go==='function') go('analyse');
+            const delay = isImm ? 50 : 350;
+            setTimeout(()=>{ if(typeof showDetail==='function') showDetail(cardId); }, delay);
           }
         }, 600);
       }

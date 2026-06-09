@@ -874,7 +874,7 @@ body.imm-on #imm-bg-dark{opacity:0;}
 body.imm-on #imm-ring{display:block;}
 body.imm-on #imm-carousel-wrap{display:block;}
 body.imm-on #detailContainer{
-  display:none;position:fixed;left:28%;top:56px;right:420px;bottom:0;z-index:20;
+  display:none;position:fixed;left:40%;top:56px;right:440px;bottom:0;z-index:20;
   overflow-y:auto;background:rgba(3,10,22,.90);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
   padding:0;margin-left:0;}
 body.imm-on #detailContainer:empty{background:transparent;}
@@ -9925,7 +9925,7 @@ function immRender(){
   const W = window.innerWidth, H = window.innerHeight;
   const isSplit = document.body.classList.contains('imm-split');
   const R  = H * R_RATIO;
-  const cx = isSplit ? W * 0.22 : W * 0.5;
+  const cx = isSplit ? W * 0.25 : W * 0.5;
   const cy = H * CY_RATIO;
   const layer = document.getElementById('imm-cl');
   if (!layer) return;
@@ -10047,7 +10047,7 @@ const _cw = () => document.getElementById('imm-carousel-wrap');
 function _inCarousel(e){
   if (!document.body.classList.contains('imm-on')) return false;
   // En split : seulement la zone gauche (hors panneau)
-  if (document.body.classList.contains('imm-split')) return e.clientX < window.innerWidth * 0.28;
+  if (document.body.classList.contains('imm-split')) return e.clientX < window.innerWidth * 0.40;
   // Full screen : tout sauf éléments UI interactifs
   const tag = e.target?.tagName;
   return tag !== 'BUTTON' && tag !== 'A' && tag !== 'INPUT' && tag !== 'SELECT';
@@ -10110,7 +10110,7 @@ document.addEventListener('wheel', e => {
 function immSizeRing(){
   const W = window.innerWidth, H = window.innerHeight;
   const isSplit = document.body.classList.contains('imm-split');
-  const cx = isSplit ? W * 0.22 : W * 0.5;
+  const cx = isSplit ? W * 0.25 : W * 0.5;
   const sz = Math.round(H * R_RATIO * 2 * 0.95);
   const rw = document.getElementById('imm-ring');
   if (rw) rw.style.cssText = `width:${sz}px;height:${sz}px;left:${cx}px;top:${H*CY_RATIO}px;`;
