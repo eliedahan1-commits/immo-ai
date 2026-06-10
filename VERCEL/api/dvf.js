@@ -1,7 +1,7 @@
 // ══ VERCEL FUNCTION : DVF (nouvelle API dvf-api.data.gouv.fr) ══
 
 // ── Configuration ──
-const ANNEE_MIN            = 2023;   // filtre : ignorer les ventes avant cette année
+const ANNEE_MIN            = 2018;   // filtre : ignorer les ventes avant cette année
 const DIST_DEFAUT_M        = 3000;   // rayon de recherche par défaut (mètres)
 const DIST_MIN_TRANSACTIONS = 5;     // nb minimum de ventes avant d'élargir aux sections voisines
 const PRIX_M2_MIN          = 500;    // filtre : prix/m² minimum valide (€)
