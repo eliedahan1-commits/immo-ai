@@ -874,7 +874,7 @@ body.imm-on #imm-bg-dark{opacity:0;}
 body.imm-on #imm-ring{display:block;}
 body.imm-on #imm-carousel-wrap{display:block;}
 body.imm-on #detailContainer{
-  display:none;position:fixed;left:55%;top:56px;right:440px;bottom:0;z-index:20;
+  display:none;position:fixed;left:55%;top:56px;right:clamp(20px,calc(45vw - 380px),440px);bottom:0;z-index:20;
   overflow-y:auto;background:rgba(3,10,22,.90);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
   padding:0;margin-left:0;}
 body.imm-on #detailContainer:empty{background:transparent;}
