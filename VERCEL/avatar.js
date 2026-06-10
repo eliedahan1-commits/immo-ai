@@ -640,7 +640,6 @@ function addMsg(role, text){
   let displayText = text;
   if(role === 'assistant'){
     const cardMatches = [...(text.matchAll(/\[CARD:([^\]]+)\]/gi)||[])];
-    console.log('[AV] cardMatches:', cardMatches.length, '| imm-on:', document.body.classList.contains('imm-on'), '| imm-split:', document.body.classList.contains('imm-split'));
     cardMatches.forEach(m=>{
       const cardId = m[1].toLowerCase();
       if(cardId === 'close'){
@@ -666,11 +665,8 @@ function addMsg(role, text){
             const isImm = document.body && document.body.classList.contains('imm-on');
             if(!isImm && typeof go==='function') go('analyse');
             const delay = isImm ? 50 : 350;
-            console.log('[AV] showDetail dans', delay, 'ms | cardId:', cardId, '| typeof showDetail:', typeof showDetail);
             setTimeout(()=>{
-              console.log('[AV] APPEL showDetail:', cardId);
               if(typeof showDetail==='function') showDetail(cardId);
-              else console.warn('[AV] showDetail INDISPONIBLE');
             }, delay);
           }
         }, 600);
@@ -715,13 +711,32 @@ function needsDoc(txt){
 }
 
 
-// Normalise les tags non-standard [Meteo], [DVF]... → [CARD:meteo]
+// Normalise les tags non-standard → [CARD:id]
+// Gère [Meteo], [CARD:Meteo], [Altitude & topographie], [Démographie & attractivité]...
 function normalizeCardTags(text){
-  return text.replace(/\[([A-Za-z][A-Za-z0-9]*)\]/g, function(match, name){
-    const key = name.toLowerCase();
-    if(key in CARD_NAMES) return '[CARD:' + key + ']';
+  // Enlever accents pour comparaison floue
+  const _norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+  // Construire un index valeur→clé sur CARD_NAMES
+  const _valIdx = {};
+  for(const [k,v] of Object.entries(CARD_NAMES)){
+    if(k==='close') continue;
+    _valIdx[_norm(v)] = k;
+  }
+  // Normaliser [CARD:Id] → [CARD:id] (lowercase)
+  text = text.replace(/\[CARD:([^\]]+)\]/gi, (_,id)=>'[CARD:'+id.trim().toLowerCase()+']');
+  // Convertir [Anything] en fin de message si ça correspond à une clé ou un label
+  text = text.replace(/\[([^\]]+)\]\s*$/, function(match, name){
+    const n = _norm(name);
+    if(n in CARD_NAMES)  return '[CARD:'+n+']';          // clé exacte ex: [meteo]
+    if(n in _valIdx)     return '[CARD:'+_valIdx[n]+']'; // label exact ex: [Altitude & topographie]
+    // Correspondance partielle : label contient la clé
+    for(const [k,v] of Object.entries(CARD_NAMES)){
+      if(k==='close') continue;
+      if(n.includes(k) || _norm(v).includes(n)) return '[CARD:'+k+']';
+    }
     return match;
   });
+  return text;
 }
 
 async function sendMessage(){
