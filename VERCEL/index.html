@@ -10063,9 +10063,12 @@ function _inCarousel(e){
   if (!document.body.classList.contains('imm-on')) return false;
   // En split : seulement la zone gauche (hors panneau)
   if (document.body.classList.contains('imm-split')) return e.clientX < window.innerWidth * 0.55;
-  // Full screen : tout sauf éléments UI interactifs
+  // Full screen : tout sauf éléments UI interactifs et zone avatar (droite)
   const tag = e.target?.tagName;
-  return tag !== 'BUTTON' && tag !== 'A' && tag !== 'INPUT' && tag !== 'SELECT';
+  if (tag === 'BUTTON' || tag === 'A' || tag === 'INPUT' || tag === 'SELECT') return false;
+  const avPanel = document.getElementById('av-panel');
+  const avW = (avPanel && avPanel.offsetWidth > 0) ? avPanel.offsetWidth : 420;
+  return e.clientX < window.innerWidth - avW;
 }
 
 document.addEventListener('mousedown', e => {
@@ -10198,6 +10201,8 @@ window._immUpdateBg = function(){
           'femme':       'images/avatar-f-fond.png',
           'salon-futur': 'images/Salon futur.png',
           'salon-today': 'images/Salon today.png',
+          'salon-futur-f': 'images/Salon futur f.png',
+          'salon-futur-m': 'images/Salon futur m.png',
         };
         bgImg.src = BG_MAP[fond] || BG_MAP['femme'];
       }

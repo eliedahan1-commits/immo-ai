@@ -129,6 +129,8 @@ function injectHTML(){
         <label><input type="radio" name="av-fond" value="fire" /> 🔥 Vidéo</label>
         <label><input type="radio" name="av-fond" value="salon-futur" /> 🛋️ Salon futur</label>
         <label><input type="radio" name="av-fond" value="salon-today" /> 🏠 Salon today</label>
+        <label><input type="radio" name="av-fond" value="salon-futur-f" /> 🛋️ Salon futur ♀</label>
+        <label><input type="radio" name="av-fond" value="salon-futur-m" /> 🛋️ Salon futur ♂</label>
       </div>
       <label>Voix <span style="font-size:.72rem;color:#8a7755">(voix françaises disponibles sur cet appareil)</span></label>
       <select id="av-pref-voix" style="width:100%;background:#100e0b;border:1px solid #2a2218;color:#e8d8b0;padding:.4rem .6rem;border-radius:6px;font-size:.78rem;margin-bottom:.5rem">
