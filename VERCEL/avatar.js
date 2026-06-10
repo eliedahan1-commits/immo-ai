@@ -640,6 +640,7 @@ function addMsg(role, text){
   let displayText = text;
   if(role === 'assistant'){
     const cardMatches = [...(text.matchAll(/\[CARD:([^\]]+)\]/gi)||[])];
+    console.log('[AV] cardMatches:', cardMatches.length, '| imm-on:', document.body.classList.contains('imm-on'), '| imm-split:', document.body.classList.contains('imm-split'));
     cardMatches.forEach(m=>{
       const cardId = m[1].toLowerCase();
       if(cardId === 'close'){
@@ -665,7 +666,12 @@ function addMsg(role, text){
             const isImm = document.body && document.body.classList.contains('imm-on');
             if(!isImm && typeof go==='function') go('analyse');
             const delay = isImm ? 50 : 350;
-            setTimeout(()=>{ if(typeof showDetail==='function') showDetail(cardId); }, delay);
+            console.log('[AV] showDetail dans', delay, 'ms | cardId:', cardId, '| typeof showDetail:', typeof showDetail);
+            setTimeout(()=>{
+              console.log('[AV] APPEL showDetail:', cardId);
+              if(typeof showDetail==='function') showDetail(cardId);
+              else console.warn('[AV] showDetail INDISPONIBLE');
+            }, delay);
           }
         }, 600);
       }
