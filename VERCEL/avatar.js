@@ -286,7 +286,7 @@ function injectStyles(){
     color:#e8d8b0; padding:.45rem .7rem; border-radius:7px;
     font-size:.82rem; box-sizing:border-box;
   }
-  .av-radio-row { display:flex; gap:1.5rem; margin:.2rem 0; }
+  .av-radio-row { display:flex; flex-wrap:wrap; gap:.8rem 1.2rem; margin:.2rem 0; }
   .av-radio-row label { color:#c8b88a; font-size:.82rem; display:flex; align-items:center; gap:.4rem; }
   .av-setup-actions { display:flex; gap:.75rem; margin-top:1.25rem; }
   .av-setup-actions button {
