@@ -850,7 +850,7 @@ path.leaflet-interactive:focus{outline:none;}
 .imm-trk.on .imm-thm{left:16px;}
 
 #imm-bg{display:none;position:fixed;inset:0;z-index:0;pointer-events:none;}
-#imm-bg img,#imm-bg video{width:100%;height:100%;object-fit:contain;object-position:center center;}
+#imm-bg img,#imm-bg video{width:100%;height:100%;object-fit:cover;object-position:center center;}
 #imm-bg-dark{position:absolute;inset:0;background:rgba(0,0,0,.32);}
 #imm-bg-vign{position:absolute;inset:0;
   background:radial-gradient(ellipse 80% 65% at 50% 55%,transparent 35%,rgba(0,0,0,.68) 100%);}
@@ -1343,7 +1343,7 @@ body.imm-on #detailContainer .g2{grid-template-columns:1fr;}
             </div>
           </div>
           <div id="breakEvenChartContainer" style="position:relative;background:var(--ink);border-radius:var(--r);padding:1rem .75rem .75rem;height:400px">
-            <button onclick="_toggleBreakEvenFs()" style="position:absolute;top:.5rem;right:.5rem;font-size:.7rem;padding:.2rem .55rem;border:1px solid rgba(255,255,255,.2);border-radius:4px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.55);cursor:pointer;z-index:2" title="Plein écran">⛶ Plein écran</button>
+            <button id="breakEvenFsBtn" onclick="_toggleBreakEvenFs()" style="position:absolute;top:.5rem;right:.5rem;font-size:.7rem;padding:.2rem .55rem;border:1px solid rgba(255,255,255,.2);border-radius:4px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.55);cursor:pointer;z-index:2" title="Plein écran">⛶ Plein écran</button>
             <canvas id="breakEvenChart"></canvas>
           </div>
         </div>
@@ -4573,6 +4573,7 @@ async function loadBruit(lat, lng){
 }
 
 // ══ DÉTAIL CARTE — Panel inline ══
+function showInseeDetail(){ showDetail('insee'); }
 function showDetail(cardId){
   window._previousDetail = window._currentDetail || null;
   window._currentDetail = cardId;
@@ -9446,6 +9447,12 @@ function _toggleBreakEvenFs(){
 document.addEventListener('fullscreenchange', function(){
   var w = document.getElementById('breakEvenChartContainer');
   if(!w) return;
+  var btn = document.getElementById('breakEvenFsBtn');
+  if(document.fullscreenElement === w){
+    if(btn){ btn.textContent='✕ Quitter'; btn.title='Quitter le plein écran'; }
+  } else {
+    if(btn){ btn.textContent='⛶ Plein écran'; btn.title='Plein écran'; }
+  }
   if(!document.fullscreenElement){
     // Sortie plein écran : reset styles + canvas attrs avant resize
     w.style.height   = '400px';
@@ -9898,30 +9905,30 @@ if(navigator.permissions){
 // ── Sections (même ordre que la vue classique) ──────────────────────────
 const IMM_SECTIONS = [
   { label:'Mon Quartier', color:'rgba(79,195,247,.95)', cards:[
-    { icon:'⭐', name:'Score global',              tag:'du quartier',        fn:'showScoreDetail',    valId:'score' },
-    { icon:'🛒', name:'Commerces & santé',         tag:'services',           fn:'showServicesMap',    valId:'services' },
-    { icon:'🚌', name:'Transports',                tag:'mobilité douce',     fn:'showMobiliteDetail', valId:'mobilite' },
-    { icon:'🎓', name:'Écoles',                    tag:'niveau scolaire',    fn:'showEcolesDetail',   valId:'ecoles' },
-    { icon:'🌤️', name:'Météo & air',               tag:'climat local',       fn:'showMeteoDetail',    valId:'meteo' },
-    { icon:'📈', name:'Population & société',      tag:'données INSEE',      fn:'showDemographieDetail', valId:'insee' },
-    { icon:'👥', name:'Démographie',               tag:'attractivité',       fn:'showDemographieDetail', valId:'demographie' },
-    { icon:'🏘️', name:'Logement & habitat',        tag:'parc immobilier',    fn:'showLogementDetail', valId:'logement' },
-    { icon:'⚠️', name:'Risques naturels',          tag:'Géorisques',         fn:'showRisquesDetail',  valId:'risques' },
-    { icon:'🏔️', name:'Altitude & topographie',   tag:'terrain',            fn:'showAltitudeDetail', valId:'altitude' },
-    { icon:'🔊', name:'Carte du bruit',            tag:'Bruitparif',         fn:'showBruitDetail',    valId:'bruit' },
-    { icon:'📡', name:'Internet & fibre',          tag:'débit',              fn:'showFibreDetail',    valId:'fibre' },
-    { icon:'🗺️', name:'PLU & réglementation',      tag:'zonage',             fn:'showUrbanismeDetail', valId:'urbanisme' },
+    { icon:'⭐', name:'Score global du quartier',      tag:'du quartier',        fn:'showScoreDetail',    valId:'score' },
+    { icon:'🛒', name:'Commerces, services & santé', tag:'services',           fn:'showServicesMap',    valId:'services' },
+    { icon:'🚌', name:'Transports & mobilité douce', tag:'mobilité douce',     fn:'showMobiliteDetail', valId:'mobilite' },
+    { icon:'🎓', name:'Écoles & niveau scolaire',    tag:'niveau scolaire',    fn:'showEcolesDetail',   valId:'ecoles' },
+    { icon:'🌤️', name:'Météo & air',                 tag:'climat local',       fn:'showMeteoDetail',    valId:'meteo' },
+    { icon:'📈', name:'Population, économie & société', tag:'données INSEE',   fn:'showInseeDetail',       valId:'insee' },
+    { icon:'👥', name:'Démographie & attractivité',  tag:'attractivité',       fn:'showDemographieDetail', valId:'demographie' },
+    { icon:'🏘️', name:'Logement & habitat',          tag:'parc immobilier',    fn:'showLogementDetail', valId:'logement' },
+    { icon:'⚠️', name:'Risques naturels & industriels', tag:'Géorisques',      fn:'showRisquesDetail',  valId:'risques' },
+    { icon:'🏔️', name:'Altitude & topographie',      tag:'terrain',            fn:'showAltitudeDetail', valId:'altitude' },
+    { icon:'🔊', name:'Carte du bruit',               tag:'Bruitparif',         fn:'showBruitDetail',    valId:'bruit' },
+    { icon:'📡', name:'Connexion internet & fibre',   tag:'débit',              fn:'showFibreDetail',    valId:'fibre' },
+    { icon:'🗺️', name:'Zonage, PLU & réglementation', tag:'zonage',            fn:'showUrbanismeDetail', valId:'urbanisme' },
   ]},
   { label:'Prix des Biens', color:'rgba(255,180,50,.95)', cards:[
-    { icon:'📊', name:'Prix & transactions',       tag:'DVF · DGFiP',        fn:'showDVFDetail',      valId:'dvf' },
+    { icon:'📊', name:'Prix des dernières transactions', tag:'DVF · DGFiP',   fn:'showDVFDetail',      valId:'dvf' },
     { icon:'💶', name:'Estimation des loyers',     tag:'marché local',       fn:'showLoyersDetail',   valId:'loyers' },
     { icon:'📍', name:'Prix au m² par commune',    tag:'carte interactive',  fn:'showPrixCarte',      valId:'prixCommunes' },
   ]},
   { label:'Mon Financement', color:'rgba(110,220,160,.95)', cards:[
     { icon:'💰', name:"Capacité d'emprunt",        tag:'budget max',         fn:'showEmpruntDetail',  valId:'emprunt' },
-    { icon:'📅', name:'Mensualités & crédit',      tag:'coût total',         fn:'showCoutDetail',     valId:'mensualites' },
+    { icon:'📅', name:'Mensualités & coût total',  tag:'coût total',         fn:'showCoutDetail',     valId:'mensualites' },
     { icon:'🏠', name:'Investissement locatif',    tag:'rendement',          fn:'showInvestDetail',   valId:'cout' },
-    { icon:'🏢', name:'Location : budget',         tag:'comparaison',        fn:'showLocationDetail', valId:'location' },
+    { icon:'🏢', name:'Location : budget & comparaison', tag:'comparaison',   fn:'showLocationDetail', valId:'location' },
     { icon:'🎁', name:"Aides à l'achat",           tag:'PTZ · APL',          fn:'showAidesDetail',    valId:'aides' },
     { icon:'🔨', name:"MaPrimeRénov'",             tag:'travaux',            fn:'showRenovDetail',    valId:'renov' },
   ]},
@@ -9944,7 +9951,7 @@ const STEP     = 28;
 const N        = IMM_ITEMS.length;
 const START    = -(N-1)*STEP/2;
 const VIS      = 118;
-const CARD_W   = 200;
+const CARD_W   = 240;
 const CY_RATIO = 0.55;
 const R_RATIO  = 0.36;
 const SEC_OFF  = -100;
