@@ -5423,7 +5423,10 @@ function showDVFDetail(){
     <div style="margin-bottom:.7rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Afficher :</span>${btnsFiltres}
     </div>
-    <div id="dvfMapContainer" style="margin-bottom:1.2rem;height:370px;border-radius:8px;overflow:hidden;border:1px solid var(--border)"></div>
+    <div id="dvfMapWrap" style="position:relative;margin-bottom:1.2rem;">
+      <div id="dvfMapContainer" style="height:370px;border-radius:8px;overflow:hidden;border:1px solid var(--border)"></div>
+      <button onclick="window._dvfMapFullscreen()" title="Plein écran" style="position:absolute;top:8px;right:8px;z-index:1000;width:32px;height:32px;background:rgba(15,13,10,.85);border:1px solid rgba(184,131,42,.5);border-radius:6px;cursor:pointer;color:#c9a84c;font-size:1rem;display:flex;align-items:center;justify-content:center;padding:0" id="dvfFsBtn">⛶</button>
+    </div>
     <div style="margin-bottom:1.2rem;height:320px;position:relative"><canvas id="dvfHistChart"></canvas></div>
     <div style="margin-bottom:1.2rem;height:350px;position:relative"><canvas id="dvfEvolutionChart"></canvas></div>
     <button id="dvfListeToggle" onclick="var w=document.getElementById('dvfListeWrap');var show=w.style.display==='none';w.style.display=show?'block':'none';this.textContent=show?'▲ Masquer la liste':'📋 Afficher la liste';" style="margin-top:.5rem;margin-bottom:.5rem;padding:.4rem 1rem;background:var(--surface2);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:600;color:var(--text)">📋 Afficher la liste</button>
@@ -5464,6 +5467,28 @@ function buildDVFMap(){
   if(window._dvfLeafletMap){ window._dvfLeafletMap.remove(); window._dvfLeafletMap=null; }
   const map = L.map(container, { zoomControl:true, attributionControl:false });
   window._dvfLeafletMap = map;
+
+window._dvfMapFullscreen = function(){
+  const wrap = document.getElementById('dvfMapWrap');
+  if(!wrap) return;
+  if(!document.fullscreenElement){
+    wrap.requestFullscreen && wrap.requestFullscreen();
+  } else {
+    document.exitFullscreen && document.exitFullscreen();
+  }
+};
+document.addEventListener('fullscreenchange', function(){
+  const btn = document.getElementById('dvfFsBtn');
+  const container = document.getElementById('dvfMapContainer');
+  if(document.fullscreenElement && document.fullscreenElement.id === 'dvfMapWrap'){
+    if(btn) btn.textContent = '✕';
+    if(container){ container.style.height = '100vh'; container.style.borderRadius = '0'; }
+  } else {
+    if(btn) btn.textContent = '⛶';
+    if(container){ container.style.height = '370px'; container.style.borderRadius = '8px'; }
+  }
+  if(window._dvfLeafletMap) setTimeout(()=>window._dvfLeafletMap.invalidateSize(), 100);
+});
   L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CartoDB',subdomains:'abcd',maxZoom:19}).addTo(map);
   // Palette par prix/m²
   const PRIX_COLORS = [[3000,'#22c55e'],[5000,'#84cc16'],[7000,'#eab308'],[10000,'#f97316'],[Infinity,'#ef4444']];
