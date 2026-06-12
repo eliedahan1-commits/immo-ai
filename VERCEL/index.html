@@ -9947,30 +9947,49 @@ IMM_SECTIONS.forEach(sec => {
 });
 
 // ── Paramètres carousel ─────────────────────────────────────────────────
-const STEP     = 28;
 const N        = IMM_ITEMS.length;
-const START    = -(N-1)*STEP/2;
 const VIS      = 118;
 const CARD_W   = 240;
 const CY_RATIO = 0.55;
-const R_RATIO  = 0.36;
+const R_RATIO  = 0.38;
 const SEC_OFF  = -100;
-const ROT_INIT = (N-1)*STEP/2;
 const PNL_W    = 360;   // largeur panneau carousel (px)
+const MIN_STEP = 26;    // écartement angulaire minimum (degrés)
+const MAX_STEP = 45;    // écartement angulaire maximum (degrés)
 
-let immRot = ROT_INIT, immTgt = ROT_INIT, immRaf = null, immActive = null;
+// Écartement dynamique : garantit espace ≥ 10% de CARD_W entre cartes adjacentes
+function calcImmStep(H) {
+  const R = H * R_RATIO;
+  const minAngle = Math.asin(Math.min(0.97, CARD_W * 1.1 / (2 * R))) * 2 * 180 / Math.PI;
+  return Math.max(MIN_STEP, Math.min(MAX_STEP, Math.ceil(minAngle)));
+}
+
+let _immStep = calcImmStep(window.innerHeight);
+let _rotInit = (N - 1) * _immStep / 2;
+let _start   = -_rotInit;
+
+let immRot = _rotInit, immTgt = _rotInit, immRaf = null, immActive = null;
 const immDrag = {on:false,pending:false,sx:0,sr:0,vx:0,lx:0};
 window._immRetrying = new Set(); // valIds en cours de rechargement
 
 function snapImmTgt(){
-  const i = Math.round((ROT_INIT - immTgt) / STEP);
+  const i = Math.round((_rotInit - immTgt) / _immStep);
   const c = Math.max(0, Math.min(N-1, i));
-  immTgt = ROT_INIT - c * STEP;
+  immTgt = _rotInit - c * _immStep;
 }
 
 // ── Rendu carousel (dans le panneau gauche 360px) ────────────────────────
 function immRender(){
   const W = window.innerWidth, H = window.innerHeight;
+  // Recalcul dynamique du step selon la hauteur d'écran
+  const _newStep = calcImmStep(H);
+  if (_newStep !== _immStep) {
+    const _cardIdx = Math.round((_rotInit - immTgt) / _immStep);
+    _immStep = _newStep;
+    _rotInit = (N - 1) * _immStep / 2;
+    _start   = -_rotInit;
+    immRot = immTgt = _rotInit - _cardIdx * _immStep;
+  }
   const isSplit = document.body.classList.contains('imm-split');
   const R  = H * R_RATIO;
   const cx = isSplit ? W * 0.25 : W * 0.5;
@@ -9980,7 +9999,7 @@ function immRender(){
   layer.innerHTML = '';
 
   IMM_ITEMS.forEach((item, i) => {
-    const ang  = START + i*STEP + immRot;
+    const ang  = _start + i*_immStep + immRot;
     if (Math.abs(ang) > VIS + 20) return;
     const rad  = ang * Math.PI / 180;
     const x    = cx + R * Math.sin(rad);
@@ -10116,7 +10135,7 @@ document.addEventListener('mousemove', e => {
   if (!immDrag.on && moved > 6) { immDrag.on=true; document.body.style.cursor='grabbing'; }
   if (immDrag.on) {
     immDrag.vx=e.clientX-immDrag.lx;
-    immRot=immTgt=immDrag.sr+(e.clientX-immDrag.sx)*(STEP/68);
+    immRot=immTgt=immDrag.sr+(e.clientX-immDrag.sx)*(_immStep/68);
     immRender();
   }
   immDrag.lx=e.clientX;
@@ -10125,7 +10144,7 @@ document.addEventListener('mouseup', () => {
   immDrag.pending=false;
   if (!immDrag.on) return;
   immDrag.on=false; document.body.style.cursor='';
-  immTgt += immDrag.vx*(STEP/26);
+  immTgt += immDrag.vx*(_immStep/26);
   snapImmTgt(); immGo();
 });
 
@@ -10141,19 +10160,19 @@ document.addEventListener('touchmove', e => {
   if (!immDrag.on) return;
   const t=e.touches[0];
   immDrag.vx=t.clientX-immDrag.lx; immDrag.lx=t.clientX;
-  immRot=immTgt=immDrag.sr+(t.clientX-immDrag.sx)*(STEP/68);
+  immRot=immTgt=immDrag.sr+(t.clientX-immDrag.sx)*(_immStep/68);
   immRender();
 },{passive:true});
 document.addEventListener('touchend', () => {
   if (!immDrag.on) return;
-  immDrag.on=false; immTgt+=immDrag.vx*(STEP/26); snapImmTgt(); immGo();
+  immDrag.on=false; immTgt+=immDrag.vx*(_immStep/26); snapImmTgt(); immGo();
 },{passive:true});
 
 // ── Molette dans le carousel ────────────────────────────────────────────
 document.addEventListener('wheel', e => {
   if (!document.body.classList.contains('imm-on')) return;
   if (!_inCarousel(e)) return;
-  immTgt -= e.deltaY*(STEP/95); snapImmTgt(); immGo();
+  immTgt -= e.deltaY*(_immStep/95); snapImmTgt(); immGo();
   e.stopPropagation();
 },{passive:true});
 
@@ -10268,7 +10287,7 @@ function _immApply(){
   if (tog && window.innerWidth >= 1024) tog.style.display = 'flex';
 
   if (_immOn) {
-    immRot = ROT_INIT; immTgt = ROT_INIT; // Recentrer le carousel à chaque activation
+    immRot = _rotInit; immTgt = _rotInit; // Recentrer le carousel à chaque activation
     immSizeRing();
     immRender();
     // Hint + wiggle : afficher max 3 fois
@@ -10280,11 +10299,11 @@ function _immApply(){
       hintEl.classList.remove('fading');
       // Wiggle carousel : légère oscillation gauche-droite
       setTimeout(function() {
-        immTgt = ROT_INIT + STEP * 0.38; immGo();
+        immTgt = _rotInit + _immStep * 0.38; immGo();
         setTimeout(function() {
-          immTgt = ROT_INIT - STEP * 0.38; immGo();
+          immTgt = _rotInit - _immStep * 0.38; immGo();
           setTimeout(function() {
-            immTgt = ROT_INIT; immGo();
+            immTgt = _rotInit; immGo();
           }, 350);
         }, 350);
       }, 500);
@@ -10494,9 +10513,4 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(document.getElementById('p-home')?.classList.contains('on')){ _showExitConfirm(); return; }
     if(document.getElementById('p-analyse')?.classList.contains('on')){ go('home'); return; }
     _goPage('analyse');
-  });
-})();
-
-</script>
-</body>
-</html>
+ 
