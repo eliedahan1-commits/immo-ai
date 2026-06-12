@@ -10215,23 +10215,24 @@ window._immUpdateBg = function(){
     const fond = prefs.fond === 'auto' || !prefs.fond ? prefs.genre || 'femme' : prefs.fond;
     const bgImg = document.getElementById('imm-bg-img');
     const bgVid = document.getElementById('imm-bg-vid');
-    if (fond === 'fire') {
-      if (bgImg) bgImg.style.display = 'none';
-      if (bgVid) { bgVid.style.display = 'block'; bgVid.play && bgVid.play(); }
-    } else {
-      if (bgVid) { bgVid.style.display = 'none'; bgVid.pause && bgVid.pause(); }
-      if (bgImg) {
+    if (bgVid) { bgVid.style.display = 'none'; bgVid.pause && bgVid.pause(); }
+    if (bgImg) {
         bgImg.style.display = 'block';
         const BG_MAP = {
-          'homme':       'images/avatar-m-fond.png',
-          'femme':       'images/avatar-f-fond.png',
-          'salon-futur': 'images/Salon futur.png',
-          'salon-today': 'images/Salon today.png',
-          'salon-futur-f': 'images/Salon futur f.png',
-          'salon-futur-m': 'images/Salon futur m.png',
+          'Fond-F1-G1': 'images/Groupe1/Fond-F1-G1.png',
+          'Fond-F2-G1': 'images/Groupe1/Fond-F2-G1.png',
+          'Fond-F3-G1': 'images/Groupe1/Fond-F3-G1.png',
+          'Fond-F4-G1': 'images/Groupe1/Fond-F4-G1.png',
+          'Fond-F5-G1': 'images/Groupe1/Fond-F5-G1.png',
+          'Fond-F6-G1': 'images/Groupe1/Fond-F6-G1.png',
+          'Fond-H1-G1': 'images/Groupe1/Fond-H1-G1.png',
+          'Fond-H2-G1': 'images/Groupe1/Fond-H2-G1.png',
+          'Fond-H3-G1': 'images/Groupe1/Fond-H3-G1.png',
+          'Fond-H4-G1': 'images/Groupe1/Fond-H4-G1.png',
+          'Fond-H5-G1': 'images/Groupe1/Fond-H5-G1.png',
+          'Fond-H6-G1': 'images/Groupe1/Fond-H6-G1.png',
         };
-        bgImg.src = BG_MAP[fond] || BG_MAP['femme'];
-      }
+        bgImg.src = BG_MAP[fond] || BG_MAP['Fond-F1-G1'];
     }
   } catch(e) {}
 };

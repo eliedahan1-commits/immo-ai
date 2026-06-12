@@ -123,15 +123,24 @@ function injectHTML(){
         <label><input type="radio" name="av-genre" value="homme" /> Homme</label>
       </div>
       <label>Fond immersif</label>
-      <div class="av-radio-row">
-        <label><input type="radio" name="av-fond" value="femme" /> 🖼️ Femme</label>
-        <label><input type="radio" name="av-fond" value="homme" /> 🖼️ Homme</label>
-        <label><input type="radio" name="av-fond" value="fire" /> 🔥 Vidéo</label>
-        <label><input type="radio" name="av-fond" value="salon-futur" /> 🛋️ Salon futur</label>
-        <label><input type="radio" name="av-fond" value="salon-today" /> 🏠 Salon today</label>
-        <label><input type="radio" name="av-fond" value="salon-futur-f" /> 🛋️ Salon futur ♀</label>
-        <label><input type="radio" name="av-fond" value="salon-futur-m" /> 🛋️ Salon futur ♂</label>
-      </div>
+      <select id="av-pref-fond" style="width:100%;background:#100e0b;border:1px solid #2a2218;color:#e8d8b0;padding:.4rem .6rem;border-radius:6px;font-size:.78rem;margin-bottom:.5rem">
+        <optgroup label="Féminin">
+          <option value="Fond-F1-G1">Fond féminin 1</option>
+          <option value="Fond-F2-G1">Fond féminin 2</option>
+          <option value="Fond-F3-G1">Fond féminin 3</option>
+          <option value="Fond-F4-G1">Fond féminin 4</option>
+          <option value="Fond-F5-G1">Fond féminin 5</option>
+          <option value="Fond-F6-G1">Fond féminin 6</option>
+        </optgroup>
+        <optgroup label="Masculin">
+          <option value="Fond-H1-G1">Fond masculin 1</option>
+          <option value="Fond-H2-G1">Fond masculin 2</option>
+          <option value="Fond-H3-G1">Fond masculin 3</option>
+          <option value="Fond-H4-G1">Fond masculin 4</option>
+          <option value="Fond-H5-G1">Fond masculin 5</option>
+          <option value="Fond-H6-G1">Fond masculin 6</option>
+        </optgroup>
+      </select>
       <label>Voix <span style="font-size:.72rem;color:#8a7755">(voix françaises disponibles sur cet appareil)</span></label>
       <select id="av-pref-voix" style="width:100%;background:#100e0b;border:1px solid #2a2218;color:#e8d8b0;padding:.4rem .6rem;border-radius:6px;font-size:.78rem;margin-bottom:.5rem">
         <option value="">Auto (par défaut)</option>
@@ -971,9 +980,8 @@ function showSetup(){
   if(!modal) return;
   document.getElementById('av-pref-nom').value = prefs.nom || '';
   document.querySelector(`input[name="av-genre"][value="${prefs.genre}"]`).checked = true;
-  const fondVal = prefs.fond === 'auto' ? prefs.genre : prefs.fond;
-  const fondEl = document.querySelector(`input[name="av-fond"][value="${fondVal}"]`);
-  if(fondEl) fondEl.checked = true;
+  const fondSel = document.getElementById('av-pref-fond');
+  if(fondSel && prefs.fond && prefs.fond !== 'auto') fondSel.value = prefs.fond;
   document.getElementById('av-pref-vitesse').value = prefs.vitesse || 1;
   if(document.getElementById('av-pref-volume')) document.getElementById('av-pref-volume').value = prefs.volume || 1;
   document.getElementById('av-pref-pitch').value = prefs.pitch || 1;
@@ -990,7 +998,7 @@ function saveSetup(){
   const pitch = parseFloat(document.getElementById('av-pref-pitch').value);
   const volume = parseFloat(document.getElementById('av-pref-volume')?.value) || 1;
   const voix = document.getElementById('av-pref-voix')?.value || '';
-  const fond = document.querySelector('input[name="av-fond"]:checked')?.value || prefs.fond || 'auto';
+  const fond = document.getElementById('av-pref-fond')?.value || prefs.fond || 'Fond-F1-G1';
   const genreChange = genre !== prefs.genre;
   const fondChange = fond !== prefs.fond;
   prefs = { configured:true, nom, genre, fond, vitesse, pitch, volume, voix };
