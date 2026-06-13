@@ -123,7 +123,7 @@ function injectHTML(){
       <div id="av-avatar-wrap" style="display:none">
         <label>Avatar</label>
         <input type="hidden" id="av-pref-avatar" value="">
-        <div id="av-avatar-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:.8rem;max-height:160px;overflow-y:auto;"></div>
+        <div id="av-avatar-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:.8rem;max-height:320px;overflow-y:auto;"></div>
       </div>
       <label>Voix <span style="font-size:.72rem;color:#8a7755">(voix françaises disponibles sur cet appareil)</span></label>
       <select id="av-pref-voix" style="width:100%;background:#100e0b;border:1px solid #2a2218;color:#e8d8b0;padding:.4rem .6rem;border-radius:6px;font-size:.78rem;margin-bottom:.5rem">
@@ -270,7 +270,7 @@ function injectStyles(){
   #av-setup-box {
     background:#1a1610; border:1px solid #b8832a44;
     border-radius:12px; padding:1.5rem; width:min(780px,92vw);
-    max-height:90vh; overflow-y:auto;
+    max-height:95vh; overflow-y:auto;
     color:#c8b88a;
   }
   #av-setup-box h3 { color:#dcc87a; margin:0 0 1rem; font-size:1rem; }
@@ -1007,6 +1007,7 @@ function saveSetup(){
   const fond = document.getElementById('av-pref-fond')?.value || prefs.fond || 'Image1';
   const avatar = document.getElementById('av-pref-avatar')?.value || prefs.avatar || (window._AVATAR_LIST&&window._AVATAR_LIST[0]) || 'images/avatar.png';
   const fondChange = fond !== prefs.fond;
+  const avatarChange = avatar !== prefs.avatar;
   prefs = { configured:true, nom, fond, avatar, vitesse, pitch, volume, voix };
   savePrefs();
   closeSetup();
@@ -1015,6 +1016,14 @@ function saveSetup(){
   if(!panelOpen) togglePanel();
   if(fondChange){
     if(typeof window._immUpdateBg === 'function') window._immUpdateBg();
+  }
+  if(avatarChange){
+    // Mettre à jour l'image dans le panel avatar
+    const _avImg = document.getElementById('av-img');
+    if(_avImg) _avImg.src = avatar;
+    // Mettre à jour l'image sous le carousel immersif
+    const _immAvImg = document.querySelector('#imm-avatar-el img');
+    if(_immAvImg) _immAvImg.src = avatar;
   }
 }
 
