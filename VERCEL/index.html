@@ -10086,13 +10086,12 @@ function immRender(){
     const _avImg = _avEl.querySelector('img');
     if (_avImg) _avImg.style.height = _avH + 'px';
   }
-  // Flèches navigation : équidistantes du vrai bord visuel du carousel (R * sin(VIS))
-  const _arrowGap = 18;
-  const _carouselEdge = R * Math.sin(VIS * Math.PI / 180);
+  // Flèches navigation : épinglées aux bords du viewport (les cartes de côté occupent tout l'espace)
+  const _arrowEdge = 8;
   const _prevBtn = document.getElementById('imm-nav-prev');
   const _nextBtn = document.getElementById('imm-nav-next');
-  if (_prevBtn) _prevBtn.style.left = Math.max(4, Math.round(cx - _carouselEdge - _arrowGap - 48)) + 'px';
-  if (_nextBtn) { _nextBtn.style.right = 'auto'; _nextBtn.style.left = Math.round(cx + _carouselEdge + _arrowGap) + 'px'; }
+  if (_prevBtn) _prevBtn.style.left = _arrowEdge + 'px';
+  if (_nextBtn) { _nextBtn.style.right = 'auto'; _nextBtn.style.left = (W - 48 - _arrowEdge) + 'px'; }
 
   IMM_ITEMS.forEach((item, i) => {
     const ang  = _start + i*_immStep + immRot;
