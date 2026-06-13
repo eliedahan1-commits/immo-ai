@@ -119,14 +119,14 @@ function injectHTML(){
       <input id="av-pref-nom" type="text" placeholder="Ai1" />
       <label>Fond immersif</label>
       <select id="av-pref-fond" style="width:100%;background:#100e0b;border:1px solid #2a2218;color:#e8d8b0;padding:.4rem .6rem;border-radius:6px;font-size:.78rem;margin-bottom:.5rem">
-          <option value="Image1">ImageVide1</option>
-          <option value="Image2">ImageVide2</option>
-          <option value="Image3">ImageVide3</option>
-          <option value="Image4">ImageVide4</option>
-          <option value="Image5">ImageVide5</option>
-          <option value="Image6">ImageVide6</option>
-          <option value="Image7">ImageVide7</option>
+          <!-- options fonds peuplées dynamiquement -->
       </select>
+      <div id="av-avatar-wrap" style="display:none">
+        <label>Avatar</label>
+        <select id="av-pref-avatar" style="width:100%;background:#100e0b;border:1px solid #2a2218;color:#e8d8b0;padding:.4rem .6rem;border-radius:6px;font-size:.78rem;margin-bottom:.5rem">
+          <!-- options avatars peuplées dynamiquement -->
+        </select>
+      </div>
       <label>Voix <span style="font-size:.72rem;color:#8a7755">(voix françaises disponibles sur cet appareil)</span></label>
       <select id="av-pref-voix" style="width:100%;background:#100e0b;border:1px solid #2a2218;color:#e8d8b0;padding:.4rem .6rem;border-radius:6px;font-size:.78rem;margin-bottom:.5rem">
         <option value="">Auto (par défaut)</option>
@@ -384,7 +384,7 @@ function buildScene(canvas, wrap){
   scene.add(back);
 
   // Charger avatar
-  const avatarUrl = 'images/avatar.png';
+  const avatarUrl = prefs.avatar || (window._AVATAR_LIST&&window._AVATAR_LIST[0]) || 'images/avatar.png';
   setStatus('Chargement de l\'avatar…');
 
   if(typeof THREE.GLTFLoader !== 'undefined' || (window.THREE && window.THREE.GLTFLoader)){
@@ -942,12 +942,40 @@ function populateVoiceSelect(){
   });
 }
 
+function populateFondDropdown(){
+  const sel = document.getElementById('av-pref-fond');
+  if(!sel) return;
+  const map = window._BG_MAP || {};
+  const keys = Object.keys(map);
+  if(!keys.length) return;
+  sel.innerHTML = keys.map(k=>`<option value="${k}">${k}</option>`).join('');
+}
+function populateAvatarDropdown(){
+  const list = window._AVATAR_LIST || [];
+  const wrap = document.getElementById('av-avatar-wrap');
+  const sel = document.getElementById('av-pref-avatar');
+  if(!sel || !wrap) return;
+  if(list.length <= 1){ wrap.style.display='none'; return; }
+  wrap.style.display='block';
+  sel.innerHTML = list.map((u,i)=>{
+    const lbl = i===0 ? 'Avatar 1' : 'Avatar '+(i+1);
+    return `<option value="${u}">${lbl}</option>`;
+  }).join('');
+}
+window._avatarOnAssetsReady = function(){
+  populateFondDropdown();
+  populateAvatarDropdown();
+};
 function showSetup(){
   const modal = document.getElementById('av-setup-modal');
   if(!modal) return;
+  populateFondDropdown();
+  populateAvatarDropdown();
   document.getElementById('av-pref-nom').value = prefs.nom || '';
   const fondSel = document.getElementById('av-pref-fond');
   if(fondSel && prefs.fond && prefs.fond !== 'auto') fondSel.value = prefs.fond;
+  const avSel = document.getElementById('av-pref-avatar');
+  if(avSel && prefs.avatar) avSel.value = prefs.avatar;
   document.getElementById('av-pref-vitesse').value = prefs.vitesse || 1;
   if(document.getElementById('av-pref-volume')) document.getElementById('av-pref-volume').value = prefs.volume || 1;
   document.getElementById('av-pref-pitch').value = prefs.pitch || 1;
@@ -964,8 +992,9 @@ function saveSetup(){
   const volume = parseFloat(document.getElementById('av-pref-volume')?.value) || 1;
   const voix = document.getElementById('av-pref-voix')?.value || '';
   const fond = document.getElementById('av-pref-fond')?.value || prefs.fond || 'Image1';
+  const avatar = document.getElementById('av-pref-avatar')?.value || prefs.avatar || (window._AVATAR_LIST&&window._AVATAR_LIST[0]) || 'images/avatar.png';
   const fondChange = fond !== prefs.fond;
-  prefs = { configured:true, nom, fond, vitesse, pitch, volume, voix };
+  prefs = { configured:true, nom, fond, avatar, vitesse, pitch, volume, voix };
   savePrefs();
   closeSetup();
   updateNameBadge();

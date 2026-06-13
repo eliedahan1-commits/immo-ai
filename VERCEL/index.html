@@ -869,6 +869,7 @@ path.leaflet-interactive:focus{outline:none;}
 #imm-avatar-el img{object-fit:contain;object-position:center bottom;display:block;}
 
 body.imm-on #p-analyse{display:block!important;}
+body:has(.map-container.fullscreen) #av-trigger{display:none!important;}
 body.imm-on #analyse-page-header{display:none!important;}
 body.imm-on #cardsGrid{display:none!important;}
 body.imm-on #imm-bg{display:block;}
@@ -2214,20 +2215,36 @@ function addFsBtn(map, el) {
   btn.innerHTML = '⛶';
   el.appendChild(btn);
 
+  // Bouton fermeture fixé sur body (échappe aux contextes d'empilement)
+  let _closeBtn = document.getElementById('map-fs-close-overlay');
+  if (!_closeBtn) {
+    _closeBtn = document.createElement('button');
+    _closeBtn.id = 'map-fs-close-overlay';
+    _closeBtn.innerHTML = '✕ Fermer';
+    _closeBtn.style.cssText = 'display:none;position:fixed;top:70px;right:16px;z-index:10001;'
+      + 'background:rgba(0,0,0,.78);color:#fff;border:1.5px solid rgba(255,255,255,.25);'
+      + 'border-radius:8px;padding:.45rem 1rem;cursor:pointer;font-size:.85rem;font-weight:600;'
+      + 'backdrop-filter:blur(4px);box-shadow:0 2px 12px rgba(0,0,0,.45);letter-spacing:.02em;';
+    document.body.appendChild(_closeBtn);
+  }
+
   function toggleFs(enter) {
     const center = map.getCenter();
     const zoom = map.getZoom();
     if (enter) {
-      btn._origHeight = el.style.height;  // sauvegarde height inline (ex: clamp(...))
-      el.style.height = '';               // laisse la CSS .fullscreen prendre le contrôle
+      btn._origHeight = el.style.height;
+      el.style.height = '';
       el.classList.add('fullscreen');
       btn.innerHTML = '✕';
       btn.title = 'Quitter le plein écran';
+      _closeBtn.style.display = 'block';
+      _closeBtn.onclick = () => toggleFs(false);
     } else {
       el.classList.remove('fullscreen');
-      el.style.height = btn._origHeight || '';  // restaure la height inline d'origine
+      el.style.height = btn._origHeight || '';
       btn.innerHTML = '⛶';
       btn.title = 'Plein écran';
+      _closeBtn.style.display = 'none';
     }
     setTimeout(() => {
       map.invalidateSize();
@@ -10302,16 +10319,8 @@ window._immUpdateBg = function(){
     if (bgVid) { bgVid.style.display = 'none'; bgVid.pause && bgVid.pause(); }
     if (bgImg) {
         bgImg.style.display = 'block';
-        const BG_MAP = {
-          'Image1': 'images/GroupeVide/Image1.png',
-          'Image2': 'images/GroupeVide/Image2.png',
-          'Image3': 'images/GroupeVide/Image3.png',
-          'Image4': 'images/GroupeVide/Image4.png',
-          'Image5': 'images/GroupeVide/Image5.png',
-          'Image6': 'images/GroupeVide/Image6.png',
-          'Image7': 'images/GroupeVide/Image7.png',
-        };
-        bgImg.src = BG_MAP[fond] || BG_MAP['Image1'];
+        const _bgm = window._BG_MAP || {};
+        bgImg.src = _bgm[fond] || Object.values(_bgm)[0] || 'images/GroupeVide/Image1.png';
     }
   } catch(e) {}
 };
@@ -10380,6 +10389,30 @@ function _immApply(){
 
 // ── Exposer pour mise à jour depuis l'analyse ──────────────────────────
 window.immRefresh = function(){ if (_immOn) { immSizeRing(); immRender(); } };
+
+// ══ SONDAGE DYNAMIQUE DES ASSETS (fonds + avatars) ══
+window._BG_MAP = {};
+window._AVATAR_LIST = [];
+(async function probeAssets(){
+  function probeImg(url){ return new Promise(r=>{ const i=new Image(); i.onload=()=>r(true); i.onerror=()=>r(false); i.src=url; }); }
+  // Fonds : images/GroupeVide/Image1.png, Image2.png ...
+  const bgBase='images/GroupeVide/', bgPfx='Image';
+  for(let n=1;n<=50;n++){
+    const url=bgBase+bgPfx+n+'.png';
+    if(!(await probeImg(url))) break;
+    window._BG_MAP[bgPfx+n]=url;
+  }
+  // Avatars : images/avatar.png, images/avatar2.png ...
+  if(await probeImg('images/avatar.png')) window._AVATAR_LIST.push('images/avatar.png');
+  for(let n=2;n<=20;n++){
+    const url='images/avatar'+n+'.png';
+    if(!(await probeImg(url))) break;
+    window._AVATAR_LIST.push(url);
+  }
+  window._assetsReady=true;
+  // Notifier avatar.js si déjà chargé
+  if(typeof window._avatarOnAssetsReady==='function') window._avatarOnAssetsReady();
+})();
 
 // ── Resize ─────────────────────────────────────────────────────────────
 window.addEventListener('resize', () => { if (_immOn) { immSizeRing(); immRender(); } });
