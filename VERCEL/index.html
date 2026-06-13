@@ -865,6 +865,8 @@ path.leaflet-interactive:focus{outline:none;}
 #imm-carousel-wrap{display:none;position:fixed;inset:0;z-index:10;
   pointer-events:none;overflow:hidden;}
 #imm-cl{position:absolute;inset:0;pointer-events:none;}
+#imm-avatar-el{position:absolute;bottom:0;transform:translateX(-50%);transition:left .3s ease;pointer-events:none;z-index:11;}
+#imm-avatar-el img{height:38vh;max-height:420px;object-fit:contain;object-position:center bottom;display:block;}
 
 body.imm-on #p-analyse{display:block!important;}
 body.imm-on #analyse-page-header{display:none!important;}
@@ -1150,7 +1152,7 @@ body.imm-on #detailContainer .g2{grid-template-columns:1fr;}
     <div id="imm-bg-vign"></div>
   </div>
   <div id="imm-ring"><div class="irg"></div><div class="irg2"></div><div class="irg3"></div></div>
-  <div id="imm-carousel-wrap"><div id="imm-cl"></div></div>
+  <div id="imm-carousel-wrap"><div id="imm-cl"></div><div id="imm-avatar-el"><img src="images/avatar.png" alt=""></div></div>
   <div id="imm-hint">← Glisser pour naviguer →</div>
 
   <!-- ══ ANALYSE COMPLÈTE ══ -->
@@ -10046,6 +10048,8 @@ function immRender(){
   const layer = document.getElementById('imm-cl');
   if (!layer) return;
   layer.innerHTML = '';
+  const _avEl = document.getElementById('imm-avatar-el');
+  if (_avEl) _avEl.style.left = cx + 'px';
 
   IMM_ITEMS.forEach((item, i) => {
     const ang  = _start + i*_immStep + immRot;
