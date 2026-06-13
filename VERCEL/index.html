@@ -10086,12 +10086,13 @@ function immRender(){
     const _avImg = _avEl.querySelector('img');
     if (_avImg) _avImg.style.height = _avH + 'px';
   }
-  // Flèches navigation : équidistantes du bord du carousel
-  const _arrowGap = 14;
+  // Flèches navigation : équidistantes du vrai bord visuel du carousel (R * sin(VIS))
+  const _arrowGap = 18;
+  const _carouselEdge = R * Math.sin(VIS * Math.PI / 180);
   const _prevBtn = document.getElementById('imm-nav-prev');
   const _nextBtn = document.getElementById('imm-nav-next');
-  if (_prevBtn) _prevBtn.style.left = Math.max(4, cx - R - _arrowGap - 48) + 'px';
-  if (_nextBtn) { _nextBtn.style.right = 'auto'; _nextBtn.style.left = Math.round(cx + R + _arrowGap) + 'px'; }
+  if (_prevBtn) _prevBtn.style.left = Math.max(4, Math.round(cx - _carouselEdge - _arrowGap - 48)) + 'px';
+  if (_nextBtn) { _nextBtn.style.right = 'auto'; _nextBtn.style.left = Math.round(cx + _carouselEdge + _arrowGap) + 'px'; }
 
   IMM_ITEMS.forEach((item, i) => {
     const ang  = _start + i*_immStep + immRot;
@@ -10361,6 +10362,16 @@ function _immApply(){
   document.body.classList.toggle('imm-on', _immOn);
   if (trk) trk.classList.toggle('on', _immOn);
   if (lbl) lbl.textContent = _immOn ? 'Mode Immersif ✦' : 'Mode Immersif';
+
+  // Synchroniser l'avatar immersif avec les prefs sauvegardées
+  if (_immOn) {
+    try {
+      const _sp = JSON.parse(localStorage.getItem('immoai_avatar_prefs') || '{}');
+      const _avSrc = _sp.avatar || (window._AVATAR_LIST && window._AVATAR_LIST[0]) || 'images/avatar.png';
+      const _avImg = document.querySelector('#imm-avatar-el img');
+      if (_avImg) _avImg.src = _avSrc;
+    } catch(e) {}
+  }
 
   _immUpdateBg();
 
