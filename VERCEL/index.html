@@ -938,9 +938,7 @@ body.imm-on #detailContainer .g2{grid-template-columns:1fr;}
 #imm-hint.fading{opacity:0;}
 @keyframes immFh{to{opacity:0;}}
 
-@media(max-width:1023px){
-  #imm-toggle{display:none!important;}
-}
+/* #imm-toggle : visibilité gérée uniquement par JS (immShowToggle) */
 /* ══ FIN MODE IMMERSIF ════════════════════════════════════════════════════ */
 
 
@@ -10258,7 +10256,7 @@ window._immUpdateBg = function(){
           'Fond-H5-G1': 'images/Groupe1/Fond-H5-G1.png',
           'Fond-H6-G1': 'images/Groupe1/Fond-H6-G1.png',
         };
-        bgImg.src = BG_MAP[fond] || BG_MAP['Fond-F1-G1'];
+        bgImg.src = BG_MAP[fond] || BG_MAP['Fond-H1-G1'];
     }
   } catch(e) {}
 };
@@ -10338,11 +10336,11 @@ const _origGoHome = typeof goHome === 'function' ? goHome : null;
 
 // showToggle — appelé quand on arrive sur la page résultats
 // Visible si : vrai desktop OU mobile avec "Afficher le site du bureau" activé
-// (dans ce cas le navigateur retire "Mobile" du User-Agent et recharge la page)
-const _immDesktopUA = !/Mobile/i.test(navigator.userAgent);
+// Détection double : UA sans "Mobile" OU viewport >= 1024px (Edge desktop mode)
 window.immShowToggle = function(){
   const tog = document.getElementById('imm-toggle');
-  if (tog && _immDesktopUA) tog.style.display = 'flex';
+  const canShow = !/Mobile/i.test(navigator.userAgent) || window.innerWidth >= 1024;
+  if (tog && canShow) tog.style.display = 'flex';
   // Restaurer depuis localStorage si l'utilisateur avait le mode actif
   if (!_immOn && localStorage.getItem('immoai_imm_mode') === '1') _immOn = true;
   _immApply();

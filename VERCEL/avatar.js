@@ -66,7 +66,7 @@ function init(){
 // ── Préférences ──
 function loadPrefs(){
   try { prefs = JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'); } catch(e){ prefs={}; }
-  prefs = Object.assign({ configured:false, nom:'Sofia', genre:'femme', fond:'auto', vitesse:1, pitch:1 }, prefs);
+  prefs = Object.assign({ configured:false, nom:'Tom', genre:'homme', fond:'Fond-H1-G1', vitesse:1, pitch:1 }, prefs);
   try { history = JSON.parse(sessionStorage.getItem(HISTORY_KEY)||'[]'); } catch(e){ history=[]; }
 }
 function savePrefs(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs)); }
