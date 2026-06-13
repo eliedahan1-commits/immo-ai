@@ -946,9 +946,7 @@ body.imm-on #detailContainer .g2{grid-template-columns:1fr;}
 }
 #imm-nav-prev:hover,#imm-nav-next:hover{background:rgba(0,0,0,.72);border-color:rgba(79,195,247,.8);color:#4fc3f7;}
 body.imm-on #imm-nav-prev,body.imm-on #imm-nav-next{display:flex;}
-#imm-nav-prev{left:16px;}
-#imm-nav-next{right:16px;}
-body.imm-split #imm-nav-next{right:auto;left:calc(55vw - 64px);}
+/* positions gérées dynamiquement par immRender() */
 #imm-hint{display:none;position:fixed;bottom:14px;left:50%;transform:translateX(-50%);
   color:rgba(79,195,247,.55);font-size:.7rem;letter-spacing:.12em;pointer-events:none;
   z-index:11;opacity:1;transition:opacity .5s;}
@@ -10088,6 +10086,12 @@ function immRender(){
     const _avImg = _avEl.querySelector('img');
     if (_avImg) _avImg.style.height = _avH + 'px';
   }
+  // Flèches navigation : équidistantes du bord du carousel
+  const _arrowGap = 14;
+  const _prevBtn = document.getElementById('imm-nav-prev');
+  const _nextBtn = document.getElementById('imm-nav-next');
+  if (_prevBtn) _prevBtn.style.left = Math.max(4, cx - R - _arrowGap - 48) + 'px';
+  if (_nextBtn) { _nextBtn.style.right = 'auto'; _nextBtn.style.left = Math.round(cx + R + _arrowGap) + 'px'; }
 
   IMM_ITEMS.forEach((item, i) => {
     const ang  = _start + i*_immStep + immRot;
