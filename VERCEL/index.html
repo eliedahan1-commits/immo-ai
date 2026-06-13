@@ -10394,23 +10394,29 @@ window.immRefresh = function(){ if (_immOn) { immSizeRing(); immRender(); } };
 window._BG_MAP = {};
 window._AVATAR_LIST = [];
 (async function probeAssets(){
-  function probeImg(url){ return new Promise(r=>{ const i=new Image(); i.onload=()=>r(true); i.onerror=()=>r(false); i.src=url; }); }
-  // Fonds : images/GroupeVide/Image1.png, Image2.png ...
+  const CACHE_KEY = '_immoai_assets_v2';
+  // Lire cache sessionStorage (évite re-sondage à chaque navigation)
+  try {
+    const cached = sessionStorage.getItem(CACHE_KEY);
+    if(cached){ const d=JSON.parse(cached); window._BG_MAP=d.bgMap||{}; window._AVATAR_LIST=d.avList||[]; window._assetsReady=true; if(typeof window._avatarOnAssetsReady==='function') window._avatarOnAssetsReady(); return; }
+  } catch(e){}
+  // Sondage via fetch HEAD (headers only, pas de téléchargement)
+  async function probe(url){ try{ const r=await fetch(url,{method:'HEAD'}); return r.ok; }catch(e){ return false; } }
   const bgBase='images/GroupeVide/', bgPfx='Image';
   for(let n=1;n<=50;n++){
     const url=bgBase+bgPfx+n+'.png';
-    if(!(await probeImg(url))) break;
+    if(!(await probe(url))) break;
     window._BG_MAP[bgPfx+n]=url;
   }
-  // Avatars : images/avatar.png, images/avatar2.png ...
-  if(await probeImg('images/avatar.png')) window._AVATAR_LIST.push('images/avatar.png');
+  if(await probe('images/avatar.png')) window._AVATAR_LIST.push('images/avatar.png');
   for(let n=2;n<=20;n++){
     const url='images/avatar'+n+'.png';
-    if(!(await probeImg(url))) break;
+    if(!(await probe(url))) break;
     window._AVATAR_LIST.push(url);
   }
+  // Mettre en cache pour cette session
+  try{ sessionStorage.setItem(CACHE_KEY, JSON.stringify({bgMap:window._BG_MAP, avList:window._AVATAR_LIST})); }catch(e){}
   window._assetsReady=true;
-  // Notifier avatar.js si déjà chargé
   if(typeof window._avatarOnAssetsReady==='function') window._avatarOnAssetsReady();
 })();
 

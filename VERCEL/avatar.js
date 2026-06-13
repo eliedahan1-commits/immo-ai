@@ -118,14 +118,12 @@ function injectHTML(){
       <label>Prénom de l'assistant</label>
       <input id="av-pref-nom" type="text" placeholder="Ai1" />
       <label>Fond immersif</label>
-      <select id="av-pref-fond" style="width:100%;background:#100e0b;border:1px solid #2a2218;color:#e8d8b0;padding:.4rem .6rem;border-radius:6px;font-size:.78rem;margin-bottom:.5rem">
-          <!-- options fonds peuplées dynamiquement -->
-      </select>
+      <input type="hidden" id="av-pref-fond" value="Image1">
+      <div id="av-fond-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:.8rem;max-height:200px;overflow-y:auto;"></div>
       <div id="av-avatar-wrap" style="display:none">
         <label>Avatar</label>
-        <select id="av-pref-avatar" style="width:100%;background:#100e0b;border:1px solid #2a2218;color:#e8d8b0;padding:.4rem .6rem;border-radius:6px;font-size:.78rem;margin-bottom:.5rem">
-          <!-- options avatars peuplées dynamiquement -->
-        </select>
+        <input type="hidden" id="av-pref-avatar" value="">
+        <div id="av-avatar-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:.8rem;max-height:160px;overflow-y:auto;"></div>
       </div>
       <label>Voix <span style="font-size:.72rem;color:#8a7755">(voix françaises disponibles sur cet appareil)</span></label>
       <select id="av-pref-voix" style="width:100%;background:#100e0b;border:1px solid #2a2218;color:#e8d8b0;padding:.4rem .6rem;border-radius:6px;font-size:.78rem;margin-bottom:.5rem">
@@ -289,6 +287,11 @@ function injectStyles(){
     background:linear-gradient(135deg,#b8832a,#8a6020); border:none; color:#fff;
   }
   .av-btn-secondary { background:#1e180f !important; border:1px solid #2a2218 !important; color:#8a7755 !important; }
+  .av-thumb { border:2px solid transparent; border-radius:6px; overflow:hidden; cursor:pointer; aspect-ratio:16/9; background:#0a0806; transition:border-color .15s; }
+  .av-thumb-portrait { aspect-ratio:9/16; }
+  .av-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+  .av-thumb:hover { border-color:rgba(184,131,42,.5); }
+  .av-thumb.selected { border-color:#b8832a; box-shadow:0 0 0 1px #b8832a; }
 
   @keyframes av-pulse {
     0%,100%{box-shadow:0 0 0 0 rgba(184,131,42,.4);}
@@ -453,7 +456,7 @@ function showFallbackAvatar(wrap){
   fb.id = 'av-fallback';
   fb.style.cssText = 'position:absolute;inset:0;display:block;background:#000;overflow:hidden;';
 
-  const imgSrc = 'images/avatar.png';
+  const imgSrc = prefs.avatar || (window._AVATAR_LIST&&window._AVATAR_LIST[0]) || 'images/avatar.png';
 
   // Div fond solide derrière l'image (background-color sur <img> n'affecte pas les px transparents)
   const bgDiv = document.createElement('div');
@@ -942,24 +945,33 @@ function populateVoiceSelect(){
   });
 }
 
+function _selectThumb(gridId, hiddenId, val){
+  document.querySelectorAll('#'+gridId+' .av-thumb').forEach(el=>el.classList.remove('selected'));
+  const found = document.querySelector('#'+gridId+' .av-thumb[data-val="'+val+'"]');
+  if(found) found.classList.add('selected');
+  const inp = document.getElementById(hiddenId);
+  if(inp) inp.value = val;
+}
 function populateFondDropdown(){
-  const sel = document.getElementById('av-pref-fond');
-  if(!sel) return;
+  const grid = document.getElementById('av-fond-grid');
+  if(!grid) return;
   const map = window._BG_MAP || {};
   const keys = Object.keys(map);
   if(!keys.length) return;
-  sel.innerHTML = keys.map(k=>`<option value="${k}">${k}</option>`).join('');
+  const cur = document.getElementById('av-pref-fond')?.value || 'Image1';
+  grid.innerHTML = keys.map(k=>`<div class="av-thumb${k===cur?' selected':''}" data-val="${k}" onclick="_selectThumb('av-fond-grid','av-pref-fond','${k}')" title="${k}"><img src="${map[k]}" alt="${k}" loading="lazy"></div>`).join('');
 }
 function populateAvatarDropdown(){
   const list = window._AVATAR_LIST || [];
   const wrap = document.getElementById('av-avatar-wrap');
-  const sel = document.getElementById('av-pref-avatar');
-  if(!sel || !wrap) return;
+  const grid = document.getElementById('av-avatar-grid');
+  if(!wrap || !grid) return;
   if(list.length <= 1){ wrap.style.display='none'; return; }
   wrap.style.display='block';
-  sel.innerHTML = list.map((u,i)=>{
-    const lbl = i===0 ? 'Avatar 1' : 'Avatar '+(i+1);
-    return `<option value="${u}">${lbl}</option>`;
+  const cur = document.getElementById('av-pref-avatar')?.value || list[0] || '';
+  grid.innerHTML = list.map((u,i)=>{
+    const lbl = i===0?'Avatar 1':'Avatar '+(i+1);
+    return `<div class="av-thumb av-thumb-portrait${u===cur?' selected':''}" data-val="${u}" onclick="_selectThumb('av-avatar-grid','av-pref-avatar','${u}')" title="${lbl}"><img src="${u}" alt="${lbl}" loading="lazy"></div>`;
   }).join('');
 }
 window._avatarOnAssetsReady = function(){
@@ -972,10 +984,8 @@ function showSetup(){
   populateFondDropdown();
   populateAvatarDropdown();
   document.getElementById('av-pref-nom').value = prefs.nom || '';
-  const fondSel = document.getElementById('av-pref-fond');
-  if(fondSel && prefs.fond && prefs.fond !== 'auto') fondSel.value = prefs.fond;
-  const avSel = document.getElementById('av-pref-avatar');
-  if(avSel && prefs.avatar) avSel.value = prefs.avatar;
+  if(prefs.fond) _selectThumb('av-fond-grid','av-pref-fond', prefs.fond);
+  if(prefs.avatar) _selectThumb('av-avatar-grid','av-pref-avatar', prefs.avatar);
   document.getElementById('av-pref-vitesse').value = prefs.vitesse || 1;
   if(document.getElementById('av-pref-volume')) document.getElementById('av-pref-volume').value = prefs.volume || 1;
   document.getElementById('av-pref-pitch').value = prefs.pitch || 1;
