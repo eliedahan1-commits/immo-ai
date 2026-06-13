@@ -2040,13 +2040,13 @@ const IS_LOCAL = location.protocol === 'file:' || location.hostname === 'localho
 
 // Appel API : via Netlify Function si déployé, sinon direct
 function goHome(){
+  if(typeof immHideToggle==='function') immHideToggle();
   closePanel();
   go('home');
   if(currentAddress){
     const inp = document.getElementById('sideSearch');
     if(inp){ inp.value = currentAddress; }
   }
-  if(typeof immHideToggle==='function') immHideToggle();
 }
 
 // ── Cache-busting sur adresses en échec ──
