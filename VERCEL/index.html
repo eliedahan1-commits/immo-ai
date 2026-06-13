@@ -3818,6 +3818,57 @@ function computeScoreQuartier() {
       sub:`${dens.toLocaleString('fr-FR')} hab/km² · ${densLabel}` });
   }
 
+  // 11. Logement & habitat
+  const mel11 = window._melodiData;
+  if (mel11?.pctPropri != null && mel11?.nbResidPrinc) {
+    const totLog = (mel11.nbResidPrinc||0) + (mel11.nbVacants||0);
+    const pctVac = totLog > 0 ? Math.round((mel11.nbVacants||0) / totLog * 100) : null;
+    const pctResPrinc = totLog > 0 ? Math.round((mel11.nbResidPrinc||0) / totLog * 100) : null;
+    if (pctVac != null) {
+      // Score : faible vacance = bon marché sain, forte vacance = signal négatif
+      let logScore = pctVac < 5 ? 10 : pctVac < 8 ? 7 : pctVac < 12 ? 5 : 3;
+      // Bonus/malus part résidences principales
+      if (pctResPrinc != null) {
+        if (pctResPrinc > 85) logScore = Math.min(10, logScore + 1);
+        else if (pctResPrinc < 70) logScore = Math.max(0, logScore - 1);
+      }
+      logScore = Math.round(logScore * 10) / 10;
+      const subLog = [mel11.pctPropri+'% prop.', pctVac+'% vacants'].join(' · ');
+      items.push({ label:'Logement & habitat', icon:'🏘️', val:logScore, max:10,
+        action:"showDetail('logement')",
+        sub: subLog });
+    }
+  }
+
+  // 12. Dynamisme & attractivité
+  const demo12 = window._demographieData;
+  const pyr12  = window._melodiData?.pyramideAges;
+  if (demo12?.rows?.length >= 2) {
+    const rows12 = demo12.rows;
+    const last12 = rows12[rows12.length - 1];
+    // Référence ~10 ans en arrière
+    const refYear12 = last12.year - 10;
+    const ref12 = rows12.reduce((p,c) => Math.abs(c.year-refYear12)<Math.abs(p.year-refYear12)?c:p);
+    const evolPct12 = ref12.pop > 0 ? (last12.pop - ref12.pop) / ref12.pop * 100 : 0;
+    let dynScore = evolPct12>5?10 : evolPct12>2?8 : evolPct12>0.5?6 : evolPct12>-1?5 : evolPct12>-3?3 : 1;
+    // Bonus pyramide des âges
+    if (pyr12) {
+      const tot12 = Object.values(pyr12).reduce((s,v)=>s+v,0);
+      if (tot12 > 0) {
+        const actif12 = Math.round(((pyr12.Y25T39||0)+(pyr12.Y40T54||0)+(pyr12.Y55T64||0))/tot12*100);
+        const young12 = Math.round(((pyr12.Y_LT15||0)+(pyr12.Y15T24||0))/tot12*100);
+        if (actif12 > 55) dynScore = Math.min(10, dynScore + 1);
+        if (young12 > 30) dynScore = Math.min(10, dynScore + 0.5);
+      }
+    }
+    dynScore = Math.round(dynScore * 10) / 10;
+    const evolSign12 = evolPct12 >= 0 ? '+' : '';
+    const nbAns12 = last12.year - ref12.year;
+    items.push({ label:'Démographie & attractivité', icon:'👥', val:dynScore, max:10,
+      action:"showDemographieDetail()",
+      sub:`${evolSign12}${evolPct12.toFixed(1)}% sur ${nbAns12} ans · ${last12.pop.toLocaleString('fr-FR')} hab.` });
+  }
+
   if (!items.length) {
     setCard('score','Chargement…','Données en attente','');
     setCardRetry('score', () => computeScoreQuartier());
@@ -3828,7 +3879,7 @@ function computeScoreQuartier() {
   const cssClass = note>=7?'good':note>=5?'':'warn';
   const label = note>=8?'Excellent':note>=6?'Bon':note>=4?'Moyen':'Faible';
   window._scoreData = { note, label, items };
-  const MAX_CRITERIA = 10;
+  const MAX_CRITERIA = 12;
   const missingCount = MAX_CRITERIA - items.length;
   const subLabel = label+' · '+items.length+' critère'+(items.length>1?'s':'')+(missingCount>0?' · '+missingCount+' manquant'+(missingCount>1?'s':''):'');
   setCard('score', note.toFixed(1)+' / 10', subLabel, cssClass);
@@ -10243,20 +10294,15 @@ window._immUpdateBg = function(){
     if (bgImg) {
         bgImg.style.display = 'block';
         const BG_MAP = {
-          'Fond-F1-G1': 'images/Groupe1/Fond-F1-G1.png',
-          'Fond-F2-G1': 'images/Groupe1/Fond-F2-G1.png',
-          'Fond-F3-G1': 'images/Groupe1/Fond-F3-G1.png',
-          'Fond-F4-G1': 'images/Groupe1/Fond-F4-G1.png',
-          'Fond-F5-G1': 'images/Groupe1/Fond-F5-G1.png',
-          'Fond-F6-G1': 'images/Groupe1/Fond-F6-G1.png',
-          'Fond-H1-G1': 'images/Groupe1/Fond-H1-G1.png',
-          'Fond-H2-G1': 'images/Groupe1/Fond-H2-G1.png',
-          'Fond-H3-G1': 'images/Groupe1/Fond-H3-G1.png',
-          'Fond-H4-G1': 'images/Groupe1/Fond-H4-G1.png',
-          'Fond-H5-G1': 'images/Groupe1/Fond-H5-G1.png',
-          'Fond-H6-G1': 'images/Groupe1/Fond-H6-G1.png',
+          'Image1': 'images/Image1.png',
+          'Image2': 'images/Image2.png',
+          'Image3': 'images/Image3.png',
+          'Image4': 'images/Image4.png',
+          'Image5': 'images/Image5.png',
+          'Image6': 'images/Image6.png',
+          'Image7': 'images/Image7.png',
         };
-        bgImg.src = BG_MAP[fond] || BG_MAP['Fond-H1-G1'];
+        bgImg.src = BG_MAP[fond] || BG_MAP['Image1'];
     }
   } catch(e) {}
 };

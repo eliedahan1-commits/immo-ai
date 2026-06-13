@@ -66,7 +66,7 @@ function init(){
 // ── Préférences ──
 function loadPrefs(){
   try { prefs = JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'); } catch(e){ prefs={}; }
-  prefs = Object.assign({ configured:false, nom:'Tom', genre:'homme', fond:'Fond-H1-G1', vitesse:1, pitch:1 }, prefs);
+  prefs = Object.assign({ configured:false, nom:'Ai1', fond:'Image1', vitesse:1, pitch:1 }, prefs);
   try { history = JSON.parse(sessionStorage.getItem(HISTORY_KEY)||'[]'); } catch(e){ history=[]; }
 }
 function savePrefs(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs)); }
@@ -81,7 +81,7 @@ function injectHTML(){
   <!-- Bouton flottant -->
   <button id="av-trigger" title="Assistant IA" onclick="window._avatarToggle()">
     <span id="av-trigger-icon">◈</span>
-    <span id="av-trigger-lbl">Sofia IA</span>
+    <span id="av-trigger-lbl">AI</span>
   </button>
 
   <!-- Panneau latéral -->
@@ -116,30 +116,16 @@ function injectHTML(){
     <div id="av-setup-box">
       <h3>Personnaliser votre assistant</h3>
       <label>Prénom de l'assistant</label>
-      <input id="av-pref-nom" type="text" placeholder="Sofia" />
-      <label>Genre</label>
-      <div class="av-radio-row">
-        <label><input type="radio" name="av-genre" value="femme" checked /> Femme</label>
-        <label><input type="radio" name="av-genre" value="homme" /> Homme</label>
-      </div>
+      <input id="av-pref-nom" type="text" placeholder="Ai1" />
       <label>Fond immersif</label>
       <select id="av-pref-fond" style="width:100%;background:#100e0b;border:1px solid #2a2218;color:#e8d8b0;padding:.4rem .6rem;border-radius:6px;font-size:.78rem;margin-bottom:.5rem">
-        <optgroup label="Féminin">
-          <option value="Fond-F1-G1">Fond féminin 1</option>
-          <option value="Fond-F2-G1">Fond féminin 2</option>
-          <option value="Fond-F3-G1">Fond féminin 3</option>
-          <option value="Fond-F4-G1">Fond féminin 4</option>
-          <option value="Fond-F5-G1">Fond féminin 5</option>
-          <option value="Fond-F6-G1">Fond féminin 6</option>
-        </optgroup>
-        <optgroup label="Masculin">
-          <option value="Fond-H1-G1">Fond masculin 1</option>
-          <option value="Fond-H2-G1">Fond masculin 2</option>
-          <option value="Fond-H3-G1">Fond masculin 3</option>
-          <option value="Fond-H4-G1">Fond masculin 4</option>
-          <option value="Fond-H5-G1">Fond masculin 5</option>
-          <option value="Fond-H6-G1">Fond masculin 6</option>
-        </optgroup>
+          <option value="Image1">ImageVide1</option>
+          <option value="Image2">ImageVide2</option>
+          <option value="Image3">ImageVide3</option>
+          <option value="Image4">ImageVide4</option>
+          <option value="Image5">ImageVide5</option>
+          <option value="Image6">ImageVide6</option>
+          <option value="Image7">ImageVide7</option>
       </select>
       <label>Voix <span style="font-size:.72rem;color:#8a7755">(voix françaises disponibles sur cet appareil)</span></label>
       <select id="av-pref-voix" style="width:100%;background:#100e0b;border:1px solid #2a2218;color:#e8d8b0;padding:.4rem .6rem;border-radius:6px;font-size:.78rem;margin-bottom:.5rem">
@@ -398,7 +384,7 @@ function buildScene(canvas, wrap){
   scene.add(back);
 
   // Charger avatar
-  const avatarUrl = AVATARS[prefs.genre] || AVATARS.femme;
+  const avatarUrl = 'images/avatar.png';
   setStatus('Chargement de l\'avatar…');
 
   if(typeof THREE.GLTFLoader !== 'undefined' || (window.THREE && window.THREE.GLTFLoader)){
@@ -467,9 +453,7 @@ function showFallbackAvatar(wrap){
   fb.id = 'av-fallback';
   fb.style.cssText = 'position:absolute;inset:0;display:block;background:#000;overflow:hidden;';
 
-  const imgSrc = (prefs.genre === 'homme')
-    ? '/images/avatar-m.png'
-    : '/images/avatar-f.png';
+  const imgSrc = 'images/avatar.png';
 
   // Div fond solide derrière l'image (background-color sur <img> n'affecte pas les px transparents)
   const bgDiv = document.createElement('div');
@@ -504,8 +488,7 @@ function replayLast(){
 function testVoice(){
   const v = parseFloat(document.getElementById('av-pref-vitesse')?.value||'1');
   const p = parseFloat(document.getElementById('av-pref-pitch')?.value||'1');
-  const nom = document.getElementById('av-pref-nom')?.value || prefs.nom || 'Sofia';
-  const genre = document.querySelector('input[name="av-genre"]:checked')?.value || prefs.genre;
+  const nom = document.getElementById('av-pref-nom')?.value || prefs.nom || 'Ai1';
   window.speechSynthesis.cancel();
   function doSpeak(){
     const utt = new SpeechSynthesisUtterance('Bonjour, je suis ' + nom + '. Je suis votre assistant IMMO AI, specialiste de l immobilier.');
@@ -513,18 +496,12 @@ function testVoice(){
     const voices = window.speechSynthesis.getVoices();
     const frVoices = voices.filter(v=>v.lang.startsWith('fr'));
     if(frVoices.length){
-      // Voix choisie manuellement en priorité
       const selVoix = document.getElementById('av-pref-voix')?.value || prefs.voix || '';
       if(selVoix){
         const chosen = voices.find(v=>v.name===selVoix);
         if(chosen){ utt.voice=chosen; }
       } else {
-        const isMale = genre==='homme';
-        const maleKeys=['thomas','nicolas','pierre','paul'];
-        const femaleKeys=['marie','audrey','amelie','hortense','julie','google'];
-        let found = frVoices.find(v=>(isMale?maleKeys:femaleKeys).some(k=>v.name.toLowerCase().includes(k)));
-        utt.voice = found || frVoices[0];
-        if(!found && isMale) utt.pitch = Math.min(p, 0.75);
+        utt.voice = frVoices[0];
       }
     }
     utt.onend = function(){ setTimeout(populateVoiceSelect, 300); };
@@ -582,17 +559,7 @@ function speak(text){
     // 2. Auto selon genre
     const frVoices = voices.filter(v=>v.lang.startsWith('fr'));
     if(!frVoices.length) return;
-    const isMale = prefs.genre === 'homme';
-    const maleKeys = ['thomas','nicolas','pierre','paul','male','homme'];
-    const femaleKeys = ['marie','audrey','amélie','hortense','julie','female','femme','siri','google'];
-    let found = null;
-    if(isMale){
-      found = frVoices.find(v=>maleKeys.some(k=>v.name.toLowerCase().includes(k)));
-    } else {
-      found = frVoices.find(v=>femaleKeys.some(k=>v.name.toLowerCase().includes(k)));
-    }
-    utt.voice = found || frVoices[0];
-    if(!found && isMale && utt.pitch >= 1) utt.pitch = Math.min(utt.pitch, 0.8);
+    utt.voice = frVoices[0];
   }
   // Appliquer la voix — addEventListener évite le conflit avec populateVoiceSelect
   const _vNow = window.speechSynthesis.getVoices();
@@ -864,7 +831,7 @@ function buildAllData(){
 
 function buildSystemPrompt(){
   const dataCtx = buildAllData();
-  const nom = prefs.nom || 'Sofia';
+  const nom = prefs.nom || 'Ai1';
 
   return "Tu es " + nom + ", l'assistante IA experte en immobilier de IMMO·AI. Tu parles en francais, de facon naturelle, concise et professionnelle (3-5 phrases max sauf si detail demande).\n" +
 "\n" +
@@ -979,7 +946,6 @@ function showSetup(){
   const modal = document.getElementById('av-setup-modal');
   if(!modal) return;
   document.getElementById('av-pref-nom').value = prefs.nom || '';
-  document.querySelector(`input[name="av-genre"][value="${prefs.genre}"]`).checked = true;
   const fondSel = document.getElementById('av-pref-fond');
   if(fondSel && prefs.fond && prefs.fond !== 'auto') fondSel.value = prefs.fond;
   document.getElementById('av-pref-vitesse').value = prefs.vitesse || 1;
@@ -992,26 +958,20 @@ function closeSetup(){
   document.getElementById('av-setup-modal').classList.remove('open');
 }
 function saveSetup(){
-  const nom = document.getElementById('av-pref-nom').value.trim() || 'Sofia';
-  const genre = document.querySelector('input[name="av-genre"]:checked')?.value || 'femme';
+  const nom = document.getElementById('av-pref-nom').value.trim() || 'Ai1';
   const vitesse = parseFloat(document.getElementById('av-pref-vitesse').value);
   const pitch = parseFloat(document.getElementById('av-pref-pitch').value);
   const volume = parseFloat(document.getElementById('av-pref-volume')?.value) || 1;
   const voix = document.getElementById('av-pref-voix')?.value || '';
-  const fond = document.getElementById('av-pref-fond')?.value || prefs.fond || 'Fond-F1-G1';
-  const genreChange = genre !== prefs.genre;
+  const fond = document.getElementById('av-pref-fond')?.value || prefs.fond || 'Image1';
   const fondChange = fond !== prefs.fond;
-  prefs = { configured:true, nom, genre, fond, vitesse, pitch, volume, voix };
+  prefs = { configured:true, nom, fond, vitesse, pitch, volume, voix };
   savePrefs();
   closeSetup();
   updateNameBadge();
   // Ouvrir le panneau après configuration
   if(!panelOpen) togglePanel();
-  if(genreChange){
-    const wrap = document.getElementById('av-canvas-wrap');
-    if(wrap) showFallbackAvatar(wrap);
-  }
-  if(genreChange || fondChange){
+  if(fondChange){
     if(typeof window._immUpdateBg === 'function') window._immUpdateBg();
   }
 }
