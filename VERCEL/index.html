@@ -10337,9 +10337,12 @@ window.addEventListener('resize', () => { if (_immOn) { immSizeRing(); immRender
 const _origGoHome = typeof goHome === 'function' ? goHome : null;
 
 // showToggle — appelé quand on arrive sur la page résultats
+// Visible si : vrai desktop OU mobile avec "Afficher le site du bureau" activé
+// (dans ce cas le navigateur retire "Mobile" du User-Agent et recharge la page)
+const _immDesktopUA = !/Mobile/i.test(navigator.userAgent);
 window.immShowToggle = function(){
   const tog = document.getElementById('imm-toggle');
-  if (tog && window.innerWidth >= 1024) tog.style.display = 'flex';
+  if (tog && _immDesktopUA) tog.style.display = 'flex';
   // Restaurer depuis localStorage si l'utilisateur avait le mode actif
   if (!_immOn && localStorage.getItem('immoai_imm_mode') === '1') _immOn = true;
   _immApply();
