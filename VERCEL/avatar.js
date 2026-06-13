@@ -269,7 +269,8 @@ function injectStyles(){
   #av-setup-box { pointer-events:auto; }
   #av-setup-box {
     background:#1a1610; border:1px solid #b8832a44;
-    border-radius:12px; padding:1.5rem; width:min(380px,90vw);
+    border-radius:12px; padding:1.5rem; width:min(780px,92vw);
+    max-height:90vh; overflow-y:auto;
     color:#c8b88a;
   }
   #av-setup-box h3 { color:#dcc87a; margin:0 0 1rem; font-size:1rem; }
@@ -293,6 +294,7 @@ function injectStyles(){
   .av-thumb:hover { border-color:rgba(184,131,42,.5); }
   .av-thumb.selected { border-color:#b8832a; box-shadow:0 0 0 1px #b8832a; }
 
+  @media(min-width:600px){ #av-fond-grid{ grid-template-columns:repeat(5,1fr)!important; } #av-avatar-grid{ grid-template-columns:repeat(5,1fr)!important; } }
   @keyframes av-pulse {
     0%,100%{box-shadow:0 0 0 0 rgba(184,131,42,.4);}
     50%{box-shadow:0 0 0 6px rgba(184,131,42,.0);}
@@ -314,6 +316,7 @@ function setupFloatingButton(){
   window._avatarPlay = replayLast;
   window._avatarTestVoice = testVoice;
   window._avatarSettings = showSetup;
+  window._selectThumb = _selectThumb;
   window._avatarSaveSetup = saveSetup;
   window._avatarCloseSetup = closeSetup;
   window._avatarQuick = quickAction;

@@ -935,6 +935,20 @@ body.imm-on #detailContainer .detail-panel{border-radius:0;min-height:calc(100vh
 body.imm-on #detailContainer .back-btn{margin:.75rem 1rem;}
 body.imm-on #detailContainer .g2{grid-template-columns:1fr;}
 
+#imm-nav-prev,#imm-nav-next{
+  display:none;position:fixed;top:50%;transform:translateY(-50%);
+  z-index:15;width:48px;height:48px;border-radius:50%;
+  background:rgba(0,0,0,.45);border:1.5px solid rgba(79,195,247,.35);
+  color:rgba(79,195,247,.8);font-size:1.5rem;cursor:pointer;
+  align-items:center;justify-content:center;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  transition:background .2s,border-color .2s,color .2s;pointer-events:auto;
+}
+#imm-nav-prev:hover,#imm-nav-next:hover{background:rgba(0,0,0,.72);border-color:rgba(79,195,247,.8);color:#4fc3f7;}
+body.imm-on #imm-nav-prev,body.imm-on #imm-nav-next{display:flex;}
+#imm-nav-prev{left:16px;}
+#imm-nav-next{right:16px;}
+body.imm-split #imm-nav-next{right:auto;left:calc(55vw - 64px);}
 #imm-hint{display:none;position:fixed;bottom:14px;left:50%;transform:translateX(-50%);
   color:rgba(79,195,247,.55);font-size:.7rem;letter-spacing:.12em;pointer-events:none;
   z-index:11;opacity:1;transition:opacity .5s;}
@@ -1154,6 +1168,8 @@ body.imm-on #detailContainer .g2{grid-template-columns:1fr;}
   </div>
   <div id="imm-ring"><div class="irg"></div><div class="irg2"></div><div class="irg3"></div></div>
   <div id="imm-carousel-wrap"><div id="imm-cl"></div><div id="imm-avatar-el"><img src="images/avatar.png" alt=""></div></div>
+  <button id="imm-nav-prev" onclick="window.immNavStep(-1)" title="Carte précédente · Molette ↑ ou glisser →">❮</button>
+  <button id="imm-nav-next" onclick="window.immNavStep(1)"  title="Carte suivante · Molette ↓ ou glisser ←">❯</button>
   <div id="imm-hint">← Glisser pour naviguer →</div>
 
   <!-- ══ ANALYSE COMPLÈTE ══ -->
@@ -10389,6 +10405,7 @@ function _immApply(){
 
 // ── Exposer pour mise à jour depuis l'analyse ──────────────────────────
 window.immRefresh = function(){ if (_immOn) { immSizeRing(); immRender(); } };
+window.immNavStep = function(dir){ immTgt += dir * _immStep; immGo(); };
 
 // ══ SONDAGE DYNAMIQUE DES ASSETS (fonds + avatars) ══
 window._BG_MAP = {};
