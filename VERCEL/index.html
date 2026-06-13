@@ -866,7 +866,7 @@ path.leaflet-interactive:focus{outline:none;}
   pointer-events:none;overflow:hidden;}
 #imm-cl{position:absolute;inset:0;pointer-events:none;}
 #imm-avatar-el{position:absolute;bottom:0;transform:translateX(-50%);transition:left .3s ease;pointer-events:none;z-index:11;}
-#imm-avatar-el img{height:38vh;max-height:420px;object-fit:contain;object-position:center bottom;display:block;}
+#imm-avatar-el img{object-fit:contain;object-position:center bottom;display:block;}
 
 body.imm-on #p-analyse{display:block!important;}
 body.imm-on #analyse-page-header{display:none!important;}
@@ -10049,7 +10049,12 @@ function immRender(){
   if (!layer) return;
   layer.innerHTML = '';
   const _avEl = document.getElementById('imm-avatar-el');
-  if (_avEl) _avEl.style.left = cx + 'px';
+  if (_avEl) {
+    _avEl.style.left = cx + 'px';
+    const _avH = Math.max(80, Math.round(H - (cy - R) - 80));
+    const _avImg = _avEl.querySelector('img');
+    if (_avImg) _avImg.style.height = _avH + 'px';
+  }
 
   IMM_ITEMS.forEach((item, i) => {
     const ang  = _start + i*_immStep + immRot;
