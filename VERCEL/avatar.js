@@ -976,6 +976,36 @@ function populateAvatarDropdown(){
     const lbl = i===0?'Avatar 1':'Avatar '+(i+1);
     return `<div class="av-thumb av-thumb-portrait${u===cur?' selected':''}" data-val="${u}" onclick="_selectThumb('av-avatar-grid','av-pref-avatar','${u}')" title="${lbl}"><img src="${u}" alt="${lbl}" loading="lazy"></div>`;
   }).join('');
+  // Bouton rafraichir (utile apres ajout d'un nouvel avatar deploye)
+  if(!document.getElementById('av-avatar-refresh')){
+    const rbtn = document.createElement('button');
+    rbtn.id = 'av-avatar-refresh';
+    rbtn.type = 'button';
+    rbtn.textContent = '\u21ba Rafra\u00eeChir la liste';
+    rbtn.style.cssText = 'margin-top:6px;font-size:.7rem;color:#b8832a;background:none;border:none;cursor:pointer;padding:0;text-decoration:underline;display:block';
+    rbtn.onclick = async function(){
+      rbtn.textContent = '\u23f3 Sondage\u2026';
+      rbtn.disabled = true;
+      async function _probe(url){ try{ const r=await fetch(url,{method:"HEAD"}); return r.ok; }catch(e){ return false; } }
+      window._AVATAR_LIST = [];
+      if(await _probe("images/avatar.png")) window._AVATAR_LIST.push("images/avatar.png");
+      for(let n=2;n<=20;n++){
+        const u="images/avatar"+n+".png";
+        if(!(await _probe(u))) break;
+        window._AVATAR_LIST.push(u);
+      }
+      try{
+        const ck="_immoai_assets_v2";
+        const d=JSON.parse(sessionStorage.getItem(ck)||"{}");
+        d.avList=window._AVATAR_LIST;
+        sessionStorage.setItem(ck,JSON.stringify(d));
+      }catch(e){}
+      rbtn.textContent = "\u21ba Rafra\u00eeChir la liste";
+      rbtn.disabled = false;
+      populateAvatarDropdown();
+    };
+    wrap.appendChild(rbtn);
+  }
 }
 window._avatarOnAssetsReady = function(){
   populateFondDropdown();

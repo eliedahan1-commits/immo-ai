@@ -363,22 +363,22 @@
     const parent = sites.parentNode;
     let ccBlock = document.getElementById('rb-cc-block');
     if (!ccBlock) {
-      const _ccColor = '#b8832a';
+      const _ccColor = '#7c3aed';
       ccBlock = document.createElement('a');
       ccBlock.id = 'rb-cc-block';
-      ccBlock.href = 'https://www.chooseandconnect.com/';
+      ccBlock.href = 'https://places.chooseandconnect.com/';
       ccBlock.target = '_blank';
       ccBlock.rel = 'noopener';
-      ccBlock.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:7px;padding:10px 14px;border-radius:var(--r);border:1px solid var(--border);background:var(--white);text-decoration:none;color:inherit;transition:border-color .15s,background .15s';
-      ccBlock.onmouseover = function() { this.style.borderColor = _ccColor; this.style.background = _ccColor + '14'; };
-      ccBlock.onmouseout  = function() { this.style.borderColor = 'var(--border)'; this.style.background = 'var(--white)'; };
+      ccBlock.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:7px;padding:10px 14px;border-radius:var(--r);border:1px solid ' + _ccColor + '40;background:' + _ccColor + '0d;text-decoration:none;color:inherit;transition:border-color .15s,background .15s';
+      ccBlock.onmouseover = function() { this.style.borderColor = _ccColor; this.style.background = _ccColor + '1a'; };
+      ccBlock.onmouseout  = function() { this.style.borderColor = _ccColor + '40'; this.style.background = _ccColor + '0d'; };
       ccBlock.innerHTML = '<div style="display:flex;align-items:center;gap:10px;min-width:0">'
         + '<span style="width:10px;height:10px;border-radius:50%;background:' + _ccColor + ';flex-shrink:0"></span>'
         + '<div style="min-width:0">'
         + '<div style="font-size:.88rem;font-weight:700;color:var(--text)">Choose &amp; Connect</div>'
         + '<div style="font-size:.7rem;color:var(--muted)">🎓 Colocation étudiante</div>'
         + '</div></div>'
-        + '<span style="flex-shrink:0;font-size:.78rem;font-weight:700;color:' + _ccColor + ';padding:5px 13px;border:1.5px solid ' + _ccColor + ';border-radius:99px;white-space:nowrap">Ouvrir →</span>';
+        + '<span style="flex-shrink:0;font-size:.78rem;font-weight:700;color:#fff;background:' + _ccColor + ';padding:5px 13px;border:1.5px solid ' + _ccColor + ';border-radius:99px;white-space:nowrap">Ouvrir →</span>';
       parent.appendChild(ccBlock);
     }
   };
