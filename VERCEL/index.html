@@ -5216,8 +5216,11 @@ function showDVFDetail(){
   window._dvfFilterSurf      = 0;
   window._dvfFilterN         = 0;
   window._dvfFilterPieces    = 0;
-  window._dvfFilterSurfs     = new Set(); // multi-sélection surfaces
-  window._dvfFilterPiecesSet = new Set(); // multi-sélection pièces
+  window._dvfFilterSurfs       = new Set(); // multi-sélection surfaces
+  window._dvfFilterPiecesSet   = new Set(); // multi-sélection pièces
+  window._dvfFilterPrixBuckets = new Set(); // multi-sélection tranches prix
+  window._dvfPrixBucketsRanges = [];        // [{lo,hi,label}] calculé depuis les données
+  computeDvfPrixBuckets();                  // hoisted — calcule les tranches depuis _dvfRecentes
   window._dvfSortCol    = 'date';
   window._dvfSortDir    = 'desc'; // date la plus récente par défaut
   window.sortDVF = function(col){
@@ -5346,7 +5349,31 @@ function showDVFDetail(){
     tEl.style.color = up?'#2a9d8f':'#e63946';
     lEl.textContent = label;
   }
-  function refreshAllDVF(){ renderDVFRows(); refreshDVFChart(); buildDvfEvolutionChart(); buildDVFMap(); }
+  function computeDvfPrixBuckets(){
+    const _all=(window._dvfRecentes||[]).map(function(t){return t.prixM2;}).filter(function(v){return v>0;});
+    if(!_all.length){window._dvfPrixBucketsRanges=[];return;}
+    const _mn=Math.min.apply(null,_all),_mx=Math.max.apply(null,_all),_step=(_mx-_mn)/6||1;
+    window._dvfPrixBucketsRanges=Array.from({length:6},function(_,i){
+      const lo=Math.round(_mn+i*_step), hi=i===5?Math.ceil(_mx)+1:Math.round(_mn+(i+1)*_step);
+      return {lo:lo, hi:hi, label:lo.toLocaleString('fr-FR')+'–'+Math.round(_mn+(i+1)*_step).toLocaleString('fr-FR')};
+    });
+  }
+  function renderDvfPrixBuckets(){
+    const wrap=document.getElementById('dvfPrixBucketsWrap'); if(!wrap) return;
+    const ranges=window._dvfPrixBucketsRanges||[]; if(!ranges.length){wrap.innerHTML=''; return;}
+    const all=window._dvfRecentes||[];
+    const sel=window._dvfFilterPrixBuckets;
+    wrap.innerHTML='<span style="font-size:.72rem;color:var(--muted);flex-shrink:0;margin-right:.2rem">Prix/m² :</span>'
+      +ranges.map(function(b,i){
+        const cnt=all.filter(function(t){return t.prixM2>=b.lo&&t.prixM2<b.hi;}).length;
+        const on=sel.has(i);
+        return '<button class="dvf-prix-btn'+(on?' active':'')+'" data-pi="'+i+'" onclick="window.toggleDvfPrixBucket('+i+')"'
+          +' style="padding:3px 9px;border:1px solid '+(on?'var(--gold)':'var(--border)')+';border-radius:99px;font-size:.72rem;cursor:pointer;'
+          +'background:'+(on?'var(--gold)':'var(--surface2)')+';color:'+(on?'#fff':'var(--text)')+';font-weight:'+(on?600:400)+'">'
+          +b.label+' <span style=\"font-size:.65rem;opacity:.7\">('+cnt+')</span></button>';
+      }).join('');
+  }
+  function refreshAllDVF(){ renderDVFRows(); refreshDVFChart(); buildDvfEvolutionChart(); buildDVFMap(); renderDvfPrixBuckets(); }
   window.filterDVF       = n  => { window._dvfFilterN=n;      refreshAllDVF(); };
   window.filterDVFType   = t  => { window._dvfFilterType=t;   refreshAllDVF(); };
   window.filterDVFSurf   = s  => {
@@ -5362,12 +5389,18 @@ function showDVFDetail(){
     refreshAllDVF();
   };
   window.filterDVFPrix = (lo,hi) => { window._dvfFilterPrixLo=lo; window._dvfFilterPrixHi=hi; renderDVFRows(); };
+  window.toggleDvfPrixBucket = function(i){
+    const s=window._dvfFilterPrixBuckets;
+    if(s.has(i)) s.delete(i); else s.add(i);
+    refreshAllDVF();
+  };
   function getFilteredListDVF(){
     let l=window._dvfRecentes||[];
     if(window._dvfFilterType!=='tous') l=l.filter(t=>{const tp=(t.type||'').toLowerCase();if(window._dvfFilterType==='appt')return tp.includes('appartement');if(window._dvfFilterType==='maison')return tp.includes('maison');if(window._dvfFilterType==='local')return tp.includes('local');if(window._dvfFilterType==='depend')return tp.includes('dépendance')||tp.includes('dependance');return true;});
     const _ST2=[[25,0,25],[50,25,50],[75,50,75],[100,75,100],[125,100,125],[150,125,150],[999,150,99999]];
     if(window._dvfFilterSurfs.size>0){l=l.filter(t=>[...window._dvfFilterSurfs].some(s=>{const r=_ST2.find(x=>x[0]===s);return r&&(t.surf||0)>=r[1]&&(t.surf||0)<r[2];}));}
     if(window._dvfFilterPiecesSet.size>0){l=l.filter(t=>[...window._dvfFilterPiecesSet].some(fp=>fp===5?(t.pieces||0)>=5:(t.pieces||0)===fp));}
+    if(window._dvfFilterPrixBuckets&&window._dvfFilterPrixBuckets.size>0){const _br=window._dvfPrixBucketsRanges||[];l=l.filter(function(t){return [...window._dvfFilterPrixBuckets].some(function(i){const b=_br[i];return b&&(t.prixM2||0)>=b.lo&&(t.prixM2||0)<b.hi;});});}
     const n=window._dvfFilterN;if(n>0)l=l.slice(0,n);
     return l;
   }
@@ -5506,6 +5539,7 @@ function showDVFDetail(){
     <div style="margin-bottom:.7rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Afficher :</span>${btnsFiltres}
     </div>
+    <div id="dvfPrixBucketsWrap" style="margin-bottom:.5rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap"></div>
     <div id="dvfMapWrap" style="position:relative;margin-bottom:1.2rem;">
       <div id="dvfMapContainer" style="height:370px;border-radius:8px;overflow:hidden;border:1px solid var(--border)"></div>
       <button onclick="window._dvfMapFullscreen()" title="Plein écran" style="position:absolute;top:8px;right:8px;z-index:1000;width:32px;height:32px;background:rgba(15,13,10,.85);border:1px solid rgba(184,131,42,.5);border-radius:6px;cursor:pointer;color:#c9a84c;font-size:1rem;display:flex;align-items:center;justify-content:center;padding:0" id="dvfFsBtn">⛶</button>
@@ -5542,6 +5576,7 @@ function buildDVFMap(){
   if(_ft !== 'tous') liste = liste.filter(t=>{const tp=(t.type||'').toLowerCase();if(_ft==='appt')return tp.includes('appartement');if(_ft==='maison')return tp.includes('maison');if(_ft==='local')return tp.includes('local');if(_ft==='depend')return tp.includes('dépendance')||tp.includes('dependance');return true;});
   const _fs = window._dvfFilterSurf||0; if(_fs>0){const T=[[25,0,25],[50,25,50],[75,50,75],[100,75,100],[125,100,125],[150,125,150],[999,150,99999]];const tr=T.find(t=>t[0]===_fs);if(tr)liste=liste.filter(t=>(t.surf||0)>=tr[1]&&(t.surf||0)<tr[2]);}
   const _fp = window._dvfFilterPieces||0; if(_fp>0){if(_fp===5)liste=liste.filter(t=>(t.pieces||0)>=5);else liste=liste.filter(t=>(t.pieces||0)===_fp);}
+  if(window._dvfFilterPrixBuckets&&window._dvfFilterPrixBuckets.size>0){const _br=window._dvfPrixBucketsRanges||[];liste=liste.filter(function(t){return [...window._dvfFilterPrixBuckets].some(function(i){const b=_br[i];return b&&(t.prixM2||0)>=b.lo&&(t.prixM2||0)<b.hi;});});}
   const _fn = window._dvfFilterN||0; if(_fn>0)liste=liste.slice(0,_fn);
   const pts = liste.filter(t => t.lat && t.lon);
   if(pts.length === 0){ container.style.display='none'; return; }
@@ -10513,127 +10548,4 @@ window.showLocationDetail = function(){ _immShowSimulateur('p-location','🏢 Lo
 window.showAidesDetail    = function(){ _immShowSimulateur('p-aides','🎁 Aides à l\'achat',null); };
 window.showRenovDetail    = function(){ _immShowSimulateur('p-renov','🔨 MaPrimeRénov\'',null); };
 window.showAnnoncesDetail = function(){ if(typeof showRecherchePanel==='function') showRecherchePanel(); };
-window.showProfilDetail   = function(){ _immShowSimulateur('p-profil','👤 Compatibilité de vie',function(){ var l=document.getElementById('pAdresseLabel'); if(l&&window.currentAddress)l.innerHTML='📍 <strong>'+window.currentAddress+'</strong>'; if(typeof updatePoidsDisplay==='function')updatePoidsDisplay(); if(window.currentCoords&&typeof runProfil==='function')setTimeout(runProfil,150); }); };
-
-})(); // fin IIFE
-
-</script>
-<script src="/pdf-export.js?v=12"></script>
-<script src="/avatar.js?v=15"></script>
-<script src="/recherche-bien.js?v=3"></script>
-<script>
-/* ══ MOBILE NAV ══════════════════════════════════════════════════════════ */
-function toggleSidebar(){
-  const s=document.getElementById('sidebar');
-  const btn=document.getElementById('hamburgerBtn');
-  const ov=document.getElementById('sideOverlay');
-  const open=s.classList.toggle('open');
-  btn.classList.toggle('open',open);
-  ov.style.display=open?'block':'none';
-  document.body.style.overflow=open?'hidden':'';
-}
-function closeSidebar(){
-  const s=document.getElementById('sidebar');
-  const btn=document.getElementById('hamburgerBtn');
-  const ov=document.getElementById('sideOverlay');
-  s.classList.remove('open');
-  btn.classList.remove('open');
-  ov.style.display='none';
-  document.body.style.overflow='';
-}
-// Map page id → tab id
-const _PAGE_TO_TAB={
-  home:'home',
-  analyse:'bien',prix:'bien',risques:'bien',bruit:'bien',urbanisme:'bien',
-  ecoles:'bien',mobilite:'bien',fibre:'bien',services:'bien',soleil:'bien',
-  emprunt:'financement',cout:'financement',mensualites:'financement',aides:'financement',renov:'financement',location:'financement',
-  profil:'strategie',recherche:'strategie',conseil:'strategie',juridique:'strategie',
-};
-function setActiveTab(tabId){
-  document.querySelectorAll('.btab').forEach(b=>b.classList.remove('active'));
-  const el=document.getElementById('btab-'+tabId);
-  if(el) el.classList.add('active');
-}
-// Patch go() to auto-update bottom tab + close sidebar on mobile
-const _goOrig=window._goPage||go;
-const _goPatched=function(id){
-  _goOrig(id);
-  const tab=_PAGE_TO_TAB[id]||null;
-  if(tab) setActiveTab(tab);
-  if(window.innerWidth<=1024) closeSidebar();
-};
-// Accordion nav sections
-function toggleNavGroup(sectionEl) {
-  var content = sectionEl.nextElementSibling;
-  var arrow = sectionEl.querySelector('.nav-arrow');
-  if (!content) return;
-  var collapsed = content.classList.toggle('collapsed');
-  if (arrow) arrow.style.transform = collapsed ? 'rotate(-90deg)' : 'rotate(0deg)';
-}
-
-// Override nav-item clicks to close sidebar (desktop + mobile)
-document.addEventListener('DOMContentLoaded',()=>{
-  document.querySelectorAll('.nav-item').forEach(el=>{
-    el.addEventListener('click',()=>{ closeSidebar(); });
-  });
-  // Masquer bottom tab bar sur la page d'accueil au démarrage
-  const _btb = document.getElementById('bottomTabBar');
-  if(_btb && document.getElementById('p-home')?.classList.contains('on')) _btb.style.display = 'none';
-});
-
-
-// ── Bouton Back mobile : navigation intra-app ──
-(function(){
-  function _pushSentinel(){ try{ history.pushState({immoai:1}, ''); }catch(e){} }
-  try{ history.replaceState({immoai:0}, ''); }catch(e){}
-  _pushSentinel();
-
-  var _fwd     = false;
-  var _lastTs  = 0;
-  var _exiting = false; // true = sortie volontaire, ne pas rebondir
-
-  function _showExitConfirm(){
-    if(document.getElementById('_exitModal')) return;
-    var m = document.createElement('div');
-    m.id = '_exitModal';
-    m.setAttribute('style','position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:1.5rem');
-    window._exitModalStay  = function(){ var e=document.getElementById('_exitModal');if(e)e.remove(); };
-    window._exitModalLeave = function(){
-      var e=document.getElementById('_exitModal'); if(e)e.remove();
-      _exiting = true;   // désactiver le rebond dans le handler
-      history.back();    // recule vers root → le browser peut ensuite sortir
-    };
-    m.innerHTML='<div style="background:#fff;border-radius:16px;padding:1.75rem 1.5rem;max-width:300px;width:100%;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.3)">'
-      +'<div style="font-size:2rem;margin-bottom:.5rem">&#127968;</div>'
-      +'<div style="font-size:1rem;font-weight:700;color:#111;margin-bottom:.35rem">Quitter ImmoAI ?</div>'
-      +'<div style="font-size:.82rem;color:#777;margin-bottom:1.25rem;line-height:1.4">Vous \u00eates sur l\u2019accueil. Appuyez sur Fermer puis le bouton retour syst\u00e8me pour quitter.</div>'
-      +'<div style="display:flex;gap:.75rem">'
-      +'<button onclick="_exitModalStay()" style="flex:1;padding:.7rem;border:1.5px solid #ddd;border-radius:10px;background:#f4f4f4;font-size:.88rem;font-weight:600;cursor:pointer;color:#333">Rester</button>'
-      +'<button onclick="_exitModalLeave()" style="flex:1;padding:.7rem;border:none;border-radius:10px;background:#111;color:#fff;font-size:.88rem;font-weight:600;cursor:pointer">Fermer</button>'
-      +'</div></div>';
-    document.body.appendChild(m);
-  }
-
-  window.addEventListener('popstate', function(){
-    // Sortie volontaire : ne pas rebondir, laisser le navigateur gérer
-    if(_exiting) return;
-
-    // Retour déclenché par notre propre history.go(1)
-    if(_fwd){ _fwd = false; return; }
-
-    var now = Date.now();
-    if(now - _lastTs < 150) return;
-    _lastTs = now;
-
-    // Rebondir sur le sentinel
-    _fwd = true;
-    setTimeout(function(){ history.go(1); }, 0);
-    // Navigation applicative
-    var panelEl = document.getElementById('detailContainer');
-    if(panelEl && panelEl.innerHTML.trim()){
-      var btn = panelEl.querySelector('.back-btn'); if(btn) btn.click(); else closePanel(); return;
-    }
-    if(document.getElementById('p-home')?.classList.contains('on')){ _showExitConfirm(); return; }
-    if(document.getElementById('p-analyse')?.classList.contains('on')){ go('home'); return; }
-    _goPage('analyse');
- 
+window.showProfilDetail   = function(){ _immShowSimulateur('p-profil','👤 Compatibilité de vie
