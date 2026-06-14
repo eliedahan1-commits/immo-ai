@@ -490,15 +490,22 @@
     const grid = document.getElementById('cardsGrid');
     if (grid) grid.style.display = 'none';
     container.innerHTML =
-      '<div style="margin-bottom:.75rem">' +
-      '<button class="back-btn" onclick="closePanel()" style="margin:0">← Retour aux cartes</button>' +
+      '<div style="max-width:860px;margin:0 auto .75rem;width:100%">' +
+      '<button class="back-btn" onclick="closePanel()">← Retour aux cartes</button>' +
       '</div>' +
       '<div class="detail-panel">' +
       '<div class="detail-head"><div class="detail-title">🔍 Trouver un bien</div>' +
       '<button class="detail-close" onclick="closePanel()">✕ Fermer</button></div>' +
       renderPanel(_ctx.cityName, _ctx.cp, photoUrl) +
       '</div>';
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (document.body.classList.contains('imm-on')) {
+      document.body.classList.add('imm-split');
+      const dc = document.getElementById('detailContainer');
+      if (dc) dc.scrollTo({ top: 0, behavior: 'smooth' });
+      if (typeof immRefresh === 'function') setTimeout(immRefresh, 50);
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 
     window._rbSetMode('achat');
     window._rbSetType('both');
