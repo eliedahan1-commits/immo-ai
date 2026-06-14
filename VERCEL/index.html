@@ -10633,7 +10633,6 @@ window.immNavStep = function(dir){ immTgt += dir * _immStep; immGo(); };
   document.addEventListener("click", function(e){
     // Uniquement en mode immersif, et seulement si aucun panel n'est encore ouvert
     if (!document.body.classList.contains("imm-on")) return;
-    if (document.body.classList.contains("imm-split")) return;
 
     var tile = e.target && e.target.closest ? e.target.closest(".imm-hc") : null;
     if (!tile) return;
