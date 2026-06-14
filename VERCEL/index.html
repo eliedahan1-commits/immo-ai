@@ -10086,13 +10086,14 @@ function immRender(){
     const _avImg = _avEl.querySelector('img');
     if (_avImg) _avImg.style.height = _avH + 'px';
   }
-  // Flèches navigation : positionnées à l'équateur du cercle (cx±R, cy) — aucune carte visible à 90°
-  const _arrowGap = 10;
-  const _arrowTop  = Math.round(cy - 24); // centré verticalement sur l'équateur du cercle
-  const _prevBtn = document.getElementById('imm-nav-prev');
-  const _nextBtn = document.getElementById('imm-nav-next');
-  if (_prevBtn) { _prevBtn.style.top = _arrowTop + 'px'; _prevBtn.style.left = Math.max(4, Math.round(cx - R - _arrowGap - 48)) + 'px'; }
-  if (_nextBtn) { _nextBtn.style.top = _arrowTop + 'px'; _nextBtn.style.right = 'auto'; _nextBtn.style.left = Math.round(cx + R + _arrowGap) + 'px'; }
+  // Flèches : on calcule l'étendue réelle des cartes à l'intérieur de la boucle
+  const _arrowGap = 12;
+  const _arrowTop = Math.round(cy - 24);
+  const _prevBtn  = document.getElementById('imm-nav-prev');
+  const _nextBtn  = document.getElementById('imm-nav-next');
+  if (_prevBtn) _prevBtn.style.top = _arrowTop + 'px';
+  if (_nextBtn) _nextBtn.style.top = _arrowTop + 'px';
+  let _extL = W, _extR = 0;
 
   IMM_ITEMS.forEach((item, i) => {
     const ang  = _start + i*_immStep + immRot;
@@ -10104,6 +10105,11 @@ function immRender(){
     const sc   = 0.52 + fall * 0.48;
     const op   = 0.22 + fall * 0.78;
     const zB   = Math.round(sc*100) + 10;
+
+    // Étendue réelle des cartes (pour positionner les flèches après la boucle)
+    const _wHalf = Math.round(CARD_W * Math.max(0.70, sc)) / 2;
+    if (x - _wHalf < _extL) _extL = x - _wHalf;
+    if (x + _wHalf > _extR) _extR = x + _wHalf;
 
     // Label section
     if (item.secLabel) {
@@ -10164,6 +10170,10 @@ function immRender(){
     }
     layer.appendChild(el);
   });
+
+  // Positionner les flèches juste à l'extérieur du bord réel des cartes
+  if (_prevBtn) _prevBtn.style.left = Math.max(4, Math.round(_extL - _arrowGap - 48)) + 'px';
+  if (_nextBtn) { _nextBtn.style.right = 'auto'; _nextBtn.style.left = Math.min(W - 56, Math.round(_extR + _arrowGap)) + 'px'; }
 }
 
 // ── Score color depuis les données globales ─────────────────────────────
