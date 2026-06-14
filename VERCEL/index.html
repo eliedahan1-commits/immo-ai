@@ -10553,4 +10553,132 @@ window.showLocationDetail = function(){ _immShowSimulateur('p-location','🏢 Lo
 window.showAidesDetail    = function(){ _immShowSimulateur('p-aides','🎁 Aides à l\'achat',null); };
 window.showRenovDetail    = function(){ _immShowSimulateur('p-renov','🔨 MaPrimeRénov\'',null); };
 window.showAnnoncesDetail = function(){ if(typeof showRecherchePanel==='function') showRecherchePanel(); };
-window.showProfilDetail   = function(){ _immShowSimulateur('p-profil','👤 Compatibilité de vie
+window.showProfilDetail   = function(){ _immShowSimulateur('p-profil','👤 Compatibilité de vie',function(){ var l=document.getElementById('pAdresseLabel'); if(l&&window.currentAddress)l.innerHTML='📍 <strong>'+window.currentAddress+'</strong>'; if(typeof updatePoidsDisplay==='function')updatePoidsDisplay(); if(window.currentCoords&&typeof runProfil==='function')setTimeout(runProfil,150); }); };
+
+})(); // fin IIFE
+
+</script>
+<script src="/pdf-export.js?v=12"></script>
+<script src="/avatar.js?v=15"></script>
+<script src="/recherche-bien.js?v=3"></script>
+<script>
+/* ══ MOBILE NAV ══════════════════════════════════════════════════════════ */
+function toggleSidebar(){
+  const s=document.getElementById('sidebar');
+  const btn=document.getElementById('hamburgerBtn');
+  const ov=document.getElementById('sideOverlay');
+  const open=s.classList.toggle('open');
+  btn.classList.toggle('open',open);
+  ov.style.display=open?'block':'none';
+  document.body.style.overflow=open?'hidden':'';
+}
+function closeSidebar(){
+  const s=document.getElementById('sidebar');
+  const btn=document.getElementById('hamburgerBtn');
+  const ov=document.getElementById('sideOverlay');
+  s.classList.remove('open');
+  btn.classList.remove('open');
+  ov.style.display='none';
+  document.body.style.overflow='';
+}
+// Map page id → tab id
+const _PAGE_TO_TAB={
+  home:'home',
+  analyse:'bien',prix:'bien',risques:'bien',bruit:'bien',urbanisme:'bien',
+  ecoles:'bien',mobilite:'bien',fibre:'bien',services:'bien',soleil:'bien',
+  emprunt:'financement',cout:'financement',mensualites:'financement',aides:'financement',renov:'financement',location:'financement',
+  profil:'strategie',recherche:'strategie',conseil:'strategie',juridique:'strategie',
+};
+function setActiveTab(tabId){
+  document.querySelectorAll('.btab').forEach(b=>b.classList.remove('active'));
+  const el=document.getElementById('btab-'+tabId);
+  if(el) el.classList.add('active');
+}
+// Patch go() to auto-update bottom tab + close sidebar on mobile
+const _goOrig=window._goPage||go;
+const _goPatched=function(id){
+  _goOrig(id);
+  const tab=_PAGE_TO_TAB[id]||null;
+  if(tab) setActiveTab(tab);
+  if(window.innerWidth<=1024) closeSidebar();
+};
+// Accordion nav sections
+function toggleNavGroup(sectionEl) {
+  var content = sectionEl.nextElementSibling;
+  var arrow = sectionEl.querySelector('.nav-arrow');
+  if (!content) return;
+  var collapsed = content.classList.toggle('collapsed');
+  if (arrow) arrow.style.transform = collapsed ? 'rotate(-90deg)' : 'rotate(0deg)';
+}
+
+// Override nav-item clicks to close sidebar (desktop + mobile)
+document.addEventListener('DOMContentLoaded',()=>{
+  document.querySelectorAll('.nav-item').forEach(el=>{
+    el.addEventListener('click',()=>{ closeSidebar(); });
+  });
+  // Masquer bottom tab bar sur la page d'accueil au démarrage
+  const _btb = document.getElementById('bottomTabBar');
+  if(_btb && document.getElementById('p-home')?.classList.contains('on')) _btb.style.display = 'none';
+});
+
+
+// ── Bouton Back mobile : navigation intra-app ──
+(function(){
+  function _pushSentinel(){ try{ history.pushState({immoai:1}, ''); }catch(e){} }
+  try{ history.replaceState({immoai:0}, ''); }catch(e){}
+  _pushSentinel();
+
+  var _fwd     = false;
+  var _lastTs  = 0;
+  var _exiting = false; // true = sortie volontaire, ne pas rebondir
+
+  function _showExitConfirm(){
+    if(document.getElementById('_exitModal')) return;
+    var m = document.createElement('div');
+    m.id = '_exitModal';
+    m.setAttribute('style','position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:1.5rem');
+    window._exitModalStay  = function(){ var e=document.getElementById('_exitModal');if(e)e.remove(); };
+    window._exitModalLeave = function(){
+      var e=document.getElementById('_exitModal'); if(e)e.remove();
+      _exiting = true;   // désactiver le rebond dans le handler
+      history.back();    // recule vers root → le browser peut ensuite sortir
+    };
+    m.innerHTML='<div style="background:#fff;border-radius:16px;padding:1.75rem 1.5rem;max-width:300px;width:100%;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.3)">'
+      +'<div style="font-size:2rem;margin-bottom:.5rem">&#127968;</div>'
+      +'<div style="font-size:1rem;font-weight:700;color:#111;margin-bottom:.35rem">Quitter ImmoAI ?</div>'
+      +'<div style="font-size:.82rem;color:#777;margin-bottom:1.25rem;line-height:1.4">Vous \u00eates sur l\u2019accueil. Appuyez sur Fermer puis le bouton retour syst\u00e8me pour quitter.</div>'
+      +'<div style="display:flex;gap:.75rem">'
+      +'<button onclick="_exitModalStay()" style="flex:1;padding:.7rem;border:1.5px solid #ddd;border-radius:10px;background:#f4f4f4;font-size:.88rem;font-weight:600;cursor:pointer;color:#333">Rester</button>'
+      +'<button onclick="_exitModalLeave()" style="flex:1;padding:.7rem;border:none;border-radius:10px;background:#111;color:#fff;font-size:.88rem;font-weight:600;cursor:pointer">Fermer</button>'
+      +'</div></div>';
+    document.body.appendChild(m);
+  }
+
+  window.addEventListener('popstate', function(){
+    // Sortie volontaire : ne pas rebondir, laisser le navigateur gérer
+    if(_exiting) return;
+
+    // Retour déclenché par notre propre history.go(1)
+    if(_fwd){ _fwd = false; return; }
+
+    var now = Date.now();
+    if(now - _lastTs < 150) return;
+    _lastTs = now;
+
+    // Rebondir sur le sentinel
+    _fwd = true;
+    setTimeout(function(){ history.go(1); }, 0);
+    // Navigation applicative
+    var panelEl = document.getElementById('detailContainer');
+    if(panelEl && panelEl.innerHTML.trim()){
+      var btn = panelEl.querySelector('.back-btn'); if(btn) btn.click(); else closePanel(); return;
+    }
+    if(document.getElementById('p-home')?.classList.contains('on')){ _showExitConfirm(); return; }
+    if(document.getElementById('p-analyse')?.classList.contains('on')){ go('home'); return; }
+    _goPage('analyse');
+  });
+})();
+
+</script>
+</body>
+</html>
