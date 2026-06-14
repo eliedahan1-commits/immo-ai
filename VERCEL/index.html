@@ -5596,6 +5596,8 @@ function showDVFDetail(){
     </div>
     <p style="font-size:.62rem;color:var(--muted);margin-top:.5rem">${periodeLabel?periodeLabel+' · ':''}Source : ${d.source}</p>`);
   renderDVFRows();
+  renderDvfPrixBuckets();
+  renderDvfAnnees();
   setTimeout(()=>refreshDVFChart(), 80);
   setTimeout(()=>buildDvfEvolutionChart(), 120);
   setTimeout(()=>buildDVFMap(), 200);
