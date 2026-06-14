@@ -5665,7 +5665,6 @@ function showRisquesDetail(){
       </div>
     </div>
     ${noRisque}${catBadges}${extraBadges}
-    <div id="mapRisques" class="map-container" style="height:250px;margin:1rem 0"></div>
     <div style="margin-bottom:.75rem">
       <div style="font-weight:600;font-size:.83rem;color:var(--text);margin-bottom:.35rem">📋 Catastrophes naturelles reconnues (arrêtés)</div>
       <div style="max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:.4rem .7rem">${catnatList}</div>
@@ -5676,19 +5675,6 @@ function showRisquesDetail(){
     </div>
     <p style="font-size:.61rem;color:var(--muted);margin-top:.6rem">Données officielles Géorisques (BRGM) · Service public · Mise à jour continue</p>`);
 
-  setTimeout(()=>{
-    const el = document.getElementById('mapRisques');
-    if(!el||!window.L||!d.lat) return;
-    if(window._leafletMapRisques){window._leafletMapRisques.remove();window._leafletMapRisques=null;}
-    const map = L.map('mapRisques',{zoomControl:true,attributionControl:true}).setView([d.lat,d.lng],12);
-    window._leafletMapRisques = map;
-    addFsBtn(map, el);
-    addGeoBtn(map, el);
-  addAddrBtn(map, el);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CartoDB',subdomains:'abcd',maxZoom:19}).addTo(map);
-    const icon = L.divIcon({html:'<div style="width:14px;height:14px;background:#b8832a;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.5)"></div>',iconSize:[14,14],iconAnchor:[7,7],className:''});
-    L.marker([d.lat,d.lng],{icon}).addTo(map).bindPopup(`📍 ${currentAddress||'Adresse analysée'}<br><a href="https://maps.google.com/?q=${d.lat},${d.lng}" target="_blank" style="font-size:.72rem;color:#1a73e8;text-decoration:none">🗺️ Y aller</a>`).openPopup();
-  },300);
 }
 
 function toggleAcc(btn){
