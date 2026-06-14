@@ -642,7 +642,16 @@ function addMsg(role, text){
         const goCards = ['emprunt','mensualites','cout','location','aides','renov','urbanisme','recherche','profil'];
         setTimeout(()=>{
           if(goCards.includes(cardId)){
-            if(typeof go==='function') go(cardId);
+            const isImm = document.body.classList.contains('imm-on');
+            const immShowMap = {
+              emprunt:'showEmpruntDetail', mensualites:'showCoutDetail', cout:'showInvestDetail',
+              location:'showLocationDetail', aides:'showAidesDetail', renov:'showRenovDetail', profil:'showProfilDetail'
+            };
+            if(isImm && immShowMap[cardId] && typeof window[immShowMap[cardId]]==='function'){
+              window[immShowMap[cardId]]();
+            } else {
+              if(typeof go==='function') go(cardId);
+            }
           } else {
             // En mode immersif, p-analyse est toujours visible — on saute go('analyse')
             // pour éviter les effets de bord (scroll, nav) qui cassent le 2e appel en Edge
