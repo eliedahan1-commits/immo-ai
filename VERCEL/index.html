@@ -10488,6 +10488,145 @@ function _immApply(){
 window.immRefresh = function(){ if (_immOn) { immSizeRing(); immRender(); } };
 window.immNavStep = function(dir){ immTgt += dir * _immStep; immGo(); };
 
+// ── Parallax fond + avatar (effet de profondeur sur mousemove) ──────────
+(function(){
+  var MAX = 12, tgtX = 0, tgtY = 0, curX = 0, curY = 0, rafId = null, active = false;
+  function lerp(a, b, t){ return a + (b - a) * t; }
+
+  function loop(){
+    curX = lerp(curX, tgtX, 0.07);
+    curY = lerp(curY, tgtY, 0.07);
+    var bgImg = document.getElementById("imm-bg-img");
+    var bgVid = document.getElementById("imm-bg-vid");
+    var avEl  = document.getElementById("imm-avatar-el");
+    var tx = "scale(1.025) translate(" + curX.toFixed(2) + "px," + curY.toFixed(2) + "px)";
+    if(bgImg) bgImg.style.transform = tx;
+    if(bgVid) bgVid.style.transform = tx;
+    if(avEl)  avEl.style.transform  = "translateX(calc(-50% + " + curX.toFixed(2) + "px)) translateY(" + curY.toFixed(2) + "px)";
+    if(!active && Math.abs(curX) < 0.3 && Math.abs(curY) < 0.3){
+      if(bgImg) bgImg.style.transform = "";
+      if(bgVid) bgVid.style.transform = "";
+      if(avEl)  avEl.style.transform  = "translateX(-50%)";
+      cancelAnimationFrame(rafId); rafId = null;
+      return;
+    }
+    rafId = requestAnimationFrame(loop);
+  }
+
+  function onMove(e){
+    tgtX = (e.clientX / window.innerWidth  - 0.5) * MAX * 2;
+    tgtY = (e.clientY / window.innerHeight - 0.5) * MAX * 2;
+  }
+
+  new MutationObserver(function(){
+    var on = document.body.classList.contains("imm-on");
+    if(on && !active){
+      active = true; tgtX = 0; tgtY = 0;
+      document.addEventListener("mousemove", onMove);
+      if(!rafId) rafId = requestAnimationFrame(loop);
+    } else if(!on && active){
+      active = false; tgtX = 0; tgtY = 0;
+      document.removeEventListener("mousemove", onMove);
+      if(!rafId) rafId = requestAnimationFrame(loop);
+    }
+  }).observe(document.body, { attributeFilter: ["class"] });
+})();
+
+// ── Tilt holographique + vague de lumière sur les cartes carrousel ─────────
+(function(){
+  // CSS injecté une seule fois
+  var styleId = "imm-fx-style";
+  if (!document.getElementById(styleId)) {
+    var s = document.createElement("style");
+    s.id = styleId;
+    s.textContent =
+      "#imm-cl { perspective: 900px; }" +
+      ".imm-hc { overflow: hidden; }" +
+      "@keyframes immSweep {" +
+        "0%   { transform: skewX(-15deg) translateX(-250%); opacity:0 }" +
+        "8%   { opacity:1 }" +
+        "55%  { transform: skewX(-15deg) translateX(800%); opacity:.65 }" +
+        "56%, 100% { transform: skewX(-15deg) translateX(800%); opacity:0 }" +
+      "}" +
+      ".imm-hc::after {" +
+        "content:''; position:absolute; top:0; bottom:0; left:0; width:38px;" +
+        "background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);" +
+        "pointer-events:none; animation:immSweep 5.5s ease-in-out infinite;" +
+      "}" +
+      ".imm-hc:nth-child(3n+1)::after { animation-delay:-1.4s; }" +
+      ".imm-hc:nth-child(3n+2)::after { animation-delay:-3.0s; }" +
+      ".imm-hc:nth-child(3n+3)::after { animation-delay:-4.8s; }";
+    document.head.appendChild(s);
+  }
+
+  // Div shine flottant (suit la souris sur la carte survolée)
+  var shine = document.getElementById("imm-shine-ov");
+  if (!shine) {
+    shine = document.createElement("div");
+    shine.id = "imm-shine-ov";
+    shine.style.cssText = "position:fixed;pointer-events:none;z-index:9999;border-radius:16px;opacity:0;transition:opacity .2s;";
+    document.body.appendChild(shine);
+  }
+
+  var curCard = null;
+
+  function onMove(e) {
+    var card = e.target && e.target.closest ? e.target.closest(".imm-hc") : null;
+    // Réinitialiser la carte précédente si on a changé
+    if (curCard && curCard !== card && document.contains(curCard)) {
+      curCard.style.transform = "translate(-50%,-50%)";
+    }
+    if (!card) { curCard = null; shine.style.opacity = "0"; return; }
+    curCard = card;
+    var r = card.getBoundingClientRect();
+    var cx = e.clientX - r.left, cy = e.clientY - r.top;
+    var rx = ((cy / r.height) - 0.5) * -18;
+    var ry = ((cx / r.width)  - 0.5) *  18;
+    card.style.transform = "translate(-50%,-50%) rotateX(" + rx.toFixed(1) + "deg) rotateY(" + ry.toFixed(1) + "deg)";
+    shine.style.cssText = "position:fixed;pointer-events:none;z-index:9999;border-radius:16px;opacity:1;transition:opacity .2s;"
+      + "left:" + r.left.toFixed(0) + "px;top:" + r.top.toFixed(0) + "px;"
+      + "width:" + r.width.toFixed(0) + "px;height:" + r.height.toFixed(0) + "px;"
+      + "background:radial-gradient(circle at "
+        + (cx / r.width  * 100).toFixed(0) + "% "
+        + (cy / r.height * 100).toFixed(0) + "%, rgba(255,255,255,.18), transparent 60%);";
+  }
+
+  function onLeave() {
+    if (curCard && document.contains(curCard)) {
+      curCard.style.transform = "translate(-50%,-50%)";
+    }
+    curCard = null;
+    shine.style.opacity = "0";
+  }
+
+  function bindLayer() {
+    var layer = document.getElementById("imm-cl");
+    if (!layer || layer._immFxBound) return;
+    layer._immFxBound = true;
+    layer.addEventListener("mousemove", onMove);
+    layer.addEventListener("mouseleave", onLeave);
+  }
+
+  new MutationObserver(function(){
+    if (document.body.classList.contains("imm-on")) {
+      setTimeout(bindLayer, 150);
+    } else {
+      onLeave();
+    }
+  }).observe(document.body, { attributeFilter: ["class"] });
+
+  // Hook immRender pour re-binder après chaque recréation des cartes
+  var _origRender = window.immRender;
+  if (typeof _origRender === "function") {
+    window.immRender = function(){
+      _origRender.apply(this, arguments);
+      var layer = document.getElementById("imm-cl");
+      if (layer) { layer._immFxBound = false; bindLayer(); }
+      if (curCard && !document.contains(curCard)) { curCard = null; shine.style.opacity = "0"; }
+    };
+  }
+})();
+
 // ══ SONDAGE DYNAMIQUE DES ASSETS (fonds + avatars) ══
 window._BG_MAP = {};
 window._AVATAR_LIST = [];
