@@ -10627,6 +10627,97 @@ window.immNavStep = function(dir){ immTgt += dir * _immStep; immGo(); };
   }
 })();
 
+// ── Hero transition : la tuile vole vers le panneau de détail ───────────
+(function(){
+  var _lastTile = null;
+
+  // Phase capture : mémoriser la tuile avant que immOpenCard ne soit appelé
+  document.addEventListener("click", function(e){
+    if (!document.body.classList.contains("imm-on")) return;
+    var t = e.target && e.target.closest ? e.target.closest(".imm-hc") : null;
+    _lastTile = t || null;
+  }, true);
+
+  var _origOpen = window.immOpenCard;
+  if (typeof _origOpen !== "function") return;
+
+  window.immOpenCard = function(item){
+    var tile = _lastTile;
+    _lastTile = null;
+
+    if (!tile || !document.contains(tile)){
+      _origOpen(item); return;
+    }
+
+    var tR = tile.getBoundingClientRect();
+
+    // Masquer le panneau avant son apparition
+    var dc = document.getElementById("detailContainer");
+    if (dc){ dc.style.opacity = "0"; dc.style.transition = "none"; }
+
+    // Appel original : charge contenu + ajoute imm-split
+    _origOpen(item);
+
+    // Géométrie cible du panneau maintenant qu'il est rendu
+    var pR = dc ? dc.getBoundingClientRect() : null;
+    if (!pR || pR.width === 0){
+      if (dc){ dc.style.opacity = ""; dc.style.transition = ""; }
+      return;
+    }
+
+    // Clone visuel de la tuile
+    var clone = document.createElement("div");
+    clone.style.cssText =
+      "position:fixed;" +
+      "left:"   + tR.left.toFixed(0)   + "px;" +
+      "top:"    + tR.top.toFixed(0)    + "px;" +
+      "width:"  + tR.width.toFixed(0)  + "px;" +
+      "height:" + tR.height.toFixed(0) + "px;" +
+      "background:linear-gradient(145deg,rgba(3,10,22,.92),rgba(5,15,34,.96));" +
+      "border:1.5px solid rgba(79,195,247,.96);" +
+      "border-radius:16px;" +
+      "box-shadow:0 8px 60px rgba(0,0,0,.80),0 0 80px rgba(79,195,247,.65);" +
+      "z-index:9998;pointer-events:none;" +
+      "display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.45em;" +
+      "color:#ddf0ff;text-align:center;padding:1em;overflow:hidden;" +
+      "will-change:left,top,width,height,opacity;" +
+      "transition:" +
+        "left .40s cubic-bezier(.4,0,.2,1)," +
+        "top .40s cubic-bezier(.4,0,.2,1)," +
+        "width .40s cubic-bezier(.4,0,.2,1)," +
+        "height .40s cubic-bezier(.4,0,.2,1)," +
+        "border-radius .40s cubic-bezier(.4,0,.2,1)," +
+        "opacity .30s ease;";
+    clone.innerHTML = tile.innerHTML;
+    document.body.appendChild(clone);
+
+    // Déclencher l'animation (double rAF pour laisser le navigateur peindre)
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        clone.style.left         = pR.left.toFixed(0)   + "px";
+        clone.style.top          = pR.top.toFixed(0)    + "px";
+        clone.style.width        = pR.width.toFixed(0)  + "px";
+        clone.style.height       = pR.height.toFixed(0) + "px";
+        clone.style.borderRadius = "0";
+        clone.style.opacity      = "0.65";
+      });
+    });
+
+    // Fin : afficher le vrai panneau, dissoudre le clone
+    setTimeout(function(){
+      if (dc){
+        dc.style.transition = "opacity .25s ease";
+        dc.style.opacity    = "1";
+        setTimeout(function(){ dc.style.transition = ""; dc.style.opacity = ""; }, 270);
+      }
+      clone.style.opacity = "0";
+      setTimeout(function(){
+        if (clone.parentNode) clone.parentNode.removeChild(clone);
+      }, 300);
+    }, 420);
+  };
+})();
+
 // ══ SONDAGE DYNAMIQUE DES ASSETS (fonds + avatars) ══
 window._BG_MAP = {};
 window._AVATAR_LIST = [];
