@@ -225,11 +225,11 @@
 #rb-jardin::-webkit-outer-spin-button,#rb-jardin::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
 </style>
 
-<div style="${photoStyle};height:130px;border-radius:var(--r);position:relative;margin-bottom:16px;overflow:hidden">
-  <div style="position:absolute;inset:0;background:rgba(0,0,0,.32)"></div>
-  <div style="position:absolute;bottom:12px;left:14px;color:#fff">
-    <div style="font-size:1.1rem;font-weight:600">${cityName || 'Commune'}</div>
-    <div style="font-size:.7rem;opacity:.8">${photoUrl ? 'Photo Wikimedia Commons' : 'Recherche immobilière'} · ${cp || ''}</div>
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:10px 14px;background:var(--bg2);border-radius:var(--r);border:1px solid var(--border)">
+  <span style="font-size:1.3rem">🔍</span>
+  <div>
+    <div style="font-size:.95rem;font-weight:700;color:var(--text)">${cityName || 'Commune'}</div>
+    <div style="font-size:.7rem;color:var(--muted)">Recherche immobilière · ${cp || ''}</div>
   </div>
 </div>
 
@@ -295,27 +295,32 @@
 </div>
 
 <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
-  <div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Ouvrir sur chaque site (filtres pré-remplis)</div>
-  <div id="rb-sites" style="display:grid;grid-template-columns:1fr 1fr;gap:7px"></div>
+  <div style="font-size:.8rem;font-weight:600;color:var(--text);margin-bottom:10px">🔗 Voir les annonces sur un portail</div>
+  <div id="rb-sites" style="display:flex;flex-direction:column;gap:7px"></div>
 </div>`;
   // (bloc Choose & Connect injecté dynamiquement par _rbUpdateSites)
   }
 
   function renderSiteCards(urls) {
-    return SITES.map((s, i) => {
-      const url  = urls[s.id] || '#';
-      const wide = '';
-      return `<a href="${url}" target="_blank" onclick="var t=this.querySelector('.rb-link-txt');t.textContent='⏳ Ouverture...';setTimeout(function(){t.textContent='Voir les annonces →';},3000)" rel="noopener"
-        style="${wide}display:block;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;text-decoration:none;color:inherit">
-        <div style="padding:8px 12px;display:flex;align-items:center;gap:7px;border-bottom:1px solid var(--borderl)">
-          <span style="width:9px;height:9px;border-radius:50%;background:${s.couleur};flex-shrink:0;display:inline-block"></span>
-          <span style="font-size:.8rem;font-weight:600">${s.nom}</span>
+    return SITES.map((s) => {
+      const url = urls[s.id] || '#';
+      return `<a href="${url}" target="_blank" rel="noopener"
+        onclick="var b=this.querySelector('.rb-open-btn');b.textContent='⏳ Ouverture...';setTimeout(function(){b.textContent='Ouvrir →';},3000)"
+        style="display:flex;align-items:center;justify-content:space-between;gap:10px;
+               padding:10px 14px;border-radius:var(--r);border:1px solid var(--border);
+               background:var(--white);text-decoration:none;color:inherit;
+               transition:border-color .15s,background .15s"
+        onmouseover="this.style.borderColor='${s.couleur}';this.style.background='${s.couleur}14'"
+        onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--white)'">
+        <div style="display:flex;align-items:center;gap:10px;min-width:0">
+          <span style="width:10px;height:10px;border-radius:50%;background:${s.couleur};flex-shrink:0"></span>
+          <div style="min-width:0">
+            <div style="font-size:.88rem;font-weight:700;color:var(--text)">${s.nom}</div>
+            <div style="font-size:.7rem;color:var(--muted)">${s.desc}${s.note ? ' · <span style="color:#c07a00">' + s.note + '</span>' : ''}</div>
+          </div>
         </div>
-        <div style="padding:7px 12px 9px;background:var(--warm)">
-          <div style="font-size:.7rem;color:var(--muted);margin-bottom:5px">${s.desc}</div>
-          ${s.note ? `<div style="font-size:.67rem;color:#c07a00;margin-bottom:4px">${s.note}</div>` : ''}
-          <div class="rb-link-txt" style="font-size:.75rem;color:var(--gold);font-weight:600">Voir les annonces →</div>
-        </div>
+        <span class="rb-open-btn" style="flex-shrink:0;font-size:.78rem;font-weight:700;color:${s.couleur};
+              padding:5px 13px;border:1.5px solid ${s.couleur};border-radius:99px;white-space:nowrap">Ouvrir →</span>
       </a>`;
     }).join('');
   }
@@ -358,13 +363,22 @@
     const parent = sites.parentNode;
     let ccBlock = document.getElementById('rb-cc-block');
     if (!ccBlock) {
-      ccBlock = document.createElement('div');
+      const _ccColor = '#b8832a';
+      ccBlock = document.createElement('a');
       ccBlock.id = 'rb-cc-block';
-      ccBlock.style.cssText = 'margin-top:14px;padding:12px 14px;background:#fdf5e4;border:1px solid rgba(184,131,42,.35);border-radius:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap';
-      ccBlock.innerHTML = '<span style="font-size:.82rem;color:#5a4a2a;flex:1;min-width:180px">🎓 <strong>Colocation étudiante ?</strong></span>'
-        + '<a href="https://www.chooseandconnect.com/" target="_blank" rel="noopener"'
-        + ' style="display:inline-flex;align-items:center;gap:.4rem;padding:.45rem 1rem;background:#2d2410;color:#c9a84c;border-radius:6px;font-size:.78rem;font-weight:600;text-decoration:none;white-space:nowrap"'
-        + '>Trouver avec Choose &amp; Connect ↗</a>';
+      ccBlock.href = 'https://www.chooseandconnect.com/';
+      ccBlock.target = '_blank';
+      ccBlock.rel = 'noopener';
+      ccBlock.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:7px;padding:10px 14px;border-radius:var(--r);border:1px solid var(--border);background:var(--white);text-decoration:none;color:inherit;transition:border-color .15s,background .15s';
+      ccBlock.onmouseover = function() { this.style.borderColor = _ccColor; this.style.background = _ccColor + '14'; };
+      ccBlock.onmouseout  = function() { this.style.borderColor = 'var(--border)'; this.style.background = 'var(--white)'; };
+      ccBlock.innerHTML = '<div style="display:flex;align-items:center;gap:10px;min-width:0">'
+        + '<span style="width:10px;height:10px;border-radius:50%;background:' + _ccColor + ';flex-shrink:0"></span>'
+        + '<div style="min-width:0">'
+        + '<div style="font-size:.88rem;font-weight:700;color:var(--text)">Choose &amp; Connect</div>'
+        + '<div style="font-size:.7rem;color:var(--muted)">🎓 Colocation étudiante</div>'
+        + '</div></div>'
+        + '<span style="flex-shrink:0;font-size:.78rem;font-weight:700;color:' + _ccColor + ';padding:5px 13px;border:1.5px solid ' + _ccColor + ';border-radius:99px;white-space:nowrap">Ouvrir →</span>';
       parent.appendChild(ccBlock);
     }
   };
