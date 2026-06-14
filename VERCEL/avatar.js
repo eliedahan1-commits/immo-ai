@@ -119,11 +119,11 @@ function injectHTML(){
       <input id="av-pref-nom" type="text" placeholder="Ai1" />
       <label>Fond immersif</label>
       <input type="hidden" id="av-pref-fond" value="Image1">
-      <div id="av-fond-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:.8rem;max-height:200px;overflow-y:auto;"></div>
+      <div id="av-fond-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:.8rem;max-height:260px;overflow-y:auto;"></div>
       <div id="av-avatar-wrap" style="display:none">
         <label>Avatar</label>
         <input type="hidden" id="av-pref-avatar" value="">
-        <div id="av-avatar-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:.8rem;max-height:320px;overflow-y:auto;"></div>
+        <div id="av-avatar-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:.8rem;max-height:400px;overflow-y:auto;"></div>
       </div>
       <label>Voix <span style="font-size:.72rem;color:#8a7755">(voix françaises disponibles sur cet appareil)</span></label>
       <select id="av-pref-voix" style="width:100%;background:#100e0b;border:1px solid #2a2218;color:#e8d8b0;padding:.4rem .6rem;border-radius:6px;font-size:.78rem;margin-bottom:.5rem">
@@ -270,7 +270,7 @@ function injectStyles(){
   #av-setup-box {
     background:#1a1610; border:1px solid #b8832a44;
     border-radius:12px; padding:1.5rem; width:min(780px,92vw);
-    max-height:95vh; overflow-y:auto;
+    max-height:min(98vh,100dvh); overflow-y:auto;
     color:#c8b88a;
   }
   #av-setup-box h3 { color:#dcc87a; margin:0 0 1rem; font-size:1rem; }
@@ -994,14 +994,20 @@ function populateAvatarDropdown(){
         if(!(await _probe(u))) break;
         window._AVATAR_LIST.push(u);
       }
+      window._BG_MAP = {};
+      const bgBase='images/GroupeVide/', bgPfx='Image';
+      for(let n=1;n<=50;n++){
+        const url=bgBase+bgPfx+n+'.png';
+        if(!(await _probe(url))) break;
+        window._BG_MAP[bgPfx+n]=url;
+      }
       try{
         const ck="_immoai_assets_v2";
-        const d=JSON.parse(sessionStorage.getItem(ck)||"{}");
-        d.avList=window._AVATAR_LIST;
-        sessionStorage.setItem(ck,JSON.stringify(d));
+        sessionStorage.setItem(ck,JSON.stringify({bgMap:window._BG_MAP, avList:window._AVATAR_LIST}));
       }catch(e){}
-      rbtn.textContent = "\u21ba Rafra\u00eeChir la liste";
+      rbtn.textContent = "\u21ba Rafra\u00eechir la liste";
       rbtn.disabled = false;
+      populateFondDropdown();
       populateAvatarDropdown();
     };
     wrap.appendChild(rbtn);

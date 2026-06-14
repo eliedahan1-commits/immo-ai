@@ -5220,6 +5220,7 @@ function showDVFDetail(){
   window._dvfFilterPiecesSet   = new Set(); // multi-sélection pièces
   window._dvfFilterPrixBuckets = new Set(); // multi-sélection tranches prix
   window._dvfPrixBucketsRanges = [];        // [{lo,hi,label}] calcule depuis les donnees
+  window._dvfFilterAnnees = new Set();      // multi-sélection années
   computeDvfPrixBuckets();
   window._dvfSortCol    = 'date';
   window._dvfSortDir    = 'desc'; // date la plus récente par défaut
@@ -5253,6 +5254,7 @@ function showDVFDetail(){
       liste=liste.filter(t=>[...window._dvfFilterPiecesSet].some(fp=>fp===5?(t.pieces||0)>=5:(t.pieces||0)===fp));
     }
     if(window._dvfFilterPrixBuckets&&window._dvfFilterPrixBuckets.size>0){var _brR=window._dvfPrixBucketsRanges||[];liste=liste.filter(function(t){return [...window._dvfFilterPrixBuckets].some(function(i){var b=_brR[i];return b&&(t.prixM2||0)>=b.lo&&(t.prixM2||0)<b.hi;});});}
+    if(window._dvfFilterAnnees&&window._dvfFilterAnnees.size>0){liste=liste.filter(function(t){return t.date&&[...window._dvfFilterAnnees].some(function(y){return t.date.startsWith(y);});});}
     // Tri
     const col=window._dvfSortCol, dir=window._dvfSortDir;
     liste.sort((a,b)=>{
@@ -5374,7 +5376,23 @@ function showDVFDetail(){
         return '<button class="dvf-prix-btn dvf-filter-btn'+(on?' active':'')+'" data-pi="'+i+'" onclick="window.toggleDvfPrixBucket('+i+')" style="'+bs+'">'+b.label+' ('+cnt+')</button>';
       }).join('');
   }
-  function refreshAllDVF(){ renderDVFRows(); refreshDVFChart(); buildDvfEvolutionChart(); buildDVFMap(); renderDvfPrixBuckets(); }
+  function renderDvfAnnees(){
+    var wrap=document.getElementById('dvfAnneesWrap'); if(!wrap) return;
+    var all=window._dvfRecentes||[];
+    var sel=window._dvfFilterAnnees;
+    var years=[...new Set(all.map(function(t){return t.date?t.date.substring(0,4):null;}).filter(Boolean))].sort().reverse();
+    if(!years.length){wrap.innerHTML=''; return;}
+    var bs='padding:.25rem .7rem;font-size:.72rem;border:1px solid var(--border);background:var(--white);border-radius:3px;cursor:pointer;margin-right:.3rem';
+    var tousActive=sel.size===0;
+    wrap.innerHTML='<span style="font-size:.72rem;color:var(--muted);flex-shrink:0;margin-right:.2rem">Année :</span>'
+      +'<button class="dvf-annee-btn dvf-filter-btn'+(tousActive?' active':'')+'" onclick="window.clearDvfAnnees()" style="'+bs+'">Toutes</button>'
+      +years.map(function(y){
+        var cnt=all.filter(function(t){return t.date&&t.date.startsWith(y);}).length;
+        var on=sel.has(y);
+        return '<button class="dvf-annee-btn dvf-filter-btn'+(on?' active':'')+'" data-y="'+y+'" onclick="window.toggleDvfAnnee(\''+y+'\')" style="'+bs+'">'+y+' ('+cnt+')</button>';
+      }).join('');
+  }
+  function refreshAllDVF(){ renderDVFRows(); refreshDVFChart(); buildDvfEvolutionChart(); buildDVFMap(); renderDvfPrixBuckets(); renderDvfAnnees(); }
   window.filterDVF       = n  => { window._dvfFilterN=n;      refreshAllDVF(); };
   window.filterDVFType   = t  => { window._dvfFilterType=t;   refreshAllDVF(); };
   window.filterDVFSurf   = s  => {
@@ -5399,6 +5417,15 @@ function showDVFDetail(){
     window._dvfFilterPrixBuckets.clear();
     refreshAllDVF();
   };
+  window.toggleDvfAnnee = function(y){
+    var s=window._dvfFilterAnnees;
+    if(s.has(y)) s.delete(y); else s.add(y);
+    refreshAllDVF();
+  };
+  window.clearDvfAnnees = function(){
+    window._dvfFilterAnnees.clear();
+    refreshAllDVF();
+  };
   function getFilteredListDVF(){
     let l=window._dvfRecentes||[];
     if(window._dvfFilterType!=='tous') l=l.filter(t=>{const tp=(t.type||'').toLowerCase();if(window._dvfFilterType==='appt')return tp.includes('appartement');if(window._dvfFilterType==='maison')return tp.includes('maison');if(window._dvfFilterType==='local')return tp.includes('local');if(window._dvfFilterType==='depend')return tp.includes('dépendance')||tp.includes('dependance');return true;});
@@ -5406,6 +5433,7 @@ function showDVFDetail(){
     if(window._dvfFilterSurfs.size>0){l=l.filter(t=>[...window._dvfFilterSurfs].some(s=>{const r=_ST2.find(x=>x[0]===s);return r&&(t.surf||0)>=r[1]&&(t.surf||0)<r[2];}));}
     if(window._dvfFilterPiecesSet.size>0){l=l.filter(t=>[...window._dvfFilterPiecesSet].some(fp=>fp===5?(t.pieces||0)>=5:(t.pieces||0)===fp));}
     if(window._dvfFilterPrixBuckets&&window._dvfFilterPrixBuckets.size>0){var _br=window._dvfPrixBucketsRanges||[];l=l.filter(function(t){return [...window._dvfFilterPrixBuckets].some(function(i){var b=_br[i];return b&&(t.prixM2||0)>=b.lo&&(t.prixM2||0)<b.hi;});});}
+    if(window._dvfFilterAnnees&&window._dvfFilterAnnees.size>0){l=l.filter(function(t){return t.date&&[...window._dvfFilterAnnees].some(function(y){return t.date.startsWith(y);});});}
     const n=window._dvfFilterN;if(n>0)l=l.slice(0,n);
     return l;
   }
@@ -5544,6 +5572,7 @@ function showDVFDetail(){
     <div style="margin-bottom:.7rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
       <span style="font-size:.72rem;color:var(--muted);margin-right:.2rem">Afficher :</span>${btnsFiltres}
     </div>
+    <div id="dvfAnneesWrap" style="margin-bottom:.5rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap"></div>
     <div id="dvfPrixBucketsWrap" style="margin-bottom:.5rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap"></div>
     <div id="dvfMapWrap" style="position:relative;margin-bottom:1.2rem;">
       <div id="dvfMapContainer" style="height:370px;border-radius:8px;overflow:hidden;border:1px solid var(--border)"></div>
@@ -5582,6 +5611,7 @@ function buildDVFMap(){
   if(window._dvfFilterSurfs&&window._dvfFilterSurfs.size>0){const _ST3=[[25,0,25],[50,25,50],[75,50,75],[100,75,100],[125,100,125],[150,125,150],[999,150,99999]];liste=liste.filter(t=>[...window._dvfFilterSurfs].some(s=>{const r=_ST3.find(x=>x[0]===s);return r&&(t.surf||0)>=r[1]&&(t.surf||0)<r[2];}));}
   if(window._dvfFilterPiecesSet&&window._dvfFilterPiecesSet.size>0){liste=liste.filter(t=>[...window._dvfFilterPiecesSet].some(fp=>fp===5?(t.pieces||0)>=5:(t.pieces||0)===fp));}
   if(window._dvfFilterPrixBuckets&&window._dvfFilterPrixBuckets.size>0){var _br2=window._dvfPrixBucketsRanges||[];liste=liste.filter(function(t){return [...window._dvfFilterPrixBuckets].some(function(i){var b=_br2[i];return b&&(t.prixM2||0)>=b.lo&&(t.prixM2||0)<b.hi;});});}
+  if(window._dvfFilterAnnees&&window._dvfFilterAnnees.size>0){liste=liste.filter(function(t){return t.date&&[...window._dvfFilterAnnees].some(function(y){return t.date.startsWith(y);});});}
   const _fn = window._dvfFilterN||0; if(_fn>0)liste=liste.slice(0,_fn);
   const pts = liste.filter(t => t.lat && t.lon);
   if(pts.length === 0){ container.style.display='none'; return; }
