@@ -5319,36 +5319,33 @@ function showDVFDetail(){
     if(!tEl||!lEl) return;
     const withDate = (liste||[]).filter(t=>t.date&&t.prixM2>0);
     if(withDate.length < 2){ tEl.textContent='—'; tEl.style.color=''; lEl.textContent='📈 Tendance'; return; }
-    const noms4 = ["jan","fév","mar","avr","mai","jun","jul","aoû","sep","oct","nov","déc"];
-    const fmtD = d => noms4[d.getMonth()]+' '+d.getFullYear().toString().slice(2);
-    const dates = withDate.map(t=>t.date).sort();
-    const latestDate   = new Date(dates[dates.length-1]);
-    const earliestDate = new Date(dates[0]);
-    const ms6 = 6*30*24*3600*1000, ms12 = 12*30*24*3600*1000;
-    const cutoff6  = new Date(latestDate - ms6);
-    const cutoff12 = new Date(latestDate - ms12);
     const avg = arr => arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : null;
-    const last6  = withDate.filter(t=>new Date(t.date)>=cutoff6).map(t=>t.prixM2);
-    const prev6  = withDate.filter(t=>new Date(t.date)>=cutoff12&&new Date(t.date)<cutoff6).map(t=>t.prixM2);
-    const last12 = withDate.filter(t=>new Date(t.date)>=cutoff12).map(t=>t.prixM2);
-    const prev12 = withDate.filter(t=>new Date(t.date)<cutoff12).map(t=>t.prixM2);
-    const a6=avg(last6), b6=avg(prev6), a12=avg(last12), b12=avg(prev12);
+    // Regrouper par année
+    const byYear = {};
+    for(const t of withDate){
+      const y = (t.date||'').substring(0,4); if(!y) continue;
+      if(!byYear[y]) byYear[y]=[];
+      byYear[y].push(t.prixM2);
+    }
+    // Années sélectionnées (filtre actif) ou toutes les années dispo
+    const selYears = (window._dvfFilterAnnees && window._dvfFilterAnnees.size > 0)
+      ? [...window._dvfFilterAnnees].sort()
+      : Object.keys(byYear).sort();
+    if(!selYears.length){ tEl.textContent='N/D'; tEl.style.color='var(--muted)'; lEl.textContent='📈 Données insuffisantes'; return; }
+    const firstYear = selYears[0];
+    const lastYear  = selYears[selYears.length-1];
     let pct=null, label='';
-    if(a6&&b6&&last6.length>=2&&prev6.length>=2){
-      pct=Math.round((a6-b6)/b6*100);
-      label='📈 '+fmtD(cutoff6)+' → '+fmtD(latestDate);
-    } else if(a12&&b12&&last12.length>=2&&prev12.length>=2){
-      pct=Math.round((a12-b12)/b12*100);
-      label='📈 '+fmtD(cutoff12)+' → '+fmtD(latestDate);
+    if(firstYear === lastYear){
+      // Une seule année : H1 vs H2
+      const h1 = withDate.filter(t=>t.date.startsWith(firstYear)&&parseInt(t.date.substring(5,7))<=6).map(t=>t.prixM2);
+      const h2 = withDate.filter(t=>t.date.startsWith(firstYear)&&parseInt(t.date.substring(5,7))>6).map(t=>t.prixM2);
+      const a1=avg(h1), a2=avg(h2);
+      if(a1&&a2&&h1.length>=1&&h2.length>=1){ pct=Math.round((a2-a1)/a1*100); label='📈 '+firstYear+' : H1 → H2'; }
     } else {
-      const sorted=withDate.slice().sort((a,b)=>a.date.localeCompare(b.date));
-      const mid=Math.max(1,Math.floor(sorted.length/2));
-      const aOld=avg(sorted.slice(0,mid).map(t=>t.prixM2));
-      const aNew=avg(sorted.slice(mid).map(t=>t.prixM2));
-      if(aOld&&aNew){
-        pct=Math.round((aNew-aOld)/aOld*100);
-        label='📈 '+fmtD(earliestDate)+' → '+fmtD(latestDate);
-      }
+      // Plusieurs années : moyenne 1ère année vs moyenne dernière année
+      const aFirst = avg(byYear[firstYear]||[]);
+      const aLast  = avg(byYear[lastYear]||[]);
+      if(aFirst&&aLast){ pct=Math.round((aLast-aFirst)/aFirst*100); label='📈 '+firstYear+' → '+lastYear; }
     }
     if(pct===null){ tEl.textContent='N/D'; tEl.style.color='var(--muted)'; lEl.textContent='📈 Données insuffisantes'; return; }
     const up = pct>=0;
@@ -5464,52 +5461,68 @@ function showDVFDetail(){
   // Graphique évolution mensuelle maisons vs appartements
   function buildDvfEvolutionChart(){
     const all = getFilteredListDVF();
-    // Grouper par mois (YYYY-MM) et type
-    const byMonth = {};
+    const gran = window._dvfGranularity || 'mois';
+    const keyLen = gran === 'annees' ? 4 : 7;
+    const byPeriod = {};
     for(const t of all){
-      const ym = (t.date||'').substring(0,7); if(!ym||ym.length<7) continue;
+      const key = (t.date||'').substring(0, keyLen);
+      if(!key || key.length < keyLen) continue;
       const tp = (t.type||'').toLowerCase();
       const isAppt = tp.includes('appartement'), isMaison = tp.includes('maison');
       if(!isAppt&&!isMaison) continue;
-      if(!byMonth[ym]) byMonth[ym]={appt:[],maison:[]};
-      if(isAppt) byMonth[ym].appt.push(t.prixM2);
-      else byMonth[ym].maison.push(t.prixM2);
+      if(!byPeriod[key]) byPeriod[key]={appt:[],maison:[]};
+      if(isAppt) byPeriod[key].appt.push(t.prixM2);
+      else byPeriod[key].maison.push(t.prixM2);
     }
-    const months = Object.keys(byMonth).sort();
-    if(months.length < 2){const c2=document.getElementById('dvfEvolutionChart');if(c2)c2.parentElement.style.display='none';return;}
+    const periods = Object.keys(byPeriod).sort();
+    if(periods.length < 2){const c2=document.getElementById('dvfEvolutionChart');if(c2)c2.parentElement.style.display='none';return;}
     const mean = arr => arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : null;
-    const apptData = months.map(m=>mean(byMonth[m].appt));
-    const maisonData = months.map(m=>mean(byMonth[m].maison));
-    const labels = months.map(m=>{const[y,mo]=m.split('-');const noms=['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];return noms[parseInt(mo)-1]+' '+y.slice(2);});
+    const apptData = periods.map(m=>mean(byPeriod[m].appt));
+    const maisonData = periods.map(m=>mean(byPeriod[m].maison));
+    const noms=['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
+    const labels = gran === 'annees'
+      ? periods
+      : periods.map(m=>{const[y,mo]=m.split('-');return noms[parseInt(mo)-1]+' '+y.slice(2);});
+    const titleTxt = gran === 'annees' ? 'Évolution annuelle des prix (€/m²)' : 'Évolution mensuelle des prix (€/m²)';
     const ctx2=document.getElementById('dvfEvolutionChart'); if(!ctx2||!window.Chart)return;
     if(window._dvfEvoChart){window._dvfEvoChart.destroy();}
     window._dvfEvoChart=new Chart(ctx2,{type:'line',data:{labels,datasets:[
       {label:'Appartements',data:apptData,borderColor:'#4678b4',backgroundColor:'rgba(70,120,180,.08)',borderWidth:2,pointRadius:3,spanGaps:true,tension:.3},
       {label:'Maisons',data:maisonData,borderColor:'#b8832a',backgroundColor:'rgba(184,131,42,.08)',borderWidth:2,pointRadius:3,spanGaps:true,tension:.3},
     ]},options:{
-      plugins:{legend:{display:true,labels:{font:{size:11,family:'Outfit,sans-serif'},color:'#5a4d3e',boxWidth:14}},datalabels:{display:false},title:{display:true,text:'Évolution mensuelle des prix (€/m²)',font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68'}},
+      plugins:{legend:{display:true,labels:{font:{size:11,family:'Outfit,sans-serif'},color:'#5a4d3e',boxWidth:14}},datalabels:{display:false},title:{display:true,text:titleTxt,font:{size:11,family:'Outfit,sans-serif'},color:'#8a7d68'}},
       scales:{x:{ticks:{font:{size:8},color:'#8a7d68'},grid:{display:false}},y:{ticks:{font:{size:9},color:'#8a7d68',callback:v=>v?v.toLocaleString('fr-FR'):''},grid:{color:'rgba(0,0,0,.05)'}}},
       animation:{duration:300},responsive:true,maintainAspectRatio:false,
     }});
   }
   function buildDvfCountChart(){
     const all = getFilteredListDVF();
-    const byMonth = {};
+    const gran = window._dvfGranularity || 'mois';
+    const keyLen = gran === 'annees' ? 4 : 7;
+    const byPeriod = {};
     for(const t of all){
-      const ym = (t.date||'').substring(0,7); if(!ym||ym.length<7) continue;
-      byMonth[ym] = (byMonth[ym]||0) + 1;
+      const key = (t.date||'').substring(0, keyLen);
+      if(!key || key.length < keyLen) continue;
+      byPeriod[key] = (byPeriod[key]||0) + 1;
     }
-    const months = Object.keys(byMonth).sort();
-    if(months.length < 2) return;
+    const periods = Object.keys(byPeriod).sort();
+    if(periods.length < 1) return;
     const noms = ["jan","fév","mar","avr","mai","jun","jul","aoû","sep","oct","nov","déc"];
-    const labels = months.map(m=>{ const[y,mo]=m.split('-'); return noms[parseInt(mo)-1]+' '+y.slice(2); });
-    const counts = months.map(m=>byMonth[m]);
+    const labels = gran === 'annees'
+      ? periods
+      : periods.map(m=>{ const[y,mo]=m.split('-'); return noms[parseInt(mo)-1]+' '+y.slice(2); });
+    const counts = periods.map(m=>byPeriod[m]);
+    const titleTxt = gran === 'annees' ? 'Nb de ventes par année' : 'Nb de ventes par mois';
     const ctx = document.getElementById('dvfCountChart'); if(!ctx||!window.Chart) return;
     if(window._dvfCountChart){ window._dvfCountChart.destroy(); }
-    window._dvfCountChart = new Chart(ctx, {type:'line', data:{labels, datasets:[
-      {label:"Évolution nb ventes", data:counts, borderColor:'#4fc3f7', backgroundColor:'rgba(79,195,247,.12)', borderWidth:2, pointRadius:3, tension:.3, fill:true}
+    window._dvfCountChart = new Chart(ctx, {type:'bar', data:{labels, datasets:[
+      {label:"Nb ventes", data:counts, backgroundColor:'rgba(79,195,247,.55)', borderColor:'#4fc3f7', borderWidth:1, borderRadius:3}
     ]}, options:{
-      plugins:{legend:{display:false}, datalabels:{display:false}, title:{display:true, text:"Évolution mensuelle du nombre de ventes", font:{size:11,family:'Outfit,sans-serif'}, color:'#8a7d68'}},
+      plugins:{
+        legend:{display:false},
+        datalabels:{display:true, anchor:'end', align:'top', font:{size:9, weight:'600'}, color:'#5a4d3e', formatter:v=>v},
+        title:{display:true, text:titleTxt, font:{size:11,family:'Outfit,sans-serif'}, color:'#8a7d68'}
+      },
       scales:{
         x:{ticks:{font:{size:8},color:'#8a7d68'},grid:{display:false}},
         y:{ticks:{font:{size:9},color:'#8a7d68'},grid:{color:'rgba(0,0,0,.05)'},beginAtZero:true}
@@ -5517,6 +5530,7 @@ function showDVFDetail(){
       animation:{duration:300}, responsive:true, maintainAspectRatio:false
     }});
   }
+  window._dvfGranularity = window._dvfGranularity || 'mois';
   window._dvfShowChart = function(mode){
     const eWrap   = document.getElementById('dvfEvolutionWrap');
     const nWrap   = document.getElementById('dvfCountWrap');
@@ -5527,11 +5541,21 @@ function showDVFDetail(){
     if(mode==='prix'){
       if(eWrap) eWrap.style.display=''; if(nWrap) nWrap.style.display='none';
       if(btnPrix) btnPrix.style.cssText=aStyle; if(btnNb) btnNb.style.cssText=iStyle;
+      buildDvfEvolutionChart();
     } else {
       if(eWrap) eWrap.style.display='none'; if(nWrap) nWrap.style.display='';
       if(btnPrix) btnPrix.style.cssText=iStyle; if(btnNb) btnNb.style.cssText=aStyle;
       buildDvfCountChart();
     }
+  };
+  window._dvfToggleGranularity = function(){
+    window._dvfGranularity = (window._dvfGranularity === 'annees') ? 'mois' : 'annees';
+    const btn = document.getElementById('dvfBtnGran');
+    if(btn) btn.textContent = window._dvfGranularity === 'annees' ? '📅 Années' : '📅 Mois';
+    const eWrap = document.getElementById('dvfEvolutionWrap');
+    const nWrap = document.getElementById('dvfCountWrap');
+    if(eWrap && eWrap.style.display !== 'none') buildDvfEvolutionChart();
+    if(nWrap && nWrap.style.display !== 'none') buildDvfCountChart();
   };
   const btnStyle = 'padding:.25rem .7rem;font-size:.72rem;border:1px solid var(--border);background:var(--white);border-radius:3px;cursor:pointer;margin-right:.3rem';
   const DVF_FILTRES = [0, 10, 20, 50];
@@ -5629,6 +5653,7 @@ function showDVFDetail(){
     <div style="margin-bottom:.6rem;display:flex;gap:.4rem">
       <button id="dvfBtnPrix" onclick="window._dvfShowChart('prix')" style="padding:.28rem .85rem;font-size:.72rem;border:1px solid var(--border);background:var(--gold2);color:#fff;border-radius:3px;cursor:pointer;font-weight:600">📈 Prix €/m²</button>
       <button id="dvfBtnNb" onclick="window._dvfShowChart('nb')" style="padding:.28rem .85rem;font-size:.72rem;border:1px solid var(--border);background:var(--white);color:var(--text);border-radius:3px;cursor:pointer">📊 Nb ventes</button>
+      <button id="dvfBtnGran" onclick="window._dvfToggleGranularity()" style="padding:.28rem .85rem;font-size:.72rem;border:1px solid var(--border);background:var(--white);color:var(--text);border-radius:3px;cursor:pointer">📅 Mois</button>
     </div>
     <div id="dvfEvolutionWrap" style="margin-bottom:1.2rem;height:350px;position:relative"><canvas id="dvfEvolutionChart"></canvas></div>
     <div id="dvfCountWrap" style="margin-bottom:1.2rem;height:350px;position:relative;display:none"><canvas id="dvfCountChart"></canvas></div>
