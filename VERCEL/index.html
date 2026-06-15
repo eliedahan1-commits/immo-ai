@@ -33,9 +33,9 @@ html{scroll-behavior:smooth;}
 html{overflow-x:clip;}body{background:var(--cream);color:var(--ink);font-family:'Outfit',sans-serif;font-weight:300;display:flex;min-height:100vh;max-width:100vw;overflow-x:clip;}
 
 /* ══ SCROLLBAR ══ */
-::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar{width:7px;}
 ::-webkit-scrollbar-track{background:transparent;}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+::-webkit-scrollbar-thumb{background:rgba(184,131,42,.45);border-radius:4px;}::-webkit-scrollbar-thumb:hover{background:rgba(184,131,42,.75);}
 
 /* ══ SIDEBAR ══ */
 aside{
@@ -7484,7 +7484,7 @@ function showINSEEDetail(){
           <span style="flex-shrink:0;margin-left:.4rem;text-align:right;display:flex;align-items:center;gap:.2rem">${dot}<strong>${tauxStr}</strong> ${refStr}</span>
         </div>`;}).join("");
       window._crimeChartData = {
-        labels: sorted2.map(([ind])=>ind.length>28?ind.slice(0,25)+"…":ind),
+        labels: sorted2.map(([ind])=>ind),
         values: sorted2.map(([,v])=>v.taux||0),
         refs: sorted2.map(([ind])=>natRef(ind)),
         colors: sorted2.map(([ind,v])=>{ const ref=natRef(ind); if(!ref)return "rgba(184,131,42,.6)"; const r=v.taux/ref; return r>1.3?"rgba(192,57,43,.75)":r<0.7?"rgba(39,174,96,.75)":"rgba(230,180,41,.65)"; })
@@ -7532,7 +7532,7 @@ function showINSEEDetail(){
         },
         scales:{
           x:{ display:false, grace:"55%" },
-          y:{ afterFit:(axis)=>{axis.width=190;}, ticks:{color:"#555",font:{size:9}}, grid:{display:false} }
+          y:{ afterFit:(axis)=>{axis.width=230;}, ticks:{color:"#555",font:{size:9}}, grid:{display:false} }
         }
       }
     });
