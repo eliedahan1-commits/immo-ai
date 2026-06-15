@@ -5296,9 +5296,9 @@ function showDVFDetail(){
     document.getElementById('dvfTbody').innerHTML = liste.map(t=>`
       <tr>
         <td>${t.date||'—'}</td>
-        <td>${t.type||'—'}${t.adresse?'<br><span style="font-size:.62rem;color:var(--muted)">📍 '+t.adresse+'</span><br><a href="https://maps.google.com/?q='+encodeURIComponent((t.adresse?t.adresse+(currentAddress?', '+currentAddress:''):(t.lat&&t.lon?t.lat+','+t.lon:'')))+'" target="_blank" rel="noopener" style="display:inline-block;margin-top:.2rem;padding:.2rem .55rem;background:var(--ink);color:var(--gold2);border-radius:4px;font-size:.7rem;font-weight:600;text-decoration:none">🗺 Y aller</a>':''}</td>
-        <td>${t.surf?t.surf+'m²':'—'}${t.surfaceTerrain&&t.surfaceTerrain>0?'<br><span style="font-size:.62rem;color:var(--muted)">terrain '+t.surfaceTerrain+'m²</span>':''}</td>
-        <td>${t.pieces?(t.piecesEstime?'~':'')+'T'+(t.pieces>=5?'5+':t.pieces):'—'}</td>
+        <td>${t.type||'—'}${t.adresse?'<br><span style="font-size:.62rem;color:var(--muted)">📍 '+t.adresse+'</span><br><a href="https://maps.google.com/?q='+encodeURIComponent((t.adresse?t.adresse+(currentAddress?', '+currentAddress:''):(t.lat&&t.lon?t.lat+','+t.lon:'')))+'" target="_blank" rel="noopener" style="display:inline-block;margin-top:.2rem;padding:.2rem .55rem;background:var(--ink);color:var(--gold2);border-radius:4px;font-size:.7rem;font-weight:600;text-decoration:none">↗ Y aller</a>':''}${t.lat&&t.lon?'<a href="https://app.dvf.etalab.gouv.fr/#17/'+t.lat+'/'+t.lon+'" target="_blank" rel="noopener" style="display:inline-block;margin-top:.2rem;margin-left:.2rem;padding:.2rem .55rem;background:#e8f4fd;color:#1a5276;border:1px solid #aed6f1;border-radius:4px;font-size:.7rem;font-weight:600;text-decoration:none">📋 DVF</a>':''}</td>
+        <td>${t.surf?t.surf+'m²':'—'}${t.surfaceTerrain&&t.surfaceTerrain>0?'<br><span style="font-size:.62rem;color:var(--muted)">🌿 terrain '+t.surfaceTerrain+'m²</span>':''}</td>
+        <td>${t.pieces?'T'+(t.pieces>=5?'5+':t.pieces)+(t.piecesEstime?' (est.)':''):'—'}</td>
         <td><strong>${t.prixM2?t.prixM2.toLocaleString('fr-FR')+' €/m²':'—'}</strong></td>
         <td>${t.prix?t.prix.toLocaleString('fr-FR')+' €':'—'}</td>
       </tr>`).join('') || '<tr><td colspan="6" style="color:var(--muted);text-align:center;padding:.8rem">Aucune transaction pour ce filtre</td></tr>';
@@ -5665,6 +5665,8 @@ function showDVFDetail(){
     <div id="dvfMapWrap" style="position:relative;margin-bottom:1.2rem;">
       <div id="dvfMapContainer" style="height:370px;border-radius:8px;overflow:hidden;border:1px solid var(--border)"></div>
       <button onclick="window._dvfMapFullscreen()" title="Plein écran" style="position:absolute;top:8px;right:8px;z-index:1000;width:32px;height:32px;background:rgba(15,13,10,.85);border:1px solid rgba(184,131,42,.5);border-radius:6px;cursor:pointer;color:#c9a84c;font-size:1rem;display:flex;align-items:center;justify-content:center;padding:0" id="dvfFsBtn">⛶</button>
+      <button onclick="window._dvfMapGoHome()" title="Centrer sur l'adresse analysée" style="position:absolute;bottom:44px;right:8px;z-index:1000;width:32px;height:32px;background:rgba(15,13,10,.85);border:1px solid rgba(184,131,42,.5);border-radius:6px;cursor:pointer;color:#c9a84c;font-size:1rem;display:flex;align-items:center;justify-content:center;padding:0">📍</button>
+      <button onclick="window._dvfMapGeolocate()" title="Ma position GPS" style="position:absolute;bottom:8px;right:8px;z-index:1000;width:32px;height:32px;background:rgba(15,13,10,.85);border:1px solid rgba(184,131,42,.5);border-radius:6px;cursor:pointer;color:#c9a84c;font-size:1rem;display:flex;align-items:center;justify-content:center;padding:0">🎯</button>
     </div>
     <div style="margin-bottom:.6rem;display:flex;gap:.4rem">
       <button id="dvfBtnPrix" onclick="window._dvfShowChart('prix')" style="padding:.28rem .85rem;font-size:.72rem;border:1px solid var(--border);background:var(--gold2);color:#fff;border-radius:3px;cursor:pointer;font-weight:600">📈 Prix €/m²</button>
@@ -5752,8 +5754,27 @@ document.addEventListener('fullscreenchange', function(){
     const icon = L.divIcon({ className:'', html:`<div style="width:12px;height:12px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,.4)"></div>`, iconSize:[12,12], iconAnchor:[6,6] });
     const marker = L.marker([t.lat, t.lon], {icon});
     const gmUrl = 'https://maps.google.com/?q=' + encodeURIComponent((t.adresse ? t.adresse + (currentAddress ? ', ' + currentAddress : '') : (t.lat + ',' + t.lon)));
+    const dvfUrl = 'https://app.dvf.etalab.gouv.fr/#17/' + t.lat + '/' + t.lon;
     const prixTotalStr = t.prix ? t.prix.toLocaleString('fr-FR') + ' €' : '';
-    marker.bindPopup(`<b>${label}</b><br>${t.type||''} – ${t.surf?t.surf+'m²':''}${t.pieces?' · '+(t.piecesEstime?'~':'')+'T'+(t.pieces>=5?'5+':t.pieces):''}<br>${t.adresse?'📍 '+t.adresse+'<br>':''}${prixTotalStr?'💶 '+prixTotalStr+'<br>':''}<small>${t.date||''}</small><br><a href="${gmUrl}" target="_blank" rel="noopener" style="display:inline-block;margin-top:.3rem;padding:.2rem .55rem;background:#1a1a1a;color:#c9a84c;border-radius:4px;font-size:.72rem;font-weight:600;text-decoration:none">🗺 Y aller</a>`);
+    const piecesStr = t.pieces ? 'T'+(t.pieces>=5?'5+':t.pieces)+(t.piecesEstime?' (est.)':'') : '';
+    const terrainStr = t.surfaceTerrain && t.surfaceTerrain > 0 ? '🌿 '+t.surfaceTerrain+' m² terrain' : '';
+    const btnStyle = 'display:inline-block;margin-top:.3rem;padding:.25rem .55rem;border-radius:4px;font-size:.72rem;font-weight:600;text-decoration:none;';
+    marker.bindPopup(
+      '<div style="background:'+color+';color:#fff;margin:-.4rem -.55rem .5rem;padding:.4rem .65rem;border-radius:4px 4px 0 0;font-weight:700;font-size:.9rem">'+label+'</div>'
+      +'<div style="font-size:.8rem;line-height:1.6">'
+      +(t.type?'<b>'+t.type+'</b>':'')
+      +(t.surf?' · '+t.surf+'m²':'')
+      +(piecesStr?' · '+piecesStr:'')
+      +(terrainStr?'<br>'+terrainStr:'')
+      +(t.adresse?'<br>📍 '+t.adresse:'')
+      +(prixTotalStr?'<br>💶 '+prixTotalStr:'')
+      +(t.date?'<br><small style="color:#888">'+t.date+'</small>':'')
+      +'</div>'
+      +'<div style="display:flex;gap:.4rem;margin-top:.45rem;flex-wrap:wrap">'
+      +'<a href="'+gmUrl+'" target="_blank" rel="noopener" style="'+btnStyle+'background:#1a1a1a;color:#c9a84c">↗ Y aller</a>'
+      +'<a href="'+dvfUrl+'" target="_blank" rel="noopener" style="'+btnStyle+'background:#e8f4fd;color:#1a5276;border:1px solid #aed6f1">📋 DVF officiel</a>'
+      +'</div>'
+    );
     cluster.addLayer(marker);
     bounds.push([t.lat, t.lon]);
   });
@@ -5774,6 +5795,18 @@ document.addEventListener('fullscreenchange', function(){
      .addTo(map);
   }
 }
+
+window._dvfMapGoHome = function(){
+  if(window._dvfLeafletMap && currentCoords)
+    window._dvfLeafletMap.flyTo([currentCoords.lat, currentCoords.lng], 15);
+};
+window._dvfMapGeolocate = function(){
+  if(!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(
+    p => { if(window._dvfLeafletMap) window._dvfLeafletMap.flyTo([p.coords.latitude, p.coords.longitude], 15); },
+    () => {}
+  );
+};
 
 function showRisquesDetail(){
   const d = window._risquesData;
