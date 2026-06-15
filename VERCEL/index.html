@@ -5364,19 +5364,23 @@ function showDVFDetail(){
       byMonth[k].push(t.prixM2);
     }
     const months = Object.keys(byMonth).sort();
-    const MIN_MONTHS = 6;
     const MIN_VENTES = 3;
 
-    // Fenêtre "premiers mois" : les 6 premiers mois calendaires distincts
-    const firstMonths = months.slice(0, MIN_MONTHS);
-    const lastMonths  = months.slice(-MIN_MONTHS);
+    // Fenêtres glissantes : 6+6 si >= 12 mois, sinon moitié/moitié, sinon N/D
+    if(months.length < 4){
+      nd(tEl,'N/D'); nd(lEl,'📈 Évolution');
+      if(sEl) sEl.textContent='Période trop courte pour calculer une évolution (< 4 mois de données)';
+      return;
+    }
+    const winSize = months.length >= 12 ? 6 : Math.floor(months.length / 2);
+    const firstMonths = months.slice(0, winSize);
+    const lastMonths  = months.slice(-winSize);
 
-    // Si les deux fenêtres se chevauchent trop (< 12 mois de données), on coupe à mi-chemin
     const firstPrix = firstMonths.flatMap(m=>byMonth[m]||[]);
     const lastPrix  = lastMonths.flatMap(m=>byMonth[m]||[]);
 
     if(firstPrix.length < MIN_VENTES || lastPrix.length < MIN_VENTES){
-      nd(tEl,'N/D'); nd(lEl,'📈 Évolution'); if(sEl) sEl.textContent='Données insuffisantes par période'; return;
+      nd(tEl,'N/D'); nd(lEl,'📈 Évolution'); if(sEl) sEl.textContent='Données insuffisantes par période (min. 3 ventes)'; return;
     }
 
     const mFirst = median(firstPrix), mLast = median(lastPrix);
