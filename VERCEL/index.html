@@ -10319,12 +10319,13 @@ function immRender(){
       + `transform:translate(-50%,-50%);`
       + `opacity:${op};z-index:${zB};`;
 
-    const loading = !window._analysisReady;
     const isRetrying = window._immRetrying && window._immRetrying.has(item.valId);
+    const _ve = item.valId ? document.getElementById('val-' + item.valId) : null;
+    const loading = _ve ? !!_ve.querySelector('.spin') : !window._analysisReady;
     let _immVal = '', _hasRetry = false;
-    if (!loading && !isRetrying && item.valId) {
-      const _ve = document.getElementById('val-' + item.valId);
-      if (_ve) { const _t = _ve.textContent.trim(); if (_t && !_t.endsWith('\u2192')) _immVal = _t; }
+    if (!loading && !isRetrying && _ve) {
+      const _t = _ve.textContent.trim();
+      if (_t && !_t.endsWith('\u2192')) _immVal = _t;
       _hasRetry = !!document.getElementById('card-' + item.valId)?.querySelector('.card-retry-btn');
     }
     el.innerHTML = `<div class="imm-hc-i">${item.icon}</div>`
@@ -10575,7 +10576,8 @@ function _immApply(){
   if (tog && window.innerWidth >= 1024) tog.style.display = 'flex';
 
   if (_immOn) {
-    immRot = _rotInit; immTgt = _rotInit; // Recentrer le carousel à chaque activation
+    const _immInitOff = 3 * _immStep;  // Score visible à gauche
+    immRot = _rotInit - _immInitOff; immTgt = _rotInit - _immInitOff;
     immSizeRing();
     immRender();
     // Hint + wiggle : afficher max 3 fois
@@ -10587,11 +10589,11 @@ function _immApply(){
       hintEl.classList.remove('fading');
       // Wiggle carousel : légère oscillation gauche-droite
       setTimeout(function() {
-        immTgt = _rotInit + _immStep * 0.38; immGo();
+        immTgt = (_rotInit - _immInitOff) + _immStep * 0.38; immGo();
         setTimeout(function() {
-          immTgt = _rotInit - _immStep * 0.38; immGo();
+          immTgt = (_rotInit - _immInitOff) - _immStep * 0.38; immGo();
           setTimeout(function() {
-            immTgt = _rotInit; immGo();
+            immTgt = _rotInit - _immInitOff; immGo();
           }, 350);
         }, 350);
       }, 500);
