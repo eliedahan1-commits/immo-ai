@@ -5316,70 +5316,114 @@ function showDVFDetail(){
     updateDvfTrend(liste);
   }
   function updateDvfTrend(liste){
-    const tEl = document.getElementById('dvfTrendVal');
-    const lEl = document.getElementById('dvfTrendLabel');
-    if(!tEl||!lEl) return;
+    // ── Tuile Médiane ────────────────────────────────────────────────
+    const mEl  = document.getElementById('dvfMedianVal');
+    const mlEl = document.getElementById('dvfMedianLbl');
+    const msEl = document.getElementById('dvfMedianSub');
+    // ── Tuile Évolution ──────────────────────────────────────────────
+    const tEl  = document.getElementById('dvfTrendVal');
+    const lEl  = document.getElementById('dvfTrendLabel');
+    const sEl  = document.getElementById('dvfTrendSub');
+
+    const nd = (el, txt) => { if(el){ el.textContent=txt; el.style.color='var(--muted)'; } };
+
     const withDate = (liste||[]).filter(t=>t.date&&t.prixM2>0);
-    if(withDate.length < 2){ tEl.textContent='—'; tEl.style.color=''; lEl.textContent='📈 Tendance'; return; }
-    // Médiane (robuste aux outliers — fourchette DVF peut aller jusqu'à x10)
+
+    // ── Médiane globale de la sélection ──────────────────────────────
     const median = arr => {
       if(!arr.length) return null;
       const s = [...arr].sort((a,b)=>a-b);
       const m = Math.floor(s.length/2);
       return s.length%2 ? s[m] : Math.round((s[m-1]+s[m])/2);
     };
-    // Regrouper par année
-    const byYear = {};
+    const allPrix = withDate.map(t=>t.prixM2);
+    const med = median(allPrix);
+    if(mEl){
+      if(med){ mEl.textContent = med.toLocaleString('fr-FR')+'€'; mEl.style.color=''; }
+      else    { mEl.textContent = 'N/D'; mEl.style.color='var(--muted)'; }
+    }
+    if(msEl && withDate.length){
+      // Période couverte par la sélection
+      const dates = withDate.map(t=>t.date).sort();
+      const dMin = dates[0].substring(0,7), dMax = dates[dates.length-1].substring(0,7);
+      const mois = ['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
+      const fmt = ym => { const[y,m]=ym.split('-'); return mois[parseInt(m)-1]+' '+y; };
+      msEl.textContent = 'Valeur centrale · '+fmt(dMin)+(dMin!==dMax?' → '+fmt(dMax):'') +' · '+withDate.length+' ventes';
+    }
+
+    // ── Évolution : 6 premiers mois dispo vs 6 derniers mois dispo ───
+    if(withDate.length < 6){
+      nd(tEl,'N/D'); nd(lEl,'📈 Évolution'); if(sEl) sEl.textContent='Données insuffisantes (< 6 ventes)'; return;
+    }
+
+    // Grouper par YYYY-MM
+    const byMonth = {};
     for(const t of withDate){
-      const y = (t.date||'').substring(0,4); if(!y) continue;
-      if(!byYear[y]) byYear[y]=[];
-      byYear[y].push(t.prixM2);
+      const k = (t.date||'').substring(0,7); if(k.length<7) continue;
+      if(!byMonth[k]) byMonth[k]=[];
+      byMonth[k].push(t.prixM2);
     }
-    // Années sélectionnées (filtre actif) ou toutes les années dispo
-    const selYears = (window._dvfFilterAnnees && window._dvfFilterAnnees.size > 0)
-      ? [...window._dvfFilterAnnees].sort()
-      : Object.keys(byYear).sort();
-    if(!selYears.length){ tEl.textContent='N/D'; tEl.style.color='var(--muted)'; lEl.textContent='📈 Données insuffisantes'; return; }
-    const firstYear = selYears[0];
-    const lastYear  = selYears[selYears.length-1];
-    let pct=null, label='';
+    const months = Object.keys(byMonth).sort();
+    const MIN_MONTHS = 6;
     const MIN_VENTES = 3;
-    if(firstYear === lastYear){
-      // Une seule année : 1er semestre (jan-jun) vs 2e semestre (jul-déc)
-      const h1 = withDate.filter(t=>t.date.startsWith(firstYear)&&parseInt(t.date.substring(5,7))<=6).map(t=>t.prixM2);
-      const h2 = withDate.filter(t=>t.date.startsWith(firstYear)&&parseInt(t.date.substring(5,7))>6).map(t=>t.prixM2);
-      const m1=median(h1), m2=median(h2);
-      if(m1&&m2&&h1.length>=MIN_VENTES&&h2.length>=MIN_VENTES){
-        pct=Math.round((m2-m1)/m1*100);
-        label='📈 jan-jun '+firstYear.slice(2)+' → jul-déc '+firstYear.slice(2)+' ('+h1.length+'/'+h2.length+' ventes)';
-      }
-    } else {
-      // Plusieurs années : médiane 1ère année vs médiane dernière année
-      // Si insuffisant, regrouper les 2 premières vs 2 dernières années
-      let firstData = byYear[firstYear]||[], lastData = byYear[lastYear]||[];
-      let firstLbl = firstYear, lastLbl = lastYear;
-      if(firstData.length < MIN_VENTES && selYears.length > 2){
-        firstData = (byYear[selYears[0]]||[]).concat(byYear[selYears[1]]||[]);
-        firstLbl = selYears[0]+'-'+selYears[1].slice(2);
-      }
-      if(lastData.length < MIN_VENTES && selYears.length > 2){
-        const n = selYears.length;
-        lastData = (byYear[selYears[n-2]]||[]).concat(byYear[selYears[n-1]]||[]);
-        lastLbl = selYears[n-2].slice(2)+'-'+selYears[n-1];
-      }
-      const mFirst = median(firstData), mLast = median(lastData);
-      if(mFirst&&mLast&&firstData.length>=MIN_VENTES&&lastData.length>=MIN_VENTES){
-        pct=Math.round((mLast-mFirst)/mFirst*100);
-        label='📈 '+firstLbl+' → '+lastLbl+' ('+firstData.length+'/'+lastData.length+' ventes)';
-      }
+
+    // Fenêtre "premiers mois" : les 6 premiers mois calendaires distincts
+    const firstMonths = months.slice(0, MIN_MONTHS);
+    const lastMonths  = months.slice(-MIN_MONTHS);
+
+    // Si les deux fenêtres se chevauchent trop (< 12 mois de données), on coupe à mi-chemin
+    const firstPrix = firstMonths.flatMap(m=>byMonth[m]||[]);
+    const lastPrix  = lastMonths.flatMap(m=>byMonth[m]||[]);
+
+    if(firstPrix.length < MIN_VENTES || lastPrix.length < MIN_VENTES){
+      nd(tEl,'N/D'); nd(lEl,'📈 Évolution'); if(sEl) sEl.textContent='Données insuffisantes par période'; return;
     }
-    if(pct===null){ tEl.textContent='N/D'; tEl.style.color='var(--muted)'; lEl.textContent='📈 Données insuffisantes'; return; }
-    const up = pct>=0;
-    tEl.textContent = (up?'↑ +':'↓ ')+pct+'%';
-    tEl.style.color = up?'#2a9d8f':'#e63946';
-    lEl.textContent = label;
+
+    const mFirst = median(firstPrix), mLast = median(lastPrix);
+    if(!mFirst||!mLast){ nd(tEl,'N/D'); if(sEl) sEl.textContent='Calcul impossible'; return; }
+
+    const pct = Math.round((mLast-mFirst)/mFirst*100);
+    const up  = pct >= 0;
+
+    if(tEl){ tEl.textContent=(up?'↑ +':'↓ ')+pct+'%'; tEl.style.color=up?'#2a9d8f':'#e63946'; }
+
+    // Label principal
+    const mois2 = ['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
+    const fmt2 = ym => { const[y,m]=ym.split('-'); return mois2[parseInt(m)-1]+' '+y; };
+    if(lEl){ lEl.textContent='📈 Évolution · médiane'; lEl.style.color=''; }
+
+    // Sous-label détaillé
+    if(sEl){
+      sEl.textContent =
+        fmt2(firstMonths[0])+'–'+fmt2(firstMonths[firstMonths.length-1])
+        +' ('+firstPrix.length+' ventes · '+mFirst.toLocaleString('fr-FR')+'€/m²)'
+        +' → '
+        +fmt2(lastMonths[0])+'–'+fmt2(lastMonths[lastMonths.length-1])
+        +' ('+lastPrix.length+' ventes · '+mLast.toLocaleString('fr-FR')+'€/m²)';
+    }
+
+    // ── Tuile Évolution du volume (nb ventes) ────────────────────
+    const vEl  = document.getElementById('dvfVolVal');
+    const vlEl = document.getElementById('dvfVolLabel');
+    const vsEl = document.getElementById('dvfVolSub');
+    const firstCount = firstMonths.reduce((s,m)=>(byMonth[m]||[]).length+s, 0);
+    const lastCount  = lastMonths.reduce((s,m)=>(byMonth[m]||[]).length+s, 0);
+    if(vEl && firstCount > 0 && lastCount > 0){
+      const vPct = Math.round((lastCount - firstCount) / firstCount * 100);
+      const vUp  = vPct >= 0;
+      vEl.textContent = (vUp?'↑ +':'↓ ')+vPct+'%';
+      vEl.style.color = vUp ? '#2a9d8f' : '#e63946';
+      if(vlEl){ vlEl.textContent='🔄 Évolution du volume'; vlEl.style.color=''; }
+      if(vsEl) vsEl.textContent =
+        fmt2(firstMonths[0])+'–'+fmt2(firstMonths[firstMonths.length-1])+' ('+firstCount+' ventes)'
+        +' → '
+        +fmt2(lastMonths[0])+'–'+fmt2(lastMonths[lastMonths.length-1])+' ('+lastCount+' ventes)';
+    } else if(vEl){
+      vEl.textContent='N/D'; vEl.style.color='var(--muted)';
+      if(vsEl) vsEl.textContent='Données insuffisantes';
+    }
   }
-  function computeDvfPrixBuckets(){
+    function computeDvfPrixBuckets(){
     var _all=(window._dvfRecentes||[]).map(function(t){return t.prixM2;}).filter(function(v){return v>0;});
     if(!_all.length){window._dvfPrixBucketsRanges=[];return;}
     var _mn=Math.min.apply(null,_all),_mx=Math.max.apply(null,_all),_step=(_mx-_mn)/6||1;
@@ -5653,9 +5697,11 @@ function showDVFDetail(){
 
   showPanel('💰 Prix des dernières transactions', `
     <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1rem">
-      <div class="stat-box"><span class="stat-n" id="dvfStatMedian">${d.stats.medianM2.toLocaleString('fr-FR')}€</span><span class="stat-l">💰 Moyenne /m²</span><span class="stat-l" id="dvfMedianBase" style="font-size:.65rem;opacity:.6">sur ${d.count} val.</span></div>
-      <div class="stat-box"><span class="stat-n" id="dvfStatCount">${d.count}</span><span class="stat-l" id="dvfStatCountLabel">🏠 Ventes${d.dateRange?' '+d.dateRange:''}</span></div>
-      <div class="stat-box" id="dvfTrendBox"><span class="stat-n" id="dvfTrendVal">—</span><span class="stat-l" id="dvfTrendLabel">📈 Tendance 6 mois</span></div>
+      <div class="stat-box"><span class="stat-n" id="dvfStatMedian">${d.stats.medianM2.toLocaleString('fr-FR')}€</span><span class="stat-l">💰 Moyenne /m²</span><span class="stat-l" id="dvfMedianBase" style="font-size:.65rem;opacity:.6">Moyenne arithmétique · sur ${d.count} val.</span></div>
+      <div class="stat-box" id="dvfMedianBox"><span class="stat-n" id="dvfMedianVal">—</span><span class="stat-l" id="dvfMedianLbl">⚖️ Médiane /m²</span><span class="stat-l" id="dvfMedianSub" style="font-size:.65rem;opacity:.6">Valeur centrale · hors outliers</span></div>
+      <div class="stat-box"><span class="stat-n" id="dvfStatCount">${d.count}</span><span class="stat-l" id="dvfStatCountLabel">🏠 Nb de ventes</span><span class="stat-l" style="font-size:.65rem;opacity:.6">${d.dateRange?'Période '+d.dateRange:''}</span></div>
+      <div class="stat-box" id="dvfTrendBox"><span class="stat-n" id="dvfTrendVal">—</span><span class="stat-l" id="dvfTrendLabel">📈 Évolution des prix</span><span class="stat-l" id="dvfTrendSub" style="font-size:.6rem;opacity:.7;line-height:1.3">Médiane 6 premiers vs 6 derniers mois</span></div>
+      <div class="stat-box" id="dvfVolBox"><span class="stat-n" id="dvfVolVal">—</span><span class="stat-l" id="dvfVolLabel">🔄 Évolution du volume</span><span class="stat-l" id="dvfVolSub" style="font-size:.6rem;opacity:.7;line-height:1.3">Nb ventes 6 premiers vs 6 derniers mois</span></div>
     </div>
     <p style="font-size:.75rem;color:var(--muted);margin-bottom:.6rem" id="dvfFourchette">Fourchette : ${d.stats.minM2.toLocaleString('fr-FR')} – ${d.stats.maxM2.toLocaleString('fr-FR')} €/m²</p>
     ${prixParPieceHTML}
