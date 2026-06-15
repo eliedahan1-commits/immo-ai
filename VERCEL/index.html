@@ -5318,11 +5318,12 @@ function showDVFDetail(){
     const lEl = document.getElementById('dvfTrendLabel');
     if(!tEl||!lEl) return;
     const withDate = (liste||[]).filter(t=>t.date&&t.prixM2>0);
-    if(withDate.length < 2){ tEl.textContent='—'; tEl.style.color=''; lEl.textContent='📈 Tendance 6 mois'; return; }
-    // Trouver la date la plus récente
+    if(withDate.length < 2){ tEl.textContent='—'; tEl.style.color=''; lEl.textContent='📈 Tendance'; return; }
+    const noms4 = ["jan","fév","mar","avr","mai","jun","jul","aoû","sep","oct","nov","déc"];
+    const fmtD = d => noms4[d.getMonth()]+' '+d.getFullYear().toString().slice(2);
     const dates = withDate.map(t=>t.date).sort();
-    const latestDate = new Date(dates[dates.length-1]);
-    // Périodes
+    const latestDate   = new Date(dates[dates.length-1]);
+    const earliestDate = new Date(dates[0]);
     const ms6 = 6*30*24*3600*1000, ms12 = 12*30*24*3600*1000;
     const cutoff6  = new Date(latestDate - ms6);
     const cutoff12 = new Date(latestDate - ms12);
@@ -5332,19 +5333,22 @@ function showDVFDetail(){
     const last12 = withDate.filter(t=>new Date(t.date)>=cutoff12).map(t=>t.prixM2);
     const prev12 = withDate.filter(t=>new Date(t.date)<cutoff12).map(t=>t.prixM2);
     const a6=avg(last6), b6=avg(prev6), a12=avg(last12), b12=avg(prev12);
-    // Préférer 6 mois si assez de données, sinon 12 mois, sinon moitié/moitié
-    let pct=null, label='', usedPeriod='6 mois';
+    let pct=null, label='';
     if(a6&&b6&&last6.length>=2&&prev6.length>=2){
-      pct=Math.round((a6-b6)/b6*100); label='📈 Tendance 6 mois';
+      pct=Math.round((a6-b6)/b6*100);
+      label='📈 '+fmtD(cutoff6)+' → '+fmtD(latestDate);
     } else if(a12&&b12&&last12.length>=2&&prev12.length>=2){
-      pct=Math.round((a12-b12)/b12*100); label='📈 Tendance 1 an'; usedPeriod='1 an';
+      pct=Math.round((a12-b12)/b12*100);
+      label='📈 '+fmtD(cutoff12)+' → '+fmtD(latestDate);
     } else {
-      // Fallback : moitié ancienne vs moitié récente (fonctionne dès 2 transactions)
       const sorted=withDate.slice().sort((a,b)=>a.date.localeCompare(b.date));
       const mid=Math.max(1,Math.floor(sorted.length/2));
       const aOld=avg(sorted.slice(0,mid).map(t=>t.prixM2));
       const aNew=avg(sorted.slice(mid).map(t=>t.prixM2));
-      if(aOld&&aNew){pct=Math.round((aNew-aOld)/aOld*100);label='📈 Tendance globale';}
+      if(aOld&&aNew){
+        pct=Math.round((aNew-aOld)/aOld*100);
+        label='📈 '+fmtD(earliestDate)+' → '+fmtD(latestDate);
+      }
     }
     if(pct===null){ tEl.textContent='N/D'; tEl.style.color='var(--muted)'; lEl.textContent='📈 Données insuffisantes'; return; }
     const up = pct>=0;
@@ -5390,7 +5394,12 @@ function showDVFDetail(){
         return '<button class="dvf-annee-btn dvf-filter-btn'+(on?' active':'')+'" data-y="'+y+'" onclick="window.toggleDvfAnnee(\''+y+'\')" style="'+bs+'">'+y+'</button>';
       }).join('');
   }
-  function refreshAllDVF(){ renderDVFRows(); refreshDVFChart(); buildDvfEvolutionChart(); buildDVFMap(); renderDvfPrixBuckets(); renderDvfAnnees(); }
+  function refreshAllDVF(){
+  renderDVFRows(); refreshDVFChart(); buildDvfEvolutionChart();
+  var _nbW=document.getElementById('dvfCountWrap');
+  if(_nbW&&_nbW.style.display!=='none') buildDvfCountChart();
+  buildDVFMap(); renderDvfPrixBuckets(); renderDvfAnnees();
+}
   window.filterDVF       = n  => { window._dvfFilterN=n;      refreshAllDVF(); };
   window.filterDVFType   = t  => { window._dvfFilterType=t;   refreshAllDVF(); };
   window.filterDVFSurf   = s  => {
@@ -5483,6 +5492,47 @@ function showDVFDetail(){
       animation:{duration:300},responsive:true,maintainAspectRatio:false,
     }});
   }
+  function buildDvfCountChart(){
+    const all = getFilteredListDVF();
+    const byMonth = {};
+    for(const t of all){
+      const ym = (t.date||'').substring(0,7); if(!ym||ym.length<7) continue;
+      byMonth[ym] = (byMonth[ym]||0) + 1;
+    }
+    const months = Object.keys(byMonth).sort();
+    if(months.length < 2) return;
+    const noms = ["jan","fév","mar","avr","mai","jun","jul","aoû","sep","oct","nov","déc"];
+    const labels = months.map(m=>{ const[y,mo]=m.split('-'); return noms[parseInt(mo)-1]+' '+y.slice(2); });
+    const counts = months.map(m=>byMonth[m]);
+    const ctx = document.getElementById('dvfCountChart'); if(!ctx||!window.Chart) return;
+    if(window._dvfCountChart){ window._dvfCountChart.destroy(); }
+    window._dvfCountChart = new Chart(ctx, {type:'line', data:{labels, datasets:[
+      {label:"Évolution nb ventes", data:counts, borderColor:'#4fc3f7', backgroundColor:'rgba(79,195,247,.12)', borderWidth:2, pointRadius:3, tension:.3, fill:true}
+    ]}, options:{
+      plugins:{legend:{display:false}, datalabels:{display:false}, title:{display:true, text:"Évolution mensuelle du nombre de ventes", font:{size:11,family:'Outfit,sans-serif'}, color:'#8a7d68'}},
+      scales:{
+        x:{ticks:{font:{size:8},color:'#8a7d68'},grid:{display:false}},
+        y:{ticks:{font:{size:9},color:'#8a7d68'},grid:{color:'rgba(0,0,0,.05)'},beginAtZero:true}
+      },
+      animation:{duration:300}, responsive:true, maintainAspectRatio:false
+    }});
+  }
+  window._dvfShowChart = function(mode){
+    const eWrap   = document.getElementById('dvfEvolutionWrap');
+    const nWrap   = document.getElementById('dvfCountWrap');
+    const btnPrix = document.getElementById('dvfBtnPrix');
+    const btnNb   = document.getElementById('dvfBtnNb');
+    const aStyle  = 'padding:.28rem .85rem;font-size:.72rem;border:1px solid var(--border);background:var(--gold2);color:#fff;border-radius:3px;cursor:pointer;font-weight:600';
+    const iStyle  = 'padding:.28rem .85rem;font-size:.72rem;border:1px solid var(--border);background:var(--white);color:var(--text);border-radius:3px;cursor:pointer';
+    if(mode==='prix'){
+      if(eWrap) eWrap.style.display=''; if(nWrap) nWrap.style.display='none';
+      if(btnPrix) btnPrix.style.cssText=aStyle; if(btnNb) btnNb.style.cssText=iStyle;
+    } else {
+      if(eWrap) eWrap.style.display='none'; if(nWrap) nWrap.style.display='';
+      if(btnPrix) btnPrix.style.cssText=iStyle; if(btnNb) btnNb.style.cssText=aStyle;
+      buildDvfCountChart();
+    }
+  };
   const btnStyle = 'padding:.25rem .7rem;font-size:.72rem;border:1px solid var(--border);background:var(--white);border-radius:3px;cursor:pointer;margin-right:.3rem';
   const DVF_FILTRES = [0, 10, 20, 50];
   const btnsFiltres = DVF_FILTRES.map(n=>`<button class="dvf-n-btn dvf-filter-btn" data-n="${n}" onclick="filterDVF(${n})" style="${btnStyle}">${n===0?'Toutes':n}</button>`).join('');
@@ -5576,8 +5626,13 @@ function showDVFDetail(){
       <div id="dvfMapContainer" style="height:370px;border-radius:8px;overflow:hidden;border:1px solid var(--border)"></div>
       <button onclick="window._dvfMapFullscreen()" title="Plein écran" style="position:absolute;top:8px;right:8px;z-index:1000;width:32px;height:32px;background:rgba(15,13,10,.85);border:1px solid rgba(184,131,42,.5);border-radius:6px;cursor:pointer;color:#c9a84c;font-size:1rem;display:flex;align-items:center;justify-content:center;padding:0" id="dvfFsBtn">⛶</button>
     </div>
+    <div style="margin-bottom:.6rem;display:flex;gap:.4rem">
+      <button id="dvfBtnPrix" onclick="window._dvfShowChart('prix')" style="padding:.28rem .85rem;font-size:.72rem;border:1px solid var(--border);background:var(--gold2);color:#fff;border-radius:3px;cursor:pointer;font-weight:600">📈 Prix €/m²</button>
+      <button id="dvfBtnNb" onclick="window._dvfShowChart('nb')" style="padding:.28rem .85rem;font-size:.72rem;border:1px solid var(--border);background:var(--white);color:var(--text);border-radius:3px;cursor:pointer">📊 Nb ventes</button>
+    </div>
+    <div id="dvfEvolutionWrap" style="margin-bottom:1.2rem;height:350px;position:relative"><canvas id="dvfEvolutionChart"></canvas></div>
+    <div id="dvfCountWrap" style="margin-bottom:1.2rem;height:350px;position:relative;display:none"><canvas id="dvfCountChart"></canvas></div>
     <div style="margin-bottom:1.2rem;height:320px;position:relative"><canvas id="dvfHistChart"></canvas></div>
-    <div style="margin-bottom:1.2rem;height:350px;position:relative"><canvas id="dvfEvolutionChart"></canvas></div>
     <button id="dvfListeToggle" onclick="var w=document.getElementById('dvfListeWrap');var show=w.style.display==='none';w.style.display=show?'block':'none';this.textContent=show?'▲ Masquer la liste':'📋 Afficher la liste';" style="margin-top:.5rem;margin-bottom:.5rem;padding:.4rem 1rem;background:var(--surface2);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:600;color:var(--text)">📋 Afficher la liste</button>
     <div id="dvfListeWrap" style="display:none">
     <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%">
