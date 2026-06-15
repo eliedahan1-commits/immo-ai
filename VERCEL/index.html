@@ -5483,11 +5483,10 @@ function showDVFDetail(){
       }).join('');
   }
   function refreshAllDVF(){
-  renderDVFRows(); refreshDVFChart(); buildDvfEvolutionChart();
-  var _nbW=document.getElementById('dvfCountWrap');
-  if(_nbW&&_nbW.style.display!=='none') buildDvfCountChart();
-  buildDVFMap(); renderDvfPrixBuckets(); renderDvfAnnees();
-}
+    renderDVFRows(); refreshDVFChart();
+    if(typeof window._dvfShowChart==='function') window._dvfShowChart(window._dvfCurrentChart||'prix');
+    buildDVFMap(); renderDvfPrixBuckets(); renderDvfAnnees();
+  }
   window.filterDVF       = n  => { window._dvfFilterN=n;      refreshAllDVF(); };
   window.filterDVFType   = t  => { window._dvfFilterType=t;   refreshAllDVF(); };
   window.filterDVFSurf   = s  => {
@@ -5568,7 +5567,10 @@ function showDVFDetail(){
       else byPeriod[key].maison.push(t.prixM2);
     }
     const periods = Object.keys(byPeriod).sort();
-    if(periods.length < 2) return;
+    if(periods.length < 2){
+      if(window._dvfEvoChart){ window._dvfEvoChart.destroy(); window._dvfEvoChart=null; }
+      return;
+    }
     const mean = arr => arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : null;
     const apptData = periods.map(m=>mean(byPeriod[m].appt));
     const maisonData = periods.map(m=>mean(byPeriod[m].maison));
