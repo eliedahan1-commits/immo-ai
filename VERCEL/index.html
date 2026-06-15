@@ -5281,7 +5281,7 @@ function showDVFDetail(){
     const el_four = document.getElementById('dvfFourchette');
     if(el_med) el_med.textContent = moyFilt ? moyFilt.toLocaleString('fr-FR')+'€' : '—';
     const el_base = document.getElementById('dvfMedianBase');
-    if(el_base) el_base.textContent = 'sur '+prix2.length+' val.';
+    if(el_base) el_base.textContent = 'Moyenne arithmétique · sur '+prix2.length+' val.';
     if(el_cnt) el_cnt.textContent = liste.length;
     const el_period = document.getElementById('dvfStatCountPeriod');
     if(el_period){
