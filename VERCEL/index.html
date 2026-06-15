@@ -5319,7 +5319,13 @@ function showDVFDetail(){
     if(!tEl||!lEl) return;
     const withDate = (liste||[]).filter(t=>t.date&&t.prixM2>0);
     if(withDate.length < 2){ tEl.textContent='—'; tEl.style.color=''; lEl.textContent='📈 Tendance'; return; }
-    const avg = arr => arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : null;
+    // Médiane (robuste aux outliers — fourchette DVF peut aller jusqu'à x10)
+    const median = arr => {
+      if(!arr.length) return null;
+      const s = [...arr].sort((a,b)=>a-b);
+      const m = Math.floor(s.length/2);
+      return s.length%2 ? s[m] : Math.round((s[m-1]+s[m])/2);
+    };
     // Regrouper par année
     const byYear = {};
     for(const t of withDate){
@@ -5335,17 +5341,24 @@ function showDVFDetail(){
     const firstYear = selYears[0];
     const lastYear  = selYears[selYears.length-1];
     let pct=null, label='';
+    const MIN_VENTES = 5;
     if(firstYear === lastYear){
-      // Une seule année : H1 vs H2
+      // Une seule année : 1er semestre (jan-jun) vs 2e semestre (jul-déc)
       const h1 = withDate.filter(t=>t.date.startsWith(firstYear)&&parseInt(t.date.substring(5,7))<=6).map(t=>t.prixM2);
       const h2 = withDate.filter(t=>t.date.startsWith(firstYear)&&parseInt(t.date.substring(5,7))>6).map(t=>t.prixM2);
-      const a1=avg(h1), a2=avg(h2);
-      if(a1&&a2&&h1.length>=1&&h2.length>=1){ pct=Math.round((a2-a1)/a1*100); label='📈 '+firstYear+' : H1 → H2'; }
+      const m1=median(h1), m2=median(h2);
+      if(m1&&m2&&h1.length>=MIN_VENTES&&h2.length>=MIN_VENTES){
+        pct=Math.round((m2-m1)/m1*100);
+        label='📈 jan-jun '+firstYear.slice(2)+' → jul-déc '+firstYear.slice(2)+' ('+h1.length+'/'+h2.length+' ventes)';
+      }
     } else {
-      // Plusieurs années : moyenne 1ère année vs moyenne dernière année
-      const aFirst = avg(byYear[firstYear]||[]);
-      const aLast  = avg(byYear[lastYear]||[]);
-      if(aFirst&&aLast){ pct=Math.round((aLast-aFirst)/aFirst*100); label='📈 '+firstYear+' → '+lastYear; }
+      // Plusieurs années : médiane 1ère année vs médiane dernière année
+      const firstData = byYear[firstYear]||[], lastData = byYear[lastYear]||[];
+      const mFirst = median(firstData), mLast = median(lastData);
+      if(mFirst&&mLast&&firstData.length>=MIN_VENTES&&lastData.length>=MIN_VENTES){
+        pct=Math.round((mLast-mFirst)/mFirst*100);
+        label='📈 '+firstYear+' → '+lastYear+' ('+firstData.length+'/'+lastData.length+' ventes)';
+      }
     }
     if(pct===null){ tEl.textContent='N/D'; tEl.style.color='var(--muted)'; lEl.textContent='📈 Données insuffisantes'; return; }
     const up = pct>=0;
@@ -5460,6 +5473,8 @@ function showDVFDetail(){
   }
   // Graphique évolution mensuelle maisons vs appartements
   function buildDvfEvolutionChart(){
+    const evWrap = document.getElementById('dvfEvolutionWrap');
+    if(evWrap) evWrap.style.display = '';
     const all = getFilteredListDVF();
     const gran = window._dvfGranularity || 'mois';
     const keyLen = gran === 'annees' ? 4 : 7;
@@ -5475,7 +5490,7 @@ function showDVFDetail(){
       else byPeriod[key].maison.push(t.prixM2);
     }
     const periods = Object.keys(byPeriod).sort();
-    if(periods.length < 2){const c2=document.getElementById('dvfEvolutionChart');if(c2)c2.parentElement.style.display='none';return;}
+    if(periods.length < 2) return;
     const mean = arr => arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : null;
     const apptData = periods.map(m=>mean(byPeriod[m].appt));
     const maisonData = periods.map(m=>mean(byPeriod[m].maison));
@@ -5531,7 +5546,9 @@ function showDVFDetail(){
     }});
   }
   window._dvfGranularity = window._dvfGranularity || 'mois';
+  window._dvfCurrentChart = window._dvfCurrentChart || 'prix';
   window._dvfShowChart = function(mode){
+    window._dvfCurrentChart = mode;
     const eWrap   = document.getElementById('dvfEvolutionWrap');
     const nWrap   = document.getElementById('dvfCountWrap');
     const btnPrix = document.getElementById('dvfBtnPrix');
@@ -5552,10 +5569,7 @@ function showDVFDetail(){
     window._dvfGranularity = (window._dvfGranularity === 'annees') ? 'mois' : 'annees';
     const btn = document.getElementById('dvfBtnGran');
     if(btn) btn.textContent = window._dvfGranularity === 'annees' ? '📅 Années' : '📅 Mois';
-    const eWrap = document.getElementById('dvfEvolutionWrap');
-    const nWrap = document.getElementById('dvfCountWrap');
-    if(eWrap && eWrap.style.display !== 'none') buildDvfEvolutionChart();
-    if(nWrap && nWrap.style.display !== 'none') buildDvfCountChart();
+    window._dvfShowChart(window._dvfCurrentChart || 'prix');
   };
   const btnStyle = 'padding:.25rem .7rem;font-size:.72rem;border:1px solid var(--border);background:var(--white);border-radius:3px;cursor:pointer;margin-right:.3rem';
   const DVF_FILTRES = [0, 10, 20, 50];
