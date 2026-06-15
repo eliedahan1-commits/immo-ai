@@ -5283,6 +5283,14 @@ function showDVFDetail(){
     const el_base = document.getElementById('dvfMedianBase');
     if(el_base) el_base.textContent = 'sur '+prix2.length+' val.';
     if(el_cnt) el_cnt.textContent = liste.length;
+    const el_period = document.getElementById('dvfStatCountPeriod');
+    if(el_period){
+      const dts = (liste||[]).map(t=>t.date).filter(Boolean).sort();
+      if(dts.length){
+        const dMin=dts[0].substring(0,4), dMax=dts[dts.length-1].substring(0,4);
+        el_period.textContent = 'Période ' + (dMin===dMax ? dMin : dMin+' – '+dMax);
+      } else { el_period.textContent = ''; }
+    }
     if(el_four && prix2.length>=2) el_four.textContent = 'Fourchette : '+prix2[0].toLocaleString('fr-FR')+' – '+prix2[prix2.length-1].toLocaleString('fr-FR')+' €/m²';
     // Vérifier si données pièces disponibles quand filtre actif
     const fp_check = window._dvfFilterPieces;
@@ -5722,7 +5730,7 @@ function showDVFDetail(){
     <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1rem">
       <div class="stat-box"><span class="stat-n" id="dvfStatMedian">${d.stats.medianM2.toLocaleString('fr-FR')}€</span><span class="stat-l">💰 Moyenne /m²</span><span class="stat-l" id="dvfMedianBase" style="font-size:.65rem;opacity:.6">Moyenne arithmétique · sur ${d.count} val.</span></div>
       <div class="stat-box" id="dvfMedianBox"><span class="stat-n" id="dvfMedianVal">—</span><span class="stat-l" id="dvfMedianLbl">⚖️ Médiane /m²</span><span class="stat-l" id="dvfMedianSub" style="font-size:.65rem;opacity:.6">Valeur centrale · hors outliers</span></div>
-      <div class="stat-box"><span class="stat-n" id="dvfStatCount">${d.count}</span><span class="stat-l" id="dvfStatCountLabel">🏠 Nb de ventes</span><span class="stat-l" style="font-size:.65rem;opacity:.6">${d.dateRange?'Période '+d.dateRange:''}</span></div>
+      <div class="stat-box"><span class="stat-n" id="dvfStatCount">${d.count}</span><span class="stat-l" id="dvfStatCountLabel">🏠 Nb de ventes</span><span class="stat-l" id="dvfStatCountPeriod" style="font-size:.65rem;opacity:.6">${d.dateRange?'Période '+d.dateRange:''}</span></div>
       <div class="stat-box" id="dvfTrendBox"><span class="stat-n" id="dvfTrendVal">—</span><span class="stat-l" id="dvfTrendLabel">📈 Évolution des prix</span><span class="stat-l" id="dvfTrendSub" style="font-size:.6rem;opacity:.7;line-height:1.3">Médiane 6 premiers vs 6 derniers mois</span></div>
       <div class="stat-box" id="dvfVolBox"><span class="stat-n" id="dvfVolVal">—</span><span class="stat-l" id="dvfVolLabel">🔄 Évolution du volume</span><span class="stat-l" id="dvfVolSub" style="font-size:.6rem;opacity:.7;line-height:1.3">Nb ventes 6 premiers vs 6 derniers mois</span></div>
       <div class="stat-box" id="dvfTotalBox"><span class="stat-n" id="dvfTotalVal">—</span><span class="stat-l">💶 Prix total médian</span><span class="stat-l" id="dvfTotalSub" style="font-size:.65rem;opacity:.6">Prix d'un bien typique dans ce secteur</span></div>
