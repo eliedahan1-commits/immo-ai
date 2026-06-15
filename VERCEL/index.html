@@ -5343,7 +5343,7 @@ function showDVFDetail(){
     const firstYear = selYears[0];
     const lastYear  = selYears[selYears.length-1];
     let pct=null, label='';
-    const MIN_VENTES = 5;
+    const MIN_VENTES = 3;
     if(firstYear === lastYear){
       // Une seule année : 1er semestre (jan-jun) vs 2e semestre (jul-déc)
       const h1 = withDate.filter(t=>t.date.startsWith(firstYear)&&parseInt(t.date.substring(5,7))<=6).map(t=>t.prixM2);
@@ -5355,11 +5355,22 @@ function showDVFDetail(){
       }
     } else {
       // Plusieurs années : médiane 1ère année vs médiane dernière année
-      const firstData = byYear[firstYear]||[], lastData = byYear[lastYear]||[];
+      // Si insuffisant, regrouper les 2 premières vs 2 dernières années
+      let firstData = byYear[firstYear]||[], lastData = byYear[lastYear]||[];
+      let firstLbl = firstYear, lastLbl = lastYear;
+      if(firstData.length < MIN_VENTES && selYears.length > 2){
+        firstData = (byYear[selYears[0]]||[]).concat(byYear[selYears[1]]||[]);
+        firstLbl = selYears[0]+'-'+selYears[1].slice(2);
+      }
+      if(lastData.length < MIN_VENTES && selYears.length > 2){
+        const n = selYears.length;
+        lastData = (byYear[selYears[n-2]]||[]).concat(byYear[selYears[n-1]]||[]);
+        lastLbl = selYears[n-2].slice(2)+'-'+selYears[n-1];
+      }
       const mFirst = median(firstData), mLast = median(lastData);
       if(mFirst&&mLast&&firstData.length>=MIN_VENTES&&lastData.length>=MIN_VENTES){
         pct=Math.round((mLast-mFirst)/mFirst*100);
-        label='📈 '+firstYear+' → '+lastYear+' ('+firstData.length+'/'+lastData.length+' ventes)';
+        label='📈 '+firstLbl+' → '+lastLbl+' ('+firstData.length+'/'+lastData.length+' ventes)';
       }
     }
     if(pct===null){ tEl.textContent='N/D'; tEl.style.color='var(--muted)'; lEl.textContent='📈 Données insuffisantes'; return; }
