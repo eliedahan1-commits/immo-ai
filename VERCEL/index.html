@@ -10640,8 +10640,14 @@ window.immToggle = function(){
   // Fermer tout panel ouvert + remettre la grille avant de basculer
   var dc = document.getElementById('detailContainer');
   if (dc && dc.innerHTML.trim()) closePanel();
+  // Fermer aussi les pages ouvertes en mode classique (ex: p-profil via go())
   var cg = document.getElementById('cardsGrid');
-  if (cg) cg.style.display = 'grid'; // toujours reset à grid (CSS imm-on masque via !important si besoin)
+  if (cg && cg.style.display === 'none') {
+    document.querySelectorAll('.page').forEach(function(p){p.style.display='none';});
+    var pa = document.getElementById('p-analyse'); if(pa) pa.style.display='';
+    cg.style.display = 'grid';
+  }
+  if (cg) cg.style.display = 'grid';
   _immOn = !_immOn;
   localStorage.setItem('immoai_imm_mode', _immOn ? '1' : '0');
   _immApply();
