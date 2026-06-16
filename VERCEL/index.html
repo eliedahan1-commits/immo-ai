@@ -956,8 +956,19 @@ body.imm-on #imm-nav-prev,body.imm-on #imm-nav-next{display:flex;}
 
 /* ── Mode immersif : redesign HUD holographique ──────────────────────────── */
 
-/* Fond du panneau → transparent pour laisser passer le blur du container */
-body.imm-on .detail-panel{background:transparent!important;}
+/* Fond du panneau : glass sombre comme les tuiles carousel */
+body.imm-on .detail-panel{
+  background:rgba(3,10,22,.90)!important;
+  backdrop-filter:blur(20px)!important;
+  -webkit-backdrop-filter:blur(20px)!important;
+}
+/* Redéfinir les variables CSS pour que les styles inline var(--text)/var(--muted)/var(--border) soient lisibles */
+body.imm-on #detailContainer{
+  --text:#ddf0ff;
+  --muted:rgba(200,230,255,.65);
+  --border:rgba(79,195,247,.18);
+  --ink:rgba(5,15,34,.8);
+}
 
 /* Tuiles de stats (map-stat) → bordure cyan + coins dorés */
 body.imm-on .map-stat{
