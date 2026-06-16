@@ -278,6 +278,7 @@ aside.open{transform:translateX(0);box-shadow:4px 0 32px rgba(0,0,0,.5);}
   gap:1rem;
   padding:0 2rem 2rem;
   max-width:min(1800px,96vw);margin:0 auto;
+  align-items:start;
 }
 @media(min-width:1400px){.cards-grid{grid-template-columns:repeat(5,1fr);}}
 @media(min-width:1800px){.cards-grid{grid-template-columns:repeat(6,1fr);}}
@@ -956,6 +957,10 @@ body.imm-on #imm-nav-prev,body.imm-on #imm-nav-next{display:flex;}
 
 /* ── Mode immersif : redesign HUD holographique ──────────────────────────── */
 
+/* Couleur de texte de base : tout hérite automatiquement */
+body.imm-on #detailContainer{color:var(--text);}
+body.imm-on #detailContainer a{color:#4fc3f7;}
+body.imm-on #detailContainer a:hover{color:#81d4fa;}
 /* Fond du panneau : glass sombre comme les tuiles carousel */
 body.imm-on .detail-panel{
   background:rgba(3,10,22,.90)!important;
@@ -1050,6 +1055,9 @@ body.imm-on .legend-item{
   color:#ddf0ff!important;
 }
 
+/* Boutons : couleur texte par défaut claire (sans !important → inline color gardée) */
+body.imm-on #detailContainer button{color:var(--text);}
+body.imm-on #detailContainer button:hover{opacity:.85;}
 /* Titres et textes du panel */
 body.imm-on .cards-section-title{color:#4fc3f7!important;border-color:rgba(79,195,247,.3)!important;}
 body.imm-on .detail-panel h2,body.imm-on .detail-panel h3,
