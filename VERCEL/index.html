@@ -4914,11 +4914,8 @@ function closePanel(){
   ['_dvfChart','_dvfEvoChart','_risquesChart','_mobiliteChart','_radarChart','_radarProfilChart','_servicesChart','_inseeNeighborChart','_meteoMensuelChart','_meteoEvoChart','_aqHistChart0','_aqHistChart4','_demographieChart'].forEach(k=>{if(window[k]){window[k].destroy();window[k]=null;}});
   document.getElementById('detailContainer').innerHTML = '';
   if(document.body.classList.contains('imm-on')){
-    // En mode immersif : retirer split, cacher p-profil, mettre à jour le carousel
+    // En mode immersif : retirer split, mettre à jour le carousel
     document.body.classList.remove('imm-split');
-    var _pp=document.getElementById('p-profil');if(_pp)_pp.style.display='none';
-    document.querySelectorAll('.page').forEach(function(p){p.style.display='none';});
-    var _pa=document.getElementById('p-analyse');if(_pa)_pa.style.display='';
     if(typeof immRefresh==='function') immRefresh();
   }
   // Si on vient du score global, y retourner
@@ -8386,7 +8383,7 @@ function updateProfilScore(){
   var el=document.getElementById("profilScoreNum");
   var bar=document.getElementById("profilScoreBar");
   var concl=document.getElementById("profilConclText");
-  if(el) el.textContent=score!=null?score.toFixed(1):"—";
+  if(el) el.textContent=score!=null?score.toFixed(2):"—";
   if(bar&&score!=null){bar.style.width=Math.round(score*10)+"%";bar.style.background=score>=7?"#1D9E75":score>=5?"#BA7517":"#E24B4A";}
   try{localStorage.setItem("_immoai_profil_poids",JSON.stringify(poids));}catch(e){}
   if(concl&&score!=null) concl.innerHTML=_buildProfilConclusion(score,scores,poids);
@@ -8426,20 +8423,25 @@ function _buildProfilSliders(){
   _PROFIL_CRITERES.forEach(function(c){if(!sections[c.sect]){sections[c.sect]=[];order.push(c.sect);}sections[c.sect].push(c);});
   var html="";
   order.forEach(function(sect){
-    html+='<div class="card" style="margin-bottom:1rem">';
-    html+='<div class="ctitle">'+sect+'</div>';
-    sections[sect].forEach(function(c){
+    var items=sections[sect];
+    var odd=items.length%2===1;
+    html+='<div class="card" style="margin-bottom:.75rem">';
+    html+='<div class="ctitle" style="margin-bottom:.5rem">'+sect+'</div>';
+    html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem .75rem">';
+    items.forEach(function(c,ci){
       var w=savedPoids[c.key]||5;
-      var sv=scores[c.key]!=null?'<span style="font-size:.65rem;color:var(--muted);margin-right:4px">données:'+scores[c.key].toFixed(1)+'/10</span>':'';
-      html+='<div style="margin-bottom:.85rem">';
-      html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">';
-      html+='<span style="font-size:.78rem;font-weight:500">'+c.emoji+' '+c.label+'</span>';
-      html+='<div style="display:flex;align-items:center;gap:4px">'+sv;
-      html+='<span style="font-size:.8rem;font-weight:500;min-width:14px;text-align:right" id="pwv-'+c.key+'">'+w+'</span><span style="font-size:.68rem;color:var(--muted)">/10</span></div></div>';
-      html+='<input type="range" min="1" max="10" value="'+w+'" step="1" id="pw-'+c.key+'" oninput="document.getElementById(\'pwv-'+c.key+'\').textContent=this.value;updateProfilScore()" style="width:100%">';
+      var hasData=scores[c.key]!=null;
+      var sv=hasData?'<span style="font-size:.6rem;color:var(--muted)">'+scores[c.key].toFixed(1)+'</span>':'<span style="font-size:.6rem;color:var(--muted);opacity:.5">N/D</span>';
+      var nodata=!hasData?'opacity:.55;':'';
+      var span=(odd&&ci===items.length-1)?'grid-column:span 2;':'';
+      html+='<div style="'+span+nodata+'padding-bottom:.25rem">';
+      html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1px">';
+      html+='<span style="font-size:.7rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70%">'+c.emoji+' '+c.label+'</span>';
+      html+='<div style="display:flex;align-items:center;gap:3px">'+sv+'<span style="font-size:.75rem;font-weight:600;min-width:12px;text-align:right" id="pwv-'+c.key+'">'+w+'</span></div></div>';
+      html+='<input type="range" min="1" max="10" value="'+w+'" step="1" id="pw-'+c.key+'" oninput="document.getElementById(\'pwv-'+c.key+'\').textContent=this.value;updateProfilScore()" style="width:100%;height:3px;accent-color:'+(hasData?'#4fc3f7':'#888')+'">';
       html+='</div>';
     });
-    html+='</div>';
+    html+='</div></div>';
   });
   wrap.innerHTML=html;
 }
