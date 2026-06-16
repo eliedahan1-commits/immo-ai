@@ -1113,7 +1113,20 @@ body.imm-on .mob-layer-btn.on,body.imm-on .mob-all-btn.active{
   background:rgba(79,195,247,.15)!important;
   border-color:rgba(79,195,247,.6)!important;
 }
-body.imm-on .mob-rayon-btn:not([style*="font-weight:700"]){opacity:.7;}
+body.imm-on .mob-rayon-btn[style*="font-weight:400"]{opacity:.6;}
+/* État actif des boutons rayon en mode immersif */
+body.imm-on .mob-rayon-btn[style*="font-weight:600"],
+body.imm-on .svc-rayon-btn[style*="font-weight:600"],
+body.imm-on .score-rayon-btn[style*="font-weight:600"]{
+  background:rgba(79,195,247,.2)!important;
+  border-color:rgba(79,195,247,.6)!important;
+  color:#4fc3f7!important;
+}
+body.imm-on .eco-rayon-btn[style*="color:#fff"]{
+  background:rgba(79,195,247,.2)!important;
+  border-color:rgba(79,195,247,.6)!important;
+  color:#4fc3f7!important;
+}
 
 /* Légende */
 body.imm-on .legend-item{
@@ -4416,7 +4429,7 @@ function showScoreDetail() {
       <div id="scoreRayonLbl" style="font-size:.72rem;color:var(--muted);margin-top:.2rem">${d.items.length} critères · données à l'adresse · cliquez "Détail →" pour explorer</div>
       <div style="display:flex;justify-content:center;gap:.4rem;margin-top:.7rem;flex-wrap:wrap">
         <span style="font-size:.72rem;color:var(--muted);align-self:center">Rayon :</span>
-        ${[500,1000,2000].map(r=>{
+        ${[500,1000].map(r=>{
           const curDist = window._scoreRayon || window._servicesCurrentDist || 500;
           const active = curDist===r;
           const lbl = r>=1000?(r/1000)+'km':r+'m';
@@ -6370,7 +6383,7 @@ function showEcolesDetail(){
 
   const ECO_TYPES = [['tous','Tous'],['ecole','🏫 Écoles'],['college','🎓 Collèges'],['lycee','📚 Lycées']];
   const ECO_NS    = [10, 20, 50, 0];
-  const ECO_RAYONS = [[500,'500m'],[1000,'1km'],[2000,'2km']];
+  const ECO_RAYONS = [[500,'500m'],[1000,'1km']];
   const currentDist = window._ecolesCurrentDist || 500;
   const btnStyle  = 'padding:.25rem .7rem;font-size:.72rem;border:1px solid var(--border);background:var(--white);border-radius:3px;cursor:pointer;margin-right:.3rem';
   const btnStyleRayon = 'padding:.25rem .7rem;font-size:.72rem;border:1px solid var(--border);border-radius:3px;cursor:pointer;margin-right:.3rem';
@@ -6462,7 +6475,7 @@ function showMobiliteDetail(){
   if(!d){showPanel('🚇 Transports & mobilité douce','<p style="color:var(--muted)">Données en cours de chargement…</p>');return;}
 
   const mobDist = window._mobiliteCurrentDist || 1000;
-  const MOB_RAYONS = [[500,'500m'],[1000,'1km'],[2000,'2km']];
+  const MOB_RAYONS = [[500,'500m'],[1000,'1km']];
   const sBtnR = r => `padding:.25rem .65rem;font-size:.72rem;border:1px solid ${r===mobDist?'var(--ink)':'var(--border)'};border-radius:3px;cursor:pointer;margin-right:.3rem;background:${r===mobDist?'var(--ink)':'var(--white)'};color:${r===mobDist?'#fff':'inherit'};font-weight:${r===mobDist?'600':'400'}`;
   const btnsMobRayon = MOB_RAYONS.map(([r,l])=>`<button class="mob-rayon-btn" data-r="${r}" onclick="reloadMobiliteWithDist(${r})" style="${sBtnR(r)}">${l}</button>`).join('');
   const lbs = (c) => `display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;border:1px solid ${c};border-radius:3px;background:${c}18;cursor:pointer;font-size:.7rem;transition:opacity .2s`;
@@ -6754,7 +6767,7 @@ function showServicesMap(filterCat){
   ];
   const legendItems = CAT_INFO.map(c=>({couleur:c.couleur, label:c.label}));
   const svcDist = window._servicesCurrentDist || 1000;
-  const SVC_RAYONS = [[500,'500m'],[1000,'1km'],[2000,'2km']];
+  const SVC_RAYONS = [[500,'500m'],[1000,'1km']];
   const sBtnSvcR = r => `padding:.25rem .65rem;font-size:.72rem;border:1px solid ${r===svcDist?'var(--ink)':'var(--border)'};border-radius:3px;cursor:pointer;margin-right:.3rem;background:${r===svcDist?'var(--ink)':'var(--white)'};color:${r===svcDist?'#fff':'inherit'};font-weight:${r===svcDist?'600':'400'}`;
   const btnsSvcRayon = SVC_RAYONS.map(([r,l])=>`<button class="svc-rayon-btn" data-r="${r}" onclick="reloadServicesWithDist(${r})" style="${sBtnSvcR(r)}">${l}</button>`).join('');
 
