@@ -2095,6 +2095,8 @@ body.imm-on .detail-panel td{border-color:rgba(79,195,247,.12)!important;}
 </div><!-- main-wrap -->
 
 <script>
+window._tileUrl=function(u){return document.body.classList.contains('imm-on')?u.replace('rastertiles/voyager','dark_all').replace('light_all','dark_all'):u;};
+
 // ══ STATE ══
 let groqKey = localStorage.getItem('immoai_groq') || '';
 let chatHistory = [];
