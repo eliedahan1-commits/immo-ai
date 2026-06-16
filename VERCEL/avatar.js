@@ -390,7 +390,7 @@ function buildScene(canvas, wrap){
   scene.add(back);
 
   // Charger avatar
-  const avatarUrl = prefs.avatar || (window._AVATAR_LIST&&window._AVATAR_LIST[0]) || 'images/avatar.png';
+  const avatarUrl = prefs.avatar || (window._AVATAR_LIST&&window._AVATAR_LIST[0]) || 'images/avatar1.png';
   setStatus('Chargement de l\'avatar…');
 
   if(typeof THREE.GLTFLoader !== 'undefined' || (window.THREE && window.THREE.GLTFLoader)){
@@ -459,7 +459,7 @@ function showFallbackAvatar(wrap){
   fb.id = 'av-fallback';
   fb.style.cssText = 'position:absolute;inset:0;display:block;background:#000;overflow:hidden;';
 
-  const imgSrc = prefs.avatar || (window._AVATAR_LIST&&window._AVATAR_LIST[0]) || 'images/avatar.png';
+  const imgSrc = prefs.avatar || (window._AVATAR_LIST&&window._AVATAR_LIST[0]) || 'images/avatar1.png';
 
   // Div fond solide derrière l'image (background-color sur <img> n'affecte pas les px transparents)
   const bgDiv = document.createElement('div');
@@ -982,7 +982,7 @@ function populateAvatarDropdown(){
   wrap.style.display='block';
   const cur = document.getElementById('av-pref-avatar')?.value || list[0] || '';
   grid.innerHTML = list.map((u,i)=>{
-    const lbl = i===0?'Avatar 1':'Avatar '+(i+1);
+    const m=u.match(/avatar(\d+)\.png$/i); const lbl='Avatar '+(m?m[1]:i+1);
     return `<div class="av-thumb av-thumb-portrait${u===cur?' selected':''}" data-val="${u}" onclick="_selectThumb('av-avatar-grid','av-pref-avatar','${u}')" title="${lbl}"><img src="${u}" alt="${lbl}" loading="lazy"></div>`;
   }).join('');
   // Bouton rafraichir (utile apres ajout d'un nouvel avatar deploye)
@@ -997,11 +997,9 @@ function populateAvatarDropdown(){
       rbtn.disabled = true;
       async function _probe(url){ try{ const r=await fetch(url,{method:"HEAD"}); return r.ok; }catch(e){ return false; } }
       window._AVATAR_LIST = [];
-      if(await _probe("images/avatar.png")) window._AVATAR_LIST.push("images/avatar.png");
-      for(let n=2;n<=20;n++){
+      for(let n=1;n<=99;n++){
         const u="images/avatar"+n+".png";
-        if(!(await _probe(u))) break;
-        window._AVATAR_LIST.push(u);
+        if(await _probe(u)) window._AVATAR_LIST.push(u);
       }
       window._BG_MAP = {};
       const bgBase='images/GroupeVide/', bgPfx='Image';
@@ -1011,7 +1009,7 @@ function populateAvatarDropdown(){
         window._BG_MAP[bgPfx+n]=url;
       }
       try{
-        const ck="_immoai_assets_v2";
+        const ck="_immoai_assets_v3";
         sessionStorage.setItem(ck,JSON.stringify({bgMap:window._BG_MAP, avList:window._AVATAR_LIST}));
       }catch(e){}
       rbtn.textContent = "\u21ba Rafra\u00eechir la liste";
@@ -1050,7 +1048,7 @@ function saveSetup(){
   const volume = parseFloat(document.getElementById('av-pref-volume')?.value) || 1;
   const voix = document.getElementById('av-pref-voix')?.value || '';
   const fond = document.getElementById('av-pref-fond')?.value || prefs.fond || 'Image1';
-  const avatar = document.getElementById('av-pref-avatar')?.value || prefs.avatar || (window._AVATAR_LIST&&window._AVATAR_LIST[0]) || 'images/avatar.png';
+  const avatar = document.getElementById('av-pref-avatar')?.value || prefs.avatar || (window._AVATAR_LIST&&window._AVATAR_LIST[0]) || 'images/avatar1.png';
   const fondChange = fond !== prefs.fond;
   const avatarChange = avatar !== prefs.avatar;
   prefs = { configured:true, nom, fond, avatar, vitesse, pitch, volume, voix };

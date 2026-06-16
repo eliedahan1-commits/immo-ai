@@ -278,7 +278,6 @@ aside.open{transform:translateX(0);box-shadow:4px 0 32px rgba(0,0,0,.5);}
   gap:1rem;
   padding:0 2rem 2rem;
   max-width:min(1800px,96vw);margin:0 auto;
-  align-items:start;
 }
 @media(min-width:1400px){.cards-grid{grid-template-columns:repeat(5,1fr);}}
 @media(min-width:1800px){.cards-grid{grid-template-columns:repeat(6,1fr);}}
@@ -4034,7 +4033,7 @@ function computeScoreQuartier() {
   if (dpe && !dpe.error && dpe.pctEfficaces != null) {
     const dpeScore = Math.round(((dpe.pctEfficaces/100)*6 + ((100-dpe.pctPassoires)/100)*4) * 10) / 10;
     items.push({ label:'DPE secteur', icon:'🏷️', val:dpeScore, max:10,
-      action:"_navPanel(()=>showDPESecteurDetail())",
+      action:"_navPanel(()=>showUrbanismeDetail())",
       sub:`${dpe.pctEfficaces}% classes A-B · ${dpe.pctPassoires}% passoires (F-G)` });
   }
 
@@ -5019,6 +5018,31 @@ function _navPanel(fn) {
     setTimeout(fn, 120);
   }
 }
+// ── Navigation DPE depuis le panneau Zonage ──
+// Lit le backAction courant du panneau Zonage, ouvre DPE secteur avec back → Zonage
+function _openDPEFromZonage() {
+  var backBtn = document.querySelector('#detailContainer .back-btn');
+  var zonaAction = backBtn ? (backBtn.getAttribute('onclick') || 'closePanel()') : 'closePanel()';
+  var zonaLabel  = backBtn ? backBtn.textContent.trim() : '← Retour aux cartes';
+  window._zonagehBack = { action: zonaAction, label: zonaLabel };
+  var _o = showPanel;
+  showPanel = function(t, h, ba, bl) {
+    showPanel = _o;
+    _o(t, h, '_reopenZonageFromDPE()', '← Zonage PLU');
+  };
+  showDPESecteurDetail();
+}
+// Rouvre Zonage en restituant le backAction qu'il avait avant d'aller dans DPE
+function _reopenZonageFromDPE() {
+  var saved = window._zonagehBack || {};
+  var _o = showPanel;
+  showPanel = function(t, h, ba, bl) {
+    showPanel = _o;
+    _o(t, h, saved.action || 'closePanel()', saved.label || '← Retour aux cartes');
+  };
+  showUrbanismeDetail();
+}
+
 // ══ SYNTHÈSES PAR CARTE — stockées dans window._cardSyntheses ══
 window._cardSyntheses = window._cardSyntheses || {};
 
@@ -7377,7 +7401,7 @@ function showUrbanismeDetail(){
         <div style="display:flex;gap:.5rem;margin-top:.6rem;flex-wrap:wrap">
           <span style="font-size:.72rem;padding:.2rem .6rem;border-radius:12px;background:#E74C3C22;color:#C0392B;font-weight:600">🔴 Passoires (F+G) : ${dpe.pctPassoires}%</span>
           <span style="font-size:.72rem;padding:.2rem .6rem;border-radius:12px;background:#2ECC7122;color:#27AE60;font-weight:600">🟢 Efficaces (A+B) : ${dpe.pctEfficaces}%</span>
-          <button onclick="showDetail('dpeSecteur')" style="margin-left:auto;font-size:.72rem;background:none;border:1px solid var(--gold);color:var(--gold);border-radius:12px;padding:.2rem .65rem;cursor:pointer;white-space:nowrap">🏷️ Détail DPE →</button>
+          <button onclick="_openDPEFromZonage()" style="margin-left:auto;font-size:.72rem;background:none;border:1px solid var(--gold);color:var(--gold);border-radius:12px;padding:.2rem .65rem;cursor:pointer;white-space:nowrap">🏷️ Détail DPE →</button>
         </div>
         <p style="font-size:.61rem;color:var(--muted);margin-top:.4rem">Source : ADEME · DPE logements existants depuis juillet 2021</p>
       </div>`;
@@ -11165,7 +11189,7 @@ window.immNavStep = function(dir){ immTgt += dir * _immStep; immGo(); };
 window._BG_MAP = {};
 window._AVATAR_LIST = [];
 (async function probeAssets(){
-  const CACHE_KEY = '_immoai_assets_v2';
+  const CACHE_KEY = '_immoai_assets_v3';
   // Lire cache sessionStorage (évite re-sondage à chaque navigation)
   try {
     const cached = sessionStorage.getItem(CACHE_KEY);
@@ -11179,11 +11203,9 @@ window._AVATAR_LIST = [];
     if(!(await probe(url))) break;
     window._BG_MAP[bgPfx+n]=url;
   }
-  if(await probe('images/avatar.png')) window._AVATAR_LIST.push('images/avatar.png');
-  for(let n=2;n<=20;n++){
+  for(let n=1;n<=99;n++){
     const url='images/avatar'+n+'.png';
-    if(!(await probe(url))) break;
-    window._AVATAR_LIST.push(url);
+    if(await probe(url)) window._AVATAR_LIST.push(url);
   }
   // Mettre en cache pour cette session
   try{ sessionStorage.setItem(CACHE_KEY, JSON.stringify({bgMap:window._BG_MAP, avList:window._AVATAR_LIST})); }catch(e){}
