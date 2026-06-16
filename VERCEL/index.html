@@ -1114,14 +1114,16 @@ body.imm-on .mob-layer-btn.on,body.imm-on .mob-all-btn.active{
   border-color:rgba(79,195,247,.6)!important;
 }
 body.imm-on .mob-rayon-btn[style*="font-weight:400"]{opacity:.6;}
+/* Base rayon buttons immersif (eco-rayon-btn n'a pas de background dans le style de base) */
+body.imm-on .eco-rayon-btn{
+  background:rgba(5,15,34,.55)!important;
+  color:rgba(200,230,255,.7)!important;
+  border-color:rgba(79,195,247,.2)!important;
+}
 /* État actif des boutons rayon en mode immersif */
 body.imm-on .mob-rayon-btn[style*="font-weight:600"],
 body.imm-on .svc-rayon-btn[style*="font-weight:600"],
-body.imm-on .score-rayon-btn[style*="font-weight:600"]{
-  background:rgba(79,195,247,.2)!important;
-  border-color:rgba(79,195,247,.6)!important;
-  color:#4fc3f7!important;
-}
+body.imm-on .score-rayon-btn[style*="font-weight:600"],
 body.imm-on .eco-rayon-btn[style*="color:#fff"]{
   background:rgba(79,195,247,.2)!important;
   border-color:rgba(79,195,247,.6)!important;
