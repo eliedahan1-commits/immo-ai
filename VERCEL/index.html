@@ -1028,6 +1028,22 @@ body.imm-on #detailContainer .bub.ai{
   border-color:rgba(79,195,247,.2)!important;
   color:#ddf0ff!important;
 }
+/* Inputs number/text et selects inline-styled (ex: recherche-bien.js) */
+body.imm-on #detailContainer input[type="number"],
+body.imm-on #detailContainer input[type="text"],
+body.imm-on #detailContainer select{
+  background:rgba(5,15,34,.6)!important;
+  color:#ddf0ff!important;
+  border-color:rgba(79,195,247,.2)!important;
+}
+body.imm-on #detailContainer input[type="number"]::placeholder,
+body.imm-on #detailContainer input[type="text"]::placeholder{
+  color:rgba(200,230,255,.35)!important;
+}
+body.imm-on #detailContainer select option{
+  background:#0a1628;
+  color:#ddf0ff;
+}
 
 /* Tuiles de stats (map-stat) → bordure cyan + coins dorés */
 body.imm-on .map-stat{
@@ -8656,6 +8672,11 @@ async function runProfil(){
       const ctx=document.getElementById('radarProfil');
       if(!ctx||!window.Chart) return;
       if(window._radarProfilChart){window._radarProfilChart.destroy();}
+      const _immRadar=document.body.classList.contains("imm-on");
+      const _radarGridC=_immRadar?"rgba(79,195,247,.1)":"rgba(0,0,0,.08)";
+      const _radarLabelC=_immRadar?"rgba(200,230,255,.75)":"#8a7d68";
+      const _radarDlC=_immRadar?"#c9a84c":"#7a5a1e";
+      const _radarDlBg=_immRadar?"rgba(5,15,34,.82)":"rgba(255,255,255,.75)";
       window._radarProfilChart=new Chart(ctx,{
         type:'radar',
         plugins:[ChartDataLabels],
@@ -8673,18 +8694,18 @@ async function runProfil(){
           }]
         },
         options:{
-          scales:{r:{min:0,max:10,ticks:{stepSize:2,display:false},grid:{color:'rgba(0,0,0,.08)'},angleLines:{color:'rgba(0,0,0,.08)'},pointLabels:{font:{size:12,family:'Outfit,sans-serif'},color:'#8a7d68'}}},
+          scales:{r:{min:0,max:10,ticks:{stepSize:2,display:false},grid:{color:_radarGridC},angleLines:{color:_radarGridC},pointLabels:{font:{size:12,family:'Outfit,sans-serif'},color:_radarLabelC}}},
           plugins:{
             legend:{display:false},
             tooltip:{callbacks:{label:ctx=>{const dim=dims[ctx.dataIndex];return dim?.key==='risq'?`${d.ris?.total||0} risque(s)`:`${ctx.raw}/10`;}}},
             datalabels:{
-              color:'#7a5a1e',
+              color:_radarDlC,
               font:{size:11,weight:'700',family:'Outfit,sans-serif'},
               formatter:v=>v+'/10',
               anchor:'end',
               align:'start',
               offset:6,
-              backgroundColor:'rgba(255,255,255,.75)',
+              backgroundColor:_radarDlBg,
               borderRadius:3,
               padding:{top:1,bottom:1,left:3,right:3},
             }
