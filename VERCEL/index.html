@@ -1066,6 +1066,26 @@ body.imm-on .detail-panel p{color:rgba(220,240,255,.8)!important;}
 body.imm-on .detail-panel table{color:#ddf0ff!important;}
 body.imm-on .detail-panel th{color:#4fc3f7!important;border-color:rgba(79,195,247,.2)!important;}
 body.imm-on .detail-panel td{border-color:rgba(79,195,247,.12)!important;}
+/* Inputs & selects en mode immersif */
+body.imm-on #detailContainer .inp,
+body.imm-on #detailContainer select.inp{
+  background:rgba(5,15,34,.8)!important;
+  border-color:rgba(79,195,247,.3)!important;
+  color:#ddf0ff!important;
+}
+body.imm-on #detailContainer .inp::placeholder{color:rgba(200,230,255,.4)!important;}
+body.imm-on #detailContainer .inp:focus{border-color:#4fc3f7!important;box-shadow:0 0 0 3px rgba(79,195,247,.15)!important;}
+/* Bouton btn-dark : bordure gold pour qu'il soit visible */
+body.imm-on #detailContainer .btn-dark{
+  background:rgba(5,15,34,.85)!important;
+  border:1px solid var(--gold)!important;
+  color:var(--gold)!important;
+  font-weight:600;
+}
+body.imm-on #detailContainer .btn-dark:hover{
+  background:var(--gold)!important;
+  color:var(--ink)!important;
+}
 /* ── FIN redesign HUD ────────────────────────────────────────────────────── */
 
 /* #imm-toggle : visibilité gérée uniquement par JS (immShowToggle) */
@@ -7241,7 +7261,7 @@ function showUrbanismeDetail(){
         <div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--gold2)">${z.code||'NC'}</div>
         <div style="font-size:.6rem;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.1em;margin-top:.2rem">Zone PLU</div>
       </div>
-      <div style="flex:3;background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:1rem">
+      <div style="flex:3;background:var(--card-bg);border:1px solid var(--border);border-radius:var(--r);padding:1rem">
         <div style="font-size:.83rem;font-weight:500;margin-bottom:.5rem;line-height:1.4">${zoneLabel}</div>
         <div style="font-size:.75rem;margin-bottom:.4rem">Constructible : <strong style="color:${z.constructible?'var(--green)':'var(--red)'}">${z.constructible===true?'✓ Oui':z.constructible===false?'✗ Non':'À vérifier sur le PLU'}</strong></div>
         ${z.libelle&&z.libelle!==zoneLabel?`<div style="font-size:.7rem;color:var(--muted)">${z.libelle}</div>`:''}
