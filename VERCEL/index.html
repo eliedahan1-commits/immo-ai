@@ -973,9 +973,54 @@ body.imm-on #detailContainer{
   --muted:rgba(200,230,255,.65);
   --border:rgba(79,195,247,.18);
   --ink:rgba(5,15,34,.8);
+  --ink2:rgba(8,20,44,.85);
   --surface2:rgba(5,15,34,.72);
   --card-bg:rgba(5,15,34,.72);
   --white:rgba(5,15,34,.5);
+  --cream:rgba(5,15,34,.6);
+  --warm:rgba(8,20,44,.7);
+  --goldpale:rgba(184,131,42,.12);
+  --goldborder:rgba(79,195,247,.2);
+}
+/* Checkboxes et radios */
+body.imm-on #detailContainer input[type="checkbox"],
+body.imm-on #detailContainer input[type="radio"]{
+  accent-color:#4fc3f7;
+  filter:invert(0.82) hue-rotate(180deg);
+}
+/* Boutons .tog */
+body.imm-on #detailContainer .tog{
+  border-color:rgba(79,195,247,.3)!important;
+  background:rgba(5,15,34,.5)!important;
+  color:rgba(200,230,255,.7)!important;
+}
+body.imm-on #detailContainer .tog.on{
+  border-color:var(--gold)!important;
+  background:rgba(184,131,42,.18)!important;
+  color:var(--gold2)!important;
+}
+/* .aibox (boîte IA / conseils) */
+body.imm-on #detailContainer .aibox{
+  background:rgba(5,15,34,.75)!important;
+  border-color:rgba(79,195,247,.2)!important;
+}
+body.imm-on #detailContainer .aibox .aitext{color:#ddf0ff!important;}
+/* .tb-btn (boutons Achat/Location/type bien) */
+body.imm-on #detailContainer .tb-btn{
+  background:rgba(5,15,34,.5)!important;
+  color:rgba(200,230,255,.8)!important;
+  border-color:rgba(79,195,247,.25)!important;
+}
+body.imm-on #detailContainer .tb-btn.primary{
+  background:rgba(184,131,42,.25)!important;
+  color:var(--gold2)!important;
+  border-color:var(--gold)!important;
+}
+/* Bulles IA */
+body.imm-on #detailContainer .bub.ai{
+  background:rgba(5,15,34,.7)!important;
+  border-color:rgba(79,195,247,.2)!important;
+  color:#ddf0ff!important;
 }
 
 /* Tuiles de stats (map-stat) → bordure cyan + coins dorés */
@@ -2183,7 +2228,7 @@ body.imm-on .detail-panel:has(#tauxHistWrap.taux-fs) {
 </div><!-- main-wrap -->
 
 <script>
-window._tileUrl=function(u){return document.body.classList.contains('imm-on')?u.replace('rastertiles/voyager','dark_all').replace('light_all','dark_all'):u;};
+window._tileUrl=function(u){return u;}; // tuiles Voyager conservées même en mode immersif
 // Intercepteur Chart.js : patch les couleurs texte foncées en mode immersif
 function _patchChartImm(cfg){
   if(!cfg||!cfg.options)return;
