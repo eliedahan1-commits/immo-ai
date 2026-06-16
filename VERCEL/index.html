@@ -2318,7 +2318,7 @@ function go(id){
     if(id === 'profil')   {
       const pLbl=document.getElementById('pAdresseLabel');
       if(pLbl&&currentAddress) pLbl.innerHTML='📍 <strong>'+currentAddress+'</strong>';
-      updatePoidsDisplay();
+      window._profilScoresBruts=_calcScoresBruts(); _buildProfilSliders(); updateProfilScore();
       // Afficher le radar immédiatement avec les données déjà chargées
       if(currentCoords) setTimeout(()=>runProfil(), 150);
     }
@@ -2367,7 +2367,7 @@ function ouvrirBruit(){
 }
 
 // ══ TOGGLES ══
-function tog(g,btn){document.querySelectorAll('#'+g+' .tog').forEach(b=>b.classList.remove('on'));btn.classList.add('on');if(g.startsWith('tP'))updatePoidsDisplay();}
+function tog(g,btn){document.querySelectorAll('#'+g+' .tog').forEach(b=>b.classList.remove('on'));btn.classList.add('on');if(g.startsWith('tP'))updateProfilScore();}
 function togVal(id){return document.querySelector('#'+id+' .tog.on')?.textContent.trim()||'—';}
 
 // ══ PROFIL : afficher/masquer le champ lieu de travail ══
@@ -4914,8 +4914,11 @@ function closePanel(){
   ['_dvfChart','_dvfEvoChart','_risquesChart','_mobiliteChart','_radarChart','_radarProfilChart','_servicesChart','_inseeNeighborChart','_meteoMensuelChart','_meteoEvoChart','_aqHistChart0','_aqHistChart4','_demographieChart'].forEach(k=>{if(window[k]){window[k].destroy();window[k]=null;}});
   document.getElementById('detailContainer').innerHTML = '';
   if(document.body.classList.contains('imm-on')){
-    // En mode immersif : retirer split, mettre à jour le carousel
+    // En mode immersif : retirer split, cacher p-profil, mettre à jour le carousel
     document.body.classList.remove('imm-split');
+    var _pp=document.getElementById('p-profil');if(_pp)_pp.style.display='none';
+    document.querySelectorAll('.page').forEach(function(p){p.style.display='none';});
+    var _pa=document.getElementById('p-analyse');if(_pa)_pa.style.display='';
     if(typeof immRefresh==='function') immRefresh();
   }
   // Si on vient du score global, y retourner
