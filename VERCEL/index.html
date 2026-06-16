@@ -1916,147 +1916,51 @@ body.imm-on .detail-panel:has(#tauxHistWrap.taux-fs) {
       <button class="back-btn" onclick="go('analyse')">← Retour aux cartes</button>
       <button class="detail-close" onclick="go('analyse')" style="color:var(--muted);font-size:.9rem;padding:.3rem .5rem;border:1px solid var(--border);border-radius:var(--r)">✕ Fermer</button>
     </div>
-    <div class="ph"><div class="ptag">✦ Stratégie</div><h2 class="ptitle">Compatibilité <em>de vie</em></h2><p class="psub">L'IA identifie les secteurs vraiment compatibles avec votre style de vie, en s'appuyant sur les données réelles DVF, OpenStreetMap et l'annuaire scolaire.</p></div>
+    <div class="ph"><div class="ptag">✦ Stratégie</div><h2 class="ptitle">Score <em>personnalisé</em></h2><p class="psub">Pondérez chaque critère selon vos priorités de 1 (peu important) à 10 (essentiel). Le score se recalcule en temps réel à partir des données réelles de votre secteur.</p></div>
 
-    <!-- Adresse en haut -->
-    <div class="card" style="margin-bottom:1rem">
-      <div class="ctitle">📍 Adresse analysée</div>
-      <p style="font-size:.82rem;color:var(--muted);margin-bottom:.7rem" id="pAdresseLabel">Analysez d'abord une adresse depuis la page principale.</p>
-      <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.9rem;flex-wrap:wrap">
-        <span style="font-size:.75rem;color:var(--muted);margin-right:.2rem">Rayon d'analyse :</span>
-        <button class="profil-rayon-btn" data-r="500"  onclick="setProfilRayon(500)"  style="padding:.2rem .6rem;font-size:.72rem;border:1px solid var(--border);border-radius:3px;cursor:pointer;background:var(--white)">500m</button>
-        <button class="profil-rayon-btn" data-r="1000" onclick="setProfilRayon(1000)" style="padding:.2rem .6rem;font-size:.72rem;border:1px solid var(--ink);border-radius:3px;cursor:pointer;background:var(--ink);color:#fff;font-weight:600">1 km</button>
-        <button class="profil-rayon-btn" data-r="2000" onclick="setProfilRayon(2000)" style="padding:.2rem .6rem;font-size:.72rem;border:1px solid var(--border);border-radius:3px;cursor:pointer;background:var(--white)">2 km</button>
+    <!-- Score hero -->
+    <div style="background:var(--ink);border-radius:var(--r);padding:1.25rem 1.5rem;margin-bottom:1rem;color:#fff">
+      <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:.4rem;flex-wrap:wrap">
+        <span id="profilScoreNum" style="font-family:'Cormorant Garamond',serif;font-size:3rem;line-height:1;color:#c9a84c">—</span>
+        <span style="font-size:1.1rem;color:rgba(255,255,255,.5)">/10</span>
+        <span style="font-size:.75rem;color:rgba(255,255,255,.5);margin-left:.5rem" id="pAdresseLabel">Analysez une adresse d'abord</span>
       </div>
-      <button class="btn btn-dark btn-full" onclick="runProfil()" id="btnProfil">✦ Analyser la compatibilité avec votre profil de vie</button>
+      <div style="height:6px;background:rgba(255,255,255,.1);border-radius:3px;margin-bottom:.9rem;overflow:hidden">
+        <div id="profilScoreBar" style="height:100%;border-radius:3px;width:0%;transition:width .4s,background .4s"></div>
+      </div>
+      <div id="profilConclText" style="font-size:.8rem;color:rgba(255,255,255,.7);line-height:1.65">Renseignez votre profil ci-dessous pour obtenir votre score de compatibilité personnalisé.</div>
     </div>
 
-    <!-- Layout 2 colonnes -->
-    <div id="profilGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:start">
-
-    <!-- Colonne gauche : questions -->
-    <div id="profilColQuestions">
-    <div class="card"><div class="ctitle" style="display:flex;justify-content:space-between;align-items:center">🎯 Votre profil de vie<button onclick="resetProfil()" style="font-size:.68rem;padding:.2rem .5rem;border:1px solid var(--border);border-radius:4px;background:transparent;color:var(--muted);cursor:pointer">↺ Réinitialiser</button></div>
-
-      <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Enfants ?</p>
-      <div class="toggles" style="margin-bottom:.9rem" id="tPE">
-        <button class="tog" onclick="tog('tPE',this)">Oui, en bas âge</button>
-        <button class="tog" onclick="tog('tPE',this)">Oui, scolaires</button>
-        <button class="tog" onclick="tog('tPE',this)">Prévu</button>
-        <button class="tog" onclick="tog('tPE',this)">Non</button>
+    <!-- Profil financier -->
+    <div class="card" style="margin-bottom:1rem">
+      <div class="ctitle">💼 Votre projet</div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.9rem" id="profilIntentBtns">
+        <button class="pint-btn on" data-i="achat" onclick="profilSetIntent('achat')" style="flex:1;min-width:70px;padding:.4rem .5rem;font-size:.74rem;border:1px solid var(--gold);border-radius:var(--r);cursor:pointer;background:var(--ink);color:#fff">🏠 Acheter</button>
+        <button class="pint-btn" data-i="invest" onclick="profilSetIntent('invest')" style="flex:1;min-width:70px;padding:.4rem .5rem;font-size:.74rem;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;background:var(--white);color:inherit">📈 Investir</button>
+        <button class="pint-btn" data-i="louer" onclick="profilSetIntent('louer')" style="flex:1;min-width:70px;padding:.4rem .5rem;font-size:.74rem;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;background:var(--white);color:inherit">🔑 Louer</button>
+        <button class="pint-btn" data-i="comp" onclick="profilSetIntent('comp')" style="flex:1;min-width:70px;padding:.4rem .5rem;font-size:.74rem;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;background:var(--white);color:inherit">🗺️ Comparer</button>
       </div>
-
-      <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Animaux de compagnie ?</p>
-      <div class="toggles" style="margin-bottom:.9rem" id="tPAnim">
-        <button class="tog" onclick="tog('tPAnim',this)">Oui</button>
-        <button class="tog" onclick="tog('tPAnim',this)">Non</button>
-      </div>
-
-      <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Mode de travail ?</p>
-      <div class="toggles" style="margin-bottom:.5rem" id="tPT">
-        <button class="tog" onclick="tog('tPT',this);updateTravailDiv()">Télétravail</button>
-        <button class="tog" onclick="tog('tPT',this);updateTravailDiv()">Hybride</button>
-        <button class="tog" onclick="tog('tPT',this);updateTravailDiv()">Présentiel</button>
-      </div>
-      <div id="pTravailDiv" style="display:none;margin-bottom:.9rem">
-        <p class="lbl" style="margin-bottom:.4rem">Lieu de travail (adresse ou ville)</p>
-        <div style="position:relative">
-          <input class="inp" id="pTravailLieu" placeholder="Ex: La Défense, Paris 8e, Versailles…" autocomplete="off" />
-          <div class="search-suggestions" id="pTravailSugs" style="top:auto;bottom:auto;left:0;right:0;"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.7rem">
+        <div>
+          <label class="lbl">Revenus nets mensuels (€)</label>
+          <input class="inp" id="pw-revenus" type="number" placeholder="ex : 3 500" min="0" oninput="updateProfilScore()">
+        </div>
+        <div>
+          <label class="lbl">Apport disponible (€)</label>
+          <input class="inp" id="pw-apport" type="number" placeholder="ex : 80 000" min="0" oninput="updateProfilScore()">
         </div>
       </div>
+    </div>
 
-      <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Transport principal ?</p>
-      <div class="toggles" style="margin-bottom:.9rem" id="tPTrans">
-        <button class="tog" onclick="tog('tPTrans',this)">Voiture</button>
-        <button class="tog" onclick="tog('tPTrans',this)">Métro / RER</button>
-        <button class="tog" onclick="tog('tPTrans',this)">Vélo</button>
-        <button class="tog" onclick="tog('tPTrans',this)">À pied</button>
-      </div>
+    <!-- Sliders 22 critères -->
+    <div id="profilSlidersWrap"></div>
 
-      <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Espaces verts ?</p>
-      <div class="toggles" style="margin-bottom:.9rem" id="tPNature">
-        <button class="tog" onclick="tog('tPNature',this)">Parc à proximité</button>
-        <button class="tog" onclick="tog('tPNature',this)">Nature &amp; forêt</button>
-        <button class="tog" onclick="tog('tPNature',this)">Bord d'eau</button>
-        <button class="tog" onclick="tog('tPNature',this)">Peu importe</button>
-      </div>
-
-      <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Ambiance souhaitée ?</p>
-      <div class="toggles" style="margin-bottom:.9rem" id="tPAmb">
-        <button class="tog" onclick="tog('tPAmb',this)">Calme &amp; résidentiel</button>
-        <button class="tog" onclick="tog('tPAmb',this)">Animé &amp; commerçant</button>
-        <button class="tog" onclick="tog('tPAmb',this)">Village urbain</button>
-      </div>
-
-      <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Extérieur souhaité ?</p>
-      <div class="toggles" style="margin-bottom:.9rem" id="tPExt">
-        <button class="tog" onclick="tog('tPExt',this)">Balcon</button>
-        <button class="tog" onclick="tog('tPExt',this)">Jardin</button>
-        <button class="tog" onclick="tog('tPExt',this)">Terrasse</button>
-        <button class="tog" onclick="tog('tPExt',this)">Sans préférence</button>
-      </div>
-
-      <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Type de bien ?</p>
-      <div class="toggles" style="margin-bottom:.9rem" id="tPLoge">
-        <button class="tog" onclick="tog('tPLoge',this)">Appartement</button>
-        <button class="tog" onclick="tog('tPLoge',this)">Maison</button>
-        <button class="tog" onclick="tog('tPLoge',this)">Indifférent</button>
-      </div>
-
-      <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Priorité de vie ?</p>
-      <div class="toggles" style="margin-bottom:.9rem" id="tPS">
-        <button class="tog" onclick="tog('tPS',this)">Sport &amp; plein air</button>
-        <button class="tog" onclick="tog('tPS',this)">Gastronomie &amp; sorties</button>
-        <button class="tog" onclick="tog('tPS',this)">Culture &amp; musées</button>
-        <button class="tog" onclick="tog('tPS',this)">Tranquillité</button>
-      </div>
-
-      <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Sensibilité au bruit ?</p>
-      <div class="toggles" style="margin-bottom:.9rem" id="tPBruit">
-        <button class="tog" onclick="tog('tPBruit',this)">Très sensible</button>
-        <button class="tog" onclick="tog('tPBruit',this)">Neutre</button>
-      </div>
-
-      <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Ensoleillement important ?</p>
-      <div class="toggles" style="margin-bottom:.9rem" id="tPSoleil">
-        <button class="tog" onclick="tog('tPSoleil',this)">Oui, j'aime le soleil</button>
-        <button class="tog" onclick="tog('tPSoleil',this)">Neutre</button>
-      </div>
-
-      <p class="lbl" style="font-weight:500;margin-bottom:.4rem">Budget total ?</p>
-      <div class="toggles" style="margin-bottom:1rem" id="tPB">
-        <button class="tog" onclick="tog('tPB',this)">&lt; 300k€</button>
-        <button class="tog" onclick="tog('tPB',this)">300–600k€</button>
-        <button class="tog" onclick="tog('tPB',this)">600k–1M€</button>
-        <button class="tog" onclick="tog('tPB',this)">&gt; 1M€</button>
-      </div>
-
-      <!-- Poids calculés -->
-      <div style="border-top:1px solid var(--border);padding-top:.8rem;margin-top:.2rem">
-        <p class="lbl" style="font-size:.7rem;font-weight:600;margin-bottom:.5rem;letter-spacing:.06em;text-transform:uppercase">Poids du score</p>
-        <div id="poidsGrid" style="display:flex;flex-wrap:wrap;gap:.3rem"></div>
-        <p style="font-size:.62rem;color:var(--muted);margin-top:.4rem">Mis à jour selon vos réponses · ×1 = neutre</p>
-      </div>
-
-    </div><!-- fin card questions -->
-    </div><!-- fin colonne gauche -->
-
-    <!-- Colonne droite : radar -->
-    <div id="profilColRadar">
-      <div class="card" id="radarCard" style="display:none">
-        <div class="ctitle">📊 Score de compatibilité</div>
-        <div style="max-width:460px;margin:0 auto"><canvas id="radarCanvas" height="380"></canvas></div>
-      </div>
-      <div id="radarPlaceholder" class="card" style="text-align:center;padding:2rem 1rem;color:var(--muted);font-size:.85rem">
-        <div style="font-size:2rem;margin-bottom:.5rem">📊</div>
-        Remplissez votre profil et cliquez sur<br><strong>Analyser la compatibilité</strong>
-      </div>
-    </div><!-- fin colonne droite -->
-
-    </div><!-- fin grid 2 colonnes -->
-
-    <div class="aibox" id="boxProfil" style="display:none;margin-top:1rem"><div class="ailabel">✦ Compatibilité · <span class="source-badge">📊 DVF + OSM + Écoles + Risques</span></div><div id="txtProfil" class="aitext"></div></div>
+    <!-- Actions -->
+    <div style="display:flex;gap:.6rem;margin-top:.5rem;flex-wrap:wrap">
+      <button class="btn btn-dark btn-full" id="btnProfilIA" onclick="runProfilIA()" style="flex:2">✦ Analyse IA personnalisée</button>
+      <button onclick="resetProfilPoids()" style="flex:1;padding:.5rem .8rem;font-size:.78rem;border:1px solid var(--border);border-radius:var(--r);background:transparent;color:var(--muted);cursor:pointer;min-width:110px">↺ Réinitialiser</button>
+    </div>
+    <div class="aibox" id="boxProfilNew" style="display:none;margin-top:1rem"><div class="ailabel">✦ Conseiller IA · <span class="source-badge">📊 Profil personnalisé</span></div><div id="txtProfilNew" class="aitext"></div></div>
   </div></div>
 
   <!-- ══ CONSEILLER IA ══ -->
@@ -8387,372 +8291,181 @@ function getProfilWeights(){
   };
 }
 
-window._profilRayon = 1000; // rayon par défaut pour Compatibilité de vie
-function setProfilRayon(r){
-  window._profilRayon = r;
-  document.querySelectorAll('.profil-rayon-btn').forEach(b=>{
-    const active = parseInt(b.dataset.r) === r;
-    b.style.background = active ? 'var(--ink)' : 'var(--white)';
-    b.style.color = active ? '#fff' : 'inherit';
-    b.style.borderColor = active ? 'var(--ink)' : 'var(--border)';
-    b.style.fontWeight = active ? '600' : '400';
+// ══ COMPATIBILITÉ PERSONNALISÉE ══
+var _PROFIL_CRITERES=[
+  {key:"prix",    label:"Prix médian m²",           sect:"Marché immobilier",      emoji:"💰"},
+  {key:"effort",  label:"Effort d'achat 50m²",      sect:"Marché immobilier",      emoji:"📅"},
+  {key:"densite", label:"Densité urbaine",           sect:"Population & économie",  emoji:"🏙️"},
+  {key:"revenu",  label:"Revenu médian",             sect:"Population & économie",  emoji:"💳"},
+  {key:"chomage", label:"Chômage",                   sect:"Population & économie",  emoji:"📊"},
+  {key:"bac5",    label:"Niveau diplôme (Bac+5)",    sect:"Population & économie",  emoji:"🎓"},
+  {key:"soleil",  label:"Ensoleillement",            sect:"Cadre de vie",           emoji:"☀️"},
+  {key:"temp",    label:"Températures",              sect:"Cadre de vie",           emoji:"🌡️"},
+  {key:"bruit",   label:"Bruit estimé",              sect:"Cadre de vie",           emoji:"🔊"},
+  {key:"air",     label:"Qualité de l'air",          sect:"Cadre de vie",           emoji:"💨"},
+  {key:"risques", label:"Risques naturels",           sect:"Cadre de vie",           emoji:"⚠️"},
+  {key:"secu",    label:"Sécurité (criminalité)",    sect:"Cadre de vie",           emoji:"🔒"},
+  {key:"mob",     label:"Score mobilité",            sect:"Mobilité & services",    emoji:"🚇"},
+  {key:"transp",  label:"Transports",                sect:"Mobilité & services",    emoji:"🚌"},
+  {key:"svc",     label:"Services & commerces",      sect:"Mobilité & services",    emoji:"🏥"},
+  {key:"ecoles",  label:"Établissements scolaires",  sect:"Mobilité & services",    emoji:"🏫"},
+  {key:"fibre",   label:"Fibre FTTH",                sect:"Mobilité & services",    emoji:"📶"},
+  {key:"propri",  label:"Propriétaires 2022",        sect:"Logement",               emoji:"🏠"},
+  {key:"vacants", label:"Logements vacants",         sect:"Logement",               emoji:"🏚️"},
+  {key:"seuls",   label:"Ménages seuls 2022",        sect:"Logement",               emoji:"👤"},
+  {key:"evopop",  label:"Évolution population",      sect:"Dynamisme",              emoji:"📈"},
+  {key:"demo",    label:"Profil démographique",      sect:"Dynamisme",              emoji:"👥"},
+];
+window._profilIntent=window._profilIntent||"achat";
+
+function _calcScoresBruts(){
+  var s={};
+  var dvf=window._dvfData,ins=window._inseeData&&window._inseeData.commune;
+  var meteo=window._meteoData,mob=window._mobiliteData;
+  var eco=window._ecolesData,fib=window._fibreData;
+  var mel=window._melodiData,demo=window._demographieData;
+  var crim=window._criminaliteData,air=window._qualiteAirData;
+  var bruitD=window._bruitData,risq=window._risquesData,svcD=window._servicesData;
+  if(dvf&&dvf.prix){var p=dvf.prix;s.prix=p<3000?10:p<4500?8:p<6000?6:p<8000?5:p<10000?3:p<13000?1.5:0;}
+  if(dvf&&dvf.prix&&ins&&ins.revenuMedian){var ef=(dvf.prix*50)/ins.revenuMedian;s.effort=ef<60?10:ef<80?8:ef<100?7:ef<130?5:ef<160?3:ef<200?1.5:0;}
+  if(ins&&ins.densite!=null){var d=ins.densite;s.densite=d>15000?3:d>10000?5:d>5000?8:d>2000?9:d>500?7:d>100?5:4;}
+  if(ins&&ins.revenuMedian){var r=ins.revenuMedian;s.revenu=r>4000?10:r>3000?8:r>2500?6:r>2000?4:r>1500?2:1;}
+  if(ins&&ins.chomage!=null){var ch=ins.chomage;s.chomage=ch<5?10:ch<7?8:ch<9?6:ch<12?4:ch<15?2:0;}
+  if(ins&&ins.bac5!=null){var b5=ins.bac5;s.bac5=b5>30?10:b5>20?8:b5>15?6:b5>10?5:b5>7?3:2;}
+  if(meteo&&meteo.ensoleillement&&meteo.ensoleillement.heuresAnnuelles){var h=meteo.ensoleillement.heuresAnnuelles;s.soleil=h>2200?10:h>1800?8:h>1400?6:h>1000?4:2;}
+  if(meteo&&meteo.temperatures){var tm=parseFloat(meteo.temperatures.maxMoyenne)||0;s.temp=tm>20?10:tm>17?8:tm>14?6:tm>11?4:2;}
+  if(bruitD&&bruitD.success&&bruitD.niveauCode){s.bruit=bruitD.niveauCode==="faible"?9:bruitD.niveauCode==="modere"?5.5:2;}
+  if(air&&air.aqi!=null&&!air.error){s.air=Math.max(0,Math.min(10,Math.round((100-air.aqi)/10)));}
+  if(risq&&risq.total!=null){s.risques=Math.max(0,10-risq.total);}
+  if(crim&&crim.score!=null){s.secu=crim.score;}
+  if(mob&&mob.score!=null){s.mob=mob.score;}
+  if(mob&&mob.stats){var st=mob.stats;var nb=(st.metro||0)*3+(st.trams||0)*2+(st.gares||0)*2+Math.min(st.arretsBus||0,200)/20;s.transp=Math.min(10,Math.round(nb));}
+  if(svcD&&svcD.score!=null){s.svc=svcD.score;}
+  if(eco&&eco.total!=null){var t=eco.total;s.ecoles=t===0?1:t<=3?4:t<=7?6:t<=14?8:9.5;}
+  if(fib&&fib.fibre){s.fibre=fib.fibre.eligible===true?10:fib.fibre.eligible===false?3:5;}
+  if(mel&&mel.pctPropri!=null){var pp=mel.pctPropri;s.propri=pp>70?10:pp>55?8:pp>40?6:pp>25?4:2;}
+  if(mel&&mel.nbVacants!=null&&mel.nbResidPrinc!=null){var tL=(mel.nbResidPrinc||0)+(mel.nbVacants||0);if(tL>0){var pV=Math.round((mel.nbVacants||0)/tL*100);s.vacants=pV<5?10:pV<8?7:pV<12?5:3;}}
+  if(ins&&ins.menagesSeuls!=null){var ms=ins.menagesSeuls;s.seuls=ms>50?3:ms>40?5:ms>30?7:ms>20?9:10;}
+  else if(mel&&mel.menagesSeuls!=null){var ms2=mel.menagesSeuls;s.seuls=ms2>50?3:ms2>40?5:ms2>30?7:ms2>20?9:10;}
+  if(demo&&demo.rows&&demo.rows.length>=2){var rows=demo.rows,last=rows[rows.length-1],refY=last.year-10;var ref=rows.reduce(function(p,c){return Math.abs(c.year-refY)<Math.abs(p.year-refY)?c:p;});var evo=ref.pop>0?(last.pop-ref.pop)/ref.pop*100:0;s.evopop=evo>5?10:evo>2?8:evo>0.5?6:evo>-1?5:evo>-3?3:1;}
+  if(mel&&mel.pyramideAges){var pyr=mel.pyramideAges;var tot=Object.values(pyr).reduce(function(a,v){return a+v;},0);if(tot>0){var actif=Math.round(((pyr.Y25T39||0)+(pyr.Y40T54||0)+(pyr.Y55T64||0))/tot*100);var young=Math.round(((pyr.Y_LT15||0)+(pyr.Y15T24||0))/tot*100);s.demo=Math.min(10,Math.round(actif/10+young/5));}}
+  return s;
+}
+
+function _getPoidsProfil(){
+  var poids={};
+  _PROFIL_CRITERES.forEach(function(c){var el=document.getElementById("pw-"+c.key);poids[c.key]=el?parseInt(el.value)||5:5;});
+  return poids;
+}
+
+function _calcProfilScore(scores,poids){
+  var sumW=0,sumWS=0;
+  _PROFIL_CRITERES.forEach(function(c){if(scores[c.key]!=null){var w=poids[c.key]||5;sumW+=w;sumWS+=w*scores[c.key];}});
+  return sumW>0?Math.round(sumWS/sumW*10)/10:null;
+}
+
+function profilSetIntent(i){
+  window._profilIntent=i;
+  document.querySelectorAll(".pint-btn").forEach(function(b){
+    var on=b.dataset.i===i;
+    b.style.background=on?"var(--ink)":"var(--white)";
+    b.style.color=on?"#fff":"inherit";
+    b.style.borderColor=on?"var(--gold)":"var(--border)";
+    b.classList.toggle("on",on);
   });
+  updateProfilScore();
 }
 
-function navigateFromRadarDim(dim){
-  if(!dim) return;
-  const nav = {
-    mob:   ()=>{ _goPage('analyse'); setTimeout(()=>showMobiliteDetail(),100); },
-    eco:   ()=>{ _goPage('analyse'); setTimeout(()=>showEcolesDetail(),100); },
-    parc:  ()=>{ _goPage('analyse'); setTimeout(()=>showServicesMap('parc'),100); },
-    rest:  ()=>{ _goPage('analyse'); setTimeout(()=>showServicesMap('restauration'),100); },
-    cult:  ()=>{ _goPage('analyse'); setTimeout(()=>showServicesMap('culture'),100); },
-    sprt:  ()=>{ _goPage('analyse'); setTimeout(()=>showServicesMap('sport'),100); },
-    bruit: ()=>{ _goPage('analyse'); setTimeout(()=>showBruitDetail(),100); },
-    svc:   ()=>{ _goPage('analyse'); setTimeout(()=>showServicesMap(),100); },
-    meteo: ()=>{ _goPage('analyse'); setTimeout(()=>showMeteoDetail(),100); },
-    risq:  ()=>{ _goPage('analyse'); setTimeout(()=>showRisquesDetail(),100); },
-    trav:  ()=>{ _goPage('analyse'); setTimeout(()=>showMobiliteDetail(),100); },
-  };
-  const fn = nav[dim.key];
-  if(fn) fn();
+function updateProfilScore(){
+  var scores=window._profilScoresBruts||_calcScoresBruts();
+  var poids=_getPoidsProfil();
+  var score=_calcProfilScore(scores,poids);
+  var el=document.getElementById("profilScoreNum");
+  var bar=document.getElementById("profilScoreBar");
+  var concl=document.getElementById("profilConclText");
+  if(el) el.textContent=score!=null?score.toFixed(1):"—";
+  if(bar&&score!=null){bar.style.width=Math.round(score*10)+"%";bar.style.background=score>=7?"#1D9E75":score>=5?"#BA7517":"#E24B4A";}
+  try{localStorage.setItem("_immoai_profil_poids",JSON.stringify(poids));}catch(e){}
+  if(concl&&score!=null) concl.innerHTML=_buildProfilConclusion(score,scores,poids);
+  var card=document.getElementById("card-val-profil");
+  if(card&&score!=null) card.textContent=score.toFixed(1)+"/10";
 }
 
-function resetProfil(){
-  document.querySelectorAll('#p-profil .tog').forEach(b=>b.classList.remove('on'));
-  const travInput=document.getElementById('pTravailLieu');
-  if(travInput) travInput.value='';
-  document.getElementById('pTravailDiv').style.display='none';
-  window._travailCoords=null;
-  updatePoidsDisplay();
+function _buildProfilConclusion(score,scores,poids){
+  var addr=window.currentAddress||"ce secteur";
+  var pct=Math.round(score*10);
+  var note=score>=8?"Excellent":score>=7?"Très bon":score>=5?"Partiel":"Faible";
+  var maxW=0,topKey=null;
+  _PROFIL_CRITERES.forEach(function(c){if(scores[c.key]!=null&&(poids[c.key]||5)>maxW){maxW=poids[c.key]||5;topKey=c.key;}});
+  var topCrit=_PROFIL_CRITERES.find(function(c){return c.key===topKey;});
+  var topScore=topKey?scores[topKey]:null;
+  var lines=[];
+  lines.push("<strong>"+pct+"% de compatibilité</strong> · "+note+" match pour "+addr+".");
+  if(topCrit&&topScore!=null){var ok=topScore>=6;lines.push((ok?"✅":"⚠️")+" Priorité principale (<em>"+topCrit.label+"</em>) : "+topScore.toFixed(1)+"/10 — "+(ok?"correspond à vos attentes.":"point à surveiller."));}
+  var intent=window._profilIntent||"achat";
+  var dvf=window._dvfData;
+  var rev=parseInt((document.getElementById("pw-revenus")||{}).value)||0;
+  var apport=parseInt((document.getElementById("pw-apport")||{}).value)||0;
+  if(intent==="achat"&&dvf&&dvf.prix){if(rev>0){var cap=Math.round(rev*0.33*240);var budget=cap+apport;var surf=Math.round(budget/dvf.prix);lines.push("💰 Capacité estimée : "+budget.toLocaleString("fr-FR")+"€ → <strong>~"+surf+" m²</strong> au prix médian ("+dvf.prix.toLocaleString("fr-FR")+"€/m²).");}else{lines.push("💡 Renseignez vos revenus pour estimer votre budget et la surface accessible.");}}
+  else if(intent==="invest"&&dvf&&dvf.prix){var loyer=Math.round(dvf.prix*0.004);var rdt=Math.round(loyer*12/dvf.prix*100*10)/10;lines.push("📊 Rendement brut estimé : ~"+loyer+"€/m²/mois → ~"+rdt+"% brut/an.");}
+  else if(intent==="louer"&&dvf&&dvf.prix){var lm=Math.round(dvf.prix*0.004);lines.push("🔑 Loyer estimé : ~"+lm+"€/m²/mois — budget 40 m² : ~"+(lm*40).toLocaleString("fr-FR")+"€/mois.");}
+  else if(intent==="comp"){lines.push("🗺️ Changez d'adresse pour comparer votre score sur un autre secteur.");}
+  return lines.join("<br>");
 }
 
-function updatePoidsDisplay(){
-  const w=getProfilWeights();
-  // Poids trajet calculé dynamiquement selon mode de travail
-  const modeTravail=togVal('tPT');
-  const hasTravail=!!window._travailCoords;
-  if(hasTravail){
-    w.trav = modeTravail==='Présentiel'?3:modeTravail==='Hybride'?2:modeTravail==='Télétravail'?0.5:1;
-  }
-  const dims=[
-    {key:'mob',  label:'Mobilité',  emoji:'🚇'},
-    {key:'eco',  label:'Écoles & niveau scolaire',    emoji:'🏫'},
-    {key:'parc', label:'Parcs',     emoji:'🌳'},
-    {key:'rest', label:'Restau.',   emoji:'🍽️'},
-    {key:'cult', label:'Culture',   emoji:'🎭'},
-    {key:'sprt', label:'Sport',     emoji:'🏋️'},
-    {key:'bruit',label:'Calme',     emoji:'🔇'},
-    {key:'svc',  label:'Services',  emoji:'🏥'},
-    {key:'meteo',label:'Soleil',    emoji:'☀️'},
-    {key:'risq', label:'Risques',   emoji:'⚠️'},
-    ...(hasTravail?[{key:'trav',label:'Trajet',emoji:'🏢'}]:[]),
-  ];
-  const color=v=>v>=2.5?'#2d6a4f':v>=1.5?'#b8832a':v<=0.5?'#8a7d68':'#3d2f1e';
-  const grid=document.getElementById('poidsGrid');
-  if(!grid)return;
-  grid.innerHTML=dims.map(d=>`<span style="display:inline-flex;align-items:center;gap:.2rem;background:var(--cardbg);border:1px solid var(--border);border-radius:4px;padding:.2rem .4rem;font-size:.7rem">
-    <span>${d.emoji}</span><span style="color:var(--muted)">${d.label}</span><strong style="color:${color(w[d.key])}">×${w[d.key]}</strong>
-  </span>`).join('');
+function _buildProfilSliders(){
+  var wrap=document.getElementById("profilSlidersWrap");
+  if(!wrap) return;
+  var scores=window._profilScoresBruts||{};
+  var savedPoids={};
+  try{savedPoids=JSON.parse(localStorage.getItem("_immoai_profil_poids")||"{}");}catch(e){}
+  var sections={},order=[];
+  _PROFIL_CRITERES.forEach(function(c){if(!sections[c.sect]){sections[c.sect]=[];order.push(c.sect);}sections[c.sect].push(c);});
+  var html="";
+  order.forEach(function(sect){
+    html+='<div class="card" style="margin-bottom:1rem">';
+    html+='<div class="ctitle">'+sect+'</div>';
+    sections[sect].forEach(function(c){
+      var w=savedPoids[c.key]||5;
+      var sv=scores[c.key]!=null?'<span style="font-size:.65rem;color:var(--muted);margin-right:4px">données:'+scores[c.key].toFixed(1)+'/10</span>':'';
+      html+='<div style="margin-bottom:.85rem">';
+      html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">';
+      html+='<span style="font-size:.78rem;font-weight:500">'+c.emoji+' '+c.label+'</span>';
+      html+='<div style="display:flex;align-items:center;gap:4px">'+sv;
+      html+='<span style="font-size:.8rem;font-weight:500;min-width:14px;text-align:right" id="pwv-'+c.key+'">'+w+'</span><span style="font-size:.68rem;color:var(--muted)">/10</span></div></div>';
+      html+='<input type="range" min="1" max="10" value="'+w+'" step="1" id="pw-'+c.key+'" oninput="document.getElementById(\'pwv-'+c.key+'\').textContent=this.value;updateProfilScore()" style="width:100%">';
+      html+='</div>';
+    });
+    html+='</div>';
+  });
+  wrap.innerHTML=html;
 }
 
-// Poids du profil (Comparer des biens)
-// Score global pondéré
-function globalScore(scores,weights){
-  const keys=Object.keys(weights);
-  const tw=keys.reduce((a,k)=>a+(weights[k]||0),0);
-  const sum=keys.reduce((a,k)=>a+(scores[k]||0)*(weights[k]||0),0);
-  return Math.round(sum/tw);
+function resetProfilPoids(){
+  _PROFIL_CRITERES.forEach(function(c){var el=document.getElementById("pw-"+c.key);if(el){el.value=5;var lbl=document.getElementById("pwv-"+c.key);if(lbl)lbl.textContent=5;}});
+  var ri=document.getElementById("pw-revenus");if(ri)ri.value="";
+  var ai=document.getElementById("pw-apport");if(ai)ai.value="";
+  profilSetIntent("achat");
+  try{localStorage.removeItem("_immoai_profil_poids");}catch(e){}
+  updateProfilScore();
 }
 
-// Rendu tableau de comparaison
-function renderCompTable(items,weights,showBien,travailLabel){
-  const sColor=s=>s>=7?'#2d6a4f':s>=4?'#b8832a':'#7a2d2d';
-  const bar=s=>`<div style="height:5px;background:var(--border);border-radius:3px;margin-top:3px;overflow:hidden"><div style="height:100%;width:${s*10}%;background:${sColor(s)};border-radius:3px"></div></div>`;
-  const stag=s=>`<span style="font-size:.68rem;color:${sColor(s)};font-weight:600">${s}/10</span>`;
-  const dcell=(val,s)=>`<td style="padding:.5rem .4rem;text-align:center;border-bottom:1px solid var(--borderl);vertical-align:top"><div style="font-size:.79rem;font-weight:500;line-height:1.35">${val}</div>${bar(s)}${stag(s)}</td>`;
-  const icell=html=>`<td style="padding:.5rem .4rem;text-align:center;border-bottom:1px solid var(--borderl);vertical-align:middle">${html}</td>`;
-  const lcell=(e,l,bold)=>`<td style="padding:.5rem .4rem;font-size:.76rem;font-weight:${bold?'600':'400'};white-space:nowrap;border-bottom:1px solid var(--borderl)">${e} ${l}</td>`;
-  const colW=Math.floor(75/items.length);
-  const ths=items.map(it=>`<th style="padding:.6rem .4rem;font-size:.72rem;font-weight:600;text-align:center;border-bottom:2px solid var(--border);width:${colW}%;line-height:1.3">${it.label}</th>`).join('');
-  const rows=[];
-
-  rows.push(`<tr>${lcell('🚇','Mobilité')}${items.map(it=>{
-    const m=it.data.mob;
-    const v=m?.score!=null?`${m.score}/10<br><small style="color:var(--muted)">${m.stats?.metro||0} métro · ${m.stats?.arretsBus||0} bus</small>`:'—';
-    return dcell(v,it.scores.mob);}).join('')}</tr>`);
-
-  rows.push(`<tr>${lcell('🏫','Écoles')}${items.map(it=>{
-    const e=it.data.eco?.types;
-    const tot=(e?.ecoles||0)+(e?.college||0)+(e?.lycee||0);
-    const v=e?`${tot} établissements<br><small style="color:var(--muted)">${e.ecoles||0} éc. · ${e.college||0} col. · ${e.lycee||0} lyc.</small>`:'—';
-    return dcell(v,it.scores.eco);}).join('')}</tr>`);
-
-  rows.push(`<tr>${lcell('🌳','Espaces verts')}${items.map(it=>{
-    const v=it.data.am?.counts?.parcs!=null?`${it.data.am.counts.parcs} parcs/jardins`:'—';
-    return dcell(v,it.scores.parc);}).join('')}</tr>`);
-
-  rows.push(`<tr>${lcell('🍽️','Restaurants')}${items.map(it=>{
-    const v=it.data.am?.counts?.restaurants!=null?`${it.data.am.counts.restaurants} établissements`:'—';
-    return dcell(v,it.scores.rest);}).join('')}</tr>`);
-
-  rows.push(`<tr>${lcell('🎭','Culture')}${items.map(it=>{
-    const v=it.data.am?.counts?.culture!=null?`${it.data.am.counts.culture} lieux`:'—';
-    return dcell(v,it.scores.cult);}).join('')}</tr>`);
-
-  rows.push(`<tr>${lcell('🏋️','Sport')}${items.map(it=>{
-    const v=it.data.am?.counts?.sport!=null?`${it.data.am.counts.sport} équipements`:'—';
-    return dcell(v,it.scores.sprt);}).join('')}</tr>`);
-
-  rows.push(`<tr>${lcell('🔇','Calme')}${items.map(it=>{
-    const b=it.data.bruit;
-    const v=b?.niveauCode?`${b.niveau||b.niveauCode}`:'—';
-    return dcell(v,it.scores.bruit||5);}).join('')}</tr>`);
-
-  rows.push(`<tr>${lcell('🏥','Services')}${items.map(it=>{
-    const s=it.data.svc;
-    const v=s?.score!=null?`${s.score}/10 · ${s.scoreLabel||''}`:'—';
-    return dcell(v,it.scores.svc||0);}).join('')}</tr>`);
-
-  rows.push(`<tr>${lcell('☀️','Soleil')}${items.map(it=>{
-    const h=it.data.meteo?.ensoleillement?.heuresAnnuelles;
-    const v=h?`${h.toLocaleString('fr-FR')} h/an`:'—';
-    return dcell(v,it.scores.meteo||0);}).join('')}</tr>`);
-
-  rows.push(`<tr>${lcell('⚠️','Risques')}${items.map(it=>{
-    const r=it.data.ris;
-    const v=r!=null?(r.total===0?'✓ Aucun':`${r.total} risque(s)`):'—';
-    return dcell(v,it.scores.risq);}).join('')}</tr>`);
-
-  // Distance travail (si disponible)
-  if(items.some(it=>it.travailKm!=null)){
-    const tLabel=travailLabel?`🏢 Trajet (${travailLabel})`:'🏢 Trajet travail';
-    rows.push(`<tr>${lcell('🏢',travailLabel?`Trajet (${travailLabel})`:'Trajet travail')}${items.map(it=>{
-      if(it.travailKm==null) return icell('<span style="color:var(--muted)">—</span>');
-      const s=distScore(it.travailKm);
-      return dcell(`${it.travailKm} km<br><small style="color:var(--muted)">à vol d'oiseau</small>`,s);}).join('')}</tr>`);
-  }
-
-  // DVF : score relatif entre les items (moins cher = plus accessible)
-  rows.push(`<tr>${lcell('💰','Prix DVF')}${items.map(it=>{
-    const med=it.data.dvf?.stats?.medianM2;
-    const v=med?`${med.toLocaleString('fr-FR')} €/m²<br><small style="color:var(--muted)">${it.data.dvf.count} ventes</small>`:'—';
-    const allMeds=items.map(x=>x.data.dvf?.stats?.medianM2||0);
-    const minM=Math.min(...allMeds),maxM=Math.max(...allMeds);
-    const dvfS=med&&maxM>minM?Math.round(10-(med-minM)/(maxM-minM)*4):5;
-    return dcell(v,isFinite(dvfS)?dvfS:5);}).join('')}</tr>`);
-
-  if(showBien){
-    rows.push(`<tr><td colspan="${items.length+1}" style="padding:.3rem .5rem;font-size:.68rem;font-weight:600;color:var(--gold);letter-spacing:.08em;text-transform:uppercase;background:rgba(184,131,42,.05)">Détails du bien</td></tr>`);
-    rows.push(`<tr>${lcell('🏠','Prix demandé')}${items.map(it=>{
-      if(!it.bien?.prix||!it.bien?.surf) return icell('<span style="color:var(--muted)">—</span>');
-      const pm2=Math.round(it.bien.prix/it.bien.surf);
-      const med=it.data.dvf?.stats?.medianM2;
-      const ecart=med?Math.round((pm2-med)/med*100):null;
-      const ec=ecart!=null?(ecart>0?`<span style="color:var(--red);font-size:.7rem">+${ecart}% vs marché</span>`:`<span style="color:var(--green);font-size:.7rem">${ecart}% vs marché</span>`):'';
-      return icell(`<div style="font-size:.79rem;font-weight:600">${it.bien.prix.toLocaleString('fr-FR')} €</div><div style="font-size:.7rem;color:var(--muted)">${pm2.toLocaleString('fr-FR')} €/m²</div>${ec}`);}).join('')}</tr>`);
-    rows.push(`<tr>${lcell('📐','Surface')}${items.map(it=>icell(it.bien?.surf?`<div style="font-size:.79rem;font-weight:500">${it.bien.surf} m²</div>`:'<span style="color:var(--muted)">—</span>')).join('')}</tr>`);
-    rows.push(`<tr>${lcell('🌡️','DPE')}${items.map(it=>{
-      const dpe=it.bien?.dpe||'—';
-      const dc={'A':'#1a7a4a','B':'#57b86e','C':'#b5d334','D':'#f5c842','E':'#e08030','F':'#d94f27','G':'#c0392b'}[dpe]||'var(--muted)';
-      return icell(dpe!=='—'?`<div style="font-size:1.2rem;font-weight:700;color:${dc}">${dpe}</div>`:'<span style="color:var(--muted)">—</span>');}).join('')}</tr>`);
-  }
-
-  const globals=items.map(it=>globalScore(it.scores,weights));
-  const winIdx=globals.indexOf(Math.max(...globals));
-  rows.push(`<tr style="background:rgba(15,15,13,.03)">${lcell('⭐','Score global',true)}${items.map((it,i)=>{
-    const g=globals[i],c=sColor(g);
-    return `<td style="padding:.7rem .4rem;text-align:center;border-top:2px solid var(--border)">
-      <div style="font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1.6rem;color:${c};font-weight:600;line-height:1">${g}<span style="font-size:.85rem">/10</span></div>
-      ${bar(g)}
-      ${i===winIdx&&globals.filter(x=>x===g).length===1?'<div style="font-size:.65rem;color:#2d6a4f;font-weight:600;margin-top:3px">✅ RECOMMANDÉ</div>':''}
-    </td>`;}).join('')}</tr>`);
-
-  return `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.8rem">
-    <thead><tr><th style="padding:.6rem .4rem;text-align:left;border-bottom:2px solid var(--border);width:22%">Critère</th>${ths}</tr></thead>
-    <tbody>${rows.join('')}</tbody>
-  </table></div>`;
+async function runProfilIA(){
+  if(!window.currentAddress){toast("Analysez d'abord une adresse","err");return;}
+  var box=document.getElementById("boxProfilNew"),txt=document.getElementById("txtProfilNew"),btn=document.getElementById("btnProfilIA");
+  box.style.display="block";btn.disabled=true;btn.innerHTML='<span class="spin w"></span> Analyse…';
+  var scores=_calcScoresBruts(),poids=_getPoidsProfil(),score=_calcProfilScore(scores,poids);
+  var intent=window._profilIntent||"achat";
+  var rev=parseInt((document.getElementById("pw-revenus")||{}).value)||0;
+  var apport=parseInt((document.getElementById("pw-apport")||{}).value)||0;
+  var dvf=window._dvfData;
+  var top=_PROFIL_CRITERES.filter(function(c){return scores[c.key]!=null;}).sort(function(a,b){return (poids[b.key]||5)-(poids[a.key]||5);}).slice(0,5).map(function(c){return c.label+" (poids "+poids[c.key]+", score "+scores[c.key].toFixed(1)+"/10)";});
+  var prompt="Score personnalisé "+window.currentAddress+" : "+score+"/10. Intention: "+intent+". Revenus: "+(rev||"non renseignés")+"€/mois. Apport: "+(apport||"non renseigné")+"€. Top 5 critères: "+top.join(", ")+". Prix médian: "+(dvf&&dvf.prix?dvf.prix+"€/m²":"inconnu")+". Conseil immobilier personnalisé: adéquation profil/lieu, budget, type de bien recommandé, risques, alternative si budget insuffisant.";
+  try{var res=await callAI(prompt,"Tu es conseiller immobilier expert France. Réponse directe, chiffrée, actionnable. **Gras** pour chiffres clés. 7 lignes max.","profil");txt.innerHTML="<p>"+md(res)+"</p>";}
+  catch(e){txt.innerHTML="⚠️ "+e.message;}
+  btn.disabled=false;btn.innerHTML="✦ Relancer l'analyse IA";
 }
 
-// Géocode un texte via BAN si les coords ne sont pas encore connues
-async function geocodeIfNeeded(key, inputId){
-  if(window._banCoords?.[key]) return window._banCoords[key];
-  const q=document.getElementById(inputId)?.value.trim();
-  if(!q) return null;
-  try{
-    const r=await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&limit=1`);
-    const d=await r.json();
-    const f=d.features?.[0];
-    if(!f) return null;
-    const coord={lat:f.geometry.coordinates[1],lon:f.geometry.coordinates[0],label:f.properties.label};
-    if(!window._banCoords) window._banCoords={};
-    window._banCoords[key]=coord;
-    document.getElementById(inputId).value=f.properties.label;
-    return coord;
-  }catch{return null;}
-}
-
-// Distance à vol d'oiseau en km
-function distKm(lat1,lon1,lat2,lon2){
-  const dLat=(lat2-lat1)*111;
-  const dLon=(lon2-lon1)*111*Math.cos(lat1*Math.PI/180);
-  return Math.round(Math.sqrt(dLat*dLat+dLon*dLon)*10)/10;
-}
-
-function distScore(km){ return km<=2?10:km<=5?8:km<=10?6:km<=20?4:km<=35?2:0; }
-
-// ── Runner : Compatibilité de vie ──
-async function runProfil(){
-  if(!currentCoords){toast('Analysez d\'abord une adresse','err');return;}
-  const btn=document.getElementById('btnProfil'),box=document.getElementById('boxProfil'),txt=document.getElementById('txtProfil');
-  box.style.display='block';btn.disabled=true;btn.innerHTML='<span class="spin w"></span> Analyse…';
-  txt.innerHTML='<span class="spin"></span> Récupération des données réelles…';
-  const placeholder=document.getElementById('radarPlaceholder');
-  if(placeholder) placeholder.style.display='none';
-  try{
-    const lat=currentCoords.lat, lon=currentCoords.lng;
-    // Recharger les services avec le rayon choisi dans Compatibilité de vie
-    const profilRayon = window._profilRayon || 1000;
-    txt.innerHTML=`<span class="spin"></span> Chargement des services (rayon ${profilRayon>=1000?(profilRayon/1000)+'km':profilRayon+'m'})…`;
-    const _svcBackup = window._servicesData;
-    try{
-      await loadServices(lat, lon, profilRayon);
-    }catch{}
-    // Garder le meilleur résultat (évite régressions si Overpass timeout sur grand rayon)
-    if(_svcBackup && (!window._servicesData || window._servicesData.score < _svcBackup.score)){
-      window._servicesData = _svcBackup;
-    }
-    // Si amenitesData absent (timeout au chargement), tenter de le récupérer maintenant
-    if(!window._amenitesData){
-      try{
-        txt.innerHTML='<span class="spin"></span> Récupération des aménités…';
-        const r=await fetch(`/api/amenites?lat=${lat}&lon=${lon}&_v=4`,{signal:AbortSignal.timeout(25000)});
-        const j=await r.json();
-        if(j.success) window._amenitesData=j;
-      }catch{}
-    }
-    const d = {
-      dvf:   window._dvfData,
-      eco:   window._ecolesData,
-      mob:   window._mobiliteData,
-      am:    window._amenitesData,
-      svc:   window._servicesData,
-      ris:   window._risquesData,
-      bruit: window._bruitData,
-      meteo: window._meteoData,
-    };
-    const travail=window._travailCoords||null;
-    const travailKm=travail?distKm(lat,lon,travail.lat,travail.lon):null;
-    const travailLabel=document.getElementById('pTravailLieu')?.value.trim()||null;
-    d.travailKm=travailKm;
-    const scores=calcScores(d);
-    const weights=getProfilWeights();
-    // Poids travail selon mode : Présentiel=3, Hybride=2, Télétravail=0.5, non renseigné=0
-    const modeTravail=togVal('tPT');
-    if(travailKm!=null && scores.trav!=null){
-      weights.trav = modeTravail==='Présentiel'?3:modeTravail==='Hybride'?2:modeTravail==='Télétravail'?0.5:1;
-    } else {
-      weights.trav=0;
-    }
-    const gScore=globalScore(scores,weights);
-    const dims=[
-      {key:'mob',  label:'Mobilité',      emoji:'🚇'},
-      {key:'eco',  label:'Écoles & niveau scolaire',        emoji:'🏫'},
-      {key:'parc', label:'Espaces verts', emoji:'🌳'},
-      {key:'rest', label:'Restaurants',   emoji:'🍽️'},
-      {key:'cult', label:'Culture',       emoji:'🎭'},
-      {key:'sprt', label:'Sport',         emoji:'🏋️'},
-      {key:'bruit',label:'Calme',         emoji:'🔇'},
-      {key:'svc',  label:'Services',      emoji:'🏥'},
-      {key:'meteo',label:'Soleil',        emoji:'☀️'},
-      {key:'risq', label:'Risques',       emoji:'⚠️'},
-      ...(travailKm!=null&&scores.trav!=null?[{key:'trav',label:'Trajet',emoji:'🏢'}]:[]),
-    ];
-    const sc=gScore>=7?'#2d6a4f':gScore>=4?'#b8832a':'#7a2d2d';
-    // Afficher le radar dans la colonne droite
-    const radarCard=document.getElementById('radarCard');
-    if(radarCard){
-      radarCard.style.display='block';
-      radarCard.innerHTML=`
-        <div style="text-align:center;margin-bottom:.8rem">
-          <div style="font-family:'Cormorant Garamond',serif;font-size:2.6rem;color:${sc};line-height:1">${gScore}<span style="font-size:1.2rem">/10</span></div>
-          <div style="font-size:.62rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-top:.2rem">Score de compatibilité</div>
-          ${travailKm!=null?`<p style="font-size:.75rem;color:var(--muted);margin-top:.3rem">🏢 ${travailLabel||'Travail'} : <strong>${travailKm} km</strong></p>`:''}
-        </div>
-        <div style="position:relative;height:380px"><canvas id="radarProfil"></canvas></div>
-        <p style="font-size:.58rem;color:var(--muted);margin-top:.4rem;text-align:center">DVF · OSM · Éducation nationale · Géorisques</p>`;
-    }
-    box.style.display='none'; // l'aibox n'est plus utilisée pour le radar
-    setTimeout(()=>{
-      const ctx=document.getElementById('radarProfil');
-      if(!ctx||!window.Chart) return;
-      if(window._radarProfilChart){window._radarProfilChart.destroy();}
-      const _immRadar=document.body.classList.contains("imm-on");
-      const _radarGridC=_immRadar?"rgba(79,195,247,.1)":"rgba(0,0,0,.08)";
-      const _radarLabelC=_immRadar?"rgba(200,230,255,.75)":"#8a7d68";
-      const _radarDlC=_immRadar?"#c9a84c":"#7a5a1e";
-      const _radarDlBg=_immRadar?"rgba(5,15,34,.82)":"rgba(255,255,255,.75)";
-      window._radarProfilChart=new Chart(ctx,{
-        type:'radar',
-        plugins:[ChartDataLabels],
-        data:{
-          labels:dims.map(d=>d.emoji+' '+d.label),
-          datasets:[{
-            label:'Score',
-            data:dims.map(d=>scores[d.key]||0),
-            backgroundColor:'rgba(184,131,42,.15)',
-            borderColor:'#b8832a',
-            borderWidth:2,
-            pointBackgroundColor:'#b8832a',
-            pointRadius:5,
-            pointHoverRadius:7,
-          }]
-        },
-        options:{
-          scales:{r:{min:0,max:10,ticks:{stepSize:2,display:false},grid:{color:_radarGridC},angleLines:{color:_radarGridC},pointLabels:{font:{size:12,family:'Outfit,sans-serif'},color:_radarLabelC}}},
-          plugins:{
-            legend:{display:false},
-            tooltip:{callbacks:{label:ctx=>{const dim=dims[ctx.dataIndex];return dim?.key==='risq'?`${d.ris?.total||0} risque(s)`:`${ctx.raw}/10`;}}},
-            datalabels:{
-              color:_radarDlC,
-              font:{size:11,weight:'700',family:'Outfit,sans-serif'},
-              formatter:v=>v+'/10',
-              anchor:'end',
-              align:'start',
-              offset:6,
-              backgroundColor:_radarDlBg,
-              borderRadius:3,
-              padding:{top:1,bottom:1,left:3,right:3},
-            }
-          },
-          animation:{duration:700},
-          responsive:true,maintainAspectRatio:false,
-          layout:{padding:20},
-          onClick(evt, elements, chart){
-            // Clic sur un point du dataset
-            if(elements.length>0){
-              navigateFromRadarDim(dims[elements[0].index]);
-              return;
-            }
-            // Clic sur un label de branche (zone élargie autour du label)
-            const scale=chart.scales.r;
-            const cx=scale.xCenter, cy=scale.yCenter, r=scale.drawingArea+32;
-            for(let i=0;i<dims.length;i++){
-              const angle=scale.getIndexAngle(i)-Math.PI/2;
-              const px=cx+Math.cos(angle)*r, py=cy+Math.sin(angle)*r;
-              if(Math.abs(evt.x-px)<55&&Math.abs(evt.y-py)<18){
-                navigateFromRadarDim(dims[i]);
-                return;
-              }
-            }
-          },
-        }
-      });
-      ctx.style.cursor='pointer';
-    },80);
-  }catch(e){txt.innerHTML='⚠️ '+e.message;}
-  btn.disabled=false;btn.innerHTML='✦ Analyser la compatibilité avec votre profil de vie';
-}
 
 // ── Runner : Comparer des biens ──
 async function runDVF(){
@@ -11314,7 +11027,7 @@ window.showLocationDetail = function(){ _immShowSimulateur('p-location','🏢 Lo
 window.showAidesDetail    = function(){ _immShowSimulateur('p-aides','🎁 Aides à l\'achat',null); };
 window.showRenovDetail    = function(){ _immShowSimulateur('p-renov','🔨 MaPrimeRénov\'',null); };
 window.showAnnoncesDetail = function(){ if(typeof showRecherchePanel==='function') showRecherchePanel(); };
-window.showProfilDetail   = function(){ _immShowSimulateur('p-profil','👤 Compatibilité de vie',function(){ var l=document.getElementById('pAdresseLabel'); if(l&&window.currentAddress)l.innerHTML='📍 <strong>'+window.currentAddress+'</strong>'; if(typeof updatePoidsDisplay==='function')updatePoidsDisplay(); if(window.currentCoords&&typeof runProfil==='function')setTimeout(runProfil,150); }); };
+window.showProfilDetail   = function(){ _immShowSimulateur('p-profil','👥 Score personnalisé',function(){ var l=document.getElementById('pAdresseLabel'); if(l&&window.currentAddress)l.textContent=window.currentAddress; window._profilScoresBruts=_calcScoresBruts(); _buildProfilSliders(); updateProfilScore(); }); };
 
 })(); // fin IIFE
 
@@ -11345,101 +11058,4 @@ function closeSidebar(){
 // Map page id → tab id
 const _PAGE_TO_TAB={
   home:'home',
-  analyse:'bien',prix:'bien',risques:'bien',bruit:'bien',urbanisme:'bien',
-  ecoles:'bien',mobilite:'bien',fibre:'bien',services:'bien',soleil:'bien',
-  emprunt:'financement',cout:'financement',mensualites:'financement',aides:'financement',renov:'financement',location:'financement',
-  profil:'strategie',recherche:'strategie',conseil:'strategie',juridique:'strategie',
-};
-function setActiveTab(tabId){
-  document.querySelectorAll('.btab').forEach(b=>b.classList.remove('active'));
-  const el=document.getElementById('btab-'+tabId);
-  if(el) el.classList.add('active');
-}
-// Patch go() to auto-update bottom tab + close sidebar on mobile
-const _goOrig=window._goPage||go;
-const _goPatched=function(id){
-  _goOrig(id);
-  const tab=_PAGE_TO_TAB[id]||null;
-  if(tab) setActiveTab(tab);
-  if(window.innerWidth<=1024) closeSidebar();
-};
-// Accordion nav sections
-function toggleNavGroup(sectionEl) {
-  var content = sectionEl.nextElementSibling;
-  var arrow = sectionEl.querySelector('.nav-arrow');
-  if (!content) return;
-  var collapsed = content.classList.toggle('collapsed');
-  if (arrow) arrow.style.transform = collapsed ? 'rotate(-90deg)' : 'rotate(0deg)';
-}
-
-// Override nav-item clicks to close sidebar (desktop + mobile)
-document.addEventListener('DOMContentLoaded',()=>{
-  document.querySelectorAll('.nav-item').forEach(el=>{
-    el.addEventListener('click',()=>{ closeSidebar(); });
-  });
-  // Masquer bottom tab bar sur la page d'accueil au démarrage
-  const _btb = document.getElementById('bottomTabBar');
-  if(_btb && document.getElementById('p-home')?.classList.contains('on')) _btb.style.display = 'none';
-});
-
-
-// ── Bouton Back mobile : navigation intra-app ──
-(function(){
-  function _pushSentinel(){ try{ history.pushState({immoai:1}, ''); }catch(e){} }
-  try{ history.replaceState({immoai:0}, ''); }catch(e){}
-  _pushSentinel();
-
-  var _fwd     = false;
-  var _lastTs  = 0;
-  var _exiting = false; // true = sortie volontaire, ne pas rebondir
-
-  function _showExitConfirm(){
-    if(document.getElementById('_exitModal')) return;
-    var m = document.createElement('div');
-    m.id = '_exitModal';
-    m.setAttribute('style','position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:1.5rem');
-    window._exitModalStay  = function(){ var e=document.getElementById('_exitModal');if(e)e.remove(); };
-    window._exitModalLeave = function(){
-      var e=document.getElementById('_exitModal'); if(e)e.remove();
-      _exiting = true;   // désactiver le rebond dans le handler
-      history.back();    // recule vers root → le browser peut ensuite sortir
-    };
-    m.innerHTML='<div style="background:#fff;border-radius:16px;padding:1.75rem 1.5rem;max-width:300px;width:100%;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.3)">'
-      +'<div style="font-size:2rem;margin-bottom:.5rem">&#127968;</div>'
-      +'<div style="font-size:1rem;font-weight:700;color:#111;margin-bottom:.35rem">Quitter ImmoAI ?</div>'
-      +'<div style="font-size:.82rem;color:#777;margin-bottom:1.25rem;line-height:1.4">Vous \u00eates sur l\u2019accueil. Appuyez sur Fermer puis le bouton retour syst\u00e8me pour quitter.</div>'
-      +'<div style="display:flex;gap:.75rem">'
-      +'<button onclick="_exitModalStay()" style="flex:1;padding:.7rem;border:1.5px solid #ddd;border-radius:10px;background:#f4f4f4;font-size:.88rem;font-weight:600;cursor:pointer;color:#333">Rester</button>'
-      +'<button onclick="_exitModalLeave()" style="flex:1;padding:.7rem;border:none;border-radius:10px;background:#111;color:#fff;font-size:.88rem;font-weight:600;cursor:pointer">Fermer</button>'
-      +'</div></div>';
-    document.body.appendChild(m);
-  }
-
-  window.addEventListener('popstate', function(){
-    // Sortie volontaire : ne pas rebondir, laisser le navigateur gérer
-    if(_exiting) return;
-
-    // Retour déclenché par notre propre history.go(1)
-    if(_fwd){ _fwd = false; return; }
-
-    var now = Date.now();
-    if(now - _lastTs < 150) return;
-    _lastTs = now;
-
-    // Rebondir sur le sentinel
-    _fwd = true;
-    setTimeout(function(){ history.go(1); }, 0);
-    // Navigation applicative
-    var panelEl = document.getElementById('detailContainer');
-    if(panelEl && panelEl.innerHTML.trim()){
-      var btn = panelEl.querySelector('.back-btn'); if(btn) btn.click(); else closePanel(); return;
-    }
-    if(document.getElementById('p-home')?.classList.contains('on')){ _showExitConfirm(); return; }
-    if(document.getElementById('p-analyse')?.classList.contains('on')){ go('home'); return; }
-    _goPage('analyse');
-  });
-})();
-
-</script>
-</body>
-</html>
+  analyse:'bien',prix:'bien',risques:'bien',br
