@@ -2320,7 +2320,7 @@ function go(id){
       if(pLbl&&currentAddress) pLbl.innerHTML='📍 <strong>'+currentAddress+'</strong>';
       window._profilScoresBruts=_calcScoresBruts(); _buildProfilSliders(); updateProfilScore();
       // Afficher le radar immédiatement avec les données déjà chargées
-      if(currentCoords) setTimeout(()=>runProfil(), 150);
+      if(currentCoords) setTimeout(()=>updateProfilScore(), 150);
     }
   }
 }
@@ -10640,13 +10640,10 @@ window.immToggle = function(){
   // Fermer tout panel ouvert + remettre la grille avant de basculer
   var dc = document.getElementById('detailContainer');
   if (dc && dc.innerHTML.trim()) closePanel();
-  // Fermer aussi les pages ouvertes en mode classique (ex: p-profil via go())
+  // Fermer aussi les pages ouvertes en mode classique (ex: p-profil via _goPage)
+  var _activeP = document.querySelector('.page.on');
+  if (_activeP && _activeP.id !== 'p-analyse') { _goPage('analyse'); }
   var cg = document.getElementById('cardsGrid');
-  if (cg && cg.style.display === 'none') {
-    document.querySelectorAll('.page').forEach(function(p){p.style.display='none';});
-    var pa = document.getElementById('p-analyse'); if(pa) pa.style.display='';
-    cg.style.display = 'grid';
-  }
   if (cg) cg.style.display = 'grid';
   _immOn = !_immOn;
   localStorage.setItem('immoai_imm_mode', _immOn ? '1' : '0');
