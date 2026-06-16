@@ -1092,6 +1092,11 @@ body.imm-on #detailContainer .btn-dark:hover{
 /* ══ FIN MODE IMMERSIF ════════════════════════════════════════════════════ */
 
 
+/* Taux chart fullscreen : désactiver backdrop-filter pour que position:fixed sorte du panel */
+body.imm-on .detail-panel:has(#tauxHistWrap.taux-fs) {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
 /* Taux chart fullscreen overlay */
 #tauxHistWrap.taux-fs {
   position: fixed !important;
