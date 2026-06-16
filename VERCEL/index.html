@@ -953,6 +953,58 @@ body.imm-on #imm-nav-prev,body.imm-on #imm-nav-next{display:flex;}
 #imm-hint.fading{opacity:0;}
 @keyframes immFh{to{opacity:0;}}
 
+
+/* ── Mode immersif : redesign HUD holographique ──────────────────────────── */
+body.imm-on .card{
+  background:linear-gradient(145deg,rgba(3,10,22,.88),rgba(5,15,34,.92))!important;
+  backdrop-filter:blur(18px)!important;-webkit-backdrop-filter:blur(18px)!important;
+  border:1px solid rgba(79,195,247,.22)!important;
+  color:#ddf0ff!important;
+  position:relative;
+  overflow:hidden;
+}
+/* Coins holographiques : top-left + bottom-right */
+body.imm-on .card::before,body.imm-on .card::after{
+  content:'';position:absolute;width:18px;height:18px;
+  border-color:#f5d080;border-style:solid;pointer-events:none;z-index:2;
+}
+body.imm-on .card::before{top:8px;left:8px;border-width:2px 0 0 2px;}
+body.imm-on .card::after {bottom:8px;right:8px;border-width:0 2px 2px 0;}
+
+body.imm-on .card-label{color:#ffffff!important;opacity:.85;}
+body.imm-on .card-value{color:#f5d080!important;}
+body.imm-on .card-value.good{color:#5de09a!important;}
+body.imm-on .card-value.warn{color:#f5c842!important;}
+body.imm-on .card-value.bad {color:#ff6e6e!important;}
+body.imm-on .card-sub{color:rgba(220,240,255,.65)!important;}
+body.imm-on .card-icon{filter:drop-shadow(0 0 6px rgba(79,195,247,.5));}
+body.imm-on .card p,body.imm-on .card li,body.imm-on .card span,body.imm-on .card small{
+  color:#ddf0ff!important;
+}
+
+body.imm-on .stat-box{
+  background:rgba(5,15,34,.72)!important;
+  border:1px solid rgba(79,195,247,.22)!important;
+  position:relative;overflow:hidden;
+}
+body.imm-on .stat-box::before,body.imm-on .stat-box::after{
+  content:'';position:absolute;width:14px;height:14px;
+  border-color:#f5d080;border-style:solid;pointer-events:none;z-index:2;
+}
+body.imm-on .stat-box::before{top:6px;left:6px;border-width:2px 0 0 2px;}
+body.imm-on .stat-box::after {bottom:6px;right:6px;border-width:0 2px 2px 0;}
+body.imm-on .stat-n{color:#f5d080!important;}
+body.imm-on .stat-l{color:#ffffff!important;opacity:.9;}
+
+body.imm-on .cards-section-title{color:#4fc3f7!important;border-color:rgba(79,195,247,.3)!important;}
+body.imm-on .detail-panel h2,body.imm-on .detail-panel h3,
+body.imm-on .detail-panel h4{color:#ddf0ff!important;}
+body.imm-on .detail-panel p{color:rgba(220,240,255,.8)!important;}
+body.imm-on .detail-panel table{color:#ddf0ff!important;}
+body.imm-on .detail-panel th{color:#4fc3f7!important;border-color:rgba(79,195,247,.2)!important;}
+body.imm-on .detail-panel td{border-color:rgba(79,195,247,.12)!important;}
+/* ── FIN redesign HUD ────────────────────────────────────────────────────── */
+
 /* #imm-toggle : visibilité gérée uniquement par JS (immShowToggle) */
 /* ══ FIN MODE IMMERSIF ════════════════════════════════════════════════════ */
 
@@ -2340,7 +2392,7 @@ function initFranceMap(){
   const map = L.map('mapFrance', { zoomControl:true, attributionControl:true, scrollWheelZoom:true });
   window._franceMap = map;
 
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  L.tileLayer(_tileUrl('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'), {
     attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/">CARTO</a>',
     subdomains:'abcd', maxZoom:19
   }).addTo(map);
@@ -5829,7 +5881,7 @@ document.addEventListener('fullscreenchange', function(){
   }
   if(window._dvfLeafletMap) setTimeout(()=>window._dvfLeafletMap.invalidateSize(), 100);
 });
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CartoDB',subdomains:'abcd',maxZoom:19}).addTo(map);
+  L.tileLayer(_tileUrl('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'),{attribution:'© OpenStreetMap © CartoDB',subdomains:'abcd',maxZoom:19}).addTo(map);
   // Palette par prix/m²
   const PRIX_COLORS = [[3000,'#22c55e'],[5000,'#84cc16'],[7000,'#eab308'],[10000,'#f97316'],[Infinity,'#ef4444']];
   function prixColor(pm2){ const c=PRIX_COLORS.find(([seuil])=>pm2<=seuil); return c?c[1]:'#ef4444'; }
@@ -6167,7 +6219,7 @@ function showEcolesDetail(){
     if(window._leafletMapEcoles){window._leafletMapEcoles.remove();window._leafletMapEcoles=null;}
     const map=L.map('mapEcoles').setView([lat,lng],14);
     window._leafletMapEcoles=map;
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'© OSM © CartoDB',maxZoom:19}).addTo(map);
+    L.tileLayer(_tileUrl('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'),{attribution:'© OSM © CartoDB',maxZoom:19}).addTo(map);
     addFsBtn(map, document.getElementById('mapEcoles'));
     addGeoBtn(map, document.getElementById('mapEcoles'));
     addAddrBtn(map, document.getElementById('mapEcoles'));
@@ -6328,7 +6380,7 @@ function showMobiliteDetail(){
     const map = L.map(mapCtr).setView([lat, lng], zoomMob);
     window._leafletMapMobilite = map;
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    L.tileLayer(_tileUrl('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'), {
       attribution:'© OpenStreetMap © CartoDB', maxZoom:19
     }).addTo(map);
     addFsBtn(map, document.getElementById('mapMobilite'));
@@ -6707,7 +6759,7 @@ function showServicesMap(filterCat){
     window._leafletMap = map;
 
     // Fond de carte OpenStreetMap
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    L.tileLayer(_tileUrl('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'), {
       attribution: '© OpenStreetMap © CartoDB',
       maxZoom: 19
     }).addTo(map);
