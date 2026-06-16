@@ -2148,6 +2148,37 @@ body.imm-on .detail-panel td{border-color:rgba(79,195,247,.12)!important;}
 
 <script>
 window._tileUrl=function(u){return document.body.classList.contains('imm-on')?u.replace('rastertiles/voyager','dark_all').replace('light_all','dark_all'):u;};
+// Intercepteur Chart.js : patch les couleurs texte foncées en mode immersif
+function _patchChartImm(cfg){
+  if(!cfg||!cfg.options)return;
+  var C='#ddf0ff', G='rgba(79,195,247,.12)';
+  var opts=cfg.options;
+  if(opts.plugins){
+    if(opts.plugins.legend&&opts.plugins.legend.labels) opts.plugins.legend.labels.color=C;
+    if(opts.plugins.title) opts.plugins.title.color=C;
+    if(opts.plugins.datalabels) opts.plugins.datalabels.color=C;
+  }
+  if(opts.scales){
+    Object.values(opts.scales).forEach(function(s){
+      if(s&&s.ticks) s.ticks.color=C;
+      if(s&&s.title) s.title.color=C;
+      if(s&&s.grid) s.grid.color=G;
+    });
+  }
+}
+// Wrapper au moment où Chart.js est disponible (DOMContentLoaded suffit car CDN sync)
+document.addEventListener('DOMContentLoaded',function(){
+  if(typeof Chart==='undefined')return;
+  var _OC=Chart;
+  window.Chart=new Proxy(_OC,{
+    construct:function(target,args){
+      if(document.body.classList.contains('imm-on')&&args[1]) _patchChartImm(args[1]);
+      return Reflect.construct(target,args);
+    }
+  });
+  // Transférer les propriétés statiques (defaults, register, etc.)
+  Object.setPrototypeOf(window.Chart,_OC);
+});
 
 // ══ STATE ══
 let groqKey = localStorage.getItem('immoai_groq') || '';
@@ -10675,6 +10706,13 @@ function immSizeRing(){
 
 // ── Toggle ON/OFF ───────────────────────────────────────────────────────
 let _immOn = (localStorage.getItem('immoai_imm_mode') === '1');
+// Appliquer Chart.defaults dès le chargement si mode immersif actif
+document.addEventListener('DOMContentLoaded',function(){
+  if(_immOn&&typeof Chart!=='undefined'){
+    Chart.defaults.color='#ddf0ff';
+    Chart.defaults.borderColor='rgba(79,195,247,.12)';
+  }
+});
 
 
 window._toggleTauxFs = function() {
@@ -10751,6 +10789,13 @@ function _immApply(){
   const trk = document.getElementById('imm-trk');
   const lbl = document.getElementById('imm-toggle-lbl');
   document.body.classList.toggle('imm-on', _immOn);
+  // Mettre à jour les couleurs Chart.js selon le mode
+  if(typeof Chart!=='undefined'){
+    Chart.defaults.color=_immOn?'#ddf0ff':'#666';
+    Chart.defaults.borderColor=_immOn?'rgba(79,195,247,.12)':'rgba(0,0,0,.1)';
+    if(Chart.defaults.plugins&&Chart.defaults.plugins.legend)
+      Chart.defaults.plugins.legend.labels.color=_immOn?'#ddf0ff':'#666';
+  }
   if (trk) trk.classList.toggle('on', _immOn);
   if (lbl) lbl.textContent = _immOn ? 'Mode Immersif ✦' : 'Mode Immersif';
 
