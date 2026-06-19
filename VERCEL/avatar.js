@@ -466,13 +466,21 @@ function showFallbackAvatar(wrap){
   bgDiv.style.cssText = 'position:absolute;inset:0;background:#000;z-index:0;';
   fb.appendChild(bgDiv);
 
-  const img = document.createElement('img');
-  img.id = 'av-img';
-  img.alt = prefs.nom || 'Assistant';
-  img.style.cssText = 'position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:contain;object-position:top center;display:block;';
-  img.src = imgSrc;
-
-  fb.appendChild(img);
+  const isVidAv = imgSrc.endsWith('.mp4');
+  if(isVidAv){
+    const vid = document.createElement('video');
+    vid.id = 'av-img'; vid.autoplay=true; vid.loop=true; vid.muted=true; vid.playsInline=true;
+    vid.style.cssText = 'position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:contain;object-position:top center;display:block;';
+    const src = document.createElement('source'); src.src=imgSrc; src.type='video/mp4';
+    vid.appendChild(src); fb.appendChild(vid);
+  } else {
+    const img = document.createElement('img');
+    img.id = 'av-img';
+    img.alt = prefs.nom || 'Assistant';
+    img.style.cssText = 'position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:contain;object-position:top center;display:block;';
+    img.src = imgSrc;
+    fb.appendChild(img);
+  }
   wrap.appendChild(fb);
 
   const cv = document.getElementById('av-canvas');
@@ -971,7 +979,15 @@ function populateFondDropdown(){
   const keys = Object.keys(map);
   if(!keys.length) return;
   const cur = document.getElementById('av-pref-fond')?.value || 'Image1';
-  grid.innerHTML = keys.map(k=>`<div class="av-thumb${k===cur?' selected':''}" data-val="${k}" onclick="_selectThumb('av-fond-grid','av-pref-fond','${k}')" title="${k}"><img src="${map[k]}" alt="${k}" loading="lazy"></div>`).join('');
+  grid.innerHTML = keys.map(k=>{
+    const url=map[k]; const isVid=url.endsWith('.mp4');
+    const m=k.match(/Image(\d+)\.(png|gif|mp4)$/i);
+    const lbl=m?('Fond '+m[1]+(m[2]!=='png'?' '+m[2].toUpperCase():'')):(k);
+    const media=isVid
+      ?`<video src="${url}" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:cover"></video>`
+      :`<img src="${url}" alt="${lbl}" loading="lazy" style="width:100%;height:100%;object-fit:cover">`;
+    return `<div class="av-thumb${k===cur?' selected':''}" data-val="${k}" onclick="_selectThumb('av-fond-grid','av-pref-fond','${k}')" title="${lbl}">${media}</div>`;
+  }).join('');
 }
 function populateAvatarDropdown(){
   const list = window._AVATAR_LIST || [];
@@ -982,8 +998,13 @@ function populateAvatarDropdown(){
   wrap.style.display='block';
   const cur = document.getElementById('av-pref-avatar')?.value || list[0] || '';
   grid.innerHTML = list.map((u,i)=>{
-    const m=u.match(/avatar(\d+)\.png$/i); const lbl='Avatar '+(m?m[1]:i+1);
-    return `<div class="av-thumb av-thumb-portrait${u===cur?' selected':''}" data-val="${u}" onclick="_selectThumb('av-avatar-grid','av-pref-avatar','${u}')" title="${lbl}"><img src="${u}" alt="${lbl}" loading="lazy"></div>`;
+    const m=u.match(/avatar(\d+)\.(png|gif|mp4)$/i);
+    const lbl='Avatar '+(m?m[1]:i+1)+(m&&m[2]!=='png'?' '+m[2].toUpperCase():'');
+    const isVid=u.endsWith('.mp4');
+    const media=isVid
+      ?`<video src="${u}" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:contain"></video>`
+      :`<img src="${u}" alt="${lbl}" loading="lazy">`;
+    return `<div class="av-thumb av-thumb-portrait${u===cur?' selected':''}" data-val="${u}" onclick="_selectThumb('av-avatar-grid','av-pref-avatar','${u}')" title="${lbl}">${media}</div>`;
   }).join('');
   // Bouton rafraichir (utile apres ajout d'un nouvel avatar deploye)
   if(!document.getElementById('av-avatar-refresh')){
@@ -997,16 +1018,20 @@ function populateAvatarDropdown(){
       rbtn.disabled = true;
       async function _probe(url){ try{ const r=await fetch(url,{method:"HEAD"}); return r.ok; }catch(e){ return false; } }
       window._AVATAR_LIST = [];
-      for(let n=1;n<=99;n++){
-        const u="images/avatar"+n+".png";
-        if(await _probe(u)) window._AVATAR_LIST.push(u);
+      { const exts=['png','gif','mp4']; let miss=0;
+        for(let n=1;n<=99;n++){
+          let found=false;
+          for(const ext of exts){ const u='images/avatar'+n+'.'+ext; if(await _probe(u)){window._AVATAR_LIST.push(u);found=true;} }
+          miss = found?0:miss+1; if(miss>=3&&n>3) break;
+        }
       }
       window._BG_MAP = {};
-      const bgBase='images/GroupeVide/', bgPfx='Image';
-      for(let n=1;n<=50;n++){
-        const url=bgBase+bgPfx+n+'.png';
-        if(!(await _probe(url))) break;
-        window._BG_MAP[bgPfx+n]=url;
+      { const bgBase='images/GroupeVide/',bgPfx='Image',exts=['png','gif','mp4']; let miss=0;
+        for(let n=1;n<=50;n++){
+          let found=false;
+          for(const ext of exts){ const url=bgBase+bgPfx+n+'.'+ext; if(await _probe(url)){window._BG_MAP[bgPfx+n+'.'+ext]=url;found=true;} }
+          miss=found?0:miss+1; if(miss>=3&&n>3) break;
+        }
       }
       try{
         const ck="_immoai_assets_v3";
@@ -1041,6 +1066,24 @@ function showSetup(){
 function closeSetup(){
   document.getElementById('av-setup-modal').classList.remove('open');
 }
+function _updateImmAvatar(src){
+  const el = document.getElementById('imm-avatar-el');
+  if(!el) return;
+  const isVid = src.endsWith('.mp4');
+  let vid = el.querySelector('video');
+  let img = el.querySelector('img');
+  if(isVid){
+    if(img) img.style.display='none';
+    if(!vid){ vid=document.createElement('video'); vid.autoplay=true; vid.loop=true; vid.muted=true; vid.playsInline=true;
+      vid.style.cssText='object-fit:contain;object-position:center bottom;display:block;width:100%;height:100%;';
+      el.appendChild(vid); }
+    vid.style.display='block';
+    vid.innerHTML='<source src="'+src+'" type="video/mp4">'; vid.load(); vid.play().catch(()=>{});
+  } else {
+    if(vid) vid.style.display='none';
+    if(img){ img.style.display='block'; img.src=src; }
+  }
+}
 function saveSetup(){
   const nom = document.getElementById('av-pref-nom').value.trim() || 'Ai1';
   const vitesse = parseFloat(document.getElementById('av-pref-vitesse').value);
@@ -1061,12 +1104,12 @@ function saveSetup(){
     if(typeof window._immUpdateBg === 'function') window._immUpdateBg();
   }
   if(avatarChange){
-    // Mettre à jour l'image dans le panel avatar
-    const _avImg = document.getElementById('av-img');
-    if(_avImg) _avImg.src = avatar;
-    // Mettre à jour l'image sous le carousel immersif
-    const _immAvImg = document.querySelector('#imm-avatar-el img');
-    if(_immAvImg) _immAvImg.src = avatar;
+    // Panel avatar : re-render complet (gère PNG/GIF/MP4)
+    const _avFb = document.getElementById('av-fallback');
+    if(_avFb) showFallback();
+    else { const _avImg=document.getElementById('av-img'); if(_avImg&&!avatar.endsWith('.mp4')) _avImg.src=avatar; }
+    // Avatar immersif
+    _updateImmAvatar(avatar);
   }
 }
 

@@ -1387,7 +1387,7 @@ body.imm-on .detail-panel:has(#tauxHistWrap.taux-fs) {
     <div id="imm-bg-vign"></div>
   </div>
   <div id="imm-ring"><div class="irg"></div><div class="irg2"></div><div class="irg3"></div></div>
-  <div id="imm-carousel-wrap"><div id="imm-cl"></div><div id="imm-avatar-el"><img src="images/avatar.png" alt=""></div></div>
+  <div id="imm-carousel-wrap"><div id="imm-cl"></div><div id="imm-avatar-el"><img src="images/avatar.png" alt="" style="object-fit:contain;object-position:center bottom;display:block;width:100%;height:100%"><video autoplay loop muted playsinline style="display:none;object-fit:contain;object-position:center bottom;width:100%;height:100%"><source src="" type="video/mp4"></video></div></div>
   <button id="imm-nav-prev" onclick="window.immNavStep(1)"  title="Carte suivante · Molette ↑ ou glisser →">❮</button>
   <button id="imm-nav-next" onclick="window.immNavStep(-1)" title="Carte précédente · Molette ↓ ou glisser ←">❯</button>
   <div id="imm-hint">← Glisser pour naviguer →</div>
@@ -10671,11 +10671,19 @@ window._immUpdateBg = function(){
     const fond = prefs.fond === 'auto' || !prefs.fond ? prefs.genre || 'femme' : prefs.fond;
     const bgImg = document.getElementById('imm-bg-img');
     const bgVid = document.getElementById('imm-bg-vid');
-    if (bgVid) { bgVid.style.display = 'none'; bgVid.pause && bgVid.pause(); }
-    if (bgImg) {
-        bgImg.style.display = 'block';
-        const _bgm = window._BG_MAP || {};
-        bgImg.src = _bgm[fond] || Object.values(_bgm)[0] || 'images/GroupeVide/Image1.png';
+    const _bgm = window._BG_MAP || {};
+    // Compat ancien format (Image1 sans extension) → chercher Image1.png
+    const url = _bgm[fond] || _bgm[fond+'.png'] || Object.values(_bgm)[0] || 'images/GroupeVide/Image1.png';
+    const isVid = url.endsWith('.mp4');
+    if(isVid){
+      if(bgImg) bgImg.style.display='none';
+      if(bgVid){
+        const src=bgVid.querySelector('source'); if(src) src.src=url;
+        bgVid.style.display='block'; bgVid.load(); bgVid.play().catch(()=>{});
+      }
+    } else {
+      if(bgVid){ bgVid.style.display='none'; bgVid.pause&&bgVid.pause(); }
+      if(bgImg){ bgImg.style.display='block'; bgImg.src=url; }
     }
   } catch(e) {}
 };
@@ -10712,8 +10720,8 @@ function _immApply(){
     try {
       const _sp = JSON.parse(localStorage.getItem('immoai_avatar_prefs') || '{}');
       const _avSrc = _sp.avatar || (window._AVATAR_LIST && window._AVATAR_LIST[0]) || 'images/avatar.png';
-      const _avImg = document.querySelector('#imm-avatar-el img');
-      if (_avImg) _avImg.src = _avSrc;
+      if(typeof _updateImmAvatar === 'function') _updateImmAvatar(_avSrc);
+      else { const _avImg=document.querySelector('#imm-avatar-el img'); if(_avImg) _avImg.src=_avSrc; }
     } catch(e) {}
   }
 
