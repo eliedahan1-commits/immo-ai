@@ -1886,7 +1886,7 @@ body.imm-on .detail-panel:has(#tauxHistWrap.taux-fs) {
           <div style="border-top:1px solid var(--border);margin:.75rem 0 .5rem"></div>
           <div class="ctitle" style="font-size:.7rem;margin-bottom:.4rem">📈 Coût d'opportunité</div>
           <label class="lbl">Rendement placement alternatif (%/an) <span style="font-weight:400;color:var(--muted);font-size:.75em">— ETF, SCPI... défaut 4%</span></label>
-          <input class="inp" id="locRendPlacement" type="number" value="4" step="0.5" min="0" max="15" />
+          <input class="inp" id="locRendPlacement" type="number" value="3" step="0.5" min="0" max="15" />
           <button class="btn btn-dark btn-full" onclick="calcLocVsAchat()" style="margin-top:.5rem">✦ Comparer</button>
         </div>
         <div id="resLocVsAchat">
@@ -9073,6 +9073,11 @@ function initLocationPage(){
   if(duree){  const el = document.getElementById("locDuree");   if(el) el.value = duree; }
   if(notPct){ const el = document.getElementById("locNotaire"); if(el) el.value = notPct; }
   if(apport){ const el = document.getElementById("locApport");  if(el) el.value = apport; }
+  // Charges copro depuis "Vrai coût total" (vcCharges) ou investissement locatif (lCharges)
+  var vcCh = parseFloat(document.getElementById("vcCharges")?.value)||0;
+  var lCh  = parseFloat(document.getElementById("lCharges")?.value)||0;
+  var copro = vcCh || lCh;
+  if(copro > 0){ var elCopro = document.getElementById("locCharges"); if(elCopro && !elCopro._userModified) elCopro.value = copro; }
   // Prix du marché (si dispo)
   const prixM2 = window._lvaPrixM2 || 0;
   if(prixM2 > 0){
