@@ -1104,10 +1104,14 @@ function saveSetup(){
     if(typeof window._immUpdateBg === 'function') window._immUpdateBg();
   }
   if(avatarChange){
-    // Panel avatar : re-render complet (gère PNG/GIF/MP4)
-    const _avFb = document.getElementById('av-fallback');
-    if(_avFb) showFallback();
-    else { const _avImg=document.getElementById('av-img'); if(_avImg&&!avatar.endsWith('.mp4')) _avImg.src=avatar; }
+    // Panel avatar : update direct src ou re-render si MP4
+    const _avEl = document.getElementById('av-img');
+    if(avatar.endsWith('.mp4')){
+      const _wrap = document.getElementById('av-canvas-wrap');
+      if(_wrap) showFallbackAvatar(_wrap);
+    } else if(_avEl) {
+      _avEl.src = avatar;
+    }
     // Avatar immersif
     _updateImmAvatar(avatar);
   }
