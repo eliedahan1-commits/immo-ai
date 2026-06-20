@@ -8442,9 +8442,10 @@ function profilSetIntent(i){
   // Ouvrir la carte correspondante si non renseignee
   var _e=window._empruntResult, _v=window._investResult, _l=window._locationBudgetResult;
   var _ba={fn:"window.showProfilDetail()",label:"← Score personnalisé"};
-  if(i==="achat"  && (!_e||!_e.revenus))          { window._immBackAction=_ba; showEmpruntDetail();  return; }
-  if(i==="invest" && (!_v||_v.rendementBrut==null)){ window._immBackAction=_ba; showInvestDetail();   return; }
-  if(i==="louer"  && (!_l||!_l.loyerMax33))        { window._immBackAction=_ba; showLocationDetail(); return; }
+  var _isImm=document.body.classList.contains("imm-on");
+  if(i==="achat"  && (!_e||!_e.revenus))          { if(_isImm){window._immBackAction=_ba;showEmpruntDetail();}  else go("emprunt");  return; }
+  if(i==="invest" && (!_v||_v.rendementBrut==null)){ if(_isImm){window._immBackAction=_ba;showInvestDetail();}   else go("cout");     return; }
+  if(i==="louer"  && (!_l||!_l.loyerMax33))        { if(_isImm){window._immBackAction=_ba;showLocationDetail();} else go("location"); return; }
   _buildProfilSliders();
   updateProfilScore();
 }
@@ -8490,15 +8491,22 @@ function _buildProfilConclusion(score,scores,poids){
 }
 
 function _navFromProfil(fn){
-  // Passe vers une autre carte sans fermer imm-split (préserve position carousel)
-  if(typeof window._immPanelRestore==='function') window._immPanelRestore();
-  var dc=document.getElementById('detailContainer'); if(dc) dc.innerHTML='';
-  // Back-to-profil pour cartes simulateur (_immShowSimulateur)
-  window._immBackAction={fn:'window.showProfilDetail()',label:'← Score personnalisé'};
-  // Back-to-profil pour cartes showPanel classiques
-  var _origSP=showPanel;
-  showPanel=function(t,h,ba,bl){ showPanel=_origSP; _origSP(t,h,ba||'window.showProfilDetail()',bl||'← Score personnalisé'); };
-  fn();
+  if(document.body.classList.contains('imm-on')){
+    // Mode immersif : navigation via detailContainer sans toucher imm-split
+    if(typeof window._immPanelRestore==='function') window._immPanelRestore();
+    var dc=document.getElementById('detailContainer'); if(dc) dc.innerHTML='';
+    window._immBackAction={fn:'window.showProfilDetail()',label:'← Score personnalisé'};
+    var _origSP=showPanel;
+    showPanel=function(t,h,ba,bl){ showPanel=_origSP; _origSP(t,h,ba||'window.showProfilDetail()',bl||'← Score personnalisé'); };
+    fn();
+  } else {
+    // Mode normal : revenir sur la page analyse (où detailContainer est visible)
+    _goPage('analyse');
+    document.getElementById('cardsGrid').style.display='none';
+    var _origSP=showPanel;
+    showPanel=function(t,h,ba,bl){ showPanel=_origSP; _origSP(t,h,ba||"go('profil')",bl||'← Compatibilité de vie'); };
+    fn();
+  }
 }
 function _buildProfilSliders(){
   var wrap=document.getElementById("profilSlidersWrap");
