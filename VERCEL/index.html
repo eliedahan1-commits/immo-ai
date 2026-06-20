@@ -8303,7 +8303,7 @@ var _PROFIL_CRITERES=[
   {key:"soleil",  label:"Ensoleillement",            sect:"Cadre de vie",           emoji:"☀️"},
   {key:"dpe",     label:"DPE secteur",               sect:"Cadre de vie",           emoji:"🏷️"},
   {key:"secu",    label:"Sécurité",                  sect:"Cadre de vie",           emoji:"🔒"},
-  {key:"densite", label:"Densité & économie",        sect:"Population & société",   emoji:"🏙️"},
+  {key:"densite", label:"Urbanité du quartier",       sect:"Population & société",   emoji:"🏙️"},
   {key:"logement",label:"Logement & habitat",        sect:"Population & société",   emoji:"🏘️"},
   {key:"demo",    label:"Démographie",               sect:"Population & société",   emoji:"👥"},
   {key:"revenu",  label:"Revenu médian",             sect:"Population & société",   emoji:"💶"},
@@ -8365,6 +8365,21 @@ function _calcScoresBruts(){
       var effort = (prixM2 * 50) / (revMensuel * 12); // nb annees de revenu pour 50m2
       s.effort = effort <= 3 ? 10 : effort <= 5 ? 8 : effort <= 8 ? 6 : effort <= 12 ? 4 : 2;
     }
+  }
+
+  // Override densité : score linéaire d'urbanité (plus urbain = score plus élevé)
+  // Permet au slider d'avoir un sens clair : poids élevé = l'urbanité compte pour vous
+  var inseeD = window._inseeData && window._inseeData.commune;
+  if(inseeD && inseeD.densite != null){
+    var dens = inseeD.densite;
+    s.densite = dens>10000?10 : dens>5000?9 : dens>2000?7 : dens>500?5 : dens>100?3 : 1;
+  }
+
+  // Override logement : inverser selon le projet (achat vs location)
+  var intent = window._profilIntent || "achat";
+  if(intent === "location" && s.logement != null){
+    // Locataire : forte vacance = plus d'offre = mieux → inverser le score
+    s.logement = Math.round((10 - s.logement) * 10) / 10;
   }
 
   return s;
