@@ -1941,7 +1941,7 @@ body.imm-on .detail-panel:has(#tauxHistWrap.taux-fs) {
         <button class="pint-btn" data-i="invest" onclick="profilSetIntent('invest')" style="flex:1;min-width:70px;padding:.4rem .5rem;font-size:.74rem;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;background:var(--white);color:inherit">📈 Investir</button>
         <button class="pint-btn" data-i="louer" onclick="profilSetIntent('louer')" style="flex:1;min-width:70px;padding:.4rem .5rem;font-size:.74rem;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;background:var(--white);color:inherit">🔑 Louer</button>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.7rem">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.7rem">
         <div>
           <label class="lbl">Revenus nets mensuels (€)</label>
           <input class="inp" id="pw-revenus" type="number" placeholder="ex : 3 500" min="0" oninput="updateProfilScore()">
@@ -1949,10 +1949,6 @@ body.imm-on .detail-panel:has(#tauxHistWrap.taux-fs) {
         <div>
           <label class="lbl">Apport disponible (€)</label>
           <input class="inp" id="pw-apport" type="number" placeholder="ex : 80 000" min="0" oninput="updateProfilScore()">
-        </div>
-        <div>
-          <label class="lbl">Surface recherchée (m²)</label>
-          <input class="inp" id="pw-surface" type="number" placeholder="ex : 50" min="1" oninput="updateProfilScore()">
         </div>
       </div>
     </div>
@@ -8365,29 +8361,37 @@ function _calcScoresBruts(){
     s.bac5 = mel.pctBac5 >= 35 ? 10 : mel.pctBac5 >= 25 ? 8 : mel.pctBac5 >= 15 ? 6 : mel.pctBac5 >= 8 ? 4 : 2;
   }
 
-  // 4. Effort d'achat — personnalise si _empruntResult disponible, sinon fallback local
+  // 4. Effort / accessibilite — intent-aware
   var dvf = window._dvfData;
   var prixM2 = dvf && dvf.stats && dvf.stats.medianM2 ? dvf.stats.medianM2 : null;
+  var _intentE = window._profilIntent || "achat";
   if(prixM2){
-    var revMensuel = null;
-    var _pwRev = parseInt((document.getElementById("pw-revenus")||{}).value)||0;
+    var _pwSurf = parseFloat((document.getElementById("pw-surface")||{}).value)||0;
+    var surfRef = _pwSurf > 0 ? _pwSurf : 60;
     var emp = window._empruntResult;
+    var inv = window._investResult;
     var locB = window._locationBudgetResult;
-    if(_pwRev > 0) revMensuel = _pwRev;                                       // champ profil (priorité)
-    else if(emp && emp.revenus > 0) revMensuel = emp.revenus;                 // carte emprunt
-    else if(locB && locB.revenus > 0) revMensuel = locB.revenus;              // carte location
-    else if(mel && mel.revenuMedian) revMensuel = Math.round(mel.revenuMedian / 12); // fallback médian local
-    if(revMensuel){
-      var _pwSurf = parseFloat((document.getElementById("pw-surface")||{}).value)||0;
-      var _pwApport = parseFloat((document.getElementById("pw-apport")||{}).value)||0;
-      var surfRef = _pwSurf > 0 ? _pwSurf : 50;
-      var coutTotal = prixM2 * surfRef;
-      var aFinancer = Math.max(0, coutTotal - _pwApport);
-      var effort = aFinancer / (revMensuel * 12);
-      s.effort = effort <= 3 ? 10 : effort <= 5 ? 8 : effort <= 8 ? 6 : effort <= 12 ? 4 : 2;
+    if(_intentE === "achat"){
+      if(emp && emp.budgetBrut > 0){
+        var prixBien = prixM2 * surfRef;
+        var ratio = prixBien / emp.budgetBrut;
+        s.effort = ratio<=0.8?10:ratio<=1.0?8:ratio<=1.2?6:ratio<=1.5?4:2;
+      } else {
+        var _pwRev = parseInt((document.getElementById("pw-revenus")||{}).value)||0;
+        var _pwApport = parseFloat((document.getElementById("pw-apport")||{}).value)||0;
+        var revM = _pwRev>0?_pwRev:(emp&&emp.revenus>0?emp.revenus:(mel&&mel.revenuMedian?Math.round(mel.revenuMedian/12):0));
+        if(revM>0){ var aFin=Math.max(0,prixM2*surfRef-_pwApport); var eff=aFin/(revM*12); s.effort=eff<=3?10:eff<=5?8:eff<=8?6:eff<=12?4:2; }
+      }
+    } else if(_intentE === "invest"){
+      if(inv && inv.rendementBrut != null){ var rdt=inv.rendementBrut; s.effort=rdt>=8?10:rdt>=6?8:rdt>=4?6:rdt>=3?4:2; }
+      else { s.effort = 5; } // estimation indisponible → neutre
+    } else if(_intentE === "louer"){
+      var loyD = window._loyersData;
+      var loyQ = loyD&&loyD.estimates&&loyD.estimates[1]?loyD.estimates[1].loyerMensuel:(loyD&&loyD.estimates&&loyD.estimates[0]?loyD.estimates[0].loyerMensuel:null);
+      if(locB && locB.loyerMax33>0 && loyQ){ var rL=loyQ/locB.loyerMax33; s.effort=rL<=0.7?10:rL<=0.85?8:rL<=1.0?6:rL<=1.2?4:2; }
+      else if(locB && locB.loyerMax33>0){ var loyEst=prixM2*0.004*surfRef; var rL=loyEst/locB.loyerMax33; s.effort=rL<=0.7?10:rL<=0.85?8:rL<=1.0?6:rL<=1.2?4:2; }
     }
   }
-
   // Override densité : score linéaire d'urbanité (plus urbain = score plus élevé)
   // Permet au slider d'avoir un sens clair : poids élevé = l'urbanité compte pour vous
   var inseeD = window._inseeData && window._inseeData.commune;
@@ -8396,28 +8400,12 @@ function _calcScoresBruts(){
     s.densite = dens>10000?10 : dens>5000?9 : dens>2000?7 : dens>500?5 : dens>100?3 : 1;
   }
 
-  // Overrides selon le projet (intent)
+  // Override logement : inverser selon le projet (achat vs location)
   var intent = window._profilIntent || "achat";
-
-  if(intent === "louer"){
-    // Locataire : forte vacance = plus d'offre disponible = mieux
-    if(s.logement != null) s.logement = Math.round((10 - s.logement) * 10) / 10;
-    // Louer : effort d'achat non pertinent → neutralisé
-    if(s.effort != null) s.effort = 5;
-    // Louer : mobilité et services pèsent plus → boost léger si bon score
-    if(s.mob != null)    s.mob    = Math.min(10, Math.round((s.mob    * 1.1) * 10) / 10);
-    if(s.svc != null)    s.svc    = Math.min(10, Math.round((s.svc    * 1.1) * 10) / 10);
-  } else if(intent === "invest"){
-    // Investisseur : revenu médian et chômage comptent double (attractivité locative)
-    if(s.revenu  != null) s.revenu  = Math.min(10, Math.round((s.revenu  * 1.15) * 10) / 10);
-    if(s.chomage != null) s.chomage = Math.min(10, Math.round((s.chomage * 1.15) * 10) / 10);
-    // Sécurité et démographie boostées (valeur patrimoniale)
-    if(s.secu  != null)   s.secu   = Math.min(10, Math.round((s.secu   * 1.1)  * 10) / 10);
-    if(s.demo  != null)   s.demo   = Math.min(10, Math.round((s.demo   * 1.1)  * 10) / 10);
-    // Effort d'achat plus pénalisant pour l'investisseur (rendement)
-    if(s.effort != null && s.effort < 5) s.effort = Math.max(1, Math.round((s.effort * 0.85) * 10) / 10);
+  if(intent === "location" && s.logement != null){
+    // Locataire : forte vacance = plus d'offre = mieux → inverser le score
+    s.logement = Math.round((10 - s.logement) * 10) / 10;
   }
-  // "achat" : scores bruts sans modification (référence)
 
   return s;
 }
@@ -8447,6 +8435,12 @@ function profilSetIntent(i){
     b.style.borderColor=on?"var(--gold)":"var(--border)";
     b.classList.toggle("on",on);
   });
+  // Ouvrir la carte correspondante si non renseignee
+  var _e=window._empruntResult, _v=window._investResult, _l=window._locationBudgetResult;
+  if(i==="achat"  && (!_e||!_e.revenus))          { closePanel(); setTimeout(function(){showEmpruntDetail();},200); return; }
+  if(i==="invest" && (!_v||_v.rendementBrut==null)){ closePanel(); setTimeout(function(){showInvestDetail();},200); return; }
+  if(i==="louer"  && (!_l||!_l.loyerMax33))        { closePanel(); setTimeout(function(){showLocationDetail();},200); return; }
+  _buildProfilSliders();
   updateProfilScore();
 }
 
@@ -8536,19 +8530,16 @@ function _buildProfilSliders(){
     });
     html+='</div></div>';
   });
-  // CTA financement si données non renseignées
-  var emp = window._empruntResult;
-  var ctaBanner = "";
-  if(!emp){
-    ctaBanner = '<div style="margin-bottom:.75rem;padding:.55rem .75rem;background:rgba(184,131,42,.1);border:1px solid rgba(184,131,42,.35);border-radius:8px;display:flex;align-items:center;gap:.6rem">'
-      +'<span style="font-size:1rem">💡</span>'
-      +'<span style="font-size:.72rem;color:var(--text)">Renseignez votre <strong><a href="#" onclick="event.preventDefault();closePanel();setTimeout(()=>go(\'emprunt\'),150)" style="color:var(--gold);text-decoration:none">capacité d\'emprunt</a></strong> pour un effort d\'achat personnalisé — actuellement calculé sur le revenu médian du quartier.</span>'
-      +'</div>';
-  } else {
-    ctaBanner = '<div style="margin-bottom:.75rem;padding:.45rem .75rem;background:rgba(39,174,96,.08);border:1px solid rgba(39,174,96,.25);border-radius:8px">'
-      +'<span style="font-size:.7rem;color:#27ae60">✅ Effort d\'achat calculé sur vos revenus réels ('+Math.round(emp.revenus).toLocaleString("fr-FR")+' €/mois)</span>'
-      +'</div>';
-  }
+  // CTA financement — intent-aware
+  var _iB = window._profilIntent||"achat";
+  var _eR=window._empruntResult, _iR=window._investResult, _lR=window._locationBudgetResult;
+  var _fmt=function(n){return Math.round(n).toLocaleString("fr-FR");};
+  var _ctaWarn=function(fn,msg){ return '<div style="margin-bottom:.75rem;padding:.55rem .75rem;background:rgba(184,131,42,.1);border:1px solid rgba(184,131,42,.35);border-radius:8px;display:flex;align-items:center;gap:.6rem"><span style="font-size:1rem">'+String.fromCodePoint(0x1F4A1)+'</span><span style="font-size:.72rem;color:var(--text)">'+msg+' <strong><a href="#" onclick="event.preventDefault();closePanel();setTimeout(function(){'+fn+'();},200)" style="color:var(--gold);text-decoration:none">Ouvrir la carte →</a></strong></span></div>'; };
+  var _ctaOk=function(msg){ return '<div style="margin-bottom:.75rem;padding:.45rem .75rem;background:rgba(39,174,96,.08);border:1px solid rgba(39,174,96,.25);border-radius:8px"><span style="font-size:.7rem;color:#27ae60">'+msg+'</span></div>'; };
+  var ctaBanner="";
+  if(_iB==="achat"){ if(!_eR||!_eR.revenus) ctaBanner=_ctaWarn("showEmpruntDetail","Pour savoir si ce bien est dans vos cordes,"); else ctaBanner=_ctaOk("✅ Budget achat : "+_fmt(_eR.budgetBrut)+" € · revenus "+_fmt(_eR.revenus)+" €/mois · apport "+_fmt(_eR.apport)+" €"); }
+  else if(_iB==="invest"){ if(!_iR||_iR.rendementBrut==null) ctaBanner=_ctaWarn("showInvestDetail","Pour calculer le rendement réel de votre investissement,"); else ctaBanner=_ctaOk("✅ Rendement : "+_iR.rendementBrut.toFixed(2)+"% brut / "+_iR.rendementNet.toFixed(2)+"% net · cashflow "+_fmt(_iR.cashflowNet)+" €/an"); }
+  else if(_iB==="louer"){ if(!_lR||!_lR.loyerMax33) ctaBanner=_ctaWarn("showLocationDetail","Pour comparer les loyers du quartier avec votre budget,"); else ctaBanner=_ctaOk("✅ Loyer max : "+_fmt(_lR.loyerMax33)+" €/mois (taux d'effort 33 %) · budget total "+_fmt(_lR.budgetTotal)+" €/mois"); }
   wrap.innerHTML = ctaBanner + html;
 }
 
@@ -8556,7 +8547,6 @@ function resetProfilPoids(){
   _PROFIL_CRITERES.forEach(function(c){var el=document.getElementById("pw-"+c.key);if(el){el.value=5;var lbl=document.getElementById("pwv-"+c.key);if(lbl)lbl.textContent=5;}});
   var ri=document.getElementById("pw-revenus");if(ri)ri.value="";
   var ai=document.getElementById("pw-apport");if(ai)ai.value="";
-  var si=document.getElementById("pw-surface");if(si)si.value="";
   profilSetIntent("achat");
   try{localStorage.removeItem("_immoai_profil_poids");}catch(e){}
   updateProfilScore();
@@ -10577,12 +10567,6 @@ function immGetScoreClass(fn) {
 
 // ── Ouvrir une carte (appelle la fonction existante, puis marque active) ─
 function immOpenCard(item) {
-  // Centrer la carte cliquée dans le carousel avant d'ouvrir le panel
-  var _idx = IMM_ITEMS.indexOf(item);
-  if (_idx >= 0) {
-    immTgt = _rotInit - _idx * _immStep;
-    if (!immRaf) { immRaf = requestAnimationFrame(immAnim); }
-  }
   // Nettoyer le panel en cours sans retirer imm-split (évite le flash carousel)
   var dc = document.getElementById('detailContainer');
   if (dc && dc.innerHTML.trim()) {
@@ -11161,21 +11145,7 @@ window.showLocationDetail = function(){ _immShowSimulateur('p-location','🏢 Lo
 window.showAidesDetail    = function(){ _immShowSimulateur('p-aides','🎁 Aides à l\'achat',null); };
 window.showRenovDetail    = function(){ _immShowSimulateur('p-renov','🔨 MaPrimeRénov\'',null); };
 window.showAnnoncesDetail = function(){ if(typeof showRecherchePanel==='function') showRecherchePanel(); };
-window.showProfilDetail   = function(){ _immShowSimulateur('p-profil','👥 Score personnalisé',function(){
-  var l=document.getElementById('pAdresseLabel'); if(l&&window.currentAddress)l.textContent=window.currentAddress;
-  // Pré-remplir depuis les cartes déjà saisies (si champ encore vide)
-  var emp=window._empruntResult;
-  var rEl=document.getElementById('pw-revenus');
-  var aEl=document.getElementById('pw-apport');
-  var sEl=document.getElementById('pw-surface');
-  if(rEl&&!rEl.value&&emp&&emp.revenus>0) rEl.value=emp.revenus;
-  if(aEl&&!aEl.value&&emp&&emp.apport>0)  aEl.value=emp.apport;
-  if(sEl&&!sEl.value){
-    var vcS=document.getElementById('vcSurf');
-    if(vcS&&vcS.value) sEl.value=vcS.value;
-  }
-  window._profilScoresBruts=_calcScoresBruts(); _buildProfilSliders(); updateProfilScore();
-}); };
+window.showProfilDetail   = function(){ _immShowSimulateur('p-profil','👥 Score personnalisé',function(){ var l=document.getElementById('pAdresseLabel'); if(l&&window.currentAddress)l.textContent=window.currentAddress; window._profilScoresBruts=_calcScoresBruts(); _buildProfilSliders(); updateProfilScore(); }); };
 
 })(); // fin IIFE
 
