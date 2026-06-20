@@ -8368,38 +8368,43 @@ function _calcScoresBruts(){
   }
 
   // 4. Effort / accessibilite — intent-aware
+  // 4. Effort / accessibilite — intent-aware
+  var _TAUX_EFFORT = 0.33;  // taux d'effort bancaire standard (33 %)
+  var _DUREE_CREDIT_MOIS = 240; // durée crédit standard (20 ans = 240 mois)
   var dvf = window._dvfData;
-  var prixM2 = dvf && dvf.stats && dvf.stats.medianM2 ? dvf.stats.medianM2 : null;
+  var prixM2 = (dvf && dvf.stats && dvf.stats.medianM2) ? dvf.stats.medianM2
+             : (dvf && dvf.prix) ? dvf.prix : null;
   var _intentE = window._profilIntent || "achat";
+  var _pwSurf = parseFloat((document.getElementById("pw-surface")||{}).value)||0;
+  var surfRef = _pwSurf > 0 ? _pwSurf : 60;
+  var _pwRev = parseInt((document.getElementById("pw-revenus")||{}).value)||0;
+  var _pwApport = parseFloat((document.getElementById("pw-apport")||{}).value)||0;
+  var emp = window._empruntResult;
+  var inv = window._investResult;
+  var locB = window._locationBudgetResult;
   if(prixM2){
-    var _pwSurf = parseFloat((document.getElementById("pw-surface")||{}).value)||0;
-    var surfRef = _pwSurf > 0 ? _pwSurf : 60;
-    var emp = window._empruntResult;
-    var inv = window._investResult;
-    var locB = window._locationBudgetResult;
     if(_intentE === "achat"){
-      var _pwRev = parseInt((document.getElementById("pw-revenus")||{}).value)||0;
-      var _pwApport = parseFloat((document.getElementById("pw-apport")||{}).value)||0;
       var prixBien = prixM2 * surfRef;
       var budgetEff = null;
       if(_pwRev > 0){
-        budgetEff = _pwRev * 0.33 * 240 + _pwApport;
+        budgetEff = _pwRev * _TAUX_EFFORT * _DUREE_CREDIT_MOIS + _pwApport;
       } else if(emp && emp.budgetBrut > 0){
         budgetEff = emp.budgetBrut;
       } else if(emp && emp.revenus > 0){
-        budgetEff = emp.revenus * 0.33 * 240;
+        budgetEff = emp.revenus * _TAUX_EFFORT * _DUREE_CREDIT_MOIS;
       } else if(mel && mel.revenuMedian){
-        budgetEff = Math.round(mel.revenuMedian/12) * 0.33 * 240;
+        budgetEff = Math.round(mel.revenuMedian/12) * _TAUX_EFFORT * _DUREE_CREDIT_MOIS;
       }
       if(budgetEff > 0){ var ratio=prixBien/budgetEff; s.effort=ratio<=0.8?10:ratio<=1.0?8:ratio<=1.2?6:ratio<=1.5?4:2; }
     } else if(_intentE === "invest"){
       if(inv && inv.rendementBrut != null){ var rdt=inv.rendementBrut; s.effort=rdt>=8?10:rdt>=6?8:rdt>=4?6:rdt>=3?4:2; }
-      else { s.effort = 5; } // estimation indisponible → neutre
+      else if(_pwRev > 0){ var _capI=_pwRev*_TAUX_EFFORT*_DUREE_CREDIT_MOIS+_pwApport; var _totI=prixM2*surfRef; var rI=_totI/_capI; s.effort=rI<=0.8?10:rI<=1.0?8:rI<=1.2?6:rI<=1.5?4:2; } else { s.effort = 5; }
     } else if(_intentE === "louer"){
       var loyD = window._loyersData;
       var loyQ = loyD&&loyD.estimates&&loyD.estimates[1]?loyD.estimates[1].loyerMensuel:(loyD&&loyD.estimates&&loyD.estimates[0]?loyD.estimates[0].loyerMensuel:null);
       if(locB && locB.loyerMax33>0 && loyQ){ var rL=loyQ/locB.loyerMax33; s.effort=rL<=0.7?10:rL<=0.85?8:rL<=1.0?6:rL<=1.2?4:2; }
       else if(locB && locB.loyerMax33>0){ var loyEst=prixM2*0.004*surfRef; var rL=loyEst/locB.loyerMax33; s.effort=rL<=0.7?10:rL<=0.85?8:rL<=1.0?6:rL<=1.2?4:2; }
+      else if(_pwRev > 0){ var _lMax=_pwRev*_TAUX_EFFORT; var _loyEst3=prixM2*0.004*surfRef; var rL3=_loyEst3/_lMax; s.effort=rL3<=0.7?10:rL3<=0.85?8:rL3<=1.0?6:rL3<=1.2?4:2; }
     }
   }
   // Override densité : score linéaire d'urbanité (plus urbain = score plus élevé)
