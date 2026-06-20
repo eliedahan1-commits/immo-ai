@@ -8372,8 +8372,11 @@ function _calcScoresBruts(){
   var _TAUX_EFFORT = 0.33;  // taux d'effort bancaire standard (33 %)
   var _DUREE_CREDIT_MOIS = 240; // durée crédit standard (20 ans = 240 mois)
   var dvf = window._dvfData;
+  var _deptM2 = window._dvfDeptData && window._dvfDeptData.medianM2 ? window._dvfDeptData.medianM2 : null;
+  var _PRIX_NAT_REF = 3000; // prix national de référence (€/m²) — fallback si DVF absent
   var prixM2 = (dvf && dvf.stats && dvf.stats.medianM2) ? dvf.stats.medianM2
-             : (dvf && dvf.prix) ? dvf.prix : null;
+             : (dvf && dvf.prix) ? dvf.prix
+             : _deptM2 ? _deptM2 : _PRIX_NAT_REF;
   var _intentE = window._profilIntent || "achat";
   var _pwSurf = parseFloat((document.getElementById("pw-surface")||{}).value)||0;
   var surfRef = _pwSurf > 0 ? _pwSurf : 60;
