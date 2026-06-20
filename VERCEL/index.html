@@ -1924,7 +1924,7 @@ body.imm-on .detail-panel:has(#tauxHistWrap.taux-fs) {
       <div style="font-size:.85rem;color:rgba(255,255,255,.5);margin-bottom:.6rem">Score global du quartier : <span id="profilRefScore" style="font-family:'DM Serif Display',serif;font-size:1.2rem;color:rgba(255,255,255,.85)">—</span><span style="font-size:.75rem;color:rgba(255,255,255,.4)">/10</span></div>
       <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:.4rem;flex-wrap:wrap">
         <span id="profilScoreNum" style="font-family:'DM Serif Display',serif;font-size:2.8rem;line-height:1;color:var(--gold2)">—</span>
-        <span style="font-size:1.1rem;color:rgba(255,255,255,.5)">/10</span>
+        <span style="font-size:1.1rem;color:rgba(255,255,255,.5)">/10</span><span style="font-size:.72rem;color:rgba(255,255,255,.38);margin-left:4px;letter-spacing:.06em;text-transform:uppercase">Score personnalisé</span>
         <span style="font-size:.75rem;color:rgba(255,255,255,.5);margin-left:.5rem" id="pAdresseLabel">Analysez une adresse d'abord</span>
       </div>
       <div style="height:6px;background:rgba(255,255,255,.1);border-radius:3px;margin-bottom:.9rem;overflow:hidden">
@@ -8469,16 +8469,32 @@ function _buildProfilSliders(){
     html+='<div class="card" style="margin-bottom:.75rem">';
     html+='<div class="ctitle" style="margin-bottom:.5rem">'+sect+'</div>';
     html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem .75rem">';
+    var _CARD_LINK={
+  svc:'services', ecoles:'ecoles', mob:'mobilite', fibre:'fibre',
+  air:'qualiteAir', risques:'risques', bruit:'bruit', soleil:'meteo',
+  dpe:'dpeSecteur', secu:'score', densite:'demographie',
+  logement:'logement', demo:'demographie', revenu:'demographie',
+  chomage:'demographie', bac5:'ecoles'
+};
     items.forEach(function(c,ci){
       var w=savedPoids[c.key]||5;
-      var hasData=scores[c.key]!=null;
-      var sv=hasData?'<span style="font-size:.6rem;color:var(--muted)">'+scores[c.key].toFixed(1)+'</span>':'<span style="font-size:.6rem;color:var(--muted);opacity:.5">N/D</span>';
+      var sc=scores[c.key];
+      var hasData=sc!=null;
+      // Pastille couleur
+      var dotColor=!hasData?'rgba(255,255,255,.2)':sc>=7?'#1D9E75':sc>=5?'#BA7517':'#E24B4A';
+      var dot='<span style="color:'+dotColor+';font-size:.55rem;margin-right:3px;flex-shrink:0">●</span>';
+      // Score affiché
+      var sv=hasData?'<span style="font-size:.6rem;color:var(--muted)">'+sc.toFixed(1)+'</span>':'<span style="font-size:.6rem;color:var(--muted);opacity:.5">N/D</span>';
+      // Lien vers carte
+      var cardId=_CARD_LINK[c.key]||null;
+      var linkFn=c.key==='effort'?'showEmpruntDetail()':'showDetail(\''+cardId+'\')';
+      var linkBtn=(cardId||c.key==='effort')?'<a href="#" onclick="event.preventDefault();closePanel();'+linkFn+'" title="Voir le détail" style="font-size:.65rem;color:var(--gold);text-decoration:none;opacity:.7;margin-left:2px;flex-shrink:0">↗</a>':'';
       var nodata=!hasData?'opacity:.55;':'';
       var span=(odd&&ci===items.length-1)?'grid-column:span 2;':'';
       html+='<div style="'+span+nodata+'padding-bottom:.25rem">';
       html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1px">';
-      html+='<span style="font-size:.7rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70%">'+c.emoji+' '+c.label+'</span>';
-      html+='<div style="display:flex;align-items:center;gap:3px">'+sv+'<span style="font-size:.75rem;font-weight:600;min-width:12px;text-align:right" id="pwv-'+c.key+'">'+w+'</span></div></div>';
+      html+='<span style="font-size:.7rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70%;display:flex;align-items:center">'+dot+c.emoji+' '+c.label+'</span>';
+      html+='<div style="display:flex;align-items:center;gap:3px">'+sv+'<span style="font-size:.75rem;font-weight:600;min-width:12px;text-align:right" id="pwv-'+c.key+'">'+w+'</span>'+linkBtn+'</div></div>';
       html+='<input type="range" min="1" max="10" value="'+w+'" step="1" id="pw-'+c.key+'" oninput="document.getElementById(\'pwv-'+c.key+'\').textContent=this.value;updateProfilScore()" style="width:100%;height:3px;accent-color:'+(hasData?'#4fc3f7':'#888')+'">';
       html+='</div>';
     });
