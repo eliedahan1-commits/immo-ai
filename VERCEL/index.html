@@ -10443,7 +10443,7 @@ let _immStep = calcImmStep(window.innerHeight);
 let _rotInit = (N - 1) * _immStep / 2;
 let _start   = -_rotInit;
 
-let immRot = _rotInit - 2*_immStep, immTgt = _rotInit - 2*_immStep, immRaf = null, immActive = null;
+let immRot = _rotInit - 1*_immStep, immTgt = _rotInit - 1*_immStep, immRaf = null, immActive = null;
 const immDrag = {on:false,pending:false,sx:0,sr:0,vx:0,lx:0};
 window._immRetrying = new Set(); // valIds en cours de rechargement
 
