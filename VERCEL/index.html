@@ -4885,6 +4885,15 @@ function _fromScore(fn) {
   fn();
 }
 
+function _fromProfil(fn) {
+  var _origSP = showPanel;
+  showPanel = function(t, h, ba, bl) {
+    showPanel = _origSP;
+    _origSP(t, h, ba || "window.showProfilDetail()", bl || "← Score personnalisé");
+  };
+  fn();
+}
+
 // Auto-synthèse : appelée automatiquement après chaque showPanel
 (function(){
   var _orig = showPanel;
@@ -8376,12 +8385,28 @@ function _calcScoresBruts(){
     s.densite = dens>10000?10 : dens>5000?9 : dens>2000?7 : dens>500?5 : dens>100?3 : 1;
   }
 
-  // Override logement : inverser selon le projet (achat vs location)
+  // Overrides selon le projet (intent)
   var intent = window._profilIntent || "achat";
-  if(intent === "location" && s.logement != null){
-    // Locataire : forte vacance = plus d'offre = mieux → inverser le score
-    s.logement = Math.round((10 - s.logement) * 10) / 10;
+
+  if(intent === "louer"){
+    // Locataire : forte vacance = plus d'offre disponible = mieux
+    if(s.logement != null) s.logement = Math.round((10 - s.logement) * 10) / 10;
+    // Louer : effort d'achat non pertinent → neutralisé
+    if(s.effort != null) s.effort = 5;
+    // Louer : mobilité et services pèsent plus → boost léger si bon score
+    if(s.mob != null)    s.mob    = Math.min(10, Math.round((s.mob    * 1.1) * 10) / 10);
+    if(s.svc != null)    s.svc    = Math.min(10, Math.round((s.svc    * 1.1) * 10) / 10);
+  } else if(intent === "invest"){
+    // Investisseur : revenu médian et chômage comptent double (attractivité locative)
+    if(s.revenu  != null) s.revenu  = Math.min(10, Math.round((s.revenu  * 1.15) * 10) / 10);
+    if(s.chomage != null) s.chomage = Math.min(10, Math.round((s.chomage * 1.15) * 10) / 10);
+    // Sécurité et démographie boostées (valeur patrimoniale)
+    if(s.secu  != null)   s.secu   = Math.min(10, Math.round((s.secu   * 1.1)  * 10) / 10);
+    if(s.demo  != null)   s.demo   = Math.min(10, Math.round((s.demo   * 1.1)  * 10) / 10);
+    // Effort d'achat plus pénalisant pour l'investisseur (rendement)
+    if(s.effort != null && s.effort < 5) s.effort = Math.max(1, Math.round((s.effort * 0.85) * 10) / 10);
   }
+  // "achat" : scores bruts sans modification (référence)
 
   return s;
 }
@@ -8487,7 +8512,7 @@ function _buildProfilSliders(){
       var sv=hasData?'<span style="font-size:.6rem;color:var(--muted)">'+sc.toFixed(1)+'</span>':'<span style="font-size:.6rem;color:var(--muted);opacity:.5">N/D</span>';
       // Lien vers carte
       var cardId=_CARD_LINK[c.key]||null;
-      var linkFn=c.key==='effort'?'showEmpruntDetail()':'showDetail(\''+cardId+'\')';
+      var linkFn=c.key==='effort'?'_fromProfil(function(){showEmpruntDetail()})':'_fromProfil(function(){showDetail(\''+cardId+'\'})';
       var linkBtn=(cardId||c.key==='effort')?'<a href="#" onclick="event.preventDefault();closePanel();'+linkFn+'" title="Voir le détail" style="font-size:.85rem;color:var(--gold);text-decoration:none;opacity:.85;margin-left:3px;flex-shrink:0">↗</a>':'';
       var nodata=!hasData?'opacity:.55;':'';
       var span=(odd&&ci===items.length-1)?'grid-column:span 2;':'';
