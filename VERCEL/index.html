@@ -1941,7 +1941,7 @@ body.imm-on .detail-panel:has(#tauxHistWrap.taux-fs) {
         <button class="pint-btn" data-i="invest" onclick="profilSetIntent('invest')" style="flex:1;min-width:70px;padding:.4rem .5rem;font-size:.74rem;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;background:var(--white);color:inherit">📈 Investir</button>
         <button class="pint-btn" data-i="louer" onclick="profilSetIntent('louer')" style="flex:1;min-width:70px;padding:.4rem .5rem;font-size:.74rem;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;background:var(--white);color:inherit">🔑 Louer</button>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.7rem">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.7rem">
         <div>
           <label class="lbl">Revenus nets mensuels (€)</label>
           <input class="inp" id="pw-revenus" type="number" placeholder="ex : 3 500" min="0" oninput="updateProfilScore()">
@@ -1949,6 +1949,10 @@ body.imm-on .detail-panel:has(#tauxHistWrap.taux-fs) {
         <div>
           <label class="lbl">Apport disponible (€)</label>
           <input class="inp" id="pw-apport" type="number" placeholder="ex : 80 000" min="0" oninput="updateProfilScore()">
+        </div>
+        <div>
+          <label class="lbl">Surface recherchée (m²)</label>
+          <input class="inp" id="pw-surface" type="number" placeholder="ex : 50" min="1" oninput="updateProfilScore()">
         </div>
       </div>
     </div>
@@ -8366,13 +8370,20 @@ function _calcScoresBruts(){
   var prixM2 = dvf && dvf.stats && dvf.stats.medianM2 ? dvf.stats.medianM2 : null;
   if(prixM2){
     var revMensuel = null;
+    var _pwRev = parseInt((document.getElementById("pw-revenus")||{}).value)||0;
     var emp = window._empruntResult;
     var locB = window._locationBudgetResult;
-    if(emp && emp.revenus > 0) revMensuel = emp.revenus;                      // revenus reels foyer
-    else if(locB && locB.revenus > 0) revMensuel = locB.revenus;              // fallback location
-    else if(mel && mel.revenuMedian) revMensuel = Math.round(mel.revenuMedian / 12); // fallback median local
+    if(_pwRev > 0) revMensuel = _pwRev;                                       // champ profil (priorité)
+    else if(emp && emp.revenus > 0) revMensuel = emp.revenus;                 // carte emprunt
+    else if(locB && locB.revenus > 0) revMensuel = locB.revenus;              // carte location
+    else if(mel && mel.revenuMedian) revMensuel = Math.round(mel.revenuMedian / 12); // fallback médian local
     if(revMensuel){
-      var effort = (prixM2 * 50) / (revMensuel * 12); // nb annees de revenu pour 50m2
+      var _pwSurf = parseFloat((document.getElementById("pw-surface")||{}).value)||0;
+      var _pwApport = parseFloat((document.getElementById("pw-apport")||{}).value)||0;
+      var surfRef = _pwSurf > 0 ? _pwSurf : 50;
+      var coutTotal = prixM2 * surfRef;
+      var aFinancer = Math.max(0, coutTotal - _pwApport);
+      var effort = aFinancer / (revMensuel * 12);
       s.effort = effort <= 3 ? 10 : effort <= 5 ? 8 : effort <= 8 ? 6 : effort <= 12 ? 4 : 2;
     }
   }
@@ -8545,6 +8556,7 @@ function resetProfilPoids(){
   _PROFIL_CRITERES.forEach(function(c){var el=document.getElementById("pw-"+c.key);if(el){el.value=5;var lbl=document.getElementById("pwv-"+c.key);if(lbl)lbl.textContent=5;}});
   var ri=document.getElementById("pw-revenus");if(ri)ri.value="";
   var ai=document.getElementById("pw-apport");if(ai)ai.value="";
+  var si=document.getElementById("pw-surface");if(si)si.value="";
   profilSetIntent("achat");
   try{localStorage.removeItem("_immoai_profil_poids");}catch(e){}
   updateProfilScore();
@@ -11143,7 +11155,21 @@ window.showLocationDetail = function(){ _immShowSimulateur('p-location','🏢 Lo
 window.showAidesDetail    = function(){ _immShowSimulateur('p-aides','🎁 Aides à l\'achat',null); };
 window.showRenovDetail    = function(){ _immShowSimulateur('p-renov','🔨 MaPrimeRénov\'',null); };
 window.showAnnoncesDetail = function(){ if(typeof showRecherchePanel==='function') showRecherchePanel(); };
-window.showProfilDetail   = function(){ _immShowSimulateur('p-profil','👥 Score personnalisé',function(){ var l=document.getElementById('pAdresseLabel'); if(l&&window.currentAddress)l.textContent=window.currentAddress; window._profilScoresBruts=_calcScoresBruts(); _buildProfilSliders(); updateProfilScore(); }); };
+window.showProfilDetail   = function(){ _immShowSimulateur('p-profil','👥 Score personnalisé',function(){
+  var l=document.getElementById('pAdresseLabel'); if(l&&window.currentAddress)l.textContent=window.currentAddress;
+  // Pré-remplir depuis les cartes déjà saisies (si champ encore vide)
+  var emp=window._empruntResult;
+  var rEl=document.getElementById('pw-revenus');
+  var aEl=document.getElementById('pw-apport');
+  var sEl=document.getElementById('pw-surface');
+  if(rEl&&!rEl.value&&emp&&emp.revenus>0) rEl.value=emp.revenus;
+  if(aEl&&!aEl.value&&emp&&emp.apport>0)  aEl.value=emp.apport;
+  if(sEl&&!sEl.value){
+    var vcS=document.getElementById('vcSurf');
+    if(vcS&&vcS.value) sEl.value=vcS.value;
+  }
+  window._profilScoresBruts=_calcScoresBruts(); _buildProfilSliders(); updateProfilScore();
+}); };
 
 })(); // fin IIFE
 
