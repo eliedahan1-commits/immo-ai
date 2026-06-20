@@ -1921,7 +1921,7 @@ body.imm-on .detail-panel:has(#tauxHistWrap.taux-fs) {
     <!-- Score hero -->
     <div style="background:var(--ink);border-radius:var(--r);padding:1.25rem 1.5rem;margin-bottom:1rem;color:#fff">
       <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:.4rem;flex-wrap:wrap">
-        <span id="profilScoreNum" style="font-family:'Cormorant Garamond',serif;font-size:3rem;line-height:1;color:#c9a84c">—</span>
+        <span id="profilScoreNum" style="font-family:'DM Serif Display',serif;font-size:2.8rem;line-height:1;color:var(--gold2)">—</span>
         <span style="font-size:1.1rem;color:rgba(255,255,255,.5)">/10</span>
         <span style="font-size:.75rem;color:rgba(255,255,255,.5);margin-left:.5rem" id="pAdresseLabel">Analysez une adresse d'abord</span>
       </div>
@@ -8414,7 +8414,7 @@ function profilSetIntent(i){
 }
 
 function updateProfilScore(){
-  var scores=window._profilScoresBruts||_calcScoresBruts();
+  var scores=_calcScoresBruts(); window._profilScoresBruts=scores; // recalcul a chaque fois (intent-aware)
   var poids=_getPoidsProfil();
   var score=_calcProfilScore(scores,poids);
   var el=document.getElementById("profilScoreNum");
