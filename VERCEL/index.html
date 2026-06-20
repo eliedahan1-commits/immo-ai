@@ -8477,6 +8477,17 @@ function updateProfilScore(){
   try{localStorage.setItem("_immoai_profil_poids",JSON.stringify(poids));}catch(e){}
   if(concl&&score!=null) concl.innerHTML=_buildProfilConclusion(score,scores,poids);
   var card=document.getElementById("card-val-profil");
+  // Rafraîchir le badge effort d'achat (seul critère personnalisé)
+  var _effortSc=scores.effort;
+  var _effortSp=document.getElementById("pws-effort");
+  var _effortDot=document.getElementById("pws-effort-dot");
+  if(_effortSp){
+    if(_effortSc!=null){ _effortSp.textContent=_effortSc.toFixed(1); _effortSp.style.opacity="1"; }
+    else { _effortSp.textContent="N/D"; _effortSp.style.opacity=".5"; }
+  }
+  if(_effortDot&&_effortSc!=null){
+    _effortDot.style.color=_effortSc>=7?"#1D9E75":_effortSc>=5?"#BA7517":"#E24B4A";
+  }
   if(card&&score!=null) card.textContent=score.toFixed(1)+"/10";
 }
 
@@ -8539,10 +8550,12 @@ function _buildProfilSliders(){
       var hasData=sc!=null;
       // Pastille couleur
       var dotColor=!hasData?'rgba(255,255,255,.2)':sc>=7?'#1D9E75':sc>=5?'#BA7517':'#E24B4A';
-      var dot='<span style="color:'+dotColor+';font-size:.8rem;margin-right:4px;flex-shrink:0">●</span>';
+      var dotColor=!hasData?'rgba(255,255,255,.2)':sc>=7?'#1D9E75':sc>=5?'#BA7517':'#E24B4A';
+      var dotId=c.key==='effort'?' id="pws-effort-dot"':'';
+      var dot='<span'+dotId+' style="color:'+dotColor+';font-size:.8rem;margin-right:4px;flex-shrink:0">●</span>';
       // Score affiché
-      var sv=hasData?'<span style="font-size:.6rem;color:var(--muted)">'+sc.toFixed(1)+'</span>':'<span style="font-size:.6rem;color:var(--muted);opacity:.5">N/D</span>';
-      // Lien vers carte
+      var svId=c.key==='effort'?' id="pws-effort"':'';
+      var sv=hasData?'<span'+svId+' style="font-size:.6rem;color:var(--muted)">'+sc.toFixed(1)+'</span>':'<span'+svId+' style="font-size:.6rem;color:var(--muted);opacity:.5">N/D</span>';
       var cardId=_CARD_LINK[c.key]||null;
       var linkTarget=c.key==='effort'?'window._immBackAction={fn:"window.showProfilDetail()",label:"← Score personnalisé"};showEmpruntDetail()':('showDetail(\''+cardId+'\')');
       var linkBtn=(cardId||c.key==='effort')?'<a href="#" onclick="event.preventDefault();_navFromProfil(function(){'+linkTarget+'})" title="Voir le détail" style="font-size:.85rem;color:var(--gold);text-decoration:none;opacity:.85;margin-left:3px;flex-shrink:0">↗</a>':'';
