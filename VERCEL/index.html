@@ -8378,16 +8378,20 @@ function _calcScoresBruts(){
     var inv = window._investResult;
     var locB = window._locationBudgetResult;
     if(_intentE === "achat"){
-      if(emp && emp.budgetBrut > 0){
-        var prixBien = prixM2 * surfRef;
-        var ratio = prixBien / emp.budgetBrut;
-        s.effort = ratio<=0.8?10:ratio<=1.0?8:ratio<=1.2?6:ratio<=1.5?4:2;
-      } else {
-        var _pwRev = parseInt((document.getElementById("pw-revenus")||{}).value)||0;
-        var _pwApport = parseFloat((document.getElementById("pw-apport")||{}).value)||0;
-        var revM = _pwRev>0?_pwRev:(emp&&emp.revenus>0?emp.revenus:(mel&&mel.revenuMedian?Math.round(mel.revenuMedian/12):0));
-        if(revM>0){ var aFin=Math.max(0,prixM2*surfRef-_pwApport); var eff=aFin/(revM*12); s.effort=eff<=3?10:eff<=5?8:eff<=8?6:eff<=12?4:2; }
+      var _pwRev = parseInt((document.getElementById("pw-revenus")||{}).value)||0;
+      var _pwApport = parseFloat((document.getElementById("pw-apport")||{}).value)||0;
+      var prixBien = prixM2 * surfRef;
+      var budgetEff = null;
+      if(_pwRev > 0){
+        budgetEff = _pwRev * 0.33 * 240 + _pwApport;
+      } else if(emp && emp.budgetBrut > 0){
+        budgetEff = emp.budgetBrut;
+      } else if(emp && emp.revenus > 0){
+        budgetEff = emp.revenus * 0.33 * 240;
+      } else if(mel && mel.revenuMedian){
+        budgetEff = Math.round(mel.revenuMedian/12) * 0.33 * 240;
       }
+      if(budgetEff > 0){ var ratio=prixBien/budgetEff; s.effort=ratio<=0.8?10:ratio<=1.0?8:ratio<=1.2?6:ratio<=1.5?4:2; }
     } else if(_intentE === "invest"){
       if(inv && inv.rendementBrut != null){ var rdt=inv.rendementBrut; s.effort=rdt>=8?10:rdt>=6?8:rdt>=4?6:rdt>=3?4:2; }
       else { s.effort = 5; } // estimation indisponible → neutre
@@ -8549,12 +8553,11 @@ function _buildProfilSliders(){
   var _iB = window._profilIntent||"achat";
   var _eR=window._empruntResult, _iR=window._investResult, _lR=window._locationBudgetResult;
   var _fmt=function(n){return Math.round(n).toLocaleString("fr-FR");};
-  var _ctaWarn=function(fn,msg){ return '<div style="margin-bottom:.75rem;padding:.55rem .75rem;background:rgba(184,131,42,.1);border:1px solid rgba(184,131,42,.35);border-radius:8px;display:flex;align-items:center;gap:.6rem"><span style="font-size:1rem">'+String.fromCodePoint(0x1F4A1)+'</span><span style="font-size:.72rem;color:var(--text)">'+msg+' <strong><a href="#" onclick="event.preventDefault();closePanel();setTimeout(function(){'+fn+'();},200)" style="color:var(--gold);text-decoration:none">Ouvrir la carte →</a></strong></span></div>'; };
   var _ctaOk=function(msg){ return '<div style="margin-bottom:.75rem;padding:.45rem .75rem;background:rgba(39,174,96,.08);border:1px solid rgba(39,174,96,.25);border-radius:8px"><span style="font-size:.7rem;color:#27ae60">'+msg+'</span></div>'; };
   var ctaBanner="";
-  if(_iB==="achat"){ if(!_eR||!_eR.revenus) ctaBanner=_ctaWarn("showEmpruntDetail","Pour savoir si ce bien est dans vos cordes,"); else ctaBanner=_ctaOk("✅ Budget achat : "+_fmt(_eR.budgetBrut)+" € · revenus "+_fmt(_eR.revenus)+" €/mois · apport "+_fmt(_eR.apport)+" €"); }
-  else if(_iB==="invest"){ if(!_iR||_iR.rendementBrut==null) ctaBanner=_ctaWarn("showInvestDetail","Pour calculer le rendement réel de votre investissement,"); else ctaBanner=_ctaOk("✅ Rendement : "+_iR.rendementBrut.toFixed(2)+"% brut / "+_iR.rendementNet.toFixed(2)+"% net · cashflow "+_fmt(_iR.cashflowNet)+" €/an"); }
-  else if(_iB==="louer"){ if(!_lR||!_lR.loyerMax33) ctaBanner=_ctaWarn("showLocationDetail","Pour comparer les loyers du quartier avec votre budget,"); else ctaBanner=_ctaOk("✅ Loyer max : "+_fmt(_lR.loyerMax33)+" €/mois (taux d'effort 33 %) · budget total "+_fmt(_lR.budgetTotal)+" €/mois"); }
+  if(_iB==="achat"){ if(_eR&&_eR.revenus) ctaBanner=_ctaOk("✅ Budget achat : "+_fmt(_eR.budgetBrut)+" € · revenus "+_fmt(_eR.revenus)+" €/mois · apport "+_fmt(_eR.apport)+" €"); }
+  else if(_iB==="invest"){ if(_iR&&_iR.rendementBrut!=null) ctaBanner=_ctaOk("✅ Rendement : "+_iR.rendementBrut.toFixed(2)+"% brut / "+_iR.rendementNet.toFixed(2)+"% net · cashflow "+_fmt(_iR.cashflowNet)+" €/an"); }
+  else if(_iB==="louer"){ if(_lR&&_lR.loyerMax33) ctaBanner=_ctaOk("✅ Loyer max : "+_fmt(_lR.loyerMax33)+" €/mois (taux d'effort 33 %) · budget total "+_fmt(_lR.budgetTotal)+" €/mois"); }
   wrap.innerHTML = ctaBanner + html;
 }
 
