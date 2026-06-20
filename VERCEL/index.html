@@ -10577,6 +10577,12 @@ function immGetScoreClass(fn) {
 
 // ── Ouvrir une carte (appelle la fonction existante, puis marque active) ─
 function immOpenCard(item) {
+  // Centrer la carte cliquée dans le carousel avant d'ouvrir le panel
+  var _idx = IMM_ITEMS.indexOf(item);
+  if (_idx >= 0) {
+    immTgt = _rotInit - _idx * _immStep;
+    if (!immRaf) { immRaf = requestAnimationFrame(immAnim); }
+  }
   // Nettoyer le panel en cours sans retirer imm-split (évite le flash carousel)
   var dc = document.getElementById('detailContainer');
   if (dc && dc.innerHTML.trim()) {
