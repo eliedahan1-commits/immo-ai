@@ -8482,13 +8482,13 @@ function _buildProfilSliders(){
       var hasData=sc!=null;
       // Pastille couleur
       var dotColor=!hasData?'rgba(255,255,255,.2)':sc>=7?'#1D9E75':sc>=5?'#BA7517':'#E24B4A';
-      var dot='<span style="color:'+dotColor+';font-size:.55rem;margin-right:3px;flex-shrink:0">●</span>';
+      var dot='<span style="color:'+dotColor+';font-size:.8rem;margin-right:4px;flex-shrink:0">●</span>';
       // Score affiché
       var sv=hasData?'<span style="font-size:.6rem;color:var(--muted)">'+sc.toFixed(1)+'</span>':'<span style="font-size:.6rem;color:var(--muted);opacity:.5">N/D</span>';
       // Lien vers carte
       var cardId=_CARD_LINK[c.key]||null;
       var linkFn=c.key==='effort'?'showEmpruntDetail()':'showDetail(\''+cardId+'\')';
-      var linkBtn=(cardId||c.key==='effort')?'<a href="#" onclick="event.preventDefault();closePanel();'+linkFn+'" title="Voir le détail" style="font-size:.65rem;color:var(--gold);text-decoration:none;opacity:.7;margin-left:2px;flex-shrink:0">↗</a>':'';
+      var linkBtn=(cardId||c.key==='effort')?'<a href="#" onclick="event.preventDefault();closePanel();'+linkFn+'" title="Voir le détail" style="font-size:.85rem;color:var(--gold);text-decoration:none;opacity:.85;margin-left:3px;flex-shrink:0">↗</a>':'';
       var nodata=!hasData?'opacity:.55;':'';
       var span=(odd&&ci===items.length-1)?'grid-column:span 2;':'';
       html+='<div style="'+span+nodata+'padding-bottom:.25rem">';
