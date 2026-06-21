@@ -8550,7 +8550,6 @@ function _buildProfilSliders(){
       var hasData=sc!=null;
       // Pastille couleur
       var dotColor=!hasData?'rgba(255,255,255,.2)':sc>=7?'#1D9E75':sc>=5?'#BA7517':'#E24B4A';
-      var dotColor=!hasData?'rgba(255,255,255,.2)':sc>=7?'#1D9E75':sc>=5?'#BA7517':'#E24B4A';
       var dotId=c.key==='effort'?' id="pws-effort-dot"':'';
       var dot='<span'+dotId+' style="color:'+dotColor+';font-size:.8rem;margin-right:4px;flex-shrink:0">●</span>';
       // Score affiché
@@ -8562,10 +8561,10 @@ function _buildProfilSliders(){
       var nodata=!hasData?'opacity:.55;':'';
       var span=(odd&&ci===items.length-1)?'grid-column:span 2;':'';
       html+='<div style="'+span+nodata+'padding-bottom:.25rem">';
-      html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1px">';
-      html+='<span style="font-size:.7rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70%;display:flex;align-items:center">'+dot+c.emoji+' '+c.label+'</span>';
-      html+='<div style="display:flex;align-items:center;gap:3px">'+sv+'<span style="font-size:.75rem;font-weight:600;min-width:12px;text-align:right" id="pwv-'+c.key+'">'+w+'</span>'+linkBtn+'</div></div>';
-      html+='<input type="range" min="1" max="10" value="'+w+'" step="1" id="pw-'+c.key+'" oninput="document.getElementById(\'pwv-'+c.key+'\').textContent=this.value;updateProfilScore()" style="width:100%;height:3px;accent-color:'+(hasData?'#4fc3f7':'#888')+'">';
+      html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">';
+      html+='<span style="font-size:.7rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:65%;display:flex;align-items:center">'+dot+c.emoji+' '+c.label+'</span>';
+      html+='<div style="display:flex;align-items:center;gap:4px;flex-shrink:0"><span style="font-size:.55rem;color:var(--muted);opacity:.7">Score&nbsp;</span>'+sv+linkBtn+'</div></div>';
+      html+='<div style="display:flex;align-items:center;gap:5px;margin-bottom:2px"><span style="font-size:.55rem;color:var(--muted);opacity:.7;flex-shrink:0">Poids&nbsp;</span><input type="range" min="1" max="10" value="'+w+'" step="1" id="pw-'+c.key+'" oninput="document.getElementById(\'pwv-'+c.key+'\').textContent=this.value;updateProfilScore()" style="flex:1;height:3px;accent-color:'+(hasData?'#4fc3f7':'#888')+'"><span style="font-size:.65rem;font-weight:600;min-width:16px;text-align:right" id="pwv-'+c.key+'">'+w+'</span></div>';
       html+='</div>';
     });
     html+='</div></div>';
