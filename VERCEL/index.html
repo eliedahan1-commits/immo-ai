@@ -175,6 +175,7 @@ aside.open{transform:translateX(0);box-shadow:4px 0 32px rgba(0,0,0,.5);}
 .hero::before{
   content:'';position:absolute;inset:0;
   background:radial-gradient(ellipse at 50% 0%, rgba(184,131,42,.15) 0%, transparent 70%);
+  pointer-events:none; /* halo décoratif : ne doit pas bloquer les clics (bouton « Me géolocaliser ») */
 }
 .hero-tag{
   font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;
