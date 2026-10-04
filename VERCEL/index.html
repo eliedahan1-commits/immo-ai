@@ -2174,7 +2174,12 @@ body.imm-on .detail-panel:has(#tauxHistWrap.taux-fs) {
 </div><!-- main-wrap -->
 
 <script>
-window._tileUrl=function(u){return u;}; // tuiles Voyager conservées même en mode immersif
+// ── Fonds de carte CARTO : clé API obligatoire (restreinte au domaine immo-ai-nu.vercel.app) ──
+var _CARTO_KEY = "cb1_499e_1_513e26fbb5dff794eb4edcdb";
+// Mention obligatoire (conditions CARTO) sur toutes les cartes CARTO
+var _CARTO_ATTRIB = '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors, © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>';
+// Ajoute la clé aux URLs de tuiles CARTO (les autres fournisseurs sont laissés tels quels)
+window._tileUrl=function(u){ return u.indexOf('basemaps.cartocdn.com')>=0 ? u+(u.indexOf('?')>=0?'&':'?')+'key='+_CARTO_KEY : u; };
 // Intercepteur Chart.js : patch les couleurs texte foncées en mode immersif
 function _patchChartImm(cfg){
   if(!cfg||!cfg.options)return;
@@ -2510,7 +2515,7 @@ function initFranceMap(){
   window._franceMap = map;
 
   L.tileLayer(_tileUrl('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'), {
-    attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/">CARTO</a>',
+    attribution:_CARTO_ATTRIB,
     subdomains:'abcd', maxZoom:19
   }).addTo(map);
 
@@ -6015,7 +6020,7 @@ function buildDVFMap(){
   container.style.display='';
   // Détruire carte existante
   if(window._dvfLeafletMap){ window._dvfLeafletMap.remove(); window._dvfLeafletMap=null; }
-  const map = L.map(container, { zoomControl:true, attributionControl:false });
+  const map = L.map(container, { zoomControl:true, attributionControl:true });
   window._dvfLeafletMap = map;
 
 window._dvfMapFullscreen = function(){
@@ -6039,7 +6044,7 @@ document.addEventListener('fullscreenchange', function(){
   }
   if(window._dvfLeafletMap) setTimeout(()=>window._dvfLeafletMap.invalidateSize(), 100);
 });
-  L.tileLayer(_tileUrl('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'),{attribution:'© OpenStreetMap © CartoDB',subdomains:'abcd',maxZoom:19}).addTo(map);
+  L.tileLayer(_tileUrl('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'),{attribution:_CARTO_ATTRIB,subdomains:'abcd',maxZoom:19}).addTo(map);
   // Palette par prix/m²
   const PRIX_COLORS = [[3000,'#22c55e'],[5000,'#84cc16'],[7000,'#eab308'],[10000,'#f97316'],[Infinity,'#ef4444']];
   function prixColor(pm2){ const c=PRIX_COLORS.find(([seuil])=>pm2<=seuil); return c?c[1]:'#ef4444'; }
@@ -6365,7 +6370,7 @@ function showEcolesDetail(){
     if(window._leafletMapEcoles){window._leafletMapEcoles.remove();window._leafletMapEcoles=null;}
     const map=L.map('mapEcoles').setView([lat,lng],14);
     window._leafletMapEcoles=map;
-    L.tileLayer(_tileUrl('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'),{attribution:'© OSM © CartoDB',maxZoom:19}).addTo(map);
+    L.tileLayer(_tileUrl('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'),{attribution:_CARTO_ATTRIB,maxZoom:19}).addTo(map);
     addFsBtn(map, document.getElementById('mapEcoles'));
     addGeoBtn(map, document.getElementById('mapEcoles'));
     addAddrBtn(map, document.getElementById('mapEcoles'));
@@ -6527,7 +6532,7 @@ function showMobiliteDetail(){
     window._leafletMapMobilite = map;
 
     L.tileLayer(_tileUrl('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'), {
-      attribution:'© OpenStreetMap © CartoDB', maxZoom:19
+      attribution:_CARTO_ATTRIB, maxZoom:19
     }).addTo(map);
     addFsBtn(map, document.getElementById('mapMobilite'));
     addGeoBtn(map, document.getElementById('mapMobilite'));
@@ -6906,7 +6911,7 @@ function showServicesMap(filterCat){
 
     // Fond de carte OpenStreetMap
     L.tileLayer(_tileUrl('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'), {
-      attribution: '© OpenStreetMap © CartoDB',
+      attribution: _CARTO_ATTRIB,
       maxZoom: 19
     }).addTo(map);
     addFsBtn(map, document.getElementById('mapServices'));
@@ -7070,15 +7075,15 @@ async function showPrixCommunesDetail(){
     window._prixCommunesMap = map;
 
     // Fond complet (avec tous les labels de base : routes, communes, etc.)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution:'© OpenStreetMap © CartoDB', subdomains:'abcd', maxZoom:19
+    L.tileLayer(_tileUrl('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'), {
+      attribution:_CARTO_ATTRIB, subdomains:'abcd', maxZoom:19
     }).addTo(map);
 
     // Labels CartoDB au-dessus des polygones (pane z-index > overlayPane 400)
     map.createPane('labels');
     map.getPane('labels').style.zIndex = 450;
     map.getPane('labels').style.pointerEvents = 'none';
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
+    L.tileLayer(_tileUrl('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png'), {
       subdomains:'abcd', maxZoom:19, pane:'labels'
     }).addTo(map);
 
@@ -7831,7 +7836,7 @@ function showINSEEDetail(){
     if(window._leafletMapInsee){window._leafletMapInsee.remove();window._leafletMapInsee=null;}
     const map=L.map('mapInsee').setView([lat,lng],12);
     window._leafletMapInsee=map;
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CartoDB',maxZoom:19}).addTo(map);
+    L.tileLayer(_tileUrl('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'),{attribution:_CARTO_ATTRIB,maxZoom:19}).addTo(map);
     addFsBtn(map, document.getElementById('mapInsee'));
     addGeoBtn(map, document.getElementById('mapInsee'));
     addAddrBtn(map, document.getElementById('mapInsee'));
@@ -8328,6 +8333,12 @@ var _PROFIL_CRITERES=[
   {key:"effort",  label:"Effort d'achat",            sect:"Budget & accessibilité", emoji:"⏱️"},
 ];
 window._profilIntent=window._profilIntent||"achat";
+// Poids des jauges du score personnalisé
+var _POIDS_MIN = 0;    // 0 = critère ignoré
+var _POIDS_MAX = 10;
+var _POIDS_DEFAUT = 3; // poids initial de chaque critère
+// Lit un poids en conservant la valeur 0 (un "|| défaut" la transformerait en défaut)
+function _lirePoids(v){ var n=parseInt(v,10); return isNaN(n)?_POIDS_DEFAUT:n; }
 
 function _calcScoresBruts(){
   // 1. Lire les 12 scores deja calcules par computeScoreQuartier()
@@ -8430,14 +8441,14 @@ function _calcScoresBruts(){
 
 function _getPoidsProfil(){
   var poids={};
-  _PROFIL_CRITERES.forEach(function(c){var el=document.getElementById("pw-"+c.key);poids[c.key]=el?parseInt(el.value)||5:5;});
+  _PROFIL_CRITERES.forEach(function(c){var el=document.getElementById("pw-"+c.key);poids[c.key]=el?_lirePoids(el.value):_POIDS_DEFAUT;});
   return poids;
 }
 
 function _calcProfilScore(scores,poids){
   var sumW=0,sumWS=0;
   _PROFIL_CRITERES.forEach(function(c){
-    var w=poids[c.key]||5;
+    var w=_lirePoids(poids[c.key]);
     var s=scores[c.key]!=null?scores[c.key]:5; // N/D = score neutre 5
     sumW+=w; sumWS+=w*s;
   });
@@ -8476,6 +8487,11 @@ function updateProfilScore(){
   if(bar&&score!=null){bar.style.width=Math.round(score*10)+"%";bar.style.background=score>=7?"#1D9E75":score>=5?"#BA7517":"#E24B4A";}
   try{localStorage.setItem("_immoai_profil_poids",JSON.stringify(poids));}catch(e){}
   if(concl&&score!=null) concl.innerHTML=_buildProfilConclusion(score,scores,poids);
+  // Tous les poids à 0 : aucun score calculable
+  if(score==null){
+    if(bar) bar.style.width="0%";
+    if(concl) concl.innerHTML="⚠️ Mettez au moins un critère au-dessus de 0 pour obtenir un score personnalisé.";
+  }
   var card=document.getElementById("card-val-profil");
   // Rafraîchir le badge effort d'achat (seul critère personnalisé)
   var _effortSc=scores.effort;
@@ -8488,7 +8504,7 @@ function updateProfilScore(){
   if(_effortDot&&_effortSc!=null){
     _effortDot.style.color=_effortSc>=7?"#1D9E75":_effortSc>=5?"#BA7517":"#E24B4A";
   }
-  if(card&&score!=null) card.textContent=score.toFixed(1)+"/10";
+  if(card) card.textContent=score!=null?score.toFixed(1)+"/10":"—";
 }
 
 function _buildProfilConclusion(score,scores,poids){
@@ -8497,7 +8513,7 @@ function _buildProfilConclusion(score,scores,poids){
   var note=score>=8?"Excellent":score>=7?"Très bon":score>=5?"Partiel":"Faible";
   var ndCount=_PROFIL_CRITERES.filter(function(c){return scores[c.key]==null;}).length;
   var maxW=0,topKey=null;
-  _PROFIL_CRITERES.forEach(function(c){if(scores[c.key]!=null&&(poids[c.key]||5)>maxW){maxW=poids[c.key]||5;topKey=c.key;}});
+  _PROFIL_CRITERES.forEach(function(c){if(scores[c.key]!=null&&_lirePoids(poids[c.key])>maxW){maxW=_lirePoids(poids[c.key]);topKey=c.key;}});
   var topCrit=_PROFIL_CRITERES.find(function(c){return c.key===topKey;});
   var topScore=topKey?scores[topKey]:null;
   var lines=[];
@@ -8545,7 +8561,7 @@ function _buildProfilSliders(){
   chomage:'demographie', bac5:'ecoles'
 };
     items.forEach(function(c,ci){
-      var w=savedPoids[c.key]||5;
+      var w=savedPoids[c.key]!=null?_lirePoids(savedPoids[c.key]):_POIDS_DEFAUT;
       var sc=scores[c.key];
       var hasData=sc!=null;
       // Pastille couleur
@@ -8564,7 +8580,7 @@ function _buildProfilSliders(){
       html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">';
       html+='<span style="font-size:.7rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:65%;display:flex;align-items:center">'+dot+c.emoji+' '+c.label+'</span>';
       html+='<div style="display:flex;align-items:center;gap:4px;flex-shrink:0"><span style="font-size:.55rem;color:var(--muted);opacity:.7">Score&nbsp;</span>'+sv+linkBtn+'</div></div>';
-      html+='<div style="display:flex;align-items:center;gap:5px;margin-bottom:2px"><span style="font-size:.55rem;color:var(--muted);opacity:.7;flex-shrink:0">Poids&nbsp;</span><input type="range" min="1" max="10" value="'+w+'" step="1" id="pw-'+c.key+'" oninput="document.getElementById(\'pwv-'+c.key+'\').textContent=this.value;updateProfilScore()" style="flex:1;height:3px;accent-color:'+(hasData?'#4fc3f7':'#888')+'"><span style="font-size:.65rem;font-weight:600;min-width:16px;text-align:right" id="pwv-'+c.key+'">'+w+'</span></div>';
+      html+='<div style="display:flex;align-items:center;gap:5px;margin-bottom:2px"><span style="font-size:.55rem;color:var(--muted);opacity:.7;flex-shrink:0">Poids&nbsp;</span><input type="range" min="'+_POIDS_MIN+'" max="'+_POIDS_MAX+'" value="'+w+'" step="1" id="pw-'+c.key+'" oninput="document.getElementById(\'pwv-'+c.key+'\').textContent=this.value;updateProfilScore()" style="flex:1;height:3px;accent-color:'+(hasData?'#4fc3f7':'#888')+'"><span style="font-size:.65rem;font-weight:600;min-width:16px;text-align:right" id="pwv-'+c.key+'">'+w+'</span></div>';
       html+='</div>';
     });
     html+='</div></div>';
@@ -8582,7 +8598,7 @@ function _buildProfilSliders(){
 }
 
 function resetProfilPoids(){
-  _PROFIL_CRITERES.forEach(function(c){var el=document.getElementById("pw-"+c.key);if(el){el.value=5;var lbl=document.getElementById("pwv-"+c.key);if(lbl)lbl.textContent=5;}});
+  _PROFIL_CRITERES.forEach(function(c){var el=document.getElementById("pw-"+c.key);if(el){el.value=_POIDS_DEFAUT;var lbl=document.getElementById("pwv-"+c.key);if(lbl)lbl.textContent=_POIDS_DEFAUT;}});
   var ri=document.getElementById("pw-revenus");if(ri)ri.value="";
   var ai=document.getElementById("pw-apport");if(ai)ai.value="";
   profilSetIntent("achat");
@@ -8599,8 +8615,8 @@ async function runProfilIA(){
   var rev=parseInt((document.getElementById("pw-revenus")||{}).value)||0;
   var apport=parseInt((document.getElementById("pw-apport")||{}).value)||0;
   var dvf=window._dvfData;
-  var top=_PROFIL_CRITERES.filter(function(c){return scores[c.key]!=null;}).sort(function(a,b){return (poids[b.key]||5)-(poids[a.key]||5);}).slice(0,5).map(function(c){return c.label+" (poids "+poids[c.key]+", score "+scores[c.key].toFixed(1)+"/10)";});
-  var prompt="Score personnalisé "+window.currentAddress+" : "+score+"/10. Intention: "+intent+". Revenus: "+(rev||"non renseignés")+"€/mois. Apport: "+(apport||"non renseigné")+"€. Top 5 critères: "+top.join(", ")+". Prix médian: "+(dvf&&dvf.prix?dvf.prix+"€/m²":"inconnu")+". Conseil immobilier personnalisé: adéquation profil/lieu, budget, type de bien recommandé, risques, alternative si budget insuffisant.";
+  var top=_PROFIL_CRITERES.filter(function(c){return scores[c.key]!=null;}).sort(function(a,b){return _lirePoids(poids[b.key])-_lirePoids(poids[a.key]);}).slice(0,5).map(function(c){return c.label+" (poids "+poids[c.key]+", score "+scores[c.key].toFixed(1)+"/10)";});
+  var prompt="Score personnalisé "+window.currentAddress+" : "+(score!=null?score+"/10":"non calculé (tous les poids à 0)")+". Intention: "+intent+". Revenus: "+(rev||"non renseignés")+"€/mois. Apport: "+(apport||"non renseigné")+"€. Top 5 critères: "+top.join(", ")+". Prix médian: "+(dvf&&dvf.prix?dvf.prix+"€/m²":"inconnu")+". Conseil immobilier personnalisé: adéquation profil/lieu, budget, type de bien recommandé, risques, alternative si budget insuffisant.";
   try{var res=await callAI(prompt,"Tu es conseiller immobilier expert France. Réponse directe, chiffrée, actionnable. **Gras** pour chiffres clés. 7 lignes max.","profil");txt.innerHTML="<p>"+md(res)+"</p>";}
   catch(e){txt.innerHTML="⚠️ "+e.message;}
   btn.disabled=false;btn.innerHTML="✦ Relancer l'analyse IA";
@@ -11208,4 +11224,123 @@ window.showProfilDetail   = function(){ _immShowSimulateur('p-profil','👥 Scor
 <script src="/avatar.js?v=15"></script>
 <script src="/recherche-bien.js?v=3"></script>
 <script>
-/* ══ MOBILE NAV ══════════�
+/* ══ MOBILE NAV ══════════════════════════════════════════════════════════ */
+function toggleSidebar(){
+  const s=document.getElementById('sidebar');
+  const btn=document.getElementById('hamburgerBtn');
+  const ov=document.getElementById('sideOverlay');
+  const open=s.classList.toggle('open');
+  btn.classList.toggle('open',open);
+  ov.style.display=open?'block':'none';
+  document.body.style.overflow=open?'hidden':'';
+}
+function closeSidebar(){
+  const s=document.getElementById('sidebar');
+  const btn=document.getElementById('hamburgerBtn');
+  const ov=document.getElementById('sideOverlay');
+  s.classList.remove('open');
+  btn.classList.remove('open');
+  ov.style.display='none';
+  document.body.style.overflow='';
+}
+// Map page id → tab id
+const _PAGE_TO_TAB={
+  home:'home',
+  analyse:'bien',prix:'bien',risques:'bien',bruit:'bien',urbanisme:'bien',
+  ecoles:'bien',mobilite:'bien',fibre:'bien',services:'bien',soleil:'bien',
+  emprunt:'financement',cout:'financement',mensualites:'financement',aides:'financement',renov:'financement',location:'financement',
+  profil:'strategie',recherche:'strategie',conseil:'strategie',juridique:'strategie',
+};
+function setActiveTab(tabId){
+  document.querySelectorAll('.btab').forEach(b=>b.classList.remove('active'));
+  const el=document.getElementById('btab-'+tabId);
+  if(el) el.classList.add('active');
+}
+// Patch go() to auto-update bottom tab + close sidebar on mobile
+const _goOrig=window._goPage||go;
+const _goPatched=function(id){
+  _goOrig(id);
+  const tab=_PAGE_TO_TAB[id]||null;
+  if(tab) setActiveTab(tab);
+  if(window.innerWidth<=1024) closeSidebar();
+};
+// Accordion nav sections
+function toggleNavGroup(sectionEl) {
+  var content = sectionEl.nextElementSibling;
+  var arrow = sectionEl.querySelector('.nav-arrow');
+  if (!content) return;
+  var collapsed = content.classList.toggle('collapsed');
+  if (arrow) arrow.style.transform = collapsed ? 'rotate(-90deg)' : 'rotate(0deg)';
+}
+
+// Override nav-item clicks to close sidebar (desktop + mobile)
+document.addEventListener('DOMContentLoaded',()=>{
+  document.querySelectorAll('.nav-item').forEach(el=>{
+    el.addEventListener('click',()=>{ closeSidebar(); });
+  });
+  // Masquer bottom tab bar sur la page d'accueil au démarrage
+  const _btb = document.getElementById('bottomTabBar');
+  if(_btb && document.getElementById('p-home')?.classList.contains('on')) _btb.style.display = 'none';
+});
+
+
+// ── Bouton Back mobile : navigation intra-app ──
+(function(){
+  function _pushSentinel(){ try{ history.pushState({immoai:1}, ''); }catch(e){} }
+  try{ history.replaceState({immoai:0}, ''); }catch(e){}
+  _pushSentinel();
+
+  var _fwd     = false;
+  var _lastTs  = 0;
+  var _exiting = false; // true = sortie volontaire, ne pas rebondir
+
+  function _showExitConfirm(){
+    if(document.getElementById('_exitModal')) return;
+    var m = document.createElement('div');
+    m.id = '_exitModal';
+    m.setAttribute('style','position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:1.5rem');
+    window._exitModalStay  = function(){ var e=document.getElementById('_exitModal');if(e)e.remove(); };
+    window._exitModalLeave = function(){
+      var e=document.getElementById('_exitModal'); if(e)e.remove();
+      _exiting = true;   // désactiver le rebond dans le handler
+      history.back();    // recule vers root → le browser peut ensuite sortir
+    };
+    m.innerHTML='<div style="background:#fff;border-radius:16px;padding:1.75rem 1.5rem;max-width:300px;width:100%;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.3)">'
+      +'<div style="font-size:2rem;margin-bottom:.5rem">&#127968;</div>'
+      +'<div style="font-size:1rem;font-weight:700;color:#111;margin-bottom:.35rem">Quitter ImmoAI ?</div>'
+      +'<div style="font-size:.82rem;color:#777;margin-bottom:1.25rem;line-height:1.4">Vous \u00eates sur l\u2019accueil. Appuyez sur Fermer puis le bouton retour syst\u00e8me pour quitter.</div>'
+      +'<div style="display:flex;gap:.75rem">'
+      +'<button onclick="_exitModalStay()" style="flex:1;padding:.7rem;border:1.5px solid #ddd;border-radius:10px;background:#f4f4f4;font-size:.88rem;font-weight:600;cursor:pointer;color:#333">Rester</button>'
+      +'<button onclick="_exitModalLeave()" style="flex:1;padding:.7rem;border:none;border-radius:10px;background:#111;color:#fff;font-size:.88rem;font-weight:600;cursor:pointer">Fermer</button>'
+      +'</div></div>';
+    document.body.appendChild(m);
+  }
+
+  window.addEventListener('popstate', function(){
+    // Sortie volontaire : ne pas rebondir, laisser le navigateur gérer
+    if(_exiting) return;
+
+    // Retour déclenché par notre propre history.go(1)
+    if(_fwd){ _fwd = false; return; }
+
+    var now = Date.now();
+    if(now - _lastTs < 150) return;
+    _lastTs = now;
+
+    // Rebondir sur le sentinel
+    _fwd = true;
+    setTimeout(function(){ history.go(1); }, 0);
+    // Navigation applicative
+    var panelEl = document.getElementById('detailContainer');
+    if(panelEl && panelEl.innerHTML.trim()){
+      var btn = panelEl.querySelector('.back-btn'); if(btn) btn.click(); else closePanel(); return;
+    }
+    if(document.getElementById('p-home')?.classList.contains('on')){ _showExitConfirm(); return; }
+    if(document.getElementById('p-analyse')?.classList.contains('on')){ go('home'); return; }
+    _goPage('analyse');
+  });
+})();
+
+</script>
+</body>
+</html>
