@@ -4829,10 +4829,9 @@ async function loadBruit(lat, lng){
     if(!r.ok) throw new Error('API bruit ' + r.status);
     const d = await r.json();
     window._bruitData = d;
-    if(d.success && d.niveau){
-      const css = d.niveauCode==='eleve'?'bad':d.niveauCode==='modere'?'warn':'good';
-      setCard('bruit', d.niveau, d.sources.length ? d.sources.map(s=>s.icone).join(' ')+' · Estimation OSM' : 'Aucune source identifiée', css);
-    }
+    if(!d.success || !d.niveau) throw new Error(d.error || 'Données bruit indisponibles');
+    const css = d.niveauCode==='eleve'?'bad':d.niveauCode==='modere'?'warn':'good';
+    setCard('bruit', d.niveau, d.sources.length ? d.sources.map(s=>s.icone).join(' ')+' · Estimation OSM' : 'Aucune source identifiée', css);
   } catch(e) {
     window._bruitData = null;
     setCard('bruit','Non disponible','Erreur API bruit','');
