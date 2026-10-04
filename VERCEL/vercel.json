@@ -14,6 +14,9 @@
     },
     "api/meteo.js": {
       "maxDuration": 25
+    },
+    "api/altitude.js": {
+      "maxDuration": 30
     }
   },
   "headers": [
