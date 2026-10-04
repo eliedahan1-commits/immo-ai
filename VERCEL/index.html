@@ -3877,7 +3877,9 @@ async function loadAmenites(lat, lng){
   }
 }
 
-function showQualiteAirDetail() {
+// depuis = 'meteo' quand on vient du bouton « Détail → » de la carte Météo (retour vers la météo) ;
+// sinon le retour est décidé par l'appelant (score global, score personnalisé) ou « Retour aux cartes ».
+function showQualiteAirDetail(depuis) {
   const air = window._qualiteAirData;
   if (!air || air.error) { showPanel("💨 Qualité de l'air", '<p style="color:var(--muted)">Données non disponibles.</p>'); return; }
   const color = air.color || '#999';
@@ -3932,7 +3934,8 @@ function showQualiteAirDetail() {
     </div>
     <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-bottom:1rem">${polRows}</div>
     <p style="font-size:.62rem;color:var(--muted)">Source : Open-Meteo Air Quality · Données temps réel</p>
-  `, "(function(){var ks=['_aqHistChart0'];ks.forEach(function(k){if(window[k]){window[k].destroy();window[k]=null;}});showMeteoDetail();})()","← Retour météo");
+  `, depuis==='meteo' ? "(function(){var ks=['_aqHistChart0'];ks.forEach(function(k){if(window[k]){window[k].destroy();window[k]=null;}});showMeteoDetail();})()" : undefined,
+     depuis==='meteo' ? "← Retour météo" : undefined);
 }
 
 function showDPESecteurDetail() {
@@ -7492,7 +7495,7 @@ function showMeteoDetail(){
           <span style="font-size:.78rem;color:var(--muted);font-weight:500">🌬️ Qualité de l\'air :</span>
           <span style="background:${aq.color};color:#fff;font-size:.78rem;font-weight:700;padding:.25rem .7rem;border-radius:20px">${aq.label}</span>
           <span style="font-size:.72rem;color:var(--muted)">IQA ${aq.aqi} / 100+</span>
-          <button onclick="_navPanel(()=>showQualiteAirDetail())" style="margin-left:.4rem;font-size:.68rem;padding:.18rem .55rem;border:1px solid var(--border);border-radius:12px;background:transparent;color:var(--muted);cursor:pointer">Détail →</button>
+          <button onclick="_navPanel(()=>showQualiteAirDetail('meteo'))" style="margin-left:.4rem;font-size:.68rem;padding:.18rem .55rem;border:1px solid var(--border);border-radius:12px;background:transparent;color:var(--muted);cursor:pointer">Détail →</button>
         </div>
         <div style="font-size:.65rem;color:var(--muted);margin-bottom:.3rem">Recommandations OMS 2021 (non réglementaires) · vert &lt;75% · orange 75-99% · rouge ≥100%</div>
         ${barHtml}
