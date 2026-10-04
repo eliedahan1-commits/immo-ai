@@ -19,14 +19,35 @@ export default async function handler(req, res) {
       node["amenity"="fuel"](around:${dist},${lat},${lon});
     );out center;`;
 
-    const r = await fetch('https://overpass-api.de/api/interpreter', {
-      method: 'POST',
-      body: `data=${encodeURIComponent(query)}`,
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'IMMOAI/2.0 (https://immo-ai-nu.vercel.app)', 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(12000)
-    });
-    if (!r.ok) throw new Error(`Overpass ${r.status}`);
-    const rawElements = (await r.json()).elements || [];
+    // 2 tentatives : la 2e absorbe un refus passager d'Overpass (saturation 429/504), après une courte pause.
+    // Budget total < 28 s attendus par le navigateur (loadMobilite) et < 30 s max (vercel.json).
+    const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
+    const NB_TENTATIVES = 2;
+    const PAUSE_MS = 2000;
+    const BUDGET_MS = 25000;
+    const TIMEOUT_TENTATIVE_MS = 12000;
+    const start = Date.now();
+    let rawElements = null, derniereErreur = 'Overpass indisponible';
+    for (let tentative = 1; tentative <= NB_TENTATIVES; tentative++) {
+      if (tentative > 1) await new Promise(res => setTimeout(res, PAUSE_MS));
+      const remaining = BUDGET_MS - (Date.now() - start);
+      if (remaining < 3000) break;
+      try {
+        const r = await fetch(OVERPASS_URL, {
+          method: 'POST',
+          body: `data=${encodeURIComponent(query)}`,
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'IMMOAI/2.0 (https://immo-ai-nu.vercel.app)', 'Accept': 'application/json' },
+          signal: AbortSignal.timeout(Math.min(TIMEOUT_TENTATIVE_MS, remaining))
+        });
+        if (!r.ok) { derniereErreur = `Overpass ${r.status}`; continue; }
+        const json = await r.json();
+        // Overpass peut répondre 200 avec une erreur interne : ce n'est pas « aucun transport »
+        if (json.remark && /runtime error|timed out|out of memory/i.test(json.remark)) { derniereErreur = 'Overpass : ' + json.remark; continue; }
+        rawElements = json.elements || [];
+        break;
+      } catch (e) { derniereErreur = e.message; }
+    }
+    if (rawElements === null) throw new Error(derniereErreur);
     // Normaliser center pour les ways/relations (ex: grandes gares mappées comme bâtiment)
     const elements = rawElements.map(e => ({
       ...e,

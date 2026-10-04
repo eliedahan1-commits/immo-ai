@@ -84,7 +84,12 @@ export default async function handler(req, res) {
     const tries = [...valides].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     return {
       success: true, count: valides.length, rayon, source, dateRange,
-      stats: { medianM2: Math.round(prix.reduce((a,b)=>a+b,0)/prix.length), minM2: prix[0], maxM2: prix[prix.length - 1] },
+      // medianM2 = vraie médiane (valeur centrale, insensible aux ventes extrêmes) ; meanM2 = moyenne arithmétique
+      stats: {
+        medianM2: prix.length % 2 ? prix[(prix.length - 1) / 2] : Math.round((prix[prix.length / 2 - 1] + prix[prix.length / 2]) / 2),
+        meanM2: Math.round(prix.reduce((a,b)=>a+b,0)/prix.length),
+        minM2: prix[0], maxM2: prix[prix.length - 1]
+      },
       recentes: tries,
       dateExtraction: new Date().toISOString()
     };
