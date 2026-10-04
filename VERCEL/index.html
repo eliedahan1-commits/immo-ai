@@ -2823,12 +2823,35 @@ function loadAllData(props, coords){
   const alt = null;
   setCard('altitude', alt ? alt+'m' : 'N/A', 'Altitude NGF · Source IGN', '');
 
-  // Lancer toutes les vraies APIs en parallèle
+  // ── Appels qui passent par Overpass (OpenStreetMap) ──
+  // Overpass refuse les requêtes simultanées en trop (erreurs 504/429) : on en lance
+  // au plus OVERPASS_MAX_SIMULTANES à la fois, et chaque carte en échec est relancée
+  // automatiquement une fois. Le score global n'est calculé qu'après ces relances.
+  const OVERPASS_MAX_SIMULTANES = 2;
+  const RELANCE_AUTO_PAUSE_MS = 3000;
+  const _fileOverpass = (function(max){
+    let actifs = 0; const attente = [];
+    function suivant(){
+      if(actifs >= max || !attente.length) return;
+      actifs++;
+      const t = attente.shift();
+      Promise.resolve().then(t.fn).catch(()=>{}).then(()=>{ actifs--; t.fin(); suivant(); });
+    }
+    return fn => new Promise(fin => { attente.push({fn, fin}); suivant(); });
+  })(OVERPASS_MAX_SIMULTANES);
+  const _carteEnEchec = id => () => !!document.querySelector('#card-'+id+' .card-retry-btn');
+  const _avecRelance = (fn, echoue) => _fileOverpass(fn).then(async () => {
+    if(!echoue()) return;
+    await new Promise(r => setTimeout(r, RELANCE_AUTO_PAUSE_MS));
+    await _fileOverpass(fn);
+  });
+
+  // Lancer toutes les vraies APIs en parallèle (sauf Overpass : via la file ci-dessus)
   Promise.all([
     loadDVF(lat, lng),
     loadRisques(lat, lng, props.citycode),
-    loadEcoles(lat, lng, props.citycode),
-    loadMobilite(lat, lng),
+    _avecRelance(() => loadEcoles(lat, lng, props.citycode), _carteEnEchec('ecoles')),
+    _avecRelance(() => loadMobilite(lat, lng), _carteEnEchec('mobilite')),
     loadFibre(props.citycode, lat, lng),
     loadUrbanisme(lat, lng),
     loadDPESecteur(props.citycode),
@@ -2837,9 +2860,9 @@ function loadAllData(props, coords){
     loadINSEE(props.citycode, lat, lng),
     loadCriminalite(props.citycode),
     loadAltitude(lat, lng),
-    loadServices(lat, lng),
-    loadAmenites(lat, lng),
-    loadBruit(lat, lng),
+    _avecRelance(() => loadServices(lat, lng), _carteEnEchec('services')),
+    _avecRelance(() => loadAmenites(lat, lng), () => !window._amenitesData),
+    _avecRelance(() => loadBruit(lat, lng), _carteEnEchec('bruit')),
     loadPrixCommunes(lat, lng),
     loadSeniors(lat, lng),
   ]).then(() => {
@@ -2884,7 +2907,14 @@ function setCardRetry(id, fn){
     const subEl = card.querySelector('.card-sub');
     if(valEl) valEl.innerHTML='<span class="spin"></span>';
     if(subEl) subEl.textContent='Chargement...';
-    setTimeout(fn, 500);
+    setTimeout(async ()=>{
+      try{ await fn(); }catch(e){}
+      // Après une relance manuelle, recalculer le score global (et les loyers) avec la donnée récupérée
+      if(window._analysisReady){
+        if(id!=='loyers' && typeof computeLoyersEstimates==='function') computeLoyersEstimates();
+        if(id!=='score' && typeof computeScoreQuartier==='function') computeScoreQuartier();
+      }
+    }, 500);
   };
   card.appendChild(btn);
 }
@@ -3253,7 +3283,7 @@ async function loadEcoles(lat, lng, codeInsee, dist=500){
   }catch(e){
     if(currentCoords) _markFail(currentCoords.lat, currentCoords.lng);
     setCard('ecoles','Non disponible','Erreur API Éducation','');
-    setCardRetry('ecoles',()=>currentCoords&&loadEcoles(currentCoords.lat,currentCoords.lng));
+    setCardRetry('ecoles',()=>currentCoords&&loadEcoles(currentCoords.lat,currentCoords.lng,window._currentCodeInsee||null));
   }
 }
 
