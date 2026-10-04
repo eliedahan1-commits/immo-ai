@@ -4129,8 +4129,9 @@ function computeScoreQuartier() {
   const cssClass = note>=7?'good':note>=5?'':'warn';
   const label = note>=8?'Excellent':note>=6?'Bon':note>=4?'Moyen':'Faible';
   window._scoreData = { note, label, items };
-  const MAX_CRITERIA = 12;
-  const missingCount = MAX_CRITERIA - items.length;
+  // Critères possibles du score global (un par bloc ci-dessus) : les absents sont comptés « manquants »
+  const CRITERES_SCORE_GLOBAL = ['svc','ecoles','mob','air','risques','dpe','bruit','soleil','fibre','densite','logement','demo'];
+  const missingCount = CRITERES_SCORE_GLOBAL.filter(k => !items.some(i => i.key === k)).length;
   const subLabel = label+' · '+items.length+' critère'+(items.length>1?'s':'')+(missingCount>0?' · '+missingCount+' manquant'+(missingCount>1?'s':''):'');
   setCard('score', note.toFixed(1)+' / 10', subLabel, cssClass);
   if(missingCount > 0) setCardRetry('score', _relancerCartesEnEchec);
@@ -8139,81 +8140,7 @@ async function runIA(type){
   const prompts={
     aides:()=>`Situation: ${togVal('tAideSit')}, revenus: ${document.getElementById('aRev').value||'?'}€/an, foyer: ${document.getElementById('aPers').value||'2'} pers, bien: ${document.getElementById('aPrix').value||'400000'}€ à ${document.getElementById('aVille').value||'France'}. Aides disponibles (PTZ, Pinel, MaPrimeRénov) avec montants précis.`,
     renov:()=>`Rénovation ${document.getElementById('rSurf').value||80}m², DPE ${document.getElementById('rDpeAv').value} → ${document.getElementById('rDpeAp').value}. Revenus: ${document.getElementById('rRev').value||60000}€/an. Coût travaux estimé, aides MaPrimeRénov, économies annuelles.`,
-    profil:()=>{
-      if(!currentAddress){toast('Analysez d\'abord une adresse','err');return null;}
-      const ville=currentAddress;
-
-      // Données réelles injectées dans le prompt
-      const dvf=window._dvfData;
-      const dvfCtx=dvf?.stats?.medianM2
-        ? `Prix médian DVF réel du secteur analysé : ${dvf.stats.medianM2.toLocaleString('fr-FR')} €/m² (fourchette ${dvf.stats.minM2.toLocaleString('fr-FR')}–${dvf.stats.maxM2.toLocaleString('fr-FR')} €/m², ${dvf.count} ventes${dvf.dateRange?' sur '+dvf.dateRange:''}). `
-        : '';
-      const am=window._amenitesData?.counts;
-      const amCtx=am
-        ? `Données OpenStreetMap réelles (rayon 500–1000m) : ${am.restaurants} restaurants/cafés/bars, ${am.culture} lieux culturels (musées/cinémas/théâtres/bibliothèques), ${am.parcs} espaces verts/parcs, ${am.sport} équipements sportifs, ${am.commerces} commerces alimentaires. `
-        : '';
-      const eco=window._ecolesData?.types;
-      const ecoCtx=eco
-        ? `Écoles à proximité : ${eco.ecoles} écoles (dont ${eco.maternelle} maternelles), ${eco.college} collèges, ${eco.lycee} lycées. `
-        : '';
-      const mob=window._mobiliteData;
-      const mobCtx=mob?.score
-        ? `Score mobilité du secteur : ${mob.score}/10 (${mob.stats?.metro||0} stations métro/RER, ${mob.stats?.arretsBus||0} arrêts bus). `
-        : '';
-      const travailLieu=document.getElementById('pTravailLieu')?.value.trim();
-      const travailCtx=travailLieu ? `Lieu de travail déclaré : "${travailLieu}" — évalue la compatibilité transports/distance. ` : '';
-
-      // Contextes données nouvelles
-      const air = window._qualiteAirData;
-      const airCtx = air && !air.error
-        ? `Qualité de l'air : IQA ${air.aqi}/100 (${air.label}). `
-        : '';
-      const bruit = window._bruitData;
-      const bruitCtx = bruit && !bruit.error
-        ? `Bruit : niveau ${bruit.level||'modéré'} (routes: ${bruit.road||'—'}, ferroviaire: ${bruit.rail||'—'}). `
-        : '';
-      const dpe = window._dpeSecteurData;
-      const dpeCtx = dpe && !dpe.error
-        ? `DPE secteur : ${dpe.pctEfficaces}% logements efficaces (A+B), ${dpe.pctPassoires}% passoires (F+G). `
-        : '';
-      const risq = window._risquesData;
-      const risqCtx = risq
-        ? `Risques naturels recensés : ${risq.total||0} (${(risq.types||[]).slice(0,3).join(', ')}). `
-        : '';
-      const insee = window._inseeData?.commune;
-      const inseeCtx = insee
-        ? `Densité : ${(insee.densite||0).toLocaleString('fr-FR')} hab/km² (${insee.densite>10000?'très dense':insee.densite>3000?'urbain':insee.densite>500?'péri-urbain':'rural'}). `
-        : '';
-      const loyers = window._loyersData;
-      const loyersCtx = loyers?.estimates
-        ? `Loyers estimés secteur : T2 ~${loyers.estimates[1]?.loyerMensuel||'—'} €/mois, T3 ~${loyers.estimates[2]?.loyerMensuel||'—'} €/mois (base DVF × rendement ${Math.round((loyers.rendement||0)*100)}%). `
-        : '';
-      const meteo = window._meteoData;
-      const meteoCtx = meteo?.ensoleillement
-        ? `Ensoleillement : ${meteo.ensoleillement.heuresAnnuelles||'—'} h/an (${meteo.ensoleillement.label||''}). `
-        : '';
-
-      const criteres=[
-        `Enfants: ${togVal('tPE')}`,
-        `Animaux: ${togVal('tPAnim')}`,
-        `Travail: ${togVal('tPT')}${travailLieu?' (lieu: '+travailLieu+')':''}`,
-        `Transport principal: ${togVal('tPTrans')}`,
-        `Espaces verts: ${togVal('tPNature')}`,
-        `Ambiance: ${togVal('tPAmb')}`,
-        `Extérieur: ${togVal('tPExt')}`,
-        `Type de bien: ${togVal('tPLoge')}`,
-        `Priorité de vie: ${togVal('tPS')}`,
-        `Sensibilité bruit: ${togVal('tPBruit')}`,
-        `Ensoleillement: ${togVal('tPSoleil')}`,
-        `Budget: ${togVal('tPB')}`,
-      ].join(' | ');
-
-      return `Profil acheteur pour la ville/secteur "${ville}" : ${criteres}. `
-        +`${dvfCtx}${amCtx}${ecoCtx}${mobCtx}${travailCtx}`
-        +`${airCtx}${bruitCtx}${dpeCtx}${risqCtx}${inseeCtx}${loyersCtx}${meteoCtx}`
-        +`En te basant sur ces données réelles et ton expertise des quartiers français, recommande 2-3 secteurs ou quartiers précis de "${ville}" uniquement. `
-        +`Pour chaque recommandation : nom du quartier, pourquoi il correspond au profil point par point, type de bien disponible, fourchette de prix réaliste cohérente avec les données DVF, avantages et un inconvénient honnête.`;
-    },
+    // (ancienne branche « profil » supprimée le 04/10/2026 : plus appelée, remplacée par runProfilIA)
     juridique:()=>{const q=document.getElementById('jurQ').value.trim();if(!q){toast('Entrez votre question','err');return null;}return q+' (droit français, info générale non conseil juridique)';},
   };
   const fn=prompts[type];if(!fn)return;
@@ -8231,131 +8158,6 @@ async function runIA(type){
     else txt.innerHTML='⚠️ '+e.message;
   }
   if(btn){btn.disabled=false;btn.innerHTML='✦ Analyser';}
-}
-
-// ══ COMPARAISON D'ADRESSES — fonctions partagées ══
-
-// Constantes de scoring
-const SC_ECOLES_COEFF  = 0.5;   // nb établissements × coeff → /10
-const SC_RESTAU_DIV    = 3;     // 1 point par tranche de N restaurants
-const SC_CULTURE_COEFF = 2;     // multiplicateur lieux culturels
-const SC_SPORT_COEFF   = 2;     // multiplicateur équipements sport
-// Score risques : 0→10, 1→9, 2→8 … 10→0 (minimum 0)
-function calcRisqScore(n){ return Math.max(0, 10 - n); }
-
-// Autocomplétion BAN générique
-function setupBanInput(inputId, sugsId, key){
-  const inp=document.getElementById(inputId), sugs=document.getElementById(sugsId);
-  if(!inp||!sugs) return;
-  if(!window._banCoords) window._banCoords={};
-  window._banCoords[key]=null;
-  let t=null;
-  inp.addEventListener('input',()=>{
-    clearTimeout(t); window._banCoords[key]=null;
-    const q=inp.value.trim();
-    if(q.length<2){sugs.classList.remove('open');return;}
-    t=setTimeout(async()=>{
-      try{
-        const r=await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&limit=6`);
-        const d=await r.json();
-        if(!d.features?.length){sugs.classList.remove('open');return;}
-        sugs.innerHTML='';
-        d.features.forEach(f=>{
-          const div=document.createElement('div');
-          div.className='sug-item'; div.textContent=f.properties.label;
-          div.onclick=()=>{
-            inp.value=f.properties.label;
-            window._banCoords[key]={lat:f.geometry.coordinates[1],lon:f.geometry.coordinates[0],label:f.properties.label};
-            sugs.classList.remove('open');
-          };
-          sugs.appendChild(div);
-        });
-        sugs.classList.add('open');
-      }catch(e){}
-    },300);
-  });
-  document.addEventListener('click',e=>{if(!inp.contains(e.target)&&!sugs.contains(e.target))sugs.classList.remove('open');});
-}
-
-// Fetch toutes données réelles d'une adresse
-async function fetchAdresseData(lat,lon){
-  const[dvf,eco,mob,am,ris]=await Promise.allSettled([
-    fetch(`/api/dvf?lat=${lat}&lon=${lon}&dist=1500&_v=5`).then(r=>r.json()),
-    fetch(`/api/ecoles?lat=${lat}&lon=${lon}&dist=1000&_v=5`).then(r=>r.json()),
-    fetch(`/api/mobilite?lat=${lat}&lon=${lon}&dist=500`).then(r=>r.json()),
-    fetch(`/api/amenites?lat=${lat}&lon=${lon}&_v=4`).then(r=>r.json()),
-    fetch(`/api/risques?lat=${lat}&lon=${lon}&_v=2`).then(r=>r.json()),
-  ]);
-  return{
-    dvf:  dvf.status==='fulfilled'?dvf.value:null,
-    eco:  eco.status==='fulfilled'?eco.value:null,
-    mob:  mob.status==='fulfilled'?mob.value:null,
-    am:   am.status==='fulfilled'?am.value:null,
-    svc:  null,
-    ris:  ris.status==='fulfilled'?ris.value:null,
-    bruit:null,
-    meteo:null,
-  };
-}
-
-// Scores bruts 0-10 par critère
-function calcScores(d){
-  const ecoTotal=(d.eco?.types?.ecoles||0)+(d.eco?.types?.college||0)+(d.eco?.types?.lycee||0);
-  const nbRisq=d.ris?.total||0;
-  const bruitN=d.bruit?.niveauCode||'';
-  const bruitScore=bruitN==='faible'?9:bruitN==='modere'?5:bruitN==='eleve'?2:5;
-  const svcScore=Math.min(10,d.svc?.score||0);
-  const h=d.meteo?.ensoleillement?.heuresAnnuelles||0;
-  const meteoScore=h>2500?10:h>2000?9:h>1700?7:h>1400?5:h>0?2:5;
-  return{
-    mob:  Math.min(10,Math.round(d.mob?.score||0)),
-    eco:  Math.min(10,Math.round(ecoTotal*SC_ECOLES_COEFF)),
-    parc: Math.min(10,d.am?.counts?.parcs || d.svc?.stats?.parc||0),
-    rest: Math.min(10,Math.round((d.am?.counts?.restaurants || d.svc?.stats?.restauration||0)/SC_RESTAU_DIV)),
-    cult: Math.min(10,Math.min((d.am?.counts?.culture || d.svc?.stats?.culture||0)*SC_CULTURE_COEFF,10)),
-    sprt: Math.min(10,Math.min((d.am?.counts?.sport || d.svc?.stats?.sport||0)*SC_SPORT_COEFF,10)),
-    bruit: bruitScore,
-    svc:   svcScore,
-    meteo: meteoScore,
-    risq: calcRisqScore(nbRisq),
-    trav: d.travailKm!=null ? Math.max(0,Math.round(10-d.travailKm*0.3)) : null,
-  };
-}
-
-// Poids du profil (Compatibilité de vie)
-function getProfilWeights(){
-  const enfants=togVal('tPE'), trans=togVal('tPTrans'), nature=togVal('tPNature'), style=togVal('tPS');
-  const bruit=togVal('tPBruit'), soleil=togVal('tPSoleil'), anim=togVal('tPAnim'), amb=togVal('tPAmb');
-
-  // Mobilité : Métro/RER → 3, Vélo/Pied → 1 (neutre), Voiture → 0.5 (pas besoin de transports)
-  const mobW = trans==='Métro / RER'?3 : trans==='Voiture'?0.5 : trans==='—'?1 : 1;
-
-  // Parcs : espaces verts souhaités + animaux (besoin de promenades) + sport
-  const parcBase = (nature==='Parc à proximité'||nature==='Nature & forêt'||nature==="Bord d'eau"||style==='Sport & plein air') ? 2.5 : 1;
-  const parcW = anim==='Oui' ? Math.max(parcBase, 2) : parcBase;
-
-  // Commerces/restos : gastronomie ou ambiance animée
-  const restW = style==='Gastronomie & sorties' ? 2.5 : amb==='Animé & commerçant' ? 2 : 1;
-
-  // Services : ambiance commerçante → plus important
-  const svcW = amb==='Animé & commerçant' ? 2 : 1.5;
-
-  // Calme : sensibilité bruit + ambiance résidentielle + priorité tranquillité
-  const bruitW = bruit==='Très sensible' ? 3 : (amb==='Calme & résidentiel'||style==='Tranquillité') ? 2 : 1;
-
-  return{
-    mob:   mobW,
-    eco:   enfants==='Non'?0.5:enfants==='—'?1:2.5,
-    parc:  parcW,
-    rest:  restW,
-    cult:  style==='Culture & musées'?2.5:1,
-    sprt:  style==='Sport & plein air'?2:style==='—'?1:0.5,
-    bruit: bruitW,
-    svc:   svcW,
-    meteo: soleil==="Oui, j'aime le soleil"?2:soleil==='—'?1:0.5,
-    risq:  2,
-    trav:  0, // défini dynamiquement selon le mode de travail
-  };
 }
 
 // ══ COMPATIBILITÉ PERSONNALISÉE ══
@@ -8392,6 +8194,18 @@ var _TAUX_EFFORT = 0.33;          // taux d'effort bancaire standard (33 % des r
 var _DUREE_CREDIT_MOIS = 240;     // durée de crédit standard (20 ans = 240 mois)
 var _RATIO_LOYER_MENSUEL = 0.004; // loyer mensuel ≈ 0,4 % du prix au m²
 var _SURFACE_REF_M2 = 60;         // surface par défaut si l'utilisateur n'en saisit pas
+// Note d'effort progressive : interpolation linéaire entre les repères [valeur, note] (mêmes repères que les anciens paliers,
+// la note évolue maintenant continûment : chaque euro d'apport ou de revenu compte). Au-delà des repères : note du repère extrême.
+var _REPERES_EFFORT_ACHAT = [[0.8,10],[1.0,8],[1.2,6],[1.5,4],[2.0,2]];   // prix du bien / budget
+var _REPERES_EFFORT_LOYER = [[0.7,10],[0.85,8],[1.0,6],[1.2,4],[1.5,2]];  // loyer estimé / loyer max
+var _REPERES_RENDEMENT    = [[2,2],[3,4],[4,6],[6,8],[8,10]];             // rendement brut (%)
+function _noteInterpolee(x, reperes){
+  if(x <= reperes[0][0]) return reperes[0][1];
+  for(var i=1;i<reperes.length;i++){
+    if(x <= reperes[i][0]){ var a=reperes[i-1], b=reperes[i]; return Math.round((a[1]+(b[1]-a[1])*(x-a[0])/(b[0]-a[0]))*10)/10; }
+  }
+  return reperes[reperes.length-1][1];
+}
 
 function _calcScoresBruts(){
   // 1. Lire les 12 scores deja calcules par computeScoreQuartier()
@@ -8459,16 +8273,16 @@ function _calcScoresBruts(){
       } else if(mel && mel.revenuMedian){
         budgetEff = Math.round(mel.revenuMedian/12) * _TAUX_EFFORT * _DUREE_CREDIT_MOIS;
       }
-      if(budgetEff > 0){ var ratio=prixBien/budgetEff; s.effort=ratio<=0.8?10:ratio<=1.0?8:ratio<=1.2?6:ratio<=1.5?4:2; }
+      if(budgetEff > 0){ var ratio=prixBien/budgetEff; s.effort=_noteInterpolee(ratio,_REPERES_EFFORT_ACHAT); }
     } else if(_intentE === "invest"){
-      if(inv && inv.rendementBrut != null){ var rdt=inv.rendementBrut; s.effort=rdt>=8?10:rdt>=6?8:rdt>=4?6:rdt>=3?4:2; }
-      else if(_pwRev > 0){ var _capI=_pwRev*_TAUX_EFFORT*_DUREE_CREDIT_MOIS+_pwApport; var _totI=prixM2*surfRef; var rI=_totI/_capI; s.effort=rI<=0.8?10:rI<=1.0?8:rI<=1.2?6:rI<=1.5?4:2; } else { s.effort = 5; }
+      if(inv && inv.rendementBrut != null){ var rdt=inv.rendementBrut; s.effort=_noteInterpolee(rdt,_REPERES_RENDEMENT); }
+      else if(_pwRev > 0){ var _capI=_pwRev*_TAUX_EFFORT*_DUREE_CREDIT_MOIS+_pwApport; var _totI=prixM2*surfRef; var rI=_totI/_capI; s.effort=_noteInterpolee(rI,_REPERES_EFFORT_ACHAT); } else { s.effort = 5; }
     } else if(_intentE === "louer"){
       var loyD = window._loyersData;
       var loyQ = loyD&&loyD.estimates&&loyD.estimates[1]?loyD.estimates[1].loyerMensuel:(loyD&&loyD.estimates&&loyD.estimates[0]?loyD.estimates[0].loyerMensuel:null);
-      if(locB && locB.loyerMax33>0 && loyQ){ var rL=loyQ/locB.loyerMax33; s.effort=rL<=0.7?10:rL<=0.85?8:rL<=1.0?6:rL<=1.2?4:2; }
-      else if(locB && locB.loyerMax33>0){ var loyEst=prixM2*_RATIO_LOYER_MENSUEL*surfRef; var rL=loyEst/locB.loyerMax33; s.effort=rL<=0.7?10:rL<=0.85?8:rL<=1.0?6:rL<=1.2?4:2; }
-      else if(_pwRev > 0){ var _lMax=_pwRev*_TAUX_EFFORT; var _loyEst3=prixM2*_RATIO_LOYER_MENSUEL*surfRef; var rL3=_loyEst3/_lMax; s.effort=rL3<=0.7?10:rL3<=0.85?8:rL3<=1.0?6:rL3<=1.2?4:2; }
+      if(locB && locB.loyerMax33>0 && loyQ){ var rL=loyQ/locB.loyerMax33; s.effort=_noteInterpolee(rL,_REPERES_EFFORT_LOYER); }
+      else if(locB && locB.loyerMax33>0){ var loyEst=prixM2*_RATIO_LOYER_MENSUEL*surfRef; var rL=loyEst/locB.loyerMax33; s.effort=_noteInterpolee(rL,_REPERES_EFFORT_LOYER); }
+      else if(_pwRev > 0){ var _lMax=_pwRev*_TAUX_EFFORT; var _loyEst3=prixM2*_RATIO_LOYER_MENSUEL*surfRef; var rL3=_loyEst3/_lMax; s.effort=_noteInterpolee(rL3,_REPERES_EFFORT_LOYER); }
     }
   }
   // Override densité : score linéaire d'urbanité (plus urbain = score plus élevé)
