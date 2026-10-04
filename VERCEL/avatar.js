@@ -978,7 +978,9 @@ function populateFondDropdown(){
   const map = window._BG_MAP || {};
   const keys = Object.keys(map);
   if(!keys.length) return;
-  const cur = document.getElementById('av-pref-fond')?.value || 'Image1';
+  // Fond courant ; compatibilité avec l'ancien format enregistré sans extension (« Image1 » → « Image1.png »)
+  let cur = document.getElementById('av-pref-fond')?.value || 'Image1';
+  if(!map[cur] && map[cur+'.png']) cur = cur+'.png';
   grid.innerHTML = keys.map(k=>{
     const url=map[k]; const isVid=url.endsWith('.mp4');
     const m=k.match(/Image(\d+)\.(png|gif|mp4)$/i);
@@ -1016,27 +1018,8 @@ function populateAvatarDropdown(){
     rbtn.onclick = async function(){
       rbtn.textContent = '\u23f3 Sondage\u2026';
       rbtn.disabled = true;
-      async function _probe(url){ try{ const r=await fetch(url,{method:"HEAD"}); return r.ok; }catch(e){ return false; } }
-      window._AVATAR_LIST = [];
-      { const exts=['png','gif','mp4']; let miss=0;
-        for(let n=1;n<=99;n++){
-          let found=false;
-          for(const ext of exts){ const u='images/avatar'+n+'.'+ext; if(await _probe(u)){window._AVATAR_LIST.push(u);found=true;} }
-          miss = found?0:miss+1; if(miss>=3&&n>3) break;
-        }
-      }
-      window._BG_MAP = {};
-      { const bgBase='images/GroupeVide/',bgPfx='Image',exts=['png','gif','mp4']; let miss=0;
-        for(let n=1;n<=50;n++){
-          let found=false;
-          for(const ext of exts){ const url=bgBase+bgPfx+n+'.'+ext; if(await _probe(url)){window._BG_MAP[bgPfx+n+'.'+ext]=url;found=true;} }
-          miss=found?0:miss+1; if(miss>=3&&n>3) break;
-        }
-      }
-      try{
-        const ck="_immoai_assets_v3";
-        sessionStorage.setItem(ck,JSON.stringify({bgMap:window._BG_MAP, avList:window._AVATAR_LIST}));
-      }catch(e){}
+      // M\u00eame sondage que le chargement de la page (index.html : window._probeAssets), sans le cache de session
+      if(typeof window._probeAssets === 'function') await window._probeAssets(true);
       rbtn.textContent = "\u21ba Rafra\u00eechir la liste";
       rbtn.disabled = false;
       populateFondDropdown();
@@ -1055,7 +1038,10 @@ function showSetup(){
   populateFondDropdown();
   populateAvatarDropdown();
   document.getElementById('av-pref-nom').value = prefs.nom || '';
-  if(prefs.fond) _selectThumb('av-fond-grid','av-pref-fond', prefs.fond);
+  if(prefs.fond){
+    const _m = window._BG_MAP || {};
+    _selectThumb('av-fond-grid','av-pref-fond', (!_m[prefs.fond] && _m[prefs.fond+'.png']) ? prefs.fond+'.png' : prefs.fond);
+  }
   if(prefs.avatar) _selectThumb('av-avatar-grid','av-pref-avatar', prefs.avatar);
   document.getElementById('av-pref-vitesse').value = prefs.vitesse || 1;
   if(document.getElementById('av-pref-volume')) document.getElementById('av-pref-volume').value = prefs.volume || 1;

@@ -2209,8 +2209,8 @@ document.addEventListener('DOMContentLoaded',function(){
       return Reflect.construct(target,args);
     }
   });
-  // Transférer les propriétés statiques (defaults, register, etc.)
-  Object.setPrototypeOf(window.Chart,_OC);
+  // Les propriétés statiques (Chart.defaults, Chart.register…) passent déjà par le Proxy :
+  // l'ancien Object.setPrototypeOf(window.Chart,_OC) provoquait l'erreur « Cyclic __proto__ value ».
 });
 
 // ══ STATE ══
@@ -4133,7 +4133,13 @@ function computeScoreQuartier() {
   const missingCount = MAX_CRITERIA - items.length;
   const subLabel = label+' · '+items.length+' critère'+(items.length>1?'s':'')+(missingCount>0?' · '+missingCount+' manquant'+(missingCount>1?'s':''):'');
   setCard('score', note.toFixed(1)+' / 10', subLabel, cssClass);
-  if(missingCount > 0) setCardRetry('score', () => computeScoreQuartier());
+  if(missingCount > 0) setCardRetry('score', _relancerCartesEnEchec);
+}
+
+// « Réessayer » du score global : relance les cartes en échec (chacune recalcule le score à son retour)
+function _relancerCartesEnEchec(){
+  document.querySelectorAll('#cardsGrid .info-card:not(#card-score) .card-retry-btn').forEach(b=>b.click());
+  computeScoreQuartier();
 }
 
 // Recharge Services + Écoles + Mobilité avec le rayon choisi puis recalcule le score
@@ -5100,7 +5106,7 @@ function genSynth(cardId) {
       gHtml += '</div>';
       gHtml += '<div style="display:flex;justify-content:space-between;font-size:.73rem;margin-top:.1rem">';
       gHtml += '<span style="color:var(--text)">Ce secteur : <strong>'+st.medianM2.toLocaleString("fr-FR")+" €/m²"+'</strong></span>';
-      gHtml += '<span style="color:#555">Dept "+dept.dept+" : '+dept.medianM2.toLocaleString("fr-FR")+' €/m²</span>';
+      gHtml += '<span style="color:#555">Dept '+dept.dept+' : '+dept.medianM2.toLocaleString("fr-FR")+' €/m²</span>';
       gHtml += '</div>';
       // 2e barre : commune vs national
       var diffN = Math.round((st.medianM2-natRef)/natRef*100);
@@ -5983,7 +5989,7 @@ function showDVFDetail(){
 
   showPanel('💰 Prix des dernières transactions', `
     <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1rem">
-      <div class="stat-box"><span class="stat-n" id="dvfStatMedian">${d.stats.medianM2.toLocaleString('fr-FR')}€</span><span class="stat-l">💰 Moyenne /m²</span><span class="stat-l" id="dvfMedianBase" style="font-size:.65rem;opacity:.6">Moyenne arithmétique · sur ${d.count} val.</span></div>
+      <div class="stat-box"><span class="stat-n" id="dvfStatMedian">${(d.stats.meanM2??d.stats.medianM2).toLocaleString('fr-FR')}€</span><span class="stat-l">💰 Moyenne /m²</span><span class="stat-l" id="dvfMedianBase" style="font-size:.65rem;opacity:.6">Moyenne arithmétique · sur ${d.count} val.</span></div>
       <div class="stat-box" id="dvfMedianBox"><span class="stat-n" id="dvfMedianVal">—</span><span class="stat-l" id="dvfMedianLbl">⚖️ Médiane /m²</span><span class="stat-l" id="dvfMedianSub" style="font-size:.65rem;opacity:.6">Valeur centrale · hors outliers</span></div>
       <div class="stat-box"><span class="stat-n" id="dvfStatCount">${d.count}</span><span class="stat-l" id="dvfStatCountLabel">🏠 Nb de ventes</span><span class="stat-l" id="dvfStatCountPeriod" style="font-size:.65rem;opacity:.6">${d.dateRange?'Période '+d.dateRange:''}</span></div>
       <div class="stat-box" id="dvfTrendBox"><span class="stat-n" id="dvfTrendVal">—</span><span class="stat-l" id="dvfTrendLabel">📈 Évolution des prix</span><span class="stat-l" id="dvfTrendSub" style="font-size:.6rem;opacity:.7;line-height:1.3">Médiane 6 premiers vs 6 derniers mois</span></div>
@@ -8379,6 +8385,13 @@ var _POIDS_MAX = 10;
 var _POIDS_DEFAUT = 3; // poids initial de chaque critère
 // Lit un poids en conservant la valeur 0 (un "|| défaut" la transformerait en défaut)
 function _lirePoids(v){ var n=parseInt(v,10); return isNaN(n)?_POIDS_DEFAUT:n; }
+// Clé d'enregistrement des poids dans le navigateur (v2 : tout le monde repart des poids par défaut)
+var _CLE_POIDS_PROFIL = "_immoai_profil_poids_v2";
+// Hypothèses de calcul du score personnalisé (effort d'achat) et de sa conclusion
+var _TAUX_EFFORT = 0.33;          // taux d'effort bancaire standard (33 % des revenus)
+var _DUREE_CREDIT_MOIS = 240;     // durée de crédit standard (20 ans = 240 mois)
+var _RATIO_LOYER_MENSUEL = 0.004; // loyer mensuel ≈ 0,4 % du prix au m²
+var _SURFACE_REF_M2 = 60;         // surface par défaut si l'utilisateur n'en saisit pas
 
 function _calcScoresBruts(){
   // 1. Lire les 12 scores deja calcules par computeScoreQuartier()
@@ -8418,10 +8431,7 @@ function _calcScoresBruts(){
     s.bac5 = mel.pctBac5 >= 35 ? 10 : mel.pctBac5 >= 25 ? 8 : mel.pctBac5 >= 15 ? 6 : mel.pctBac5 >= 8 ? 4 : 2;
   }
 
-  // 4. Effort / accessibilite — intent-aware
-  // 4. Effort / accessibilite — intent-aware
-  var _TAUX_EFFORT = 0.33;  // taux d'effort bancaire standard (33 %)
-  var _DUREE_CREDIT_MOIS = 240; // durée crédit standard (20 ans = 240 mois)
+  // 4. Effort / accessibilite — intent-aware (hypothèses : _TAUX_EFFORT, _DUREE_CREDIT_MOIS… déclarées plus haut)
   var dvf = window._dvfData;
   var _deptM2 = window._dvfDeptData && window._dvfDeptData.medianM2 ? window._dvfDeptData.medianM2 : null;
   var _PRIX_NAT_REF = 3000; // prix national de référence (€/m²) — fallback si DVF absent
@@ -8430,7 +8440,7 @@ function _calcScoresBruts(){
              : _deptM2 ? _deptM2 : _PRIX_NAT_REF;
   var _intentE = window._profilIntent || "achat";
   var _pwSurf = parseFloat((document.getElementById("pw-surface")||{}).value)||0;
-  var surfRef = _pwSurf > 0 ? _pwSurf : 60;
+  var surfRef = _pwSurf > 0 ? _pwSurf : _SURFACE_REF_M2;
   var _pwRev = parseInt((document.getElementById("pw-revenus")||{}).value)||0;
   var _pwApport = parseFloat((document.getElementById("pw-apport")||{}).value)||0;
   var emp = window._empruntResult;
@@ -8457,8 +8467,8 @@ function _calcScoresBruts(){
       var loyD = window._loyersData;
       var loyQ = loyD&&loyD.estimates&&loyD.estimates[1]?loyD.estimates[1].loyerMensuel:(loyD&&loyD.estimates&&loyD.estimates[0]?loyD.estimates[0].loyerMensuel:null);
       if(locB && locB.loyerMax33>0 && loyQ){ var rL=loyQ/locB.loyerMax33; s.effort=rL<=0.7?10:rL<=0.85?8:rL<=1.0?6:rL<=1.2?4:2; }
-      else if(locB && locB.loyerMax33>0){ var loyEst=prixM2*0.004*surfRef; var rL=loyEst/locB.loyerMax33; s.effort=rL<=0.7?10:rL<=0.85?8:rL<=1.0?6:rL<=1.2?4:2; }
-      else if(_pwRev > 0){ var _lMax=_pwRev*_TAUX_EFFORT; var _loyEst3=prixM2*0.004*surfRef; var rL3=_loyEst3/_lMax; s.effort=rL3<=0.7?10:rL3<=0.85?8:rL3<=1.0?6:rL3<=1.2?4:2; }
+      else if(locB && locB.loyerMax33>0){ var loyEst=prixM2*_RATIO_LOYER_MENSUEL*surfRef; var rL=loyEst/locB.loyerMax33; s.effort=rL<=0.7?10:rL<=0.85?8:rL<=1.0?6:rL<=1.2?4:2; }
+      else if(_pwRev > 0){ var _lMax=_pwRev*_TAUX_EFFORT; var _loyEst3=prixM2*_RATIO_LOYER_MENSUEL*surfRef; var rL3=_loyEst3/_lMax; s.effort=rL3<=0.7?10:rL3<=0.85?8:rL3<=1.0?6:rL3<=1.2?4:2; }
     }
   }
   // Override densité : score linéaire d'urbanité (plus urbain = score plus élevé)
@@ -8525,7 +8535,7 @@ function updateProfilScore(){
   var refEl=document.getElementById("profilRefScore");
   if(refEl){var gn=window._scoreData&&window._scoreData.note!=null?window._scoreData.note.toFixed(1):"—";refEl.textContent=gn;}
   if(bar&&score!=null){bar.style.width=Math.round(score*10)+"%";bar.style.background=score>=7?"#1D9E75":score>=5?"#BA7517":"#E24B4A";}
-  try{localStorage.setItem("_immoai_profil_poids",JSON.stringify(poids));}catch(e){}
+  try{localStorage.setItem(_CLE_POIDS_PROFIL,JSON.stringify(poids));}catch(e){}
   if(concl&&score!=null) concl.innerHTML=_buildProfilConclusion(score,scores,poids);
   // Tous les poids à 0 : aucun score calculable
   if(score==null){
@@ -8563,9 +8573,16 @@ function _buildProfilConclusion(score,scores,poids){
   var dvf=window._dvfData;
   var rev=parseInt((document.getElementById("pw-revenus")||{}).value)||0;
   var apport=parseInt((document.getElementById("pw-apport")||{}).value)||0;
-  if(intent==="achat"&&dvf&&dvf.prix){if(rev>0){var cap=Math.round(rev*0.33*240);var budget=cap+apport;var surf=Math.round(budget/dvf.prix);lines.push("💰 Capacité estimée : "+budget.toLocaleString("fr-FR")+"€ → <strong>~"+surf+" m²</strong> au prix médian ("+dvf.prix.toLocaleString("fr-FR")+"€/m²).");}else{lines.push("💡 Renseignez vos revenus pour estimer votre budget et la surface accessible.");}}
-  else if(intent==="invest"&&dvf&&dvf.prix){var loyer=Math.round(dvf.prix*0.004);var rdt=Math.round(loyer*12/dvf.prix*100*10)/10;lines.push("📊 Rendement brut estimé : ~"+loyer+"€/m²/mois → ~"+rdt+"% brut/an.");}
-  else if(intent==="louer"&&dvf&&dvf.prix){var lm=Math.round(dvf.prix*0.004);lines.push("🔑 Loyer estimé : ~"+lm+"€/m²/mois — budget 40 m² : ~"+(lm*40).toLocaleString("fr-FR")+"€/mois.");}
+  // Prix médian DVF du secteur, et loyer au m² de la carte « Estimation des loyers » (rendement selon la densité)
+  var pm2=dvf&&dvf.stats&&dvf.stats.medianM2?dvf.stats.medianM2:null;
+  var loyD=window._loyersData;
+  var loyM2=loyD&&loyD.estimates&&loyD.estimates[0]?loyD.estimates[0].loyerM2:(pm2?pm2*_RATIO_LOYER_MENSUEL:null);
+  var rdtZone=loyD&&loyD.rendement?loyD.rendement:_RATIO_LOYER_MENSUEL*12;
+  var surfSaisie=parseFloat((document.getElementById("pw-surface")||{}).value)||0;
+  var surfC=surfSaisie>0?surfSaisie:_SURFACE_REF_M2;
+  if(intent==="achat"&&pm2){if(rev>0){var cap=Math.round(rev*_TAUX_EFFORT*_DUREE_CREDIT_MOIS);var budget=cap+apport;var surf=Math.round(budget/pm2);lines.push("💰 Capacité estimée : "+budget.toLocaleString("fr-FR")+"€ → <strong>~"+surf+" m²</strong> au prix médian ("+pm2.toLocaleString("fr-FR")+"€/m²).");}else{lines.push("💡 Renseignez vos revenus pour estimer votre budget et la surface accessible.");}}
+  else if(intent==="invest"&&pm2&&loyM2){var rdt=Math.round(rdtZone*100*10)/10;lines.push("📊 Loyer estimé : ~"+(Math.round(loyM2*10)/10).toLocaleString("fr-FR")+"€/m²/mois → rendement brut ~"+rdt.toLocaleString("fr-FR")+"%/an au prix médian ("+pm2.toLocaleString("fr-FR")+"€/m²).");}
+  else if(intent==="louer"&&loyM2){lines.push("🔑 Loyer estimé : ~"+(Math.round(loyM2*10)/10).toLocaleString("fr-FR")+"€/m²/mois — pour "+surfC+" m² : ~"+Math.round(loyM2*surfC).toLocaleString("fr-FR")+"€/mois.");}
   else if(intent==="comp"){lines.push("🗺️ Changez d'adresse pour comparer votre score sur un autre secteur.");}
   return lines.join("<br>");
 }
@@ -8583,7 +8600,7 @@ function _buildProfilSliders(){
   if(!wrap) return;
   var scores=window._profilScoresBruts||{};
   var savedPoids={};
-  try{savedPoids=JSON.parse(localStorage.getItem("_immoai_profil_poids")||"{}");}catch(e){}
+  try{savedPoids=JSON.parse(localStorage.getItem(_CLE_POIDS_PROFIL)||"{}");}catch(e){}
   var sections={},order=[];
   _PROFIL_CRITERES.forEach(function(c){if(!sections[c.sect]){sections[c.sect]=[];order.push(c.sect);}sections[c.sect].push(c);});
   var html="";
@@ -8642,7 +8659,7 @@ function resetProfilPoids(){
   var ri=document.getElementById("pw-revenus");if(ri)ri.value="";
   var ai=document.getElementById("pw-apport");if(ai)ai.value="";
   profilSetIntent("achat");
-  try{localStorage.removeItem("_immoai_profil_poids");}catch(e){}
+  try{localStorage.removeItem(_CLE_POIDS_PROFIL);}catch(e){}
   updateProfilScore();
 }
 
@@ -8656,7 +8673,7 @@ async function runProfilIA(){
   var apport=parseInt((document.getElementById("pw-apport")||{}).value)||0;
   var dvf=window._dvfData;
   var top=_PROFIL_CRITERES.filter(function(c){return scores[c.key]!=null;}).sort(function(a,b){return _lirePoids(poids[b.key])-_lirePoids(poids[a.key]);}).slice(0,5).map(function(c){return c.label+" (poids "+poids[c.key]+", score "+scores[c.key].toFixed(1)+"/10)";});
-  var prompt="Score personnalisé "+window.currentAddress+" : "+(score!=null?score+"/10":"non calculé (tous les poids à 0)")+". Intention: "+intent+". Revenus: "+(rev||"non renseignés")+"€/mois. Apport: "+(apport||"non renseigné")+"€. Top 5 critères: "+top.join(", ")+". Prix médian: "+(dvf&&dvf.prix?dvf.prix+"€/m²":"inconnu")+". Conseil immobilier personnalisé: adéquation profil/lieu, budget, type de bien recommandé, risques, alternative si budget insuffisant.";
+  var prompt="Score personnalisé "+window.currentAddress+" : "+(score!=null?score+"/10":"non calculé (tous les poids à 0)")+". Intention: "+intent+". Revenus: "+(rev||"non renseignés")+"€/mois. Apport: "+(apport||"non renseigné")+"€. Top 5 critères: "+top.join(", ")+". Prix médian: "+(dvf&&dvf.stats&&dvf.stats.medianM2?dvf.stats.medianM2+"€/m²":"inconnu")+". Conseil immobilier personnalisé: adéquation profil/lieu, budget, type de bien recommandé, risques, alternative si budget insuffisant.";
   try{var res=await callAI(prompt,"Tu es conseiller immobilier expert France. Réponse directe, chiffrée, actionnable. **Gras** pour chiffres clés. 7 lignes max.","profil");txt.innerHTML="<p>"+md(res)+"</p>";}
   catch(e){txt.innerHTML="⚠️ "+e.message;}
   btn.disabled=false;btn.innerHTML="✦ Relancer l'analyse IA";
@@ -10436,7 +10453,11 @@ function geolocateUser(silent){
     },
     function(err){
       if(btn){ btn.disabled=false; if(icon)icon.textContent="📍"; if(txt)txt.textContent="Me géolocaliser"; }
-      if(err.code !== 1 && !silent) toast("Géolocalisation échouée : "+err.message,"err");
+      // Au chargement (silent) : rien n'est affiché. Sur clic du bouton : toujours expliquer l'échec.
+      if(silent) return;
+      const GEO_TOAST_MS = 7000; // message long : laisser le temps de le lire
+      if(err.code === 1) toast("📍 Accès à votre position refusé. Autorisez la localisation pour ce site (icône à gauche de l'adresse du navigateur), ou cliquez sur la carte.","err",GEO_TOAST_MS);
+      else toast("Géolocalisation échouée : "+err.message,"err",GEO_TOAST_MS);
     },
     { timeout:10000, maximumAge:300000, enableHighAccuracy:false }
   );
@@ -10619,7 +10640,8 @@ function immRender(){
       + (loading || isRetrying
         ? `<span class="imm-spin"></span>`
         : (_hasRetry
-          ? `<button class="card-retry-btn">↻ Réessayer</button>`
+          // Score global : la note reste visible au-dessus du bouton (critères manquants)
+          ? (item.valId === 'score' && _immVal ? `<div class="imm-hc-v">${_immVal}</div>` : '') + `<button class="card-retry-btn">↻ Réessayer</button>`
           : (_immVal
             ? `<div class="imm-hc-v">${_immVal}</div>`
             : `<div class="imm-hc-t">${item.tag}</div>`)));
@@ -11152,30 +11174,43 @@ window.immNavStep = function(dir){ immTgt += dir * _immStep; immGo(); };
 // ══ SONDAGE DYNAMIQUE DES ASSETS (fonds + avatars) ══
 window._BG_MAP = {};
 window._AVATAR_LIST = [];
-(async function probeAssets(){
-  const CACHE_KEY = '_immoai_assets_v3';
-  // Lire cache sessionStorage (évite re-sondage à chaque navigation)
-  try {
-    const cached = sessionStorage.getItem(CACHE_KEY);
-    if(cached){ const d=JSON.parse(cached); window._BG_MAP=d.bgMap||{}; window._AVATAR_LIST=d.avList||[]; window._assetsReady=true; if(typeof window._avatarOnAssetsReady==='function') window._avatarOnAssetsReady(); return; }
-  } catch(e){}
-  // Sondage via fetch HEAD (headers only, pas de téléchargement)
-  async function probe(url){ try{ const r=await fetch(url,{method:'HEAD'}); return r.ok; }catch(e){ return false; } }
-  const bgBase='images/GroupeVide/', bgPfx='Image';
-  for(let n=1;n<=50;n++){
-    const url=bgBase+bgPfx+n+'.png';
-    if(!(await probe(url))) break;
-    window._BG_MAP[bgPfx+n]=url;
+// Sondage unique, utilisé au chargement ET par « Rafraîchir la liste » (avatar.js) :
+// formats png, gif et mp4 ; numérotation libre avec des trous (ex. avatar1…12 puis avatar16) ;
+// on s'arrête après ASSETS_TROUS_MAX numéros consécutifs absents.
+// Clés des fonds : nom de fichier complet (ex. « Image16.mp4 »).
+const ASSETS_CACHE_KEY = '_immoai_assets_v4';
+const ASSETS_FORMATS = ['png','gif','mp4'];
+const ASSETS_TROUS_MAX = 10;
+const ASSETS_NUM_MAX = 99;
+window._probeAssets = async function(force){
+  // Cache de session (évite de re-sonder à chaque navigation), sauf rafraîchissement demandé
+  if(!force){
+    try {
+      const cached = sessionStorage.getItem(ASSETS_CACHE_KEY);
+      if(cached){ const d=JSON.parse(cached); window._BG_MAP=d.bgMap||{}; window._AVATAR_LIST=d.avList||[]; window._assetsReady=true; if(typeof window._avatarOnAssetsReady==='function') window._avatarOnAssetsReady(); return; }
+    } catch(e){}
   }
-  for(let n=1;n<=99;n++){
-    const url='images/avatar'+n+'.png';
-    if(await probe(url)) window._AVATAR_LIST.push(url);
+  // Requête HEAD : en-têtes seulement, pas de téléchargement
+  async function probe(url){ try{ const r=await fetch(url,{method:'HEAD',cache:'no-store'}); return r.ok; }catch(e){ return false; } }
+  // Renvoie la liste des fichiers trouvés pour un préfixe (les 3 formats d'un même numéro sont testés en parallèle)
+  async function sonder(prefixe){
+    const trouves=[]; let trous=0;
+    for(let n=1;n<=ASSETS_NUM_MAX && trous<ASSETS_TROUS_MAX;n++){
+      const res=await Promise.all(ASSETS_FORMATS.map(async ext=>{ const url=prefixe+n+'.'+ext; return (await probe(url))?url:null; }));
+      const ok=res.filter(Boolean);
+      if(ok.length){ trouves.push(...ok); trous=0; } else trous++;
+    }
+    return trouves;
   }
-  // Mettre en cache pour cette session
-  try{ sessionStorage.setItem(CACHE_KEY, JSON.stringify({bgMap:window._BG_MAP, avList:window._AVATAR_LIST})); }catch(e){}
+  const [fonds, avatars] = await Promise.all([sonder('images/GroupeVide/Image'), sonder('images/avatar')]);
+  const bgMap={}; fonds.forEach(url=>{ bgMap[url.split('/').pop()]=url; });
+  window._BG_MAP=bgMap;
+  window._AVATAR_LIST=avatars;
+  try{ sessionStorage.setItem(ASSETS_CACHE_KEY, JSON.stringify({bgMap:window._BG_MAP, avList:window._AVATAR_LIST})); }catch(e){}
   window._assetsReady=true;
   if(typeof window._avatarOnAssetsReady==='function') window._avatarOnAssetsReady();
-})();
+};
+window._probeAssets(false);
 
 // ── Resize ─────────────────────────────────────────────────────────────
 window.addEventListener('resize', () => { if (_immOn) { immSizeRing(); immRender(); } });
@@ -11261,7 +11296,7 @@ window.showProfilDetail   = function(){ _immShowSimulateur('p-profil','👥 Scor
 
 </script>
 <script src="/pdf-export.js?v=12"></script>
-<script src="/avatar.js?v=15"></script>
+<script src="/avatar.js?v=16"></script>
 <script src="/recherche-bien.js?v=3"></script>
 <script>
 /* ══ MOBILE NAV ══════════════════════════════════════════════════════════ */
