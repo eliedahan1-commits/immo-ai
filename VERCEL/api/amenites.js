@@ -1,15 +1,12 @@
-// ══ VERCEL FUNCTION : AMÉNITÉS (OpenStreetMap via Overpass API) ══
+// ══ VERCEL FUNCTION : AMÉNITÉS — établissements seniors (OpenStreetMap via Overpass API) ══
+// Seule la liste des seniors est utilisée par le site (carte « Commerces, services & santé », filtre 🏡 Seniors).
+// Les anciens comptages (restaurants, culture, parcs, sport, commerces) n'étaient affichés nulle part
+// et saturaient Overpass (requêtes simultanées rejetées) : ils ont été retirés.
 
 // ── Configuration ──
-const RAYON_RESTAU_M   = 1000;  // rayon restaurants / cafés / bars (mètres)
-const RAYON_CULTURE_M  = 2000;  // rayon lieux culturels
-const RAYON_PARCS_M    = 2000;  // rayon espaces verts
-const RAYON_SPORT_M    = 2000;  // rayon équipements sportifs
-const RAYON_COMMERCE_M = 1000;  // rayon commerces alimentaires
-const RAYON_SENIORS_M  = 2000;  // rayon établissements seniors / EHPAD
-const TIMEOUT_MS       = 7000;  // timeout par requête Overpass (comptages rapides)
-const TIMEOUT_SENIORS_MS = 22000; // timeout pour listSeniors (requête plus complexe)
-const CACHE_SECONDES   = 86400; // 1 jour
+const RAYON_SENIORS_M    = 2000;  // rayon établissements seniors / EHPAD (mètres)
+const TIMEOUT_SENIORS_MS = 22000; // < 25 s attendus par le navigateur (loadAmenites) et < 30 s max (vercel.json)
+const CACHE_SECONDES     = 86400; // 1 jour (uniquement pour les réponses réussies)
 
 const UA = 'IMMOAI/2.0 (https://immo-ai-nu.vercel.app)';
 
@@ -22,12 +19,8 @@ const SENIORS_TYPE_MAP = {
   community_centre:'Centre communautaire',
 };
 
-// Instances Overpass en fallback (la première disponible est utilisée)
-const OVERPASS_URLS = [
-  'https://overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
-  'https://overpass.openstreetmap.ru/api/interpreter',
-];
+// Serveur Overpass (les miroirs kumi.systems et openstreetmap.ru ne répondent plus — retirés le 04/10/2026)
+const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -35,70 +28,43 @@ export default async function handler(req, res) {
   const lon = parseFloat(req.query.lon);
   if (!lat || !lon) return res.status(400).json({ error: 'lat et lon requis' });
 
-  async function countOverpass(filtre, rayon) {
-    const query = `[out:json][timeout:6];\nnwr${filtre}(around:${rayon},${lat},${lon});\nout count;`;
-    for (const url of OVERPASS_URLS) {
-      try {
-        const r = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': UA, 'Accept': 'application/json' },
-          body: 'data=' + encodeURIComponent(query),
-          signal: AbortSignal.timeout(TIMEOUT_MS)
-        });
-        if (!r.ok) continue;
-        const d = await r.json();
-        return parseInt(d.elements?.[0]?.tags?.total || 0);
-      } catch { continue; }
-    }
-    return 0;
+  // Requête allégée : une seule recherche géographique (amenity = nursing_home ou social_facility),
+  // puis filtrage de ce petit ensemble — mêmes résultats que 3 recherches séparées, beaucoup plus rapide.
+  const q = `[out:json][timeout:20];nwr["amenity"~"^(nursing_home|social_facility)$"](around:${RAYON_SENIORS_M},${lat},${lon})->.a;(nwr.a["amenity"="nursing_home"];nwr.a["social_facility"~"nursing_home|assisted_living|group_home"];nwr.a["social_facility:for"~"senior|elderly"];);out center tags;`;
+
+  try {
+    const r = await fetch(OVERPASS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': UA, 'Accept': 'application/json' },
+      body: 'data=' + encodeURIComponent(q),
+      signal: AbortSignal.timeout(TIMEOUT_SENIORS_MS)
+    });
+    if (!r.ok) throw new Error('Overpass HTTP ' + r.status);
+    const d = await r.json();
+    const seniors = (d.elements || []).map(el => {
+      const t = el.tags || {};
+      return {
+        nom: t.name || t['name:fr'] || 'Établissement sans nom',
+        // Le type précis (social_facility) prime sur la catégorie générale (amenity=social_facility)
+        type: SENIORS_TYPE_MAP[t.social_facility] || SENIORS_TYPE_MAP[t.amenity] || 'Établissement senior',
+        lat: el.lat ?? el.center?.lat,
+        lon: el.lon ?? el.center?.lon,
+        adresse: [t['addr:housenumber'], t['addr:street'], t['addr:city']].filter(Boolean).join(' ') || null,
+        phone: t.phone || t['contact:phone'] || null
+      };
+    }).filter(e => e.lat && e.lon);
+
+    res.setHeader('Cache-Control', `public, max-age=${CACHE_SECONDES}`);
+    return res.status(200).json({
+      success: true,
+      rayons: { seniors: RAYON_SENIORS_M },
+      seniors: { total: seniors.length, etablissements: seniors },
+      source: 'OpenStreetMap via Overpass API',
+      dateExtraction: new Date().toISOString()
+    });
+  } catch (e) {
+    // Échec : on le signale (le site affiche « Données non disponibles ») au lieu de renvoyer 0 établissement
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({ success: false, error: e.message, source: 'OpenStreetMap via Overpass API' });
   }
-
-  // Requête seniors avec liste nominative
-  async function listSeniors() {
-    const q = `[out:json][timeout:20];(nwr["amenity"="nursing_home"](around:${RAYON_SENIORS_M},${lat},${lon});nwr["amenity"="social_facility"]["social_facility"~"nursing_home|assisted_living|group_home"](around:${RAYON_SENIORS_M},${lat},${lon});nwr["amenity"="social_facility"]["social_facility:for"~"senior|elderly"](around:${RAYON_SENIORS_M},${lat},${lon}););out center tags;`;
-    for (const url of OVERPASS_URLS) {
-      try {
-        const r = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': UA, 'Accept': 'application/json' },
-          body: 'data=' + encodeURIComponent(q),
-          signal: AbortSignal.timeout(TIMEOUT_SENIORS_MS)
-        });
-        if (!r.ok) continue;
-        const d = await r.json();
-        return (d.elements||[]).map(el => {
-          const t = el.tags||{};
-          return {
-            nom: t.name||t['name:fr']||'Établissement sans nom',
-            type: SENIORS_TYPE_MAP[t.amenity||t.social_facility]||'Établissement senior',
-            lat: el.lat??el.center?.lat,
-            lon: el.lon??el.center?.lon,
-            adresse: [t['addr:housenumber'],t['addr:street'],t['addr:city']].filter(Boolean).join(' ')||null,
-            phone: t.phone||t['contact:phone']||null
-          };
-        }).filter(e=>e.lat&&e.lon);
-      } catch { continue; }
-    }
-    return [];
-  }
-
-  // Comptages en parallèle (requêtes légères), puis seniors en séquentiel pour éviter le rate-limiting Overpass
-  const [restaurants, culture, parcs, sport, commerces] = await Promise.all([
-    countOverpass('["amenity"~"restaurant|cafe|bar|fast_food|brasserie"]',          RAYON_RESTAU_M),
-    countOverpass('["amenity"~"theatre|cinema|museum|arts_centre|library|art_gallery"]', RAYON_CULTURE_M),
-    countOverpass('["leisure"~"park|garden|nature_reserve|playground"]',            RAYON_PARCS_M),
-    countOverpass('["leisure"~"sports_centre|fitness_centre|swimming_pool|stadium|golf_course|ice_rink|bowling_alley"]', RAYON_SPORT_M),
-    countOverpass('["shop"~"supermarket|convenience|mall"]',                        RAYON_COMMERCE_M),
-  ]);
-  const seniors = await listSeniors();
-
-  res.setHeader('Cache-Control', `public, max-age=${CACHE_SECONDES}`);
-  return res.status(200).json({
-    success: true,
-    rayons: { restau: RAYON_RESTAU_M, culture: RAYON_CULTURE_M, parcs: RAYON_PARCS_M, sport: RAYON_SPORT_M, commerces: RAYON_COMMERCE_M, seniors: RAYON_SENIORS_M },
-    counts: { restaurants, culture, parcs, sport, commerces },
-    seniors: { total: seniors.length, etablissements: seniors },
-    source: 'OpenStreetMap via Overpass API',
-    dateExtraction: new Date().toISOString()
-  });
 }

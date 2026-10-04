@@ -1,12 +1,9 @@
 // ══ VERCEL FUNCTION : BRUIT (estimation OSM) ══
 // Interroge Overpass pour les sources de bruit proches et calcule un indicateur de risque.
 
-const OVERPASS_URLS = [
-  'https://overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
-  'https://overpass.openstreetmap.ru/api/interpreter',
-];
-const TIMEOUT_MS = 9000; // 3 serveurs × 9s = 27s < limite Vercel Hobby (30s)
+// Serveur Overpass (les miroirs kumi.systems et openstreetmap.ru ne répondent plus — retirés le 04/10/2026)
+const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
+const TIMEOUT_MS = 12000; // < 15 s attendus par le navigateur (loadBruit)
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -24,21 +21,18 @@ export default async function handler(req, res) {
       way["aeroway"="aerodrome"]["aerodrome:type"!~"military|heliport"](around:6000,${lat},${lon});
     );out tags;`;
 
-    let elements = [];
-    for (const url of OVERPASS_URLS) {
-      try {
-        const r = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: 'data=' + encodeURIComponent(query),
-          signal: AbortSignal.timeout(TIMEOUT_MS),
-        });
-        if (!r.ok) continue;
-        const d = await r.json();
-        elements = d.elements || [];
-        break;
-      } catch { continue; }
-    }
+    // Si Overpass échoue, on lève une erreur (réponse « non disponible ») :
+    // ne JAMAIS conclure « bruit très faible » faute de données.
+    const r = await fetch(OVERPASS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'IMMOAI/2.0 (https://immo-ai-nu.vercel.app)', 'Accept': 'application/json' },
+      body: 'data=' + encodeURIComponent(query),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (!r.ok) throw new Error('Overpass HTTP ' + r.status);
+    const d = await r.json();
+    if (d.remark && /runtime error|timed out|out of memory/i.test(d.remark)) throw new Error('Overpass : ' + d.remark);
+    const elements = d.elements || [];
 
     // Analyse des sources
     const sources = [];
@@ -91,6 +85,7 @@ export default async function handler(req, res) {
       dateExtraction: new Date().toISOString(),
     });
   } catch (error) {
+    res.setHeader('Cache-Control', 'no-store'); // ne pas mettre un échec en cache
     return res.status(200).json({
       success: false,
       score: null,
