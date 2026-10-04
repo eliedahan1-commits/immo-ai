@@ -29,12 +29,33 @@ export default async function handler(req, res) {
     }
 
     // Source principale : tabular-api.data.gouv.fr (API officielle data.gouv.fr, filtre par commune)
-    // Champ : CODGEO_2025 (renommé depuis janvier 2025), filtré avec syntaxe __exact
+    // La colonne du code commune change de nom chaque année (CODGEO_2025, CODGEO_2026…) :
+    // on lit la structure du fichier pour la trouver au lieu de l'écrire en dur.
+    const TABULAR_BASE = `https://tabular-api.data.gouv.fr/api/resources/${RESOURCE_ID}`;
+    const CODGEO_PREFIX = 'CODGEO';
+    // Délais : profil + données ≤ 23 s, sous le délai du navigateur (25 s, loadCriminalite)
+    // et sous la durée max de la fonction (30 s, vercel.json). Le 1er appel d'une commune peut dépasser 12 s.
+    const TIMEOUT_PROFIL_MS = 5000;
+    const TIMEOUT_DONNEES_MS = 18000;
+    let codgeoCol = null;
     try {
-      const url = `https://tabular-api.data.gouv.fr/api/resources/${RESOURCE_ID}/data/?CODGEO_2025__exact=${code}&page_size=200`;
+      const rp = await fetch(`${TABULAR_BASE}/profile/`, {
+        headers: { 'Accept': 'application/json', 'User-Agent': 'IMMOAI/2.0' },
+        signal: AbortSignal.timeout(TIMEOUT_PROFIL_MS)
+      });
+      if (rp.ok) {
+        const prof = await rp.json();
+        const header = prof?.profile?.header || [];
+        codgeoCol = header.filter(h => h.toUpperCase().startsWith(CODGEO_PREFIX)).sort().pop() || null;
+      }
+    } catch { /* colonne introuvable → réponse "non disponible" ci-dessous */ }
+    if (!codgeoCol) return res.status(200).json({ success: false, error: 'structure du fichier criminalité illisible' });
+
+    try {
+      const url = `${TABULAR_BASE}/data/?${codgeoCol}__exact=${code}&page_size=200`;
       const r = await fetch(url, {
         headers: { 'Accept': 'application/json', 'User-Agent': 'IMMOAI/2.0' },
-        signal: AbortSignal.timeout(12000)
+        signal: AbortSignal.timeout(TIMEOUT_DONNEES_MS)
       });
       if (r.ok) {
         const d = await r.json();
