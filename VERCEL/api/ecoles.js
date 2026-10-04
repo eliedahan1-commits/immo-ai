@@ -18,14 +18,17 @@ export default async function handler(req, res) {
       nwr["amenity"="college"](around:${dist},${lat},${lon});
     );out center;`;
 
-    const OVERPASS_URLS = [
-      'https://overpass-api.de/api/interpreter',
-      'https://overpass.kumi.systems/api/interpreter',
-    ];
+    // Un seul serveur fiable (le miroir kumi.systems ne répond plus — retiré le 04/10/2026).
+    // 2 tentatives : la 2e absorbe un refus passager (saturation 429/504), après une courte pause.
+    const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
+    const NB_TENTATIVES = 2;
+    const PAUSE_MS = 2000;
     const BUDGET_MS = 25000;
     const start = Date.now();
     let elements = null;
-    for (const url of OVERPASS_URLS) {
+    for (let tentative = 1; tentative <= NB_TENTATIVES; tentative++) {
+      if (tentative > 1) await new Promise(r => setTimeout(r, PAUSE_MS));
+      const url = OVERPASS_URL;
       const remaining = BUDGET_MS - (Date.now() - start);
       if (remaining < 3000) break;
       try {
@@ -37,6 +40,8 @@ export default async function handler(req, res) {
         });
         if (!_r.ok) continue;
         const json = await _r.json();
+        // Overpass peut répondre 200 avec une erreur interne (requête interrompue) : ce n'est pas « 0 école »
+        if (json.remark && /runtime error|timed out|out of memory/i.test(json.remark)) continue;
         elements = json.elements || [];
         break;
       } catch { continue; }
