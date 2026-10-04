@@ -3,7 +3,12 @@
 
 // Serveur Overpass (les miroirs kumi.systems et openstreetmap.ru ne répondent plus — retirés le 04/10/2026)
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
-const TIMEOUT_MS = 12000; // < 15 s attendus par le navigateur (loadBruit)
+// 2 tentatives (la 2e absorbe un refus passager d'Overpass, 504/429), budget < 28 s attendus
+// par le navigateur (loadBruit) et < 30 s max (vercel.json)
+const NB_TENTATIVES = 2;
+const PAUSE_MS = 2000;
+const BUDGET_MS = 25000;
+const TIMEOUT_TENTATIVE_MS = 12000;
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -23,16 +28,27 @@ export default async function handler(req, res) {
 
     // Si Overpass échoue, on lève une erreur (réponse « non disponible ») :
     // ne JAMAIS conclure « bruit très faible » faute de données.
-    const r = await fetch(OVERPASS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'IMMOAI/2.0 (https://immo-ai-nu.vercel.app)', 'Accept': 'application/json' },
-      body: 'data=' + encodeURIComponent(query),
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    });
-    if (!r.ok) throw new Error('Overpass HTTP ' + r.status);
-    const d = await r.json();
-    if (d.remark && /runtime error|timed out|out of memory/i.test(d.remark)) throw new Error('Overpass : ' + d.remark);
-    const elements = d.elements || [];
+    const start = Date.now();
+    let elements = null, derniereErreur = 'Overpass indisponible';
+    for (let tentative = 1; tentative <= NB_TENTATIVES; tentative++) {
+      if (tentative > 1) await new Promise(res => setTimeout(res, PAUSE_MS));
+      const remaining = BUDGET_MS - (Date.now() - start);
+      if (remaining < 3000) break;
+      try {
+        const r = await fetch(OVERPASS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'IMMOAI/2.0 (https://immo-ai-nu.vercel.app)', 'Accept': 'application/json' },
+          body: 'data=' + encodeURIComponent(query),
+          signal: AbortSignal.timeout(Math.min(TIMEOUT_TENTATIVE_MS, remaining)),
+        });
+        if (!r.ok) { derniereErreur = 'Overpass HTTP ' + r.status; continue; }
+        const d = await r.json();
+        if (d.remark && /runtime error|timed out|out of memory/i.test(d.remark)) { derniereErreur = 'Overpass : ' + d.remark; continue; }
+        elements = d.elements || [];
+        break;
+      } catch (e) { derniereErreur = e.message; }
+    }
+    if (elements === null) throw new Error(derniereErreur);
 
     // Analyse des sources
     const sources = [];
