@@ -17,6 +17,9 @@
     },
     "api/altitude.js": {
       "maxDuration": 30
+    },
+    "api/bruit.js": {
+      "maxDuration": 30
     }
   },
   "headers": [
